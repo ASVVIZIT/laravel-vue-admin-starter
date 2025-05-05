@@ -1,5 +1,5 @@
 # Laravel Vue Admin Starter
-###[Laravel Vue Admin Starter](https://) is a beautiful dashboard combination of [Laravel](https://laravel.com/), [Vue3](https://github.com/vuejs/vue) and the UI Toolkit [Element Plus](https://element-plus.org/).
+[Laravel Vue Admin Starter](https://) is a beautiful dashboard combination of [Laravel](https://laravel.com/), [Vue3](https://github.com/vuejs/vue) and the UI Toolkit [Element Plus](https://element-plus.org/).
 ## Installing Manual
 ### № 1 Clone the project and run composer
 ```bash
