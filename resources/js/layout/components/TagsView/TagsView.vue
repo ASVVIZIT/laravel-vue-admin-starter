@@ -17,16 +17,19 @@
       </router-link>
     </div>
     <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
-      <li @click="refreshSelectedTag(selectedTag)">Refresh</li>
-      <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">Close</li>
-      <li @click="closeOthersTags">Close Others</li>
-      <li @click="closeAllTags(selectedTag)">Close All</li>
+      <li @click="refreshSelectedTag(selectedTag)">{{ t('tagsView.refresh')}}</li>
+      <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">{{ t('tagsView.close')}}</li>
+      <li @click="closeOthersTags">{{ t('tagsView.closeOthers')}}</li>
+      <li @click="closeAllTags(selectedTag)">{{ t('tagsView.closeAll')}}</li>
     </ul>
   </div>
 </template>
 
 <script setup>
 // import ScrollPane from './ScrollPane'
+import {useI18n} from "vue-i18n";
+const {t} = useI18n({useScope: 'global'});
+
 import path from 'path'
 import { Close } from '@element-plus/icons-vue'
 import { appStore } from '@/store/app'
@@ -62,17 +65,6 @@ watch(
     addTags()
   }
 )
-watch(
-  () => resData.visible,
-  (value) => {
-    if (value) {
-      document.body.addEventListener('click', closeMenu)
-    } else {
-      document.body.removeEventListener('click', closeMenu)
-    }
-  }
-)
-
 watch(
   () => resData.visible,
   (value) => {

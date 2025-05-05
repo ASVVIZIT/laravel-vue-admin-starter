@@ -12,7 +12,9 @@ import VueSetupExtend from 'vite-plugin-vue-setup-extend-plus'
 import AutoImport from 'unplugin-auto-import/vite'
 
 function resolve(dir: any) {
+    // @ts-ignore
     return path.join(
+        // @ts-ignore
         __dirname,
         '/resources/js',
         dir
@@ -49,6 +51,7 @@ export default defineConfig({
     ],
     resolve: {
         alias: {
+            // @ts-ignore
             '@': path.join(__dirname, '/resources/js'),
             //remove i18n waring
             'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js'
@@ -57,6 +60,7 @@ export default defineConfig({
     build: {
         // 在 outDir 中生成 manifest.json
         manifest: true,
+        copyPublicDir: false,
         outDir: 'public/build',
         // 消除打包大小超过警告
         chunkSizeWarningLimit: 5000,
@@ -81,6 +85,7 @@ export default defineConfig({
                 {
                     postcssPlugin: 'internal:charset-removal',
                     AtRule: {
+                        // @ts-ignore
                         charset: (atRule) => {
                             if (atRule.name === 'charset') {
                                 atRule.remove()
@@ -93,7 +98,9 @@ export default defineConfig({
         preprocessorOptions: {
             //define global scss variable
             scss: {
-                additionalData: `@import "@/styles/variables.scss";`
+                api: "modern",
+                quietDeps: true,
+                additionalData: `@use "@/styles/variables.scss" as *;`,
             }
         }
     },

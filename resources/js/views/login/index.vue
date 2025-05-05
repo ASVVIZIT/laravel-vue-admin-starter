@@ -3,7 +3,7 @@
     <div class="login-container">
       <div class="login-image">
         <div class="photo-credit">
-          <span>Powered by TrumanWong</span>
+          <span>Powered by ASV</span>
         </div>
       </div>
       <div class="login-content">
@@ -50,7 +50,7 @@
             </el-button>
           </el-form-item>
           <div class="tips">
-            <span style="margin-right:20px;">Email: admin@laravel-vue-admin.eu.org</span>
+            <span style="margin-right:20px;">Email: admin@admin.com</span>
             <span>Password: 123456</span>
           </div>
         </el-form>
@@ -91,7 +91,7 @@ export default {
     }
     const resData = reactive({
       loginForm: {
-        email: 'admin@laravel-vue-admin.eu.org',
+        email: 'admin@admin.com',
         password: '123456',
       },
       ruleFormRef: {},

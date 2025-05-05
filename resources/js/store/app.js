@@ -8,7 +8,11 @@ export const appStore = defineStore('app', {
     return {
       sidebar: {
         opened: Cookies.get('sidebarStatus') ? !!+Cookies.get('sidebarStatus') : true,
-        withoutAnimation: false,
+        withoutAnimation: true,
+      },
+      rightPanel: {
+        opened: Cookies.get('rightPanelStatus') ? !!+Cookies.get('rightPanelStatus') : false,
+        withoutAnimation: true,
       },
       device: 'desktop',
       language: getLanguage(),
@@ -43,6 +47,32 @@ export const appStore = defineStore('app', {
         state.sidebar.withoutAnimation = withoutAnimation;
       })
     },
+
+    toggleRightPanel() {
+      this.$patch((state) => {
+          state.rightPanel.opened = !state.rightPanel.opened;
+          state.rightPanel.withoutAnimation = false;
+          if (state.rightPanel.opened) {
+              Cookies.set('rightPanelStatus', 1);
+          } else {
+              Cookies.set('rightPanelStatus', 0);
+          }
+      })
+    },
+    openRightPanel(data) {
+      this.$patch((state) => {
+          Cookies.set('rightPanelStatus', 1)
+          state.rightPanel.opened = data
+      })
+    },
+    closeRightPanel(withoutAnimation) {
+      this.$patch((state) => {
+          Cookies.set('rightPanelStatus', 0)
+          state.rightPanel.opened = false
+          state.rightPanel.withoutAnimation = withoutAnimation;
+      })
+    },
+
     toggleDevice(device) {
       this.$patch((state) => {
         state.device = device

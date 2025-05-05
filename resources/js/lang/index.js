@@ -1,19 +1,19 @@
 import {createI18n} from 'vue-i18n'
 import Cookies from 'js-cookie'
+import elementRuLocale from 'element-plus/dist/locale/ru.mjs' // element-plus lang
 import elementEnLocale from 'element-plus/dist/locale/en.mjs' // element-plus lang
-import elementZhLocale from 'element-plus/dist/locale/zh-cn.mjs'// element-plus lang
+import ruLocale from './ru'
 import enLocale from './en'
-import zhLocale from './zh'
 
 const messages = {
+    ru: {
+        ...ruLocale,
+        ...elementRuLocale,
+    },
   en: {
     ...enLocale,
     ...elementEnLocale,
   },
-  zh: {
-    ...zhLocale,
-    ...elementZhLocale,
-  }
 }
 
 export function getLanguage() {
@@ -30,7 +30,7 @@ export function getLanguage() {
       return locale
     }
   }
-  return 'en'
+  return 'ru'
 }
 
 const i18n = createI18n({

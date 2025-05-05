@@ -7,19 +7,15 @@
       <Navbar v-if="settings.showTopNavbar" />
       <TagsView v-if="settings.showTagsView" />
       <AppMain />
+      <RightPanel v-if="settings.showSettings">
+        <div class="text-center">настройки интерфейса сайта</div>
+      </RightPanel>
     </div>
   </div>
 </template>
-<!--原理vue2.0-->
-<script>
-/*可以设置默认的名字*/
-export default {
-  name: 'Layout'
-}
-</script>
 
 <script setup>
-import { Sidebar, Navbar, AppMain, TagsView } from './components'
+import { AppMain, Navbar, Sidebar, TagsView, RightPanel } from './components'
 import { appStore } from '@/store/app'
 
 const useAppStore = appStore()

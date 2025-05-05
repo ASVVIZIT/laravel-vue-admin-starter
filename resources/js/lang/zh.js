@@ -90,6 +90,7 @@ export default {
     sidebarLogo: '侧边栏Logo',
   },
   user: {
+    avatar: 'Аvatar',
     role: '角色',
     password: '密码',
     confirmPassword: '确认密码',
@@ -117,4 +118,12 @@ export default {
       visitor: '有权访问静态页面，不应具有任何可写权限',
     },
   },
+  switchLang: {
+    localName: 'Switch Language Success',
+  },
+  form: {
+    button: {
+      save: 'Save',
+    }
+  }
 };

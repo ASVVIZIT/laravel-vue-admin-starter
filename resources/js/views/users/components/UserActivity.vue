@@ -3,28 +3,29 @@
     <el-tabs v-model="activeActivity" @tab-click="handleClick">
       <el-tab-pane :label="t('user.timeline')" name="first">
         <div class="block">
-          <el-timeline>
-            <el-timeline-item
-                placement="top"
-                v-for="(item, index) in timeLinesData"
-                :key="index"
-                :timestamp="item.created_at"
-            >
-              <el-card>
-                <h4>{{item.title}}</h4>
-                <p>{{item.content}}</p>
-              </el-card>
-            </el-timeline-item>
+          <el-timeline class="el-timeline">
+                <el-timeline-item
+                    center
+                    placement="top"
+                    v-for="(item, index) in timeLinesData"
+                    :key="index"
+                    :timestamp="item.created_at"
+                >
+                  <el-card>
+                    <h4>{{item.title}}</h4>
+                    <p>{{item.content}}</p>
+                  </el-card>
+                </el-timeline-item>
           </el-timeline>
         </div>
       </el-tab-pane>
       <el-tab-pane v-loading="updating" :label="t('user.account')" name="second">
         <el-form :model="user" label-width="120px">
-          <el-form-item :label="t('user.name')">
+          <el-form-item :label="t('user.name')" >
             <el-input v-model="user.name" :disabled="disabled"/>
           </el-form-item>
           <el-form-item :label="t('user.email')">
-            <el-input v-model="user.email" :disabled="disabled"/>
+            <el-input v-model="user.email" :disabled="props.user.roles.includes('admin') === disabled"/>
           </el-form-item>
           <el-form-item :label="t('user.sex')">
             <el-radio-group v-model="user.sex">
@@ -51,7 +52,7 @@
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="onSubmit">
-              {{t('form.save')}}
+              {{t('form.button.save')}}
             </el-button>
           </el-form-item>
         </el-form>
@@ -76,7 +77,7 @@ const props = defineProps({
         avatar: '',
         roles: [],
         sex: 0,
-        birthday: '2006-01-02 15:04:05',
+        birthday: '2001-01-02 12:12:12',
         description: ''
       }
     },
@@ -113,6 +114,7 @@ const handleClick = (tab, event) => {
 const onSubmit = () => {
   resData.updating = true
   let params = {
+    name: props.user.name,
     sex: props.user.sex,
     description: props.user.description
   }
@@ -146,6 +148,9 @@ const {activeActivity, updating, disabled, timeLinesData, timeLinesPagination} =
 </script>
 
 <style lang="scss" scoped>
+.el-timeline {
+    padding: 2px 2px 2px 2px;
+}
 .user-activity {
   .user-block {
     .username, .description {
@@ -210,7 +215,6 @@ const {activeActivity, updating, disabled, timeLinesData, timeLinesPagination} =
       }
     }
   }
-
   .el-carousel__item h3 {
     color: #475669;
     font-size: 14px;

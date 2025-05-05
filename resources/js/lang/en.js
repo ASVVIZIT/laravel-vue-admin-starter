@@ -90,6 +90,7 @@ export default {
     sidebarLogo: 'Sidebar Logo',
   },
   user: {
+    avatar: 'Avatar',
     role: 'Role',
     password: 'Password',
     confirmPassword: 'Confirm password',
@@ -113,8 +114,16 @@ export default {
       admin: 'Super Administrator. Have access and full permission to all pages.',
       manager: 'Manager. Have access and permission to most of pages except permission page.',
       editor: 'Editor. Have access to most of pages, full permission with articles and related resources.',
-      user: 'Normal user. Have access to some pages',
-      visitor: 'Visitor. Have access to static pages, should not have any writable permission',
+      user: 'Normal user. Have access to some pages.',
+      visitor: 'Visitor. Have access to static pages, should not have any writable permission.',
     },
   },
+  switchLang: {
+    localName: 'Switch Language Success',
+  },
+  form: {
+    button: {
+      save: 'Save',
+    }
+  }
 };

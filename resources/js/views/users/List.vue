@@ -1,18 +1,26 @@
 <template>
   <div class="app-container scroll-y">
     <div class="filter-container">
-      <el-input v-model="params.keyword" :placeholder="t('user.name') + '/' + t('user.email')" style="width: 200px;" class="filter-item"
-                @keyup.enter.native="handleFilter"/>
-      <el-select v-model="params.role" :placeholder="t('roles.name')" clearable style="width: 90px; margin-right: 5px;"
-                 class="filter-item"
-                 @change="handleFilter">
+      <el-input
+          v-model="params.keyword"
+          :placeholder="t('user.name') + '/' + t('user.email')"
+          style="width: 220px;
+          margin-right: 5px;"
+          class="filter-item"
+          @keyup.enter.native="handleFilter"/>
+      <el-select
+          v-model="params.role"
+          :placeholder="t('roles.name')"
+          clearable
+          style="width: 110px; margin-right: 5px;"
+          class="filter-item"
+          @change="handleFilter">
         <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
       </el-select>
       <el-button class="filter-item" type="primary" :icon="Search" @click="handleFilter">
         {{ t('table.search') }}
       </el-button>
-      <el-button class="filter-item" type="primary" :icon="Plus"
-                 @click="handleCreate">
+      <el-button class="filter-item" type="primary" :icon="Plus"  @click="handleCreate">
         {{ t('table.add') }}
       </el-button>
     </div>
@@ -35,7 +43,7 @@
       </template>
     </custom-table>
 
-    <el-dialog :title="'Create new user'" v-model="dialogFormVisible">
+    <el-dialog :title="t('table.form.create.user')" v-model="dialogFormVisible">
       <div v-loading="userCreating" class="form-container">
         <el-form ref="refUserForm" :rules="rules" :model="newUser" label-position="left" label-width="150px"
                  style="max-width: 500px;">
@@ -91,7 +99,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="dialogPermissionVisible" :title="'Edit Permissions - ' + currentUser.name">
+    <el-dialog v-model="dialogPermissionVisible" :title="t('permission.table.edit.user') + ' - ' + currentUser.name">
       <div v-if="currentUser.name" v-loading="dialogPermissionLoading" class="form-container">
         <div class="permissions-container">
           <div class="block">
@@ -104,14 +112,14 @@
               </el-form-item>
             </el-form>
           </div>
-                    <div class="block">
-                      <el-form :model="currentUser" label-width="80px" label-position="top">
-                        <el-form-item label="Permissions">
-                          <el-tree ref="refOtherPermissions" :data="normalizedOtherPermissions" :default-checked-keys="permissionKeys(userOtherPermissions)" :props="permissionProps" show-checkbox node-key="id" class="permission-tree" />
-                        </el-form-item>
-                      </el-form>
-                    </div>
-                    <div class="clear-left" />
+        <div class="block">
+          <el-form :model="currentUser" label-width="80px" label-position="top">
+            <el-form-item label="Permissions">
+              <el-tree ref="refOtherPermissions" :data="normalizedOtherPermissions" :default-checked-keys="permissionKeys(userOtherPermissions)" :props="permissionProps" show-checkbox node-key="id" class="permission-tree" />
+            </el-form-item>
+          </el-form>
+        </div>
+        <div class="clear-left" />
         </div>
         <div style="text-align:right;">
           <el-button type="danger" @click="dialogPermissionVisible=false">

@@ -142,6 +142,7 @@ class UserController extends BaseController
             return response()->json(['errors' => $validator->errors()], 403);
         }
 
+        $user->name = $request->input('name');
         $user->sex = intval($request->input('sex'));
         $user->birthday = $request->input('birthday');
         $user->description = $request->input('description');

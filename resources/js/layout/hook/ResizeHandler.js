@@ -15,8 +15,10 @@ export default function () {
         /*此处只做根据window尺寸关闭sideBar功能*/
 
         useAppStore.openSideBar(false)
+        //useAppStore.openRightPanel(false)
       } else {
         useAppStore.openSideBar(true)
+       // useAppStore.openRightPanel(true)
       }
     }
   }
@@ -27,8 +29,10 @@ export default function () {
     const isMobile = $_isMobile()
     if (isMobile) {
       useAppStore.openSideBar(false)
+     // useAppStore.openRightPanel(false)
     } else {
       useAppStore.openSideBar(true)
+     // useAppStore.openRightPanel(true)
     }
   })
   onBeforeUnmount(() => {

@@ -6,7 +6,7 @@ return [
 
     // Admin Credentials
     'admin_name' => env('ADMIN_NAME', 'admin'),
-    'admin_email' => env('ADMIN_EMAIL', 'admin@laravel-vue-admin.eu.org'),
+    'admin_email' => env('ADMIN_EMAIL', 'admin@admin.com'),
     'admin_password' => env('ADMIN_PASSWORD', '123456'),
 
     // Default Avatar
@@ -17,7 +17,7 @@ return [
 
     // Meta
     'meta' => [
-        'keywords' => 'Laravel Vue Admin,laravel,vuejs',
+        'keywords' => 'Laravel Vue Admin, laravel, vuejs',
         'description' => 'Talk is cheap. Show me the code.'
     ],
 

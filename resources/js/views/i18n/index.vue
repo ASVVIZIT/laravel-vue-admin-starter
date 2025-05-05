@@ -7,14 +7,14 @@
       </div>
       <div>
         <el-radio-group v-model="lang" size="small">
+          <el-radio label="ru" border>
+            Русский
+          </el-radio>
           <el-radio label="vi" border>
             Tiếng Việt
           </el-radio>
           <el-radio label="en" border>
             English
-          </el-radio>
-          <el-radio label="ru" border>
-            Русский
           </el-radio>
           <el-radio label="zh" border>
             简体中文

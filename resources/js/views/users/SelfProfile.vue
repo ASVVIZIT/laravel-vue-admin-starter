@@ -1,12 +1,12 @@
 <template>
   <div class="app-container scroll-y">
     <el-form v-if="user" :model="user">
-      <el-row :gutter="20">
-        <el-col :span="6">
+      <el-row :gutter="16">
+        <el-col :span="10">
           <user-card :user="user" />
           <user-bio />
         </el-col>
-        <el-col :span="18">
+        <el-col :span="14">
           <user-activity :user="user" />
         </el-col>
       </el-row>

@@ -26,12 +26,15 @@
         <template #dropdown>
           <el-dropdown-menu>
             <router-link to="/">
-              <el-dropdown-item>Home</el-dropdown-item>
+              <el-dropdown-item>{{ t('navbar.home')}}</el-dropdown-item>
+            </router-link>
+            <router-link to="/profile/edit">
+              <el-dropdown-item>{{ t('navbar.profile')}}</el-dropdown-item>
             </router-link>
             <a target="_blank" href="https://github.com/trumanwong/laravel-vue-admin">
-              <el-dropdown-item>Github</el-dropdown-item>
+              <el-dropdown-item>{{ t('navbar.github')}}</el-dropdown-item>
             </a>
-            <el-dropdown-item divided @click="loginOut">login out</el-dropdown-item>
+            <el-dropdown-item divided @click="loginOut">{{ t('navbar.logout')}}</el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -40,39 +43,42 @@
 </template>
 
 <script setup>
-import SizeSelect from '@/components/SizeSelect/index.vue'
-import LangSelect from '@/components/LangSelect/index.vue'
-import ScreenFull from '@/components/ScreenFull/index.vue'
+import {useI18n} from "vue-i18n";
 
-import { CaretBottom } from '@element-plus/icons-vue'
-import Breadcrumb from './Breadcrumb'
-import Hamburger from './Hamburger'
+const {t} = useI18n({useScope: 'global'});
+import SizeSelect from '@/components/SizeSelect/index.vue';
+import LangSelect from '@/components/LangSelect/index.vue';
+import ScreenFull from '@/components/ScreenFull/index.vue';
 
-import { appStore } from '@/store/app'
-import { userStore } from '@/store/user'
-const router = useRouter()
-const route = useRoute()
+import { CaretBottom } from '@element-plus/icons-vue';
+import Breadcrumb from './Breadcrumb';
+import Hamburger from './Hamburger';
 
-const useUserStore = userStore()
-const useAppStore = appStore()
+import { appStore } from '@/store/app';
+import { userStore } from '@/store/user';
+const router = useRouter();
+const route = useRoute();
+
+const useUserStore = userStore();
+const useAppStore = appStore();
 
 const settings = computed(() => {
   return useAppStore.settings
-})
+});
 
 const opened = computed(() => {
   return useAppStore.sidebar.opened
-})
+});
 
 const toggleSideBar = () => {
   useAppStore.toggleSideBar()
-}
+};
 
 const loginOut = async () => {
   await useUserStore.logout().then(() => {
     router.push(`/login?redirect=/`)
-  })
-}
+  });
+};
 </script>
 
 <style lang="scss" scoped>

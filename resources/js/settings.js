@@ -2,7 +2,7 @@ export default {
   /**
    * @type {String}
    */
-  title: 'Laravel Vue Admin',
+  title: 'Laravel Fenix Admin',
   theme: '#1890ff',
 
   /**
@@ -21,7 +21,7 @@ export default {
    * @type {boolean} true | false
    * @description Whether fix the header
    */
-  fixedHeader: false,
+  fixedHeader: true,
 
   /**
    * @type {boolean} true | false
