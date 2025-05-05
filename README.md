@@ -21,6 +21,8 @@ composer install
 ```bash
 npm install
 ```
+
+### An example of the configuration of an "ENV file" is to copy the .env.dev or env.docker file to the .env file
 ### Generate key for APP_KEY .env
 ```bash
 php artisan key:generate
@@ -30,7 +32,7 @@ php artisan key:generate
 php artisan config:cache
 ```
 ## DATABASE
-### Example config ENV data base .env.dev
+### An example of the configuration of an "ENV file" is to copy the .env.dev or env.docker file to the .env file
 ### Migration and DB seeder (after changing your DB settings in .env)
 ```bash
 php artisan migrate --seed
