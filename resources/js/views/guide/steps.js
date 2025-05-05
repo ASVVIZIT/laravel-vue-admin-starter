@@ -13,18 +13,16 @@ const steps = [
             title: 'Breadcrumb',
             description: 'Indicate the current page location',
             position: 'bottom',
-            nextBtnText: 'Next',
-            prevBtnText: 'Prev',
         }
     },
-/*    {
+    {
         element: '#header-search',
         popover: {
             title: 'Page Search',
             description: 'Page search, quick navigation',
             position: 'left'
         }
-    },*/
+    },
     {
         element: '#screenfull',
         popover: {

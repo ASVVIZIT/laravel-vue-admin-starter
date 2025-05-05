@@ -1,6 +1,5 @@
 import './styles/index.scss';
 import 'bootstrap-icons/font/bootstrap-icons.scss';
-import 'driver.js/dist/driver.css';
 
 import Cookies from 'js-cookie';
 

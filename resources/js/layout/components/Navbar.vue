@@ -13,6 +13,7 @@
     <!--nav title-->
     <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
+<!--      <Search id="header-search" />-->
       <ScreenFull />
       <SizeSelect />
       <LangSelect />
@@ -47,6 +48,7 @@
 import {useI18n} from "vue-i18n";
 
 const {t} = useI18n({useScope: 'global'});
+import Search from '@/components/HeaderSearch/index.vue';
 import SizeSelect from '@/components/SizeSelect/index.vue';
 import LangSelect from '@/components/LangSelect/index.vue';
 import ScreenFull from '@/components/ScreenFull/index.vue';
