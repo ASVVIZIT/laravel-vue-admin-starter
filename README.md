@@ -1,33 +1,66 @@
-# Laravel Vue Admin
-
-[Laravel Vue Admin](https://laravel-vue-admin.eu.org) is a beautiful dashboard combination of [Laravel](https://laravel.com/), [Vue3](https://github.com/vuejs/vue) and the UI Toolkit [Element Plus](https://element-plus.org/).
-
-## Getting started
-
-### Installing
-
-#### Manual
-
+# Laravel Vue Admin Starter
+###[Laravel Vue Admin Starter](https://) is a beautiful dashboard combination of [Laravel](https://laravel.com/), [Vue3](https://github.com/vuejs/vue) and the UI Toolkit [Element Plus](https://element-plus.org/).
+## Installing Manual
+### № 1 Clone the project and run composer
 ```bash
-# Clone the project and run composer
-git clone https://github.com/trumanwong/laravel-vue-admin
-cd laravel-vue-admin
-
-# Migration and DB seeder (after changing your DB settings in .env)
-php artisan migrate --seed
-
-# Install dependency with NPM
+git clone https://github.com/ASVVIZIT/laravel-vue-admin-starter.git
+```
+```bash
+cd laravel-vue-admin-starter
+```
+#### Or clone Empty folder Set Dot
+```bash 
+git clone https://github.com/ASVVIZIT/laravel-vue-admin-starter.git .
+```
+### № 2 Run composer
+#### Install dependency with composer
+```bash
+composer install
+```
+### № 3 Install dependency with NPM
+```bash
 npm install
-
-# develop
-npm run watch
-
-# Build on production
-npm run build
+```
+### Generate key for APP_KEY .env
+```bash
+php artisan key:generate
+```
+### Create cache for system
+```bash
+php artisan config:cache
+```
+## DATABASE
+### Example config ENV data base .env.dev
+### Migration and DB seeder (after changing your DB settings in .env)
+```bash
+php artisan migrate --seed
+```
+### or seeding command 
+```bash
+php artisan migrate:refresh --seed
+```
+### Create cache for system
+```bash
+php artisan config:cache
 ```
 
-#### Docker
+## For Backend
+### Develop Start server
+```bash
+php artisan serve
+```
+http://localhost:8000 or http://127.0.0.1:8000
 
+## For Frontend
+### Develop Start
+```sh
+npm run watch
+```
+### Build on production
+```sh
+npm run build
+```
+### Docker
 ```sh
 docker-compose up -d
 ```
