@@ -13,7 +13,7 @@
         </div>
         <div class="bullshit__info">
           Copyright by
-          <a class="link-type" href="https://github.com/tuandm/laravue" target="_blank">Laravue</a>
+          <a class="link-type" href="https://github.com/asvvizit/laravel-vue-admin-starter" target="_blank">Project in github</a>
         </div>
         <div class="bullshit__headline">
           {{ message }}

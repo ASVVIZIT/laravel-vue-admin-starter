@@ -2,12 +2,13 @@
   <div class="navbar rowBC reset-el-dropdown">
     <div class="rowSC">
       <hamburger
+        id="hamburger-container"
         v-if="settings.showHamburger"
         :is-active="opened"
         class="hamburger-container"
         @toggleClick="toggleSideBar"
       />
-      <breadcrumb class="breadcrumb-container" />
+      <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
     </div>
     <!--nav title-->
     <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
@@ -31,7 +32,7 @@
             <router-link to="/profile/edit">
               <el-dropdown-item>{{ t('navbar.profile')}}</el-dropdown-item>
             </router-link>
-            <a target="_blank" href="https://github.com/trumanwong/laravel-vue-admin">
+            <a target="_blank" href="https://github.com/asvvizit/laravel-vue-admin-starter">
               <el-dropdown-item>{{ t('navbar.github')}}</el-dropdown-item>
             </a>
             <el-dropdown-item divided @click="loginOut">{{ t('navbar.logout')}}</el-dropdown-item>

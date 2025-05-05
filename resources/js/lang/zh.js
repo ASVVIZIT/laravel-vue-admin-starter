@@ -14,9 +14,10 @@ export default {
     errorPages: '错误页面',
     page401: '401',
     page404: '404',
-    administrator: 'Administrator',
+    administrator: '署长',
     users: '用户列表',
     userProfile: '用户信息',
+    guide: '网站指南',
   },
   navbar: {
     logOut: '退出登录',
@@ -90,7 +91,7 @@ export default {
     sidebarLogo: '侧边栏Logo',
   },
   user: {
-    avatar: 'Аvatar',
+    avatar: '阿凡达',
     role: '角色',
     password: '密码',
     confirmPassword: '确认密码',
@@ -119,11 +120,11 @@ export default {
     },
   },
   switchLang: {
-    localName: 'Switch Language Success',
+    localName: '切换语言成功',
   },
   form: {
     button: {
-      save: 'Save',
+      save: '储蓄',
     }
   }
 };

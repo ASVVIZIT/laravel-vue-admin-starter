@@ -19,11 +19,12 @@ export default {
     administrator: 'Администратор',
     users: 'Пользователи',
     userProfile: 'Профиль пользователя',
+    guide: 'Путеводитель по сайту',
   },
   navbar: {
     logOut: 'Выйти из системы',
     dashboard: 'Админ панель (Dashboard)',
-    github: 'Github',
+    github: 'Github страница',
     theme: 'Theme',
     size: 'Глобальный размер',
     profile: 'Профиль',

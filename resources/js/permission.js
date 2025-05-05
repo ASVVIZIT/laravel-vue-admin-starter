@@ -1,13 +1,13 @@
 import router from './router'
-import {ElMessage} from 'element-plus'
+import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress' // progress bar
 import 'nprogress/nprogress.css' // progress bar style
-import {isLogged} from '@/utils/auth'
+import { isLogged } from '@/utils/auth'
 import getPageTitle from '@/utils/get-page-title'
-import {userStore} from "@/store/user"
-import {permissionStore} from "@/store/permission"
+import {userStore } from "@/store/user"
+import { permissionStore } from "@/store/permission"
 
-NProgress.configure({showSpinner: false}) // NProgress Configuration
+NProgress.configure({ showSpinner: false }) // NProgress Configuration
 
 const whiteList = ['/login', '/auth-redirect'] // no redirect whitelist
 

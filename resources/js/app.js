@@ -1,17 +1,22 @@
 import './styles/index.scss';
 import 'bootstrap-icons/font/bootstrap-icons.scss';
-import {createApp} from 'vue';
+import 'driver.js/dist/driver.css';
+
 import Cookies from 'js-cookie';
+
+import {createApp} from 'vue';
+import App from './views/App.vue';
+import Icon from './components/Icon/Icon.vue';
+import router from './router';
+import './permission'; // permission control
+// ElementPlus
 import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import {dayjs} from 'element-plus';
 import dayjsLocale from "dayjs/locale/ru";
-import elmplusLocale from 'element-plus/es/locale/lang/ru';
-import router from './router';
+import elementLocale from 'element-plus/es/locale/lang/ru';
+// i18n lang
 import i18n from './lang'; // Internationalization
-import App from './views/App.vue';
-import './permission'; // permission control
-import Icon from './components/Icon/Icon.vue';
 
 const app = createApp(App);
 dayjs.locale(dayjsLocale);
@@ -22,7 +27,7 @@ app.config.globalProperties.productionTip = false;
 app.use(ElementPlus, {
   size: Cookies.get('size') || 'medium', // set element-plus default size
   i18n: (key, value) => i18n.t(key, value),
-  locale: elmplusLocale
+  locale: elementLocale
 });
 
 // pinia
