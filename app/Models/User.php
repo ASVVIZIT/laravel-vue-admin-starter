@@ -103,7 +103,7 @@ class User extends Authenticatable
     public function getAgeAttribute()
     {
         if (empty($this->birthday)) {
-            return 0;
+            return 'Дата рождения не указана';
         }
         return Carbon::now()->diffInYears($this->birthday);
     }

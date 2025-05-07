@@ -1,5 +1,5 @@
 <template>
-  <el-card v-if="user.name">
+  <el-card v-if="user.id">
     <el-tabs v-model="activeActivity" @tab-click="handleClick">
       <el-tab-pane :label="t('user.timeline')" name="first">
         <div class="block">
@@ -20,7 +20,11 @@
         </div>
       </el-tab-pane>
       <el-tab-pane v-loading="updating" :label="t('user.account')" name="second">
-        <el-form :model="user" label-width="120px">
+        <el-form
+            :model="user"
+            label-width="120px"
+            :label-position="right"
+        >
           <el-form-item :label="t('user.name')" >
             <el-input v-model="user.name" :disabled="disabled"/>
           </el-form-item>
@@ -29,8 +33,8 @@
           </el-form-item>
           <el-form-item :label="t('user.sex')">
             <el-radio-group v-model="user.sex">
-              <el-radio :label="0">{{ t('user.male') }}</el-radio>
-              <el-radio :label="1">{{ t('user.female') }}</el-radio>
+              <el-radio :label="0">{{ $t('user.male') }}</el-radio>
+              <el-radio :label="1">{{ $t('user.female') }}</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item :label="t('user.birthday')">
@@ -44,9 +48,11 @@
           <el-form-item :label="t('user.description')">
             <el-input
                 v-model="user.description"
+                :autosize="{ minRows: 3, maxRows: 6 }"
                 maxlength="255"
                 :placeholder="t('user.description')"
                 show-word-limit
+                style="width: 200px"
                 type="textarea"
             />
           </el-form-item>
@@ -114,13 +120,16 @@ const handleClick = (tab, event) => {
 const onSubmit = () => {
   resData.updating = true
   let params = {
-    name: props.user.name,
-    sex: props.user.sex,
-    description: props.user.description
+    name: props.user?.name,
+    sex: props.user?.sex,
+    description: props.user?.description
   }
+  //'birthday' => 'date_format:YYYY-MM-DD HH:mm:ss',
   if (props.user.birthday) {
     params.birthday = dayjs(props.user.birthday).format('YYYY-MM-DD HH:mm:ss')
   }
+
+  console.log('params ', props.user.id, params)
   userResource
       .update(props.user.id, params)
       .then(response => {

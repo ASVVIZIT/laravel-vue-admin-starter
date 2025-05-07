@@ -1,3 +1,5 @@
+import {ElMessage, ElMessageBox} from "element-plus";
+
 export default {
   route: {
     dashboard: 'Админ панель (Dashboard)',
@@ -42,18 +44,87 @@ export default {
     email: 'Email',
     loginSuccess: 'Успешный вход в систему'
   },
+  validateMassages: {
+      rules: {
+          role: {
+              required: 'Требуется роль',
+          },
+          name: {
+              required: 'Требуется указать имя',
+          },
+          sex: {
+              required: 'Требуется указать ваш пол',
+          },
+          email: {
+              required:'Требуется электронная почта (Email)',
+              type:'Введите правильный Email',
+          },
+          password: {
+              required: 'Требуется ввести пароль',
+          },
+          confirmPassword: {
+              required: 'Требуется ввести пароль',
+              mismatched: 'Пароль не совпадает!'
+          },
+
+      }
+  },
   permission: {
     addRole: 'Добавить разрешение для редактирования',
     editPermission: 'Редактировать разрешения',
     roles: 'Ваши роли',
     switchRoles: 'Поменяйтесь ролями',
-    tips: 'In some cases it is not suitable to use v-role/v-permission, such as element Tab component or el-table-column and other asynchronous rendering dom cases which can only be achieved by manually setting the v-if with checkRole or/and checkPermission.',
+    tips: 'В некоторых случаях он не подходит для использования v-role/v-permission, например, элемент Tab component или el-table-column и другие случаи асинхронного рендеринга dom, которые могут быть достигнуты только путем ручной настройки v-if с checkRole или/и checkPermission.',
     delete: 'Удалить',
     confirm: 'Применить',
     cancel: 'Отмена',
     table: {
         edit: {
-            user: 'Edit Permissions'
+            user: 'Права доступа к редактированию'
+        },
+        rolePermissions: {
+            name: 'Унаследовано от роли'
+        },
+        userPermissions: {
+            name: {
+                menu: 'Дополнительные меню',
+                permissions: 'Дополнительные разрешения',
+            }
+        },
+        elMessageBox: {
+            confirmButtonText: 'Принять',
+            cancelButtonText: 'Отмена',
+            warning: 'Предупреждение',
+            continue: 'Продолжать?',
+            confirm1: {
+                message: 'Это приведет к необратимому удалению пользователя',
+            },
+            confirm2: '',
+            confirm3: '',
+
+        },
+        elMessage: {
+            delete: {
+                success: {
+                    message: 'Удаление завершено',
+                },
+                canceled: {
+                    message: 'Удаление отменено'
+                }
+            },
+            newUser: {
+                success: {
+                    message: {
+                        part1: 'Новый пользователь',
+                        part2: 'был успешно создан.',
+                    },
+                }
+            },
+            confirmPermission: {
+                success: {
+                    message: 'Разрешения были успешно обновлены',
+                }
+            }
         }
     }
   },
@@ -85,7 +156,20 @@ export default {
     confirm: 'Применить',
     form: {
         create: {
-            user: 'Create new user'
+            user: 'Создание нового пользователя',
+            role: {
+                select: {
+                    placeholder: 'Пожалуйста, выберите роль'
+                }
+            }
+        }
+    },
+    roleColumn: {
+        label: {
+            id: 'Номер - ID',
+            name: 'Имя',
+            email: 'Электронная почта',
+            role: 'Роль',
         }
     }
   },
@@ -119,10 +203,10 @@ export default {
     account: 'Аккаунт',
     about_me: 'Обо мне',
     education: 'Образование',
-    skills: 'Навыки'
+    skills: 'Навыки',
   },
   roles: {
-    name: 'Name',
+    name: 'Роль',
     description: {
       admin: 'Super Administrator. Иметь доступ и полное разрешение на доступ ко всем страницам.',
       manager: 'Manager. Иметь доступ и разрешения на большинство страниц, за исключением страницы разрешений.',
@@ -137,6 +221,7 @@ export default {
   form: {
     button: {
         save: 'Сохранить',
+        cancel: 'Отмена',
     }
   }
 };

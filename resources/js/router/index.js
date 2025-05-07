@@ -39,7 +39,7 @@ export const constantRoutes = [
         path: 'dashboard',
         component: () => import('@/views/dashboard/index.vue'),
         name: 'Dashboard',
-        meta: { title: 'dashboard', bootstrapIcon: 'house-fill', noCache: false },
+        meta: { title: 'dashboard', bootstrapIcon: 'house-fill', affix: true, noCache: false },
       },
     ],
   },

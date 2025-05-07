@@ -12,6 +12,9 @@
     </div>
     <!--nav title-->
     <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
+    <div class="heardCenterTitle">
+<!--        <Timer></Timer>-->
+    </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
 <!--      <Search id="header-search" />-->
       <ScreenFull />
@@ -45,43 +48,53 @@
 </template>
 
 <script setup>
-import {useI18n} from "vue-i18n";
+import {reactive, toRef} from "vue"
+import {useI18n} from "vue-i18n"
+import Timer from './Timer/Timer.vue'
+const {t} = useI18n({useScope: 'global'})
+import Search from '@/components/HeaderSearch/index.vue'
+import SizeSelect from '@/components/SizeSelect/index.vue'
+import LangSelect from '@/components/LangSelect/index.vue'
+import ScreenFull from '@/components/ScreenFull/index.vue'
 
-const {t} = useI18n({useScope: 'global'});
-import Search from '@/components/HeaderSearch/index.vue';
-import SizeSelect from '@/components/SizeSelect/index.vue';
-import LangSelect from '@/components/LangSelect/index.vue';
-import ScreenFull from '@/components/ScreenFull/index.vue';
+import { CaretBottom } from '@element-plus/icons-vue'
+import Breadcrumb from './Breadcrumb'
+import Hamburger from './Hamburger'
+import { appStore } from '@/store/app'
+import { userStore } from '@/store/user'
+import moment from "moment";
 
-import { CaretBottom } from '@element-plus/icons-vue';
-import Breadcrumb from './Breadcrumb';
-import Hamburger from './Hamburger';
+const router = useRouter()
+const route = useRoute()
 
-import { appStore } from '@/store/app';
-import { userStore } from '@/store/user';
-const router = useRouter();
-const route = useRoute();
+const useUserStore = userStore()
+const useAppStore = appStore()
 
-const useUserStore = userStore();
-const useAppStore = appStore();
+/*const timeZone = "Asia/Yekaterinburg"
+let stringInput = new Date()
+let dateObject = new Date(stringInput).toLocaleString("ru-RU", {
+    timeZone,
+})
+
+//dateObject = moment(stringInput, 'MMMM Do YYYY, h:mm:ss a').fromNow()*/
 
 const settings = computed(() => {
   return useAppStore.settings
-});
+})
 
 const opened = computed(() => {
   return useAppStore.sidebar.opened
-});
+})
 
 const toggleSideBar = () => {
   useAppStore.toggleSideBar()
-};
+}
 
 const loginOut = async () => {
   await useUserStore.logout().then(() => {
     router.push(`/login?redirect=/`)
-  });
-};
+  })
+}
 </script>
 
 <style lang="scss" scoped>

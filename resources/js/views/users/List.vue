@@ -3,17 +3,15 @@
     <div class="filter-container">
       <el-input
           v-model="params.keyword"
-          :placeholder="t('user.name') + '/' + t('user.email')"
-          style="width: 220px;
-          margin-right: 5px;"
-          class="filter-item"
+          :placeholder="$t('user.name') + '/' + $t('user.email')"
+          clearable
+          class="filter-item search-filter-item"
           @keyup.enter.native="handleFilter"/>
       <el-select
           v-model="params.role"
-          :placeholder="t('roles.name')"
+          :placeholder="$t('roles.name')"
           clearable
-          style="width: 110px; margin-right: 5px;"
-          class="filter-item"
+          class="filter-item select-role-filter-item"
           @change="handleFilter">
         <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
       </el-select>
@@ -43,25 +41,33 @@
       </template>
     </custom-table>
 
-    <el-dialog :title="t('table.form.create.user')" v-model="dialogFormVisible">
+    <el-dialog :title="$t('table.form.create.user')" v-model="dialogFormVisible">
       <div v-loading="userCreating" class="form-container">
-        <el-form ref="refUserForm" :rules="rules" :model="newUser" label-position="left" label-width="150px"
-                 style="max-width: 500px;">
-          <el-form-item :label="t('user.role')" prop="role">
-            <el-select v-model="newUser.role" class="filter-item" placeholder="Please select role">
-              <el-option v-for="item in nonAdminRoles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
+        <el-form
+            ref="refUserForm"
+            :rules="rules"
+            :model="newUser"
+            label-position="right"
+            label-width="170px"
+            style="max-width: 600px;">
+          <el-form-item :label="$t('user.role')" prop="role">
+            <el-select v-if="roles.includes('admin')" v-model="newUser.role" class="filter-item" :placeholder="$t('table.form.create.role.select.placeholder')">
+              <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
+            </el-select>
+            <el-select v-else-if="roles.includes('admin')" v-model="newUser.role" class="filter-item" :placeholder="$t('table.form.create.role.select.placeholder')">
+                <el-option v-for="item in nonAdminRoles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
             </el-select>
           </el-form-item>
-          <el-form-item :label="t('user.name')" prop="name">
+          <el-form-item :label="$t('user.name')" prop="name">
             <el-input v-model="newUser.name"/>
           </el-form-item>
-          <el-form-item :label="t('user.email')" prop="email">
+          <el-form-item :label="$t('user.email')" prop="email">
             <el-input v-model="newUser.email"/>
           </el-form-item>
-          <el-form-item :label="t('user.password')" prop="password">
+          <el-form-item :label="$t('user.password')" prop="password">
             <el-input v-model="newUser.password" show-password/>
           </el-form-item>
-          <el-form-item :label="t('user.confirmPassword')" prop="confirmPassword">
+          <el-form-item :label="$t('user.confirmPassword')" prop="confirmPassword">
             <el-input v-model="newUser.confirmPassword" show-password/>
           </el-form-item>
           <el-form-item :label="$t('user.sex')">
@@ -99,7 +105,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog v-model="dialogPermissionVisible" :title="t('permission.table.edit.user') + ' - ' + currentUser.name">
+    <el-dialog v-model="dialogPermissionVisible" :title="$t('permission.table.edit.user') + ' - ' + currentUser.name">
       <div v-if="currentUser.name" v-loading="dialogPermissionLoading" class="form-container">
         <div class="permissions-container">
           <div class="block">
@@ -159,7 +165,7 @@ export default {
 
     const validateConfirmPassword = (rule, value, callback) => {
       if (value !== resData.newUser.password) {
-        callback(new Error('Password is mismatched!'))
+        callback(new Error(t('validateMassages.rules.confirmPassword.mismatched')))
       } else {
         callback()
       }
@@ -168,17 +174,17 @@ export default {
     const resData = reactive({
       basicColumn: [{
         prop: 'id',
-        label: 'ID',
+        label: t('table.roleColumn.label.id'),
         width: '100'
       }, {
         prop: 'name',
-        label: 'Name',
+        label: t('table.roleColumn.label.name'),
       }, {
         prop: 'email',
-        label: 'Email',
+        label: t('table.roleColumn.label.email'),
       }, {
         prop: 'roles',
-        label: 'Role',
+        label: t('table.roleColumn.label.role'),
         width: '200',
         slot: true
       }],
@@ -198,19 +204,19 @@ export default {
       },
       roles: ['admin', 'manager', 'editor', 'user', 'visitor'],
       nonAdminRoles: ['editor', 'user', 'visitor'],
-      pageSizes: [10, 30, 50, 100],
+      pageSizes: [5, 10, 30, 50, 100, 150, 200],
       dialogFormVisible: ref(false),
       userCreating: false,
       newUser: {},
       rules: {
-        role: [{required: true, message: 'Role is required', trigger: 'change'}],
-        name: [{required: true, message: 'Name is required', trigger: 'blur'}],
+        role: [{required: true, message: t('validateMassages.rules.rule.required'), trigger: 'change'}],
+        name: [{required: true, message: t('validateMassages.rules.name.required'), trigger: 'blur'}],
         email: [
-          {required: true, message: 'Email is required', trigger: 'blur'},
-          {type: 'email', message: 'Please input correct email address', trigger: ['blur', 'change']},
+          {required: true, message: t('validateMassages.rules.email.required'), trigger: 'blur'},
+          {type: 'email', message: t('validateMassages.rules.email.type') + ' ' + '(' + 'example@gmail.com' + ')', trigger: ['blur', 'change']},
         ],
-        password: [{required: true, message: 'Password is required', trigger: 'blur'}],
-        confirmPassword: [{validator: validateConfirmPassword, trigger: 'blur'}],
+        password: [{required: true, message: t('validateMassages.rules.password.required'), trigger: 'blur'}],
+        confirmPassword: [{required: true, validator: validateConfirmPassword, trigger: 'blur'}],
       },
       dialogPermissionVisible: false,
       dialogPermissionLoading: false,
@@ -242,7 +248,7 @@ export default {
         })
         const rolePermissions = {
           id: -1, // Just a faked ID
-          name: 'Inherited from role',
+          name: t('permission.table.rolePermissions.name'),
           disabled: true,
           children: classifyPermissions(tmp).menu,
         }
@@ -250,7 +256,7 @@ export default {
         tmp = resData.menuPermissions.filter(permission => !resData.currentUser.permissions.role.find(p => p.id === permission.id))
         const userPermissions = {
           id: 0, // Faked ID
-          name: 'Extra menus',
+          name: t('permission.table.userPermissions.name.menu'),
           children: tmp,
           disabled: tmp.length === 0,
         }
@@ -271,7 +277,7 @@ export default {
         })
         const rolePermissions = {
           id: -1,
-          name: 'Inherited from role',
+          name: t('permission.table.rolePermissions.name'),
           disabled: true,
           children: classifyPermissions(tmp).other,
         }
@@ -279,7 +285,7 @@ export default {
         tmp = resData.otherPermissions.filter(permission => !resData.currentUser.permissions.role.find(p => p.id === permission.id))
         const userPermissions = {
           id: 0,
-          name: 'Extra permissions',
+          name: t('permission.table.userPermissions.name.permissions'),
           children: tmp,
           disabled: tmp.length === 0,
         }
@@ -318,10 +324,7 @@ export default {
       }
       if (useUserStore.permissions.includes('manage permission')) {
         resData.tableOption.item_actions.push({
-          name: 'edit-permission-item',
-          type: 'warning',
-          icon: 'EditPen',
-          label: t('permission.editPermission')
+          name: 'edit-permission-item', type: 'warning', icon: 'EditPen', label: t('permission.editPermission')
         })
       }
     }
@@ -357,15 +360,15 @@ export default {
       } else if (action === 'edit-permission-item') {
         handleEditPermissions(data)
       } else if (action === 'delete-item') {
-        ElMessageBox.confirm('This will permanently delete user ' + data.name + '. Continue?', 'Warning', {
-          confirmButtonText: 'OK',
-          cancelButtonText: 'Cancel',
+        ElMessageBox.confirm(t('permission.table.elMessageBox.confirm1.message') + ' ' + data.name + '. ' + t('permission.table.elMessageBox.continue'), t('permission.table.elMessageBox.warning'), {
+          confirmButtonText: t('permission.table.elMessageBox.confirmButtonText'),
+          cancelButtonText: t('permission.table.elMessageBox.cancelButtonText'),
           type: 'warning',
         }).then(() => {
           userResource.destroy(data.id).then(response => {
             ElMessage({
               type: 'success',
-              message: 'Delete completed',
+              message:  t('permission.table.elMessage.delete.success.message'),
             })
             handleFilter()
           }).catch(error => {
@@ -374,7 +377,7 @@ export default {
         }).catch(() => {
           ElMessage({
             type: 'info',
-            message: 'Delete canceled',
+            message: t('permission.table.elMessage.delete.canceled.message'),
           })
         })
       }
@@ -399,7 +402,7 @@ export default {
               .store(resData.newUser)
               .then(response => {
                 ElMessage({
-                  message: 'New user ' + resData.newUser.name + '(' + resData.newUser.email + ') has been created successfully.',
+                  message: t('permission.table.elMessage.newUser.success.message.part1') + ' ' + resData.newUser.name + ' ' + '(' + resData.newUser.email + ')' + ' ' + t('permission.table.elMessage.newUser.success.message.part2'),
                   type: 'success',
                   duration: 5 * 1000,
                 })
@@ -489,7 +492,7 @@ export default {
 
       userResource.updatePermission(resData.currentUserId, {permissions: checkedPermissions}).then(response => {
         ElMessage({
-          message: 'Permissions has been updated successfully',
+          message: t('permission.table.elMessage.confirmPermission.success.message'),
           type: 'success',
           duration: 5 * 1000,
         })
@@ -548,6 +551,17 @@ export default {
   font-size: 14px;
   padding-right: 8px;
 
+  .filter-container {
+
+      .filter-item.search-filter-item {
+          width: 220px;
+          margin-right: 5px;
+      }
+      .filter-item.select-role-filter-item {
+          width: 110px;
+          margin-right: 5px;
+      }
+  }
   .block {
     float: left;
     min-width: 250px;

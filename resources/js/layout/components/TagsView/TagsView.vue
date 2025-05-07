@@ -1,21 +1,23 @@
 <template>
   <div id="tags-view-container" class="tags-view-container">
-    <div class="tags-view-wrapper">
-      <router-link
-        v-for="tag in visitedViews"
-        ref="refTag"
-        :key="tag.path"
-        :class="isActive(tag) ? 'active' : ''"
-        :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
-        tag="span"
-        class="tags-view-item"
-        @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
-        @contextmenu.prevent="openMenu(tag, $event)"
-      >
-        {{ generateTitle(tag.title) }}
-        <Close v-if="!isAffix(tag)" class="el-icon-close" @click.prevent.stop="closeSelectedTag(tag)"></Close>
-      </router-link>
-    </div>
+      <scroll-pane ref="scrollPane" class="tags-view-wrapper" @scroll="handleScroll">
+        <div class="tags-view-wrapper">
+          <router-link
+            v-for="tag in visitedViews"
+            ref="refTag"
+            :key="tag.path"
+            :class="isActive(tag) ? 'active' : ''"
+            :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
+            tag="span"
+            class="tags-view-item"
+            @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
+            @contextmenu.prevent="openMenu(tag, $event)"
+          >
+            {{ generateTitle(tag.title) }}
+            <Close v-if="!isAffix(tag)" class="el-icon-close" @click.prevent.stop="closeSelectedTag(tag)"></Close>
+          </router-link>
+        </div>
+      </scroll-pane>
     <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
       <li @click="refreshSelectedTag(selectedTag)">{{ t('tagsView.refresh')}}</li>
       <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">{{ t('tagsView.close')}}</li>
@@ -26,7 +28,7 @@
 </template>
 
 <script setup>
-// import ScrollPane from './ScrollPane'
+import ScrollPane from './ScrollPane.vue'
 import {useI18n} from "vue-i18n";
 const {t} = useI18n({useScope: 'global'});
 
@@ -198,6 +200,9 @@ const openMenu = (tag, e) => {
 }
 const closeMenu = () => {
   resData.visible = false
+}
+const handleScroll = () => {
+    closeMenu()
 }
 
 //export to page use

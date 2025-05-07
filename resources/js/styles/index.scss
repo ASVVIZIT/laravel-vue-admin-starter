@@ -13,7 +13,7 @@
 }
 .scroll-y {
   @include main-show-wh();
-  overflow-y: auto;
+  overflow-y: overlay;
 }
 .scroll-x {
   @include main-show-wh();
@@ -21,20 +21,27 @@
 }
 .scroll-xy {
   @include main-show-wh();
-  overflow: auto;
+  overflow: overlay;
 }
 
 #app {
   height: 100%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
 }
 
 html {
   height: 100%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
   box-sizing: border-box;
 }
 
 body {
   height: 100%;
+  overflow: hidden;
   margin: 0;
   padding: 0;
   font-size: 14px;
