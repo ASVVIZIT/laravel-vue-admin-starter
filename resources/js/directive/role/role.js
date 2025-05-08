@@ -1,21 +1,20 @@
-import {userStore} from '@/store/user';
+import {useUserStore} from '@/stores/user';
 
 export default {
-  inserted(el, binding, vnode) {
-    const {value} = binding;
-    const roles = userStore.roles;
+    mounted(el, binding) {
+        const userStore = useUserStore();
+        const roles = userStore.roles;
+        const { value } = binding;
 
-    if (value && value instanceof Array && value.length > 0) {
-      const requiredRoles = value;
-      const hasRole = roles.some(role => {
-        return requiredRoles.includes(role);
-      });
+        if (value && Array.isArray(value) && value.length > 0) {
+            const requiredRoles = value;
+            const hasRole = roles.some(role => requiredRoles.includes(role));
 
-      if (!hasRole) {
-        el.parentNode && el.parentNode.removeChild(el);
-      }
-    } else {
-      throw new Error(`Roles are required! Example: v-role="['admin','editor']"`);
+            if (!hasRole) {
+                el.parentNode?.removeChild(el);
+            }
+        } else {
+            throw new Error(`Roles are required! Example: v-role="['admin','editor']"`);
+        }
     }
-  },
 };

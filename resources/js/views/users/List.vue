@@ -72,17 +72,19 @@
           </el-form-item>
           <el-form-item :label="$t('user.sex')">
             <el-radio-group v-model="newUser.sex">
-              <el-radio :label="0">{{ $t('user.male') }}</el-radio>
-              <el-radio :label="1">{{ $t('user.female') }}</el-radio>
+              <el-radio :value="0">{{ $t('user.male') }}</el-radio>
+              <el-radio :value="1">{{ $t('user.female') }}</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item :label="$t('user.birthday')">
+          <el-config-provider :locale="locale">
             <el-date-picker
                 v-model="newUser.birthday_model"
                 type="datetime"
                 :placeholder="$t('user.birthday')"
                 value-format="YYYY-MM-DD HH:mm:ss"
             />
+          </el-config-provider>
           </el-form-item>
           <el-form-item :label="$t('user.description')">
             <el-input
@@ -140,392 +142,411 @@
   </div>
 </template>
 
-<script>
+<script setup>
+// Импорты Vue и сторонних библиотек
+// Imports from Vue and third-party libraries
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search, Plus } from '@element-plus/icons-vue'
+import dayjs from 'dayjs'
+
+// Компоненты
+// Components
 import CustomTable from '@/components/CustomTable.vue'
 import ElSvgItem from "@/components/Item/ElSvgItem.vue"
+
+// API и утилиты
+// API and utilities
 import UserResource from '@/api/user'
 import Resource from '@/api/resource'
 import checkPermission from '@/utils/permission'
-import {ElMessage, ElMessageBox} from "element-plus"
-import {uppercaseFirst} from "../../utils"
-import {useI18n} from "vue-i18n"
-import {userStore} from "@/store/user" // Permission checking
-import {Search, Plus} from '@element-plus/icons-vue'
-import dayjs from 'dayjs'
+import { uppercaseFirst } from '@/utils'
+import ru from 'element-plus/dist/locale/ru.mjs'
+import en from 'element-plus/dist/locale/en.mjs'
 
-export default {
-  components: {CustomTable, ElSvgItem},
-  setup() {
-    const {t} = useI18n({useScope: 'global'})
-    const userResource = new UserResource()
-    const permissionResource = new Resource('permissions')
-    const refUserForm = ref(null)
-    const refMenuPermissions = ref(null)
-    const refOtherPermissions = ref(null)
+// Pinia хранилище
+// Pinia store
+import { useUserStore } from '@/store/user'
 
-    const validateConfirmPassword = (rule, value, callback) => {
-      if (value !== resData.newUser.password) {
+// Настройка i18n
+// i18n setup
+const { t } = useI18n({ useScope: 'global' })
+const router = useRouter()
+
+// Локализация Element Plus
+// Element Plus localization
+const language = ref('ru')
+const locale = computed(() => language.value === 'ru' ? ru : en)
+
+// Реактивные состояния
+// Reactive states
+const userStore = useUserStore()
+const userResource = new UserResource()
+const permissionResource = new Resource('permissions')
+
+// Ссылки на элементы DOM и компоненты
+// DOM element and component refs
+const refUserForm = ref(null)
+const refMenuPermissions = ref(null)
+const refOtherPermissions = ref(null)
+
+// Параметры таблицы и пагинации
+// Table and pagination parameters
+const params = reactive({
+    page: 1,
+    per_page: 10,
+    keyword: '',
+    role: '',
+})
+
+const pagination = reactive({
+    total: 0,
+    currentPage: 1,
+    pageSize: 10
+})
+
+// Данные таблицы и фильтры
+// Table data and filters
+const tableData = ref([])
+const loading = ref(true)
+const roles = ['admin', 'manager', 'editor', 'user', 'visitor']
+const nonAdminRoles = ['editor', 'user', 'visitor']
+const pageSizes = [5, 10, 30, 50, 100, 150, 200]
+
+// Настройки таблицы
+// Table settings
+const basicColumn = computed(() => [
+    { prop: 'id', label: t('table.roleColumn.label.id'), width: '100' },
+    { prop: 'name', label: t('table.roleColumn.label.name') },
+    { prop: 'email', label: t('table.roleColumn.label.email') },
+    { prop: 'roles', label: t('table.roleColumn.label.role'), width: '200', slot: true }
+])
+
+const tableOption = reactive({
+    slot: true,
+    label: t('table.actions'),
+    fixed: 'right',
+    item_actions: []
+})
+
+// Состояния формы создания пользователя
+// User creation form states
+const dialogFormVisible = ref(false)
+const userCreating = ref(false)
+const newUser = reactive({
+    role: 'user',
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    sex: 0,
+    birthday_model: null,
+    description: ''
+})
+
+// Правила валидации формы
+// Form validation rules
+const validateConfirmPassword = (rule, value, callback) => {
+    if (value !== newUser.password) {
         callback(new Error(t('validateMassages.rules.confirmPassword.mismatched')))
-      } else {
+    } else {
         callback()
-      }
     }
-
-    const resData = reactive({
-      basicColumn: [{
-        prop: 'id',
-        label: t('table.roleColumn.label.id'),
-        width: '100'
-      }, {
-        prop: 'name',
-        label: t('table.roleColumn.label.name'),
-      }, {
-        prop: 'email',
-        label: t('table.roleColumn.label.email'),
-      }, {
-        prop: 'roles',
-        label: t('table.roleColumn.label.role'),
-        width: '200',
-        slot: true
-      }],
-      tableOption: {},
-      tableData: [],
-      loading: true,
-      pagination: {
-        total: 0,
-        currentPage: 1,
-        pageSize: 10
-      },
-      params: {
-        page: 1,
-        per_page: 10,
-        keyword: '',
-        role: '',
-      },
-      roles: ['admin', 'manager', 'editor', 'user', 'visitor'],
-      nonAdminRoles: ['editor', 'user', 'visitor'],
-      pageSizes: [5, 10, 30, 50, 100, 150, 200],
-      dialogFormVisible: ref(false),
-      userCreating: false,
-      newUser: {},
-      rules: {
-        role: [{required: true, message: t('validateMassages.rules.rule.required'), trigger: 'change'}],
-        name: [{required: true, message: t('validateMassages.rules.name.required'), trigger: 'blur'}],
-        email: [
-          {required: true, message: t('validateMassages.rules.email.required'), trigger: 'blur'},
-          {type: 'email', message: t('validateMassages.rules.email.type') + ' ' + '(' + 'example@gmail.com' + ')', trigger: ['blur', 'change']},
-        ],
-        password: [{required: true, message: t('validateMassages.rules.password.required'), trigger: 'blur'}],
-        confirmPassword: [{required: true, validator: validateConfirmPassword, trigger: 'blur'}],
-      },
-      dialogPermissionVisible: false,
-      dialogPermissionLoading: false,
-      permissionProps: {
-        children: 'children',
-        label: 'name',
-        disabled: 'disabled',
-      },
-      permissions: [],
-      menuPermissions: [],
-      otherPermissions: [],
-      currentUserId: 0,
-      currentUser: {
-        name: '',
-        permissions: {
-          role: [],
-          user: []
-        },
-        rolePermissions: [],
-      },
-      normalizedMenuPermissions: computed(() => {
-        let tmp = []
-        resData.currentUser.permissions.role.forEach(permission => {
-          tmp.push({
-            id: permission.id,
-            name: permission.name,
-            disabled: true,
-          })
-        })
-        const rolePermissions = {
-          id: -1, // Just a faked ID
-          name: t('permission.table.rolePermissions.name'),
-          disabled: true,
-          children: classifyPermissions(tmp).menu,
-        }
-
-        tmp = resData.menuPermissions.filter(permission => !resData.currentUser.permissions.role.find(p => p.id === permission.id))
-        const userPermissions = {
-          id: 0, // Faked ID
-          name: t('permission.table.userPermissions.name.menu'),
-          children: tmp,
-          disabled: tmp.length === 0,
-        }
-
-        return [rolePermissions, userPermissions]
-      }),
-      normalizedOtherPermissions: computed(() => {
-        if (resData.currentUser.permissions.role.length === 0) {
-          return []
-        }
-        let tmp = []
-        resData.currentUser.permissions.role.forEach(permission => {
-          tmp.push({
-            id: permission.id,
-            name: permission.name,
-            disabled: true,
-          })
-        })
-        const rolePermissions = {
-          id: -1,
-          name: t('permission.table.rolePermissions.name'),
-          disabled: true,
-          children: classifyPermissions(tmp).other,
-        }
-
-        tmp = resData.otherPermissions.filter(permission => !resData.currentUser.permissions.role.find(p => p.id === permission.id))
-        const userPermissions = {
-          id: 0,
-          name: t('permission.table.userPermissions.name.permissions'),
-          children: tmp,
-          disabled: tmp.length === 0,
-        }
-
-        return [rolePermissions, userPermissions]
-      }),
-      userMenuPermissions: computed(() => {
-        if (resData.userPermissions.length === 0) {
-          return []
-        }
-        const {menu} = classifyPermissions(resData.userPermissions)
-        return menu
-      }),
-      userOtherPermissions: computed(() => {
-        if (resData.userPermissions.length === 0) {
-          return []
-        }
-        const {other} = classifyPermissions(resData.userPermissions)
-        return other
-      }),
-      userPermissions: computed(() => {
-        return resData.currentUser.permissions.role.concat(resData.currentUser.permissions.user)
-      }),
-    })
-
-    const useUserStore = userStore()
-    if (useUserStore.permissions.includes('manage user')) {
-      resData.tableOption = {
-        slot: true,
-        label: t('table.actions'),
-        fixed: 'right',
-        item_actions: [
-          {name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('table.edit')},
-          {name: 'delete-item', type: 'danger', icon: 'Delete', label: t('table.delete')},
-        ],
-      }
-      if (useUserStore.permissions.includes('manage permission')) {
-        resData.tableOption.item_actions.push({
-          name: 'edit-permission-item', type: 'warning', icon: 'EditPen', label: t('permission.editPermission')
-        })
-      }
-    }
-
-    const getList = () => {
-      resData.loading = true
-      userResource.list(resData.params).then((res) => {
-        resData.tableData = res.data
-        resData.pagination = res.meta
-        resData.loading = false
-      })
-    }
-
-    const handleFilter = () => {
-      resData.params.page = 1
-      getList()
-      if (refUserForm) {
-        refUserForm.clearValidate()
-      }
-    }
-
-    const setParams = (key, value) => {
-      if (key !== 'per_page' && key !== 'page') {
-        resData.params.page = 1
-      }
-      resData.params[key] = value
-      getList()
-    }
-    const router = useRouter()
-    const tableActions = (action, data) => {
-      if (action === 'edit-item') {
-        router.push(`/administrator/users/edit/${data.id}`)
-      } else if (action === 'edit-permission-item') {
-        handleEditPermissions(data)
-      } else if (action === 'delete-item') {
-        ElMessageBox.confirm(t('permission.table.elMessageBox.confirm1.message') + ' ' + data.name + '. ' + t('permission.table.elMessageBox.continue'), t('permission.table.elMessageBox.warning'), {
-          confirmButtonText: t('permission.table.elMessageBox.confirmButtonText'),
-          cancelButtonText: t('permission.table.elMessageBox.cancelButtonText'),
-          type: 'warning',
-        }).then(() => {
-          userResource.destroy(data.id).then(response => {
-            ElMessage({
-              type: 'success',
-              message:  t('permission.table.elMessage.delete.success.message'),
-            })
-            handleFilter()
-          }).catch(error => {
-            console.log(error)
-          })
-        }).catch(() => {
-          ElMessage({
-            type: 'info',
-            message: t('permission.table.elMessage.delete.canceled.message'),
-          })
-        })
-      }
-    }
-
-    const handleCreate = () => {
-      resetNewUser()
-      resData.dialogFormVisible = true
-    }
-    const createUser = (formEl) => {
-      if (!formEl) {
-        return
-      }
-      formEl.validate((valid) => {
-        if (valid) {
-          resData.newUser.roles = [resData.newUser.role]
-          if (resData.newUser.birthday_model) {
-            resData.newUser.birthday = dayjs(resData.newUser.birthday_model).format('YYYY-MM-DD HH:mm:ss')
-          }
-          resData.userCreating = true
-          userResource
-              .store(resData.newUser)
-              .then(response => {
-                ElMessage({
-                  message: t('permission.table.elMessage.newUser.success.message.part1') + ' ' + resData.newUser.name + ' ' + '(' + resData.newUser.email + ')' + ' ' + t('permission.table.elMessage.newUser.success.message.part2'),
-                  type: 'success',
-                  duration: 5 * 1000,
-                })
-                resetNewUser()
-                resData.dialogFormVisible = false
-                handleFilter()
-              })
-              .catch(error => {
-                console.log(error)
-              })
-              .finally(() => {
-                resData.userCreating = false
-              })
-        } else {
-          console.log('error submit!!')
-          return false
-        }
-      })
-    }
-    const resetNewUser = () => {
-      resData.newUser = {
-        role: 'user',
-      }
-    }
-
-    const getPermissions = async() => {
-      const { data } = await permissionResource.list({})
-      const { all, menu, other } = classifyPermissions(data)
-      resData.permissions = all
-      resData.menuPermissions = menu
-      resData.otherPermissions = other
-    }
-
-    const handleEditPermissions = async (userData) => {
-      resData.currentUserId = userData.id
-      resData.dialogPermissionLoading = true
-      resData.dialogPermissionVisible = true
-      const {data} = await userResource.permissions(userData.id)
-      resData.currentUser = {
-        id: userData.id,
-        name: userData.name,
-        permissions: data,
-      }
-      resData.dialogPermissionLoading = false
-      nextTick(() => {
-        refMenuPermissions.value?.setCheckedKeys(permissionKeys(resData.userMenuPermissions))
-        refOtherPermissions.value?.setCheckedKeys(permissionKeys(resData.userOtherPermissions))
-      })
-    }
-    const permissionKeys = (permissions) => {
-      return permissions.map(permssion => permssion.id)
-    }
-    const classifyPermissions = (permissions) => {
-      const all = []
-      const menu = []
-      const other = []
-      permissions.forEach(permission => {
-        const permissionName = permission.name
-        all.push(permission)
-        if (permissionName.startsWith('view menu')) {
-          menu.push(normalizeMenuPermission(permission))
-        } else {
-          other.push(normalizePermission(permission))
-        }
-      })
-      return {all: all, menu: menu, other: other}
-    }
-
-    const normalizeMenuPermission = (permission) => {
-      return {
-        id: permission.id,
-        name: uppercaseFirst(permission.name.substring(10)),
-        disabled: permission.disabled || false
-      }
-    }
-
-    const normalizePermission = (permission) => {
-      const disabled = permission.disabled || permission.name === 'manage permission'
-      return {id: permission.id, name: uppercaseFirst(permission.name), disabled: disabled}
-    }
-
-    const confirmPermission = () => {
-      const checkedMenu = refMenuPermissions.value?.getCheckedKeys()
-      const checkedOther = refOtherPermissions.value?.getCheckedKeys()
-      const checkedPermissions = checkedMenu.concat(checkedOther)
-      resData.dialogPermissionLoading = true
-
-      userResource.updatePermission(resData.currentUserId, {permissions: checkedPermissions}).then(response => {
-        ElMessage({
-          message: t('permission.table.elMessage.confirmPermission.success.message'),
-          type: 'success',
-          duration: 5 * 1000,
-        })
-        resData.dialogPermissionLoading = false
-        resData.dialogPermissionVisible = false
-      })
-    }
-    onMounted(() => {
-      getList()
-      if (checkPermission(['manage permission'])) {
-        getPermissions()
-      }
-    })
-
-    return {
-      t,
-      refUserForm,
-      refMenuPermissions,
-      refOtherPermissions,
-      ...toRefs(resData),
-      getList,
-      handleFilter,
-      setParams,
-      tableActions,
-      uppercaseFirst,
-      handleCreate,
-      createUser,
-      permissionKeys,
-      confirmPermission,
-      Search, Plus,
-    }
-  }
 }
+
+const rules = reactive({
+    role: [{ required: true, message: t('validateMassages.rules.rule.required'), trigger: 'change' }],
+    name: [{ required: true, message: t('validateMassages.rules.name.required'), trigger: 'blur' }],
+    email: [
+        { required: true, message: t('validateMassages.rules.email.required'), trigger: 'blur' },
+        { type: 'email', message: t('validateMassages.rules.email.type') + ' ' + '(' + 'example@gmail.com' + ')', trigger: ['blur', 'change'] },
+    ],
+    password: [{ required: true, message: t('validateMassages.rules.password.required'), trigger: 'blur' }],
+    confirmPassword: [{ required: true, validator: validateConfirmPassword, trigger: 'blur' }],
+})
+
+// Состояния управления разрешениями
+// Permission management states
+const dialogPermissionVisible = ref(false)
+const dialogPermissionLoading = ref(false)
+const currentUserId = ref(0)
+const currentUser = reactive({
+    name: '',
+    permissions: { role: [], user: [] }
+})
+
+const permissions = ref([])
+const menuPermissions = ref([])
+const otherPermissions = ref([])
+const permissionProps = reactive({
+    children: 'children',
+    label: 'name',
+    disabled: 'disabled',
+})
+
+// Вычисляемые свойства для разрешений
+// Computed properties for permissions
+const userPermissions = computed(() =>
+    currentUser.permissions.role.concat(currentUser.permissions.user)
+)
+
+const userMenuPermissions = computed(() => {
+    const { menu } = classifyPermissions(userPermissions.value)
+    return menu
+})
+
+const userOtherPermissions = computed(() => {
+    const { other } = classifyPermissions(userPermissions.value)
+    return other
+})
+
+const normalizedMenuPermissions = computed(() => {
+    const rolePermissions = {
+        id: -1,
+        name: t('permission.table.rolePermissions.name'),
+        disabled: true,
+        children: classifyPermissions(currentUser.permissions.role.map(p => ({
+            id: p.id,
+            name: p.name,
+            disabled: true
+        }))).menu
+    }
+
+    const userPermissions = {
+        id: 0,
+        name: t('permission.table.userPermissions.name.menu'),
+        children: menuPermissions.value.filter(p =>
+            !currentUser.permissions.role.some(rp => rp.id === p.id)
+        ),
+        disabled: menuPermissions.value.length === 0
+    }
+
+    return [rolePermissions, userPermissions]
+})
+
+const normalizedOtherPermissions = computed(() => {
+    const rolePermissions = {
+        id: -1,
+        name: t('permission.table.rolePermissions.name'),
+        disabled: true,
+        children: classifyPermissions(currentUser.permissions.role.map(p => ({
+            id: p.id,
+            name: p.name,
+            disabled: true
+        }))).other
+    }
+
+    const userPermissions = {
+        id: 0,
+        name: t('permission.table.userPermissions.name.permissions'),
+        children: otherPermissions.value.filter(p =>
+            !currentUser.permissions.role.some(rp => rp.id === p.id)
+        ),
+        disabled: otherPermissions.value.length === 0
+    }
+
+    return [rolePermissions, userPermissions]
+})
+
+// Основные методы
+// Main methods
+const getList = async () => {
+    loading.value = true
+    try {
+        const res = await userResource.list(params)
+        tableData.value = res.data
+        Object.assign(pagination, res.meta)
+    } finally {
+        loading.value = false
+    }
+}
+
+const handleFilter = () => {
+    params.page = 1
+    getList()
+    refUserForm.value?.clearValidate()
+}
+
+const setParams = (key, value) => {
+    if (key !== 'per_page' && key !== 'page') params.page = 1
+    params[key] = value
+    getList()
+}
+
+const tableActions = (action, data) => {
+    if (action === 'edit-item') {
+        router.push(`/administrator/users/edit/${data.id}`)
+    } else if (action === 'edit-permission-item') {
+        handleEditPermissions(data)
+    } else if (action === 'delete-item') {
+        handleDelete(data)
+    }
+}
+
+const handleDelete = (data) => {
+    ElMessageBox.confirm(
+        `${t('permission.table.elMessageBox.confirm1.message')} ${data.name}. ${t('permission.table.elMessageBox.continue')}`,
+        t('permission.table.elMessageBox.warning'),
+        {
+            confirmButtonText: t('permission.table.elMessageBox.confirmButtonText'),
+            cancelButtonText: t('permission.table.elMessageBox.cancelButtonText'),
+            type: 'warning'
+        }
+    ).then(async () => {
+        await userResource.destroy(data.id)
+        ElMessage.success(t('permission.table.elMessage.delete.success.message'))
+        handleFilter()
+    }).catch(() => {
+        ElMessage.info(t('permission.table.elMessage.delete.canceled.message'))
+    })
+}
+
+const handleCreate = () => {
+    resetNewUser()
+    dialogFormVisible.value = true
+}
+
+const createUser = async (formEl) => {
+    if (!formEl) return
+    const valid = await formEl.validate()
+    if (!valid) return
+
+    try {
+        userCreating.value = true
+        const userData = {
+            ...newUser,
+            roles: [newUser.role],
+            birthday: newUser.birthday_model ? dayjs(newUser.birthday_model).format('YYYY-MM-DD HH:mm:ss') : null
+        }
+
+        await userResource.store(userData)
+        ElMessage.success(
+            `${t('permission.table.elMessage.newUser.success.message.part1')} ${newUser.name} (${newUser.email}) ${t('permission.table.elMessage.newUser.success.message.part2')}`
+        )
+        dialogFormVisible.value = false
+        handleFilter()
+    } finally {
+        userCreating.value = false
+    }
+}
+
+const resetNewUser = () => {
+    Object.assign(newUser, {
+        role: 'user',
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+        sex: 0,
+        birthday_model: null,
+        description: ''
+    })
+}
+
+const getPermissions = async () => {
+    const { data } = await permissionResource.list({})
+    const classified = classifyPermissions(data)
+    permissions.value = classified.all
+    menuPermissions.value = classified.menu
+    otherPermissions.value = classified.other
+}
+
+const handleEditPermissions = async (user) => {
+    currentUserId.value = user.id
+    dialogPermissionLoading.value = true
+    dialogPermissionVisible.value = true
+
+    try {
+        const { data } = await userResource.permissions(user.id)
+        Object.assign(currentUser, {
+            id: user.id,
+            name: user.name,
+            permissions: data
+        })
+
+        await nextTick()
+        refMenuPermissions.value?.setCheckedKeys(permissionKeys(userMenuPermissions.value))
+        refOtherPermissions.value?.setCheckedKeys(permissionKeys(userOtherPermissions.value))
+    } finally {
+        dialogPermissionLoading.value = false
+    }
+}
+
+const confirmPermission = async () => {
+    try {
+        dialogPermissionLoading.value = true
+        const checkedKeys = [
+            ...refMenuPermissions.value.getCheckedKeys(),
+            ...refOtherPermissions.value.getCheckedKeys()
+        ]
+
+        await userResource.updatePermission(currentUserId.value, { permissions: checkedKeys })
+        ElMessage.success(t('permission.table.elMessage.confirmPermission.success.message'))
+        dialogPermissionVisible.value = false
+    } finally {
+        dialogPermissionLoading.value = false
+    }
+}
+
+// Вспомогательные функции
+// Helper functions
+const permissionKeys = permissions => permissions.map(p => p.id)
+
+const classifyPermissions = (permissions) => {
+    const all = []
+    const menu = []
+    const other = []
+
+    permissions.forEach(p => {
+        all.push(p)
+        p.name.startsWith('view menu')
+            ? menu.push(normalizeMenuPermission(p))
+            : other.push(normalizePermission(p))
+    })
+
+    return { all, menu, other }
+}
+
+const normalizeMenuPermission = (p) => ({
+    id: p.id,
+    name: uppercaseFirst(p.name.substring(10)),
+    disabled: p.disabled || false
+})
+
+const normalizePermission = (p) => ({
+    id: p.id,
+    name: uppercaseFirst(p.name),
+    disabled: p.disabled || p.name === 'manage permission'
+})
+
+// Инициализация таблицы действий
+// Initialize table actions
+if (userStore.permissions?.includes('manage user')) {
+    tableOption.item_actions = [
+        { name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('table.edit') },
+        { name: 'delete-item', type: 'danger', icon: 'Delete', label: t('table.delete') }
+    ]
+
+    if (userStore.permissions?.includes('manage permission')) {
+        tableOption.item_actions.push({
+            name: 'edit-permission-item',
+            type: 'warning',
+            icon: 'EditPen',
+            label: t('permission.editPermission')
+        })
+    }
+}
+
+// Хук жизненного цикла
+// Lifecycle hook
+onMounted(() => {
+    getList()
+    if (checkPermission(['manage permission'])) {
+        getPermissions()
+    }
+})
 </script>
 
 <style lang="scss" scoped>

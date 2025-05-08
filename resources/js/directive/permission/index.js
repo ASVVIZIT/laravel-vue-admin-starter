@@ -1,13 +1,11 @@
+/*
 import permission from './permission';
 
-const install = function(Vue) {
-  Vue.directive('permission', permission);
+const install = function(app) {
+    app.directive('permission', permission);
 };
 
-if (window.Vue) {
-  window['permission'] = permission;
-  Vue.use(install); // eslint-disable-line
-}
-
+// Удалена проверка на window.Vue, так как во Vue 3 это не поддерживается
 permission.install = install;
 export default permission;
+*/

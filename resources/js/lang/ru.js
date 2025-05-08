@@ -42,11 +42,17 @@ export default {
     thirdparty: 'Или соединиться с',
     thirdpartyTips: 'Невозможно смоделировать локально, поэтому, пожалуйста, объедините вашу собственную бизнес-симуляцию!!!',
     email: 'Email',
-    loginSuccess: 'Успешный вход в систему'
+    loginSuccess: 'Успешный вход в систему',
+    validateMassages: {
+       rules: {
+           email: 'Пожалуйста, введите правильный адрес электронной почты',
+           password: 'Пароль не может быть короче 6 символов',
+       }
+    }
   },
   validateMassages: {
       rules: {
-          role: {
+          rule: {
               required: 'Требуется роль',
           },
           name: {
@@ -119,6 +125,11 @@ export default {
                         part2: 'был успешно создан.',
                     },
                 }
+            },
+            updated: {
+                success: {
+                    message: 'Информация о пользователе успешно обновлена'
+              }
             },
             confirmPermission: {
                 success: {

@@ -28,32 +28,22 @@
   </el-card>
 </template>
 
-<script>
+<script setup>
+// Импорт компонентов и необходимых функций Vue
+// Importing components and required Vue functions
+import { computed } from 'vue'
 import PanThumb from '@/components/PanThumb/index.vue'
-import {computed, reactive, toRefs} from "vue"
-import {userStore} from "@/store/user"
+import { useUserStore } from '@/store/user'
 
-export default {
-  components: {PanThumb},
-  setup() {
-    const useUserStore = userStore()
-    const resData = reactive({
-      name: computed(() => {
-        return useUserStore.name
-      }),
-      avatar: computed(() => {
-        return useUserStore.avatar
-      }),
-      roles: computed(() => {
-        return useUserStore.roles
-      }),
-    })
+// Инициализация хранилища Pinia
+// Initializing Pinia store
+const userStore = useUserStore()
 
-    return {
-      ...toRefs((resData))
-    }
-  },
-};
+// Вычисляемые свойства из хранилища
+// Computed properties from the store
+const name = computed(() => userStore.name)         // Имя пользователя / User name
+const avatar = computed(() => userStore.avatar)     // Аватар пользователя / User avatar
+const roles = computed(() => userStore.roles)       // Роли пользователя / User roles
 </script>
 
 <style rel="stylesheet/scss" lang="scss">

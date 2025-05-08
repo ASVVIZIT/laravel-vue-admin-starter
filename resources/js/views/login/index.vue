@@ -13,7 +13,7 @@
             <h3 class="title">
               <img
                   class="logo"
-                  alt="Laravel Vue Admin"
+                  alt="Laravel Vue Admin Starter"
                   :src="logo"
               >
               {{ $t('login.title') }}
@@ -35,7 +35,7 @@
                 v-model="loginForm.password"
                 name="password"
                 auto-complete="on"
-                placeholder="password"
+                :placeholder="$t('login.password')"
                 :type="pwdType"
                 @keyup.enter.native="handleLogin(ruleFormRef)"
             />
@@ -59,109 +59,144 @@
   </div>
 </template>
 
-<script>
+<script setup>
+// Импорты Vue и сторонних библиотек
+// Imports of Vue and third-party libraries
+import { ref, reactive, watch, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { ElMessage, ElForm } from 'element-plus'
 import LangSelect from '@/components/LangSelect/index.vue'
-import {validEmail} from '@/utils/validate'
-import {csrf} from '@/api/auth'
-import {reactive, toRefs, watch} from "vue"
-import {useRoute, useRouter} from "vue-router"
-import {userStore} from "@/store/user"
-import { ElMessage } from 'element-plus'
+import Icon from '@/components/Icon/index.vue'
+import { validEmail } from '@/utils/validate'
+import { csrf } from '@/api/auth'
+import { useUserStore } from '@/store/user'
 import logo from '@/assets/login/logo.svg'
-import {useI18n} from "vue-i18n";
 
-export default {
-  name: 'Login',
-  components: {LangSelect},
-  setup(props, ctx) {
-    const router = useRouter()
-    const validateEmail = (rule, value, callback) => {
-      if (!validEmail(value)) {
-        callback(new Error('Please enter the correct email'))
-      } else {
-        callback()
-      }
-    }
-    const validatePass = (rule, value, callback) => {
-      if (value.length < 4) {
-        callback(new Error('Password cannot be less than 4 digits'))
-      } else {
-        callback()
-      }
-    }
-    const resData = reactive({
-      loginForm: {
-        email: 'admin@admin.com',
-        password: '123456',
-      },
-      ruleFormRef: {},
-      loginRules: {
-        email: [{required: true, trigger: 'blur', validator: validateEmail}],
-        password: [{required: true, trigger: 'blur', validator: validatePass}],
-      },
-      loading: false,
-      pwdType: 'password',
-      redirect: undefined,
-      otherQuery: {},
-      logo: logo
-    })
-    const showPwd = () => {
-      if (resData.pwdType === 'password') {
-        resData.pwdType = ''
-      } else {
-        resData.pwdType = 'password'
-      }
-    }
+// Инициализация роутера и маршрута
+// Router and route initialization
+const router = useRouter()
+const route = useRoute()
 
-    const useUserStore = userStore()
-    const {t} = useI18n()
-    const handleLogin = (formEl) => {
-      if (!formEl) {
-        return
-      }
-      formEl.validate((valid) => {
-        if (valid) {
-          resData.loading = true
-          csrf().then(() => {
-            useUserStore.login(resData.loginForm).then(() => {
-              ElMessage({ message: t('login.loginSuccess'), type: 'success' })
-              router.push({path: resData.redirect || '/', query: resData.otherQuery}, onAbort => {
-              })
-              resData.loading = false
-            }).catch(() => {
-              resData.loading = false
-            })
-          })
-        } else {
-          console.log('error submit!!')
-          return false
+// Инициализация i18n
+// i18n initialization
+const { t } = useI18n()
+
+// Инициализация хранилища пользователя
+// User store initialization
+const userStore = useUserStore()
+
+// Реактивные переменные
+// Reactive variables
+const ruleFormRef = ref(ElForm) // Ссылка на форму ElForm
+const pwdType = ref('password') // Тип поля пароля
+const loading = ref(false) // Состояние загрузки
+const redirect = ref('') // URL для редиректа
+const otherQuery = ref({}) // Другие параметры запроса
+
+// Данные формы логина
+// Login form data
+const loginForm = reactive({
+    email: 'admin@admin.com',
+    password: '123456'
+})
+
+// Правила валидации формы
+// Form validation rules
+const loginRules = reactive({
+    email: [
+        {
+            required: true,
+            trigger: 'blur',
+            validator: validateEmail
         }
-      })
+    ],
+    password: [
+        {
+            required: true,
+            trigger: 'blur',
+            validator: validatePassword
+        }
+    ]
+})
+
+// Валидация email
+// Email validation
+function validateEmail(rule, value, callback) {
+    if (!validEmail(value)) {
+        callback(new Error(t('login.validateMassages.rules.email')))
+    } else {
+        callback()
     }
-    const getOtherQuery = (query) => {
-      return Object.keys(query).reduce((acc, cur) => {
+}
+
+// Валидация пароля
+// Password validation
+function validatePassword(rule, value, callback) {
+    if (value.length < 6) {
+        callback(new Error(t('login.validateMassages.rules.password')))
+    } else {
+        callback()
+    }
+}
+
+// Переключение видимости пароля
+// Toggle password visibility
+const showPwd = () => {
+    pwdType.value = pwdType.value === 'password' ? 'text' : 'password'
+}
+
+// Обработка логина
+// Handle login
+const handleLogin = async (formEl) => {
+    if (!formEl) return
+
+    await formEl.validate(async (valid) => {
+        if (!valid) return
+
+        loading.value = true
+        try {
+            await csrf()
+            await userStore.login(loginForm)
+
+            ElMessage({
+                message: t('login.loginSuccess'),
+                type: 'success'
+            })
+
+            router.push({
+                path: redirect.value || '/',
+                query: otherQuery.value
+            })
+        } finally {
+            loading.value = false
+        }
+    })
+}
+
+// Извлечение дополнительных параметров запроса
+// Extract additional query parameters
+const getOtherQuery = (query) => {
+    return Object.keys(query).reduce((acc, cur) => {
         if (cur !== 'redirect') {
-          acc[cur] = query[cur]
+            acc[cur] = query[cur]
         }
         return acc
-      }, {})
-    }
-
-    const route = useRoute()
-    watch(() => route.query, (query) => {
-      if (query) {
-        resData.redirect = query.redirect
-        resData.otherQuery = getOtherQuery(query)
-      }
-    }, {immediate: true})
-    return {
-      ...toRefs(resData),
-      showPwd,
-      handleLogin,
-      getOtherQuery,
-    }
-  }
+    }, {})
 }
+
+// Наблюдатель за изменениями параметров маршрута
+// Watch for route query changes
+watch(
+    () => route.query,
+    (query) => {
+        if (query) {
+            redirect.value = query.redirect
+            otherQuery.value = getOtherQuery(query)
+        }
+    },
+    { immediate: true }
+)
 </script>
 
 <style rel="stylesheet/scss" lang="scss">

@@ -70,7 +70,7 @@ docker-compose up -d
 Build static files within `Laravel` container with `npm`
 
 ```sh
-docker exec -it laravel-vue-admin npm run watch
+docker exec -it laravel-vue-admin-starter npm run watch
 ```
 
 Open http://localhost:8000 (laravel container port declared in `docker-compose.yml`) to access Laravel Vue Admin.

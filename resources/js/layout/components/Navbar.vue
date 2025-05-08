@@ -13,10 +13,10 @@
     <!--nav title-->
     <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
     <div class="heardCenterTitle">
-<!--        <Timer></Timer>-->
+       <Timer></Timer>
     </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
-<!--      <Search id="header-search" />-->
+      <Search id="header-search" />
       <ScreenFull />
       <SizeSelect />
       <LangSelect />
@@ -52,7 +52,7 @@ import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
 import Timer from './Timer/Timer.vue'
 const {t} = useI18n({useScope: 'global'})
-import Search from '@/components/HeaderSearch/index.vue'
+import Search from '@/components/HeaderSearchNew/index.vue'
 import SizeSelect from '@/components/SizeSelect/index.vue'
 import LangSelect from '@/components/LangSelect/index.vue'
 import ScreenFull from '@/components/ScreenFull/index.vue'
@@ -61,22 +61,14 @@ import { CaretBottom } from '@element-plus/icons-vue'
 import Breadcrumb from './Breadcrumb'
 import Hamburger from './Hamburger'
 import { appStore } from '@/store/app'
-import { userStore } from '@/store/user'
+import { useUserStore } from '@/store/user'
 import moment from "moment";
 
 const router = useRouter()
 const route = useRoute()
 
-const useUserStore = userStore()
+const userStore = useUserStore()
 const useAppStore = appStore()
-
-/*const timeZone = "Asia/Yekaterinburg"
-let stringInput = new Date()
-let dateObject = new Date(stringInput).toLocaleString("ru-RU", {
-    timeZone,
-})
-
-//dateObject = moment(stringInput, 'MMMM Do YYYY, h:mm:ss a').fromNow()*/
 
 const settings = computed(() => {
   return useAppStore.settings
@@ -91,7 +83,7 @@ const toggleSideBar = () => {
 }
 
 const loginOut = async () => {
-  await useUserStore.logout().then(() => {
+  await userStore.logout().then(() => {
     router.push(`/login?redirect=/`)
   })
 }

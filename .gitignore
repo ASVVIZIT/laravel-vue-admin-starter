@@ -1,4 +1,5 @@
 /node_modules
+/public/W*
 /public/hot
 /public/storage
 /storage/*.key
@@ -6,6 +7,13 @@
 .env
 .env.backup
 .phpunit.result.cache
+/tmp
+/docker/
+/docker/*
+/_docker/
+/_docker/*
+/supervisor/*
+/supervisor/supervisord.conf
 docker-compose.override.yml
 Homestead.json
 Homestead.yaml

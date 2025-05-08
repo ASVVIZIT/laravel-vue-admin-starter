@@ -7,7 +7,7 @@ import {createApp} from 'vue'
 import App from './views/App.vue'
 import Icon from './components/Icon/Icon.vue'
 import router from './router'
-import './permission' // permission control
+
 // ElementPlus
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
@@ -16,6 +16,7 @@ import dayjsLocale from "dayjs/locale/ru"
 import elementLocale from 'element-plus/es/locale/lang/ru'
 // i18n lang
 import i18n from './lang'; // Internationalization
+
 
 import moment from 'moment-timezone'
 const timeZone = "Asia/Yekaterinburg"
@@ -36,6 +37,9 @@ app.use(ElementPlus, {
 // pinia
 import {createPinia} from 'pinia'
 app.use(createPinia())
+
+/*import permission from './directive/permission/index.js'
+app.use(permission);*/
 
 // element svg icon
 import ElSvgIcon from '@/components/ElSvgIcon.vue'

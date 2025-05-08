@@ -21,7 +21,7 @@
 <script>
 import {computed, getCurrentInstance, reactive, toRefs} from "vue"
 import {appStore} from "@/store/app"
-import {useI18n} from "vue-i18n";
+import {useI18n} from "vue-i18n"
 
 export default {
   setup() {
@@ -29,7 +29,7 @@ export default {
     const useAppStore = appStore()
     const {t} = useI18n()
     const handleSetLanguage = (lang) => {
-      proxy.$i18n.locale = lang;
+      proxy.$i18n.locale = lang
       useAppStore.setLanguage(lang)
       proxy.$message({
         message: t('switchLang.localName'),

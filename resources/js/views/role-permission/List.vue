@@ -54,199 +54,197 @@
   </div>
 </template>
 
-<script>
+<script setup>
+// Импорты Vue и сторонних библиотек / Vue and third-party library imports
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
+import { useUserStore } from '@/store/user'
+
+// Компоненты / Components
 import CustomTable from '@/components/CustomTable.vue'
 import ElSvgItem from "@/components/Item/ElSvgItem.vue"
+
+// API и утилиты / API and utilities
 import Resource from '@/api/resource'
 import RoleResource from '@/api/role'
-import checkPermission from '@/utils/permission'
-import {useI18n} from "vue-i18n"
-import {uppercaseFirst} from "../../utils"
-import {userStore} from "../../store/user"
-import {ElMessage} from "element-plus" // Permission checking
+import { uppercaseFirst } from '@/utils'
+import { checkPermission } from '@/utils/permission'
 
-export default {
-  name: 'RoleList',
-  components: {CustomTable, ElSvgItem},
-  setup() {
-    const {t} = useI18n({useScope: 'global'})
-    const roleResource = new RoleResource()
-    const permissionResource = new Resource('permissions')
-    const useUserStore = userStore()
-    const refMenuPermissions = ref(null)
-    const refOtherPermissions = ref(null)
+// Инициализация i18n / Initialize i18n
+const { t } = useI18n({ useScope: 'global' })
 
-    const resData = reactive({
-      basicColumn: [{
-        prop: 'name',
-        label: t('roles.name'),
-        width: '150'
-      }, {
-        prop: 'description',
-        label: t('table.description'),
-      }],
-      tableOption: {},
-      tableData: [],
-      loading: true,
-      pagination: {
-        total: 0,
-        currentPage: 1,
-        pageSize: 10
-      },
-      params: {
+// Инициализация сторов Pinia / Initialize Pinia stores
+const userStore = useUserStore()
+
+// Реактивные ссылки для элементов DOM / Reactive refs for DOM elements
+const refMenuPermissions = ref(null)
+const refOtherPermissions = ref(null)
+
+// API ресурсы / API resources
+const roleResource = new RoleResource()
+const permissionResource = new Resource('permissions')
+
+// Реактивное состояние компонента / Component reactive state
+const state = reactive({
+    loading: true,
+    dialogVisible: false,
+    dialogLoading: false,
+    currentRole: {},
+    permissions: [],
+    menuPermissions: [],
+    otherPermissions: [],
+    tableData: [],
+    params: {
         page: 1,
         per_page: 10,
         keyword: '',
         role: '',
-      },
-      dialogLoading: false,
-      dialogVisible: false,
-      permissions: [],
-      menuPermissions: [],
-      otherPermissions: [],
-      permissionProps: {
+    },
+    pagination: {
+        total: 0,
+        currentPage: 1,
+        pageSize: 10
+    },
+    permissionProps: {
         children: 'children',
         label: 'name',
         disabled: 'disabled',
-      },
-      currentRole: {},
-      roleMenuPermissions: computed(() => {
-        if (!resData.currentRole.permissions) {
-          return []
-        }
-        return classifyPermissions(resData.currentRole.permissions).menu
-      }),
-      roleOtherPermissions: computed(() => {
-        if (!resData.currentRole.permissions) {
-          return []
-        }
-        return classifyPermissions(resData.currentRole.permissions).other
-      }),
-    })
+    },
+})
 
-    if (useUserStore.permissions.includes('manage user')) {
-      resData.tableOption = {
-        slot: true,
-        label: t('table.actions'),
-        fixed: 'right',
-        item_actions: [
-          {name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('permission.editPermission')},
-        ],
-      }
+// Константы и вычисляемые свойства / Constants and computed properties
+const pageSizes = [10, 20, 50, 100]
+const basicColumn = computed(() => [
+    {
+        prop: 'name',
+        label: t('roles.name'),
+        width: '150'
+    },
+    {
+        prop: 'description',
+        label: t('table.description'),
     }
-    const getRoles = async () => {
-      resData.loading = true
-      await roleResource.list(resData.params).then((res) => {
-        res.data.forEach((role, index) => {
-          role['description'] = t('roles.description.' + role.name)
+])
+
+const tableOption = computed(() => ({
+    slot: true,
+    label: t('table.actions'),
+    fixed: 'right',
+    item_actions: userStore.permissions.includes('manage user')
+        ? [
+            { name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('permission.editPermission') }
+        ]
+        : []
+}))
+
+// Вычисление прав роли / Compute role permissions
+const roleMenuPermissions = computed(() => {
+    if (!state.currentRole.permissions) return []
+    return classifyPermissions(state.currentRole.permissions).menu
+})
+
+const roleOtherPermissions = computed(() => {
+    if (!state.currentRole.permissions) return []
+    return classifyPermissions(state.currentRole.permissions).other
+})
+
+// Основные функции / Main functions
+const getRoles = async () => {
+    state.loading = true
+    try {
+        const res = await roleResource.list(state.params)
+        res.data.forEach(role => {
+            role.description = t(`roles.description.${role.name}`)
         })
-        resData.tableData = res.data
-        resData.pagination = res.meta
-        resData.loading = false
-      })
+        state.tableData = res.data
+        state.pagination = res.meta
+    } finally {
+        state.loading = false
     }
-
-    const tableActions = (action, data) => {
-      if (action === 'edit-item') {
-        handleEditPermissions(data)
-      }
-    }
-
-    const getPermissions = async () => {
-      const {data} = await permissionResource.list({})
-      const {all, menu, other} = classifyPermissions(data)
-      resData.permissions = all
-      resData.menuPermissions = menu
-      resData.otherPermissions = other
-    }
-
-    const classifyPermissions = (permissions) => {
-      const all = []
-      const menu = []
-      const other = []
-      permissions.forEach(permission => {
-        const permissionName = permission.name
-        all.push(permission)
-        if (permissionName.startsWith('view menu')) {
-          menu.push(normalizeMenuPermission(permission))
-        } else {
-          other.push(normalizePermission(permission))
-        }
-      })
-      return {all, menu, other}
-    }
-
-    const normalizeMenuPermission = (permission) => {
-      return {id: permission.id, name: uppercaseFirst(permission.name.substring(10))}
-    }
-
-    const normalizePermission = (permission) => {
-      return {
-        id: permission.id,
-        name: uppercaseFirst(permission.name),
-        disabled: permission.name === 'manage permission'
-      }
-    }
-
-    const permissionKeys = (permissions) => {
-      return permissions.map(permssion => permssion.id)
-    }
-
-    const handleEditPermissions = (data) => {
-      resData.dialogVisible = true
-      resData.currentRole = data
-      nextTick(() => {
-        refMenuPermissions.value?.setCheckedKeys(permissionKeys(resData.roleMenuPermissions))
-        refOtherPermissions.value?.setCheckedKeys(permissionKeys(resData.roleOtherPermissions))
-      })
-    }
-
-    const confirmPermission = () => {
-      const checkedMenu = refMenuPermissions.value?.getCheckedKeys()
-      const checkedOther = refOtherPermissions.value?.getCheckedKeys()
-      const checkedPermissions = checkedMenu.concat(checkedOther)
-      resData.dialogLoading = true
-
-      roleResource.update(resData.currentRole.id, {permissions: checkedPermissions}).then(response => {
-        ElMessage({
-          message: 'Permissions has been updated successfully',
-          type: 'success',
-          duration: 5 * 1000,
-        })
-        resData.dialogLoading = false
-        resData.dialogVisible = false
-        getRoles()
-      })
-    }
-
-    onMounted(() => {
-      getRoles()
-      getPermissions()
-    })
-
-    const setParams = (key, value) => {
-      if (key !== 'per_page' && key !== 'page') {
-        resData.params.page = 1
-      }
-      resData.params[key] = value
-      getRoles()
-    }
-
-    return {
-      ...toRefs(resData),
-      refMenuPermissions,
-      refOtherPermissions,
-      t,
-      setParams,
-      uppercaseFirst,
-      permissionKeys,
-      handleEditPermissions,
-      confirmPermission,
-      tableActions,
-      checkPermission
-    }
-  },
 }
+
+const getPermissions = async () => {
+    const { data } = await permissionResource.list({})
+    const classified = classifyPermissions(data)
+    state.permissions = classified.all
+    state.menuPermissions = classified.menu
+    state.otherPermissions = classified.other
+}
+
+// Классификация прав / Permissions classification
+const classifyPermissions = (permissions) => {
+    const all = []
+    const menu = []
+    const other = []
+
+    permissions.forEach(permission => {
+        all.push(permission)
+        permission.name.startsWith('view menu')
+            ? menu.push(normalizeMenuPermission(permission))
+            : other.push(normalizePermission(permission))
+    })
+
+    return { all, menu, other }
+}
+
+// Нормализация прав меню / Normalize menu permissions
+const normalizeMenuPermission = (permission) => ({
+    id: permission.id,
+    name: uppercaseFirst(permission.name.substring(10))
+})
+
+// Нормализация обычных прав / Normalize regular permissions
+const normalizePermission = (permission) => ({
+    id: permission.id,
+    name: uppercaseFirst(permission.name),
+    disabled: permission.name === 'manage permission'
+})
+
+// Обработчики событий / Event handlers
+const tableActions = (action, data) => {
+    if (action === 'edit-item') handleEditPermissions(data)
+}
+
+const handleEditPermissions = (data) => {
+    state.dialogVisible = true
+    state.currentRole = data
+    nextTick(() => {
+        refMenuPermissions.value?.setCheckedKeys(permissionKeys(roleMenuPermissions.value))
+        refOtherPermissions.value?.setCheckedKeys(permissionKeys(roleOtherPermissions.value))
+    })
+}
+
+const confirmPermission = async () => {
+    try {
+        state.dialogLoading = true
+        const checkedPermissions = [
+            ...refMenuPermissions.value.getCheckedKeys(),
+            ...refOtherPermissions.value.getCheckedKeys()
+        ]
+
+        await roleResource.update(state.currentRole.id, { permissions: checkedPermissions })
+        ElMessage.success(t('permission.updateSuccess'))
+        state.dialogVisible = false
+        await getRoles()
+    } finally {
+        state.dialogLoading = false
+    }
+}
+
+// Вспомогательные функции / Helper functions
+const permissionKeys = (permissions) => permissions.map(p => p.id)
+const setParams = (key, value) => {
+    if (key !== 'per_page' && key !== 'page') state.params.page = 1
+    state.params[key] = value
+    getRoles()
+}
+
+// Хуки жизненного цикла / Lifecycle hooks
+onMounted(() => {
+    getRoles()
+    getPermissions()
+})
 </script>
 
 <style lang="scss" scoped>

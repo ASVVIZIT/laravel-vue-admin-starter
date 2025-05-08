@@ -56,7 +56,7 @@ class SetupRolePermissions extends Migration
         }
 
         /** @var \App\User[] $users */
-        $users = \App\Laravue\Models\User::all();
+        /*$users = \App\Laravue\Models\User::all();
         foreach ($users as $user) {
             $roles = array_reverse(Acl::roles());
             foreach ($roles as $role) {
@@ -65,6 +65,6 @@ class SetupRolePermissions extends Migration
                     $user->save();
                 }
             }
-        }
+        }*/
     }
 }

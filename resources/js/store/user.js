@@ -4,7 +4,7 @@ import router, {resetRouter} from '../router'
 import {defineStore} from "pinia"
 import {permissionStore} from "@/store/permission";
 
-export const userStore = defineStore('user', {
+export const useUserStore = defineStore('user', {
   state: () => {
     return {
       id: null,

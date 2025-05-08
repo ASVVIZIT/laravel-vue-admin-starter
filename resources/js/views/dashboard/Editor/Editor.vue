@@ -19,26 +19,32 @@
 </template>
 
 <script setup>
+// Components
+// Импорт компонентов / Component imports
 import PanThumb from '@/views/dashboard/PanThumb'
 import GithubCorner from '@/views/dashboard/GithubCorner'
-import { toRefs, reactive, computed } from 'vue'
-import { userStore } from '@/store/user'
-const resData = reactive({
-  yierGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/yier.gif',
-  bubuGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/bubu.gif'
-})
 
-const useUserStore = userStore()
-const name = computed(() => {
-  return useUserStore.name
-})
-const avatar = computed(() => {
-  return useUserStore.avatar
-})
-const roles = computed(() => {
-  return useUserStore.roles
-})
-let { yierGif, bubuGif } = toRefs(resData)
+// Vue reactivity utilities
+// Импорт реактивных утилит Vue
+import { ref } from 'vue'
+
+// Pinia store utilities
+// Импорт утилит хранилища Pinia
+import { useUserStore } from '@/store/user'
+import { storeToRefs } from 'pinia'
+
+// Initialize user store
+// Инициализация хранилища пользователя
+const userStore = useUserStore()
+
+// Destructure reactive store properties using storeToRefs
+// Деструктуризация реактивных свойств хранилища с помощью storeToRefs
+const { name, avatar, roles } = storeToRefs(userStore)
+
+// Image references using ref()
+// Ссылки на изображения с использованием ref()
+const yierGif = ref('https://cdn.laravel-vue-admin.eu.org/static/images/blog/yier.gif')
+const bubuGif = ref('https://cdn.laravel-vue-admin.eu.org/static/images/blog/bubu.gif')
 </script>
 
 <style lang="scss">
