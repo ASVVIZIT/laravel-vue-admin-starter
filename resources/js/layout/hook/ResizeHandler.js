@@ -1,8 +1,8 @@
 const { body } = document
 const WIDTH = 992
-import { appStore } from '@/store/app'
+import { useAppStore } from '@/store/app'
 export default function () {
-  const useAppStore = appStore()
+  const appStore = useAppStore()
   const $_isMobile = () => {
     const rect = body.getBoundingClientRect()
     return rect.width - 1 < WIDTH
@@ -11,14 +11,14 @@ export default function () {
     if (!document.hidden) {
       const isMobile = $_isMobile()
       if (isMobile) {
-        // console.log('closeSideBar')
+
         /*此处只做根据window尺寸关闭sideBar功能*/
 
-        useAppStore.openSideBar(false)
-        //useAppStore.openRightPanel(false)
+          appStore.openSideBar(false)
+          appStore.openRightPanel(false)
       } else {
-        useAppStore.openSideBar(true)
-       // useAppStore.openRightPanel(true)
+          appStore.openSideBar(true)
+          appStore.openRightPanel(false)
       }
     }
   }
@@ -28,11 +28,11 @@ export default function () {
   onMounted(() => {
     const isMobile = $_isMobile()
     if (isMobile) {
-      useAppStore.openSideBar(false)
-     // useAppStore.openRightPanel(false)
+        appStore.openSideBar(false)
+        appStore.openRightPanel(false)
     } else {
-      useAppStore.openSideBar(true)
-     // useAppStore.openRightPanel(true)
+        appStore.openSideBar(true)
+        appStore.openRightPanel(false)
     }
   })
   onBeforeUnmount(() => {

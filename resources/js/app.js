@@ -3,9 +3,9 @@ import 'bootstrap-icons/font/bootstrap-icons.scss'
 
 import Cookies from 'js-cookie'
 
-import {createApp} from 'vue'
+import {createApp, ref} from 'vue'
 import App from './views/App.vue'
-import Icon from './components/Icon/Icon.vue'
+import Icon from './components/Icon/index.vue'
 import router from './router'
 
 // ElementPlus
@@ -17,10 +17,11 @@ import elementLocale from 'element-plus/es/locale/lang/ru'
 // i18n lang
 import i18n from './lang'; // Internationalization
 
-
+// Moment.js
 import moment from 'moment-timezone'
+import 'moment/dist/locale/ru'
+moment.locale('ru')
 const timeZone = "Asia/Yekaterinburg"
-moment.locale('ru-ru')
 moment.tz(timeZone)
 
 const app = createApp(App)
@@ -37,9 +38,6 @@ app.use(ElementPlus, {
 // pinia
 import {createPinia} from 'pinia'
 app.use(createPinia())
-
-/*import permission from './directive/permission/index.js'
-app.use(permission);*/
 
 // element svg icon
 import ElSvgIcon from '@/components/ElSvgIcon.vue'

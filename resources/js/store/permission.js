@@ -1,84 +1,89 @@
-import { asyncRoutes, constantRoutes } from '../router';
-import {defineStore} from "pinia";
+// store/permission.js
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import { asyncRoutes, constantRoutes } from '@/router';
 
-/**
- * Check if it matches the current user right by meta.role
- * @param {String[]} roles
- * @param {String[]} permissions
- * @param route
- */
+// Helper function to check route access permissions
+// Вспомогательная функция для проверки прав доступа к маршруту
 function canAccess(roles, permissions, route) {
-  if (route.meta) {
-    let hasRole = true;
-    let hasPermission = true;
-    if (route.meta.roles || route.meta.permissions) {
-      // If it has meta.roles or meta.permissions, accessible = hasRole || permission
-      hasRole = false;
-      hasPermission = false;
-      if (route.meta.roles) {
-        hasRole = roles.some(role => route.meta.roles.includes(role));
-      }
+    if (route.meta) {
+        let hasRole = true;
+        let hasPermission = true;
 
-      if (route.meta.permissions) {
-        hasPermission = permissions.some(permission => route.meta.permissions.includes(permission));
-      }
-    }
+        if (route.meta.roles || route.meta.permissions) {
+            hasRole = false;
+            hasPermission = false;
 
-    return hasRole || hasPermission;
-  }
+            // Check if user has any of the required roles
+            // Проверяем наличие необходимых ролей у пользователя
+            if (route.meta.roles) {
+                hasRole = roles.some(role => route.meta.roles.includes(role));
+            }
 
-  // If no meta.roles/meta.permissions inputted - the route should be accessible
-  return true;
-}
-
-/**
- * Find all routes of this role
- * @param routes asyncRoutes
- * @param roles
- */
-function filterAsyncRoutes(routes, roles, permissions) {
-  const res = [];
-
-  routes.forEach(route => {
-    const tmp = { ...route };
-    if (canAccess(roles, permissions, tmp)) {
-      if (tmp.children) {
-        tmp.children = filterAsyncRoutes(
-          tmp.children,
-          roles,
-          permissions
-        );
-      }
-      res.push(tmp);
-    }
-  });
-
-  return res;
-}
-
-export const permissionStore = defineStore('permission', {
-  state: () => {
-    return {
-      routes: [],
-      addRoutes: [],
-    }
-  },
-  actions: {
-    generateRoutes(roles, permissions) {
-      return new Promise(resolve => {
-        let accessedRoutes;
-        if (roles.includes('admin')) {
-          accessedRoutes = asyncRoutes || [];
-        } else {
-          accessedRoutes = filterAsyncRoutes(asyncRoutes, roles, permissions);
+            // Check if user has any of the required permissions
+            // Проверяем наличие необходимых разрешений у пользователя
+            if (route.meta.permissions) {
+                hasPermission = permissions.some(permission =>
+                    route.meta.permissions.includes(permission)
+                );
+            }
         }
 
-        this.$patch((state) => {
-          state.addRoutes = accessedRoutes;
-          state.routes = constantRoutes.concat(accessedRoutes);
-        })
-        resolve(accessedRoutes);
-      });
+        return hasRole || hasPermission;
     }
-  }
-})
+    return true;
+}
+
+// Recursive function to filter accessible routes
+// Рекурсивная функция для фильтрации доступных маршрутов
+function filterAsyncRoutes(routes, roles, permissions) {
+    const res = [];
+
+    routes.forEach(route => {
+        const tmp = { ...route };
+        if (canAccess(roles, permissions, tmp)) {
+            // Filter child routes recursively
+            // Рекурсивно фильтруем дочерние маршруты
+            if (tmp.children) {
+                tmp.children = filterAsyncRoutes(tmp.children, roles, permissions);
+            }
+            res.push(tmp);
+        }
+    });
+
+    return res;
+}
+
+export const usePermissionStore = defineStore('permission', () => {
+    // State
+    const routes = ref([]);         // All accessible routes / Все доступные маршруты
+    const addRoutes = ref([]);      // Dynamically added routes / Динамически добавленные маршруты
+
+    // Actions
+    const generateRoutes = async (roles, permissions) => {
+        let accessedRoutes;
+
+        // Admin gets all routes
+        // Администратор получает все маршруты
+        if (roles.includes('admin')) {
+            accessedRoutes = asyncRoutes || [];
+        } else {
+            // Filter routes based on roles and permissions
+            // Фильтруем маршруты на основе ролей и разрешений
+            accessedRoutes = filterAsyncRoutes(asyncRoutes, roles, permissions);
+        }
+
+        // Update state
+        // Обновляем состояние
+        addRoutes.value = accessedRoutes;
+        routes.value = [...constantRoutes, ...accessedRoutes];
+
+        return accessedRoutes;
+    };
+
+    return {
+        routes,
+        addRoutes,
+        generateRoutes
+    };
+});

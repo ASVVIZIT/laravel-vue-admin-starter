@@ -34,18 +34,18 @@ const {t} = useI18n({useScope: 'global'});
 
 import path from 'path'
 import { Close } from '@element-plus/icons-vue'
-import { appStore } from '@/store/app'
-import { tagsViewStore } from '@/store/tags-view'
-import { permissionStore } from '@/store/permission'
+import { useAppStore } from '@/store/app'
+import { useTagsViewStore } from '@/store/tags-view'
+import { usePermissionStore } from '@/store/permission'
 import i18n from "@/utils/i18n"
 
 const $route = useRoute()
 const $router = useRouter()
 
 const {generateTitle} = i18n()
-const usePermissionStore = permissionStore()
-const useTagsViewStore = tagsViewStore()
-const useAppStore = appStore()
+const appStore = useAppStore()
+const tagsViewStore = useTagsViewStore()
+const permissionStore = usePermissionStore()
 
 const resData = reactive({
   visible: false,
@@ -56,10 +56,10 @@ const resData = reactive({
 })
 
 const visitedViews = computed(() => {
-  return useTagsViewStore.visitedViews
+  return tagsViewStore.visitedViews
 })
 const routes = computed(() => {
-  return usePermissionStore.routes
+  return permissionStore.routes
 })
 watch(
   () => $route.path,
@@ -116,7 +116,7 @@ const initTags = () => {
   for (const tag of affixTags) {
     // Must have tag name
     if (tag.name) {
-      useTagsViewStore.addVisitedView(tag)
+        tagsViewStore.addVisitedView(tag)
     }
   }
 }
@@ -124,7 +124,7 @@ const initTags = () => {
 const addTags = () => {
   const { name } = $route
   if (name) {
-    useTagsViewStore.addView($route)
+      tagsViewStore.addView($route)
   }
   return false
 }
@@ -137,7 +137,7 @@ const refreshSelectedTag = (view) => {
   })
 }
 const closeSelectedTag = (view) => {
-  useTagsViewStore.delView(view).then(({ visitedViews }) => {
+    tagsViewStore.delView(view).then(({ visitedViews }) => {
     if (isActive(view)) {
       toLastView(visitedViews, view)
     }
@@ -145,20 +145,20 @@ const closeSelectedTag = (view) => {
     if (view.meta?.closeTabRmCache) {
       const routerLevel = view.matched.length
       if (routerLevel === 2) {
-        useAppStore.M_DEL_CACHED_VIEW(view.name)
+          appStore.M_DEL_CACHED_VIEW(view.name)
       }
       if (routerLevel === 3) {
-        useAppStore.M_DEL_CACHED_VIEW_DEEP(view.name)
+          appStore.M_DEL_CACHED_VIEW_DEEP(view.name)
       }
     }
   })
 }
 const closeOthersTags = () => {
-  $router.push(resData.selectedTag)
-  useTagsViewStore.delOthersViews(resData.selectedTag)
+    $router.push(resData.selectedTag)
+    tagsViewStore.delOthersViews(resData.selectedTag)
 }
 const closeAllTags = (view) => {
-  useTagsViewStore.delAllViews().then(({ visitedViews }) => {
+    tagsViewStore.delAllViews().then(({ visitedViews }) => {
     if (resData.affixTags.some((tag) => tag.path === view.path)) {
       return
     }

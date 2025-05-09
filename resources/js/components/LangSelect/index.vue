@@ -20,17 +20,17 @@
 
 <script>
 import {computed, getCurrentInstance, reactive, toRefs} from "vue"
-import {appStore} from "@/store/app"
+import {useAppStore} from "@/store/app"
 import {useI18n} from "vue-i18n"
 
 export default {
   setup() {
     const {proxy} = getCurrentInstance()
-    const useAppStore = appStore()
+    const appStore = useAppStore()
     const {t} = useI18n()
     const handleSetLanguage = (lang) => {
       proxy.$i18n.locale = lang
-      useAppStore.setLanguage(lang)
+      appStore.setLanguage(lang)
       proxy.$message({
         message: t('switchLang.localName'),
         type: 'success',
@@ -39,7 +39,7 @@ export default {
 
     const resData = reactive({
       language: computed(() => {
-        return useAppStore.language
+        return appStore.language
       }),
       langOptions: [
         { label: 'Русский', value: 'ru' },

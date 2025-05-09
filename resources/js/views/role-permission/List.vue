@@ -69,7 +69,7 @@ import ElSvgItem from "@/components/Item/ElSvgItem.vue"
 import Resource from '@/api/resource'
 import RoleResource from '@/api/role'
 import { uppercaseFirst } from '@/utils'
-import { checkPermission } from '@/utils/permission'
+// import { checkPermission } from '@/utils/permission'
 
 // Инициализация i18n / Initialize i18n
 const { t } = useI18n({ useScope: 'global' })

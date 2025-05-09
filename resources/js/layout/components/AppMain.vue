@@ -16,21 +16,21 @@
 </template>
 
 <script setup>
-import { appStore } from '@/store/app'
+import { useAppStore } from '@/store/app'
 import getPageTitle from '@/utils/get-page-title'
 import i18n from '@/utils/i18n'
 
 const {generateTitle} = i18n()
 const route = useRoute()
-const useAppStore = appStore()
+const appStore = useAppStore()
 const settings = computed(() => {
-  return useAppStore.settings
+  return appStore.settings
 })
 
 const key = computed(() => route.path)
 
 const cachedViews = computed(() => {
-  return useAppStore.cachedViews
+  return appStore.cachedViews
 })
 
 let oldRoute = {}
@@ -38,7 +38,7 @@ let deepOldRouter = null
 
 const removeDeepChildren = (deepOldRouter) => {
   deepOldRouter.children?.forEach((fItem) => {
-    useAppStore.delCachedViewDeep(fItem.name)
+      appStore.delCachedViewDeep(fItem.name)
   })
 }
 
@@ -53,21 +53,21 @@ watch(
     if (routerLevel === 2) {
       if (deepOldRouter?.name) {
         if (deepOldRouter.meta?.leaveRmCachePage && deepOldRouter.meta?.cachePage) {
-          useAppStore.delCachedView(deepOldRouter.name)
+            appStore.delCachedView(deepOldRouter.name)
           //remove the deepOldRouter‘s children component
           removeDeepChildren(deepOldRouter)
         }
       } else {
         if (oldRoute?.name) {
           if (oldRoute.meta?.leaveRmCachePage && oldRoute.meta?.cachePage) {
-            useAppStore.delCachedView(oldRoute.name)
+              appStore.delCachedView(oldRoute.name)
           }
         }
       }
 
       if (route.name) {
         if (route.meta?.cachePage) {
-          useAppStore.addCachedView(route.name)
+            appStore.addCachedView(route.name)
         }
       }
       deepOldRouter = null
@@ -81,7 +81,7 @@ watch(
       //一般为三级路由跳转三级路由的情况
       if (deepOldRouter?.name && deepOldRouter.name !== parentRoute.name) {
         if (deepOldRouter.meta?.leaveRmCachePage && deepOldRouter.meta?.cachePage) {
-          useAppStore.delCachedView(deepOldRouter.name)
+            appStore.delCachedView(deepOldRouter.name)
           //remove the deepOldRouter‘s children component
           removeDeepChildren(deepOldRouter)
         }
@@ -89,7 +89,7 @@ watch(
         //否则走正常两级路由处理流程
         if (oldRoute?.name) {
           if (oldRoute.meta?.leaveRmCachePage && oldRoute.meta?.cachePage) {
-            useAppStore.delCachedViewDeep(oldRoute.name)
+              appStore.delCachedViewDeep(oldRoute.name)
           }
         }
       }
@@ -97,11 +97,11 @@ watch(
       //取的是第二级的name
       if (parentRoute.name && parentRoute.meta?.cachePage) {
         deepOldRouter = parentRoute
-        useAppStore.addCachedView(deepOldRouter.name)
+          appStore.addCachedView(deepOldRouter.name)
         if (route.name) {
           if (route.meta?.cachePage) {
             //和第三级的name进行缓存
-            useAppStore.addCachedViewDeep(route.name)
+              appStore.addCachedViewDeep(route.name)
           }
         }
       }

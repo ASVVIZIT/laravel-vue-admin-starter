@@ -4,8 +4,8 @@ import NProgress from 'nprogress' // progress bar / индикатор загр�
 import 'nprogress/nprogress.css' // progress bar style / стили индикатора
 import { isLogged } from '@/utils/auth'
 import getPageTitle from '@/utils/get-page-title'
-import { useUserStore } from "@/stores/user" // Pinia store import / импорт хранилища Pinia
-import { usePermissionStore } from "@/stores/permission" // Pinia store import / импорт хранилища Pinia
+import { useUserStore } from "@/store/user" // Pinia store import / импорт хранилища Pinia
+import { usePermissionStore } from "@/store/permission" // Pinia store import / импорт хранилища Pinia
 
 NProgress.configure({ showSpinner: false }) // NProgress Configuration / Настройка NProgress
 

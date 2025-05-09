@@ -12,9 +12,6 @@
     </div>
     <!--nav title-->
     <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
-    <div class="heardCenterTitle">
-       <Timer></Timer>
-    </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
       <Search id="header-search" />
       <ScreenFull />
@@ -50,7 +47,6 @@
 <script setup>
 import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
-import Timer from './Timer/Timer.vue'
 const {t} = useI18n({useScope: 'global'})
 import Search from '@/components/HeaderSearchNew/index.vue'
 import SizeSelect from '@/components/SizeSelect/index.vue'
@@ -60,26 +56,25 @@ import ScreenFull from '@/components/ScreenFull/index.vue'
 import { CaretBottom } from '@element-plus/icons-vue'
 import Breadcrumb from './Breadcrumb'
 import Hamburger from './Hamburger'
-import { appStore } from '@/store/app'
+import { useAppStore } from '@/store/app'
 import { useUserStore } from '@/store/user'
-import moment from "moment";
 
 const router = useRouter()
 const route = useRoute()
 
+const appStore = useAppStore()
 const userStore = useUserStore()
-const useAppStore = appStore()
 
 const settings = computed(() => {
-  return useAppStore.settings
+  return appStore.settings
 })
 
 const opened = computed(() => {
-  return useAppStore.sidebar.opened
+  return appStore.sidebar.opened
 })
 
 const toggleSideBar = () => {
-  useAppStore.toggleSideBar()
+    appStore.toggleSideBar()
 }
 
 const loginOut = async () => {

@@ -7,6 +7,8 @@ import vue from '@vitejs/plugin-vue'
 // @ts-ignore
 import vueJsx from '@vitejs/plugin-vue-jsx'
 // @ts-ignore
+import vueDevTools from 'vite-plugin-vue-devtools'
+// @ts-ignore
 import VueSetupExtend from 'vite-plugin-vue-setup-extend-plus'
 // @ts-ignore
 import AutoImport from 'unplugin-auto-import/vite'
@@ -34,6 +36,9 @@ export default defineConfig({
         vue(),
         vueJsx(),
         VueSetupExtend(),
+        vueDevTools({
+            launchEditor: 'phpstorm'
+        }),
         //https://github.com/antfu/unplugin-auto-import/blob/HEAD/src/types.ts
         AutoImport({
             // resolvers: [ElementPlusResolver()],

@@ -3,7 +3,7 @@ import {getLanguage} from '@/lang'
 import {defineStore} from "pinia"
 import defaultSettings from '../settings'
 
-export const appStore = defineStore('app', {
+export const useAppStore = defineStore('app', {
   state: () => {
     return {
       sidebar: {

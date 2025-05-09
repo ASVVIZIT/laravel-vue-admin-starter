@@ -1,4 +1,5 @@
 <template>
+    <!-- Осталось без изменений -->
     <div :class="{ 'show': show }" class="header-search">
         <div class="nav-search">
             <icon
@@ -28,131 +29,129 @@
     </div>
 </template>
 
-<script>
-import { defineComponent, ref, computed, watch, onMounted, nextTick } from 'vue'
-import { useStore } from 'vuex'
+<script setup>
+// Импорты Vue и сторонних библиотек
+import { ref, computed, watch, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import Fuse from 'fuse.js'
-import path from 'path'
+import { usePermissionRoutesStore } from '@/store/permissionRoutes' // Импорт хранилища Pinia
+import { storeToRefs } from 'pinia'
 
-export default defineComponent({
-    name: 'HeaderSearch',
-    setup() {
-        const store = useStore()
-        const router = useRouter()
+// Инициализация хранилища Pinia
+const permissionRoutesStore = usePermissionRoutesStore()
+const { permission_routes } = storeToRefs(permissionRoutesStore) // Получаем реактивные routes из хранилища
 
-        const search = ref('')
-        const options = ref([])
-        const searchPool = ref([])
-        const show = ref(false)
-        const fuse = ref(null)
-        const headerSearchSelect = ref(null)
+// Реактивные переменные
+const search = ref('')
+const options = ref([])
+const searchPool = ref([])
+const show = ref(false)
+const fuse = ref(null)
+const headerSearchSelect = ref(null)
+const router = useRouter()
 
-        const routes = computed(() => store.getters.permission_routes)
+// Генерация маршрутов с обработкой пути для браузера
+const generateRoutes = (routesList, basePath = '/', prefixTitle = []) => {
+    let res = []
 
-        const generateRoutes = (routesList, basePath = '/', prefixTitle = []) => {
-            let res = []
+    // Функция для безопасного объединения путей в браузере
+    const joinPath = (base, routePath) => {
+        if (routePath.startsWith('/')) return routePath
+        return `${base}/${routePath}`.replace(/\/+/g, '/')
+    }
 
-            for (const router of routesList) {
-                if (router.hidden) continue
+    for (const route of routesList) {
+        if (route.hidden) continue
 
-                const data = {
-                    path: path.resolve(basePath, router.path),
-                    title: [...prefixTitle]
-                }
-
-                if (router.meta?.title) {
-                    data.title = [...data.title, router.meta.title]
-
-                    if (router.redirect !== 'noRedirect') {
-                        res.push(data)
-                    }
-                }
-
-                if (router.children) {
-                    const tempRoutes = generateRoutes(
-                        router.children,
-                        data.path,
-                        data.title
-                    )
-                    if (tempRoutes.length >= 1) {
-                        res = [...res, ...tempRoutes]
-                    }
-                }
-            }
-            return res
+        const data = {
+            path: joinPath(basePath, route.path),
+            title: [...prefixTitle]
         }
 
-        const initFuse = (list) => {
-            fuse.value = new Fuse(list, {
-                shouldSort: true,
-                threshold: 0.4,
-                location: 0,
-                distance: 100,
-                minMatchCharLength: 1,
-                keys: [
-                    { name: 'title', weight: 0.7 },
-                    { name: 'path', weight: 0.3 }
-                ]
-            })
-        }
-
-        const querySearch = (query) => {
-            options.value = query ? fuse.value.search(query) : []
-        }
-
-        const click = () => {
-            show.value = !show.value
-            if (show.value) {
-                nextTick(() => {
-                    headerSearchSelect.value?.focus()
-                })
+        if (route.meta?.title) {
+            data.title.push(route.meta.title)
+            if (route.redirect !== 'noRedirect') {
+                res.push(data)
             }
         }
 
-        const close = () => {
-            headerSearchSelect.value?.blur()
-            options.value = []
-            show.value = false
-        }
-
-        const change = (val) => {
-            router.push(val.path)
-            search.value = ''
-            options.value = []
-            nextTick(() => (show.value = false))
-        }
-
-        watch(routes, (newRoutes) => {
-            searchPool.value = generateRoutes(newRoutes)
-        })
-
-        watch(searchPool, (newList) => {
-            if (newList.length) initFuse(newList)
-        })
-
-        watch(show, (value) => {
-            if (value) {
-                document.body.addEventListener('click', close)
-            } else {
-                document.body.removeEventListener('click', close)
-            }
-        })
-
-        onMounted(() => {
-            searchPool.value = generateRoutes(routes.value)
-        })
-
-        return {
-            search,
-            options,
-            show,
-            headerSearchSelect,
-            click,
-            change,
-            querySearch
+        if (route.children) {
+            const childRoutes = generateRoutes(
+                route.children,
+                data.path,
+                data.title
+            )
+            res = res.concat(childRoutes)
         }
     }
+    return res
+}
+
+// Инициализация поискового движка Fuse.js
+const initFuse = (list) => {
+    fuse.value = new Fuse(list, {
+        shouldSort: true,
+        threshold: 0.4,
+        location: 0,
+        distance: 100,
+        minMatchCharLength: 1,
+        keys: [
+            { name: 'title', weight: 0.7 },
+            { name: 'path', weight: 0.3 }
+        ]
+    })
+}
+
+// Поиск по запросу
+const querySearch = (query) => {
+    options.value = query ? fuse.value.search(query).map(item => item.item) : []
+}
+
+// Обработчик клика по иконке поиска
+const click = () => {
+    show.value = !show.value
+    if (show.value) {
+        nextTick(() => {
+            headerSearchSelect.value?.focus()
+        })
+    }
+}
+
+// Закрытие поиска
+const close = () => {
+    headerSearchSelect.value?.blur()
+    options.value = []
+    show.value = false
+}
+
+// Обработчик выбора результата
+const change = (val) => {
+    router.push(val.path)
+    search.value = ''
+    options.value = []
+    nextTick(() => (show.value = false))
+}
+
+// Наблюдатели
+watch(permission_routes, (newRoutes) => {
+    searchPool.value = generateRoutes(newRoutes)
+})
+
+watch(searchPool, (newList) => {
+    if (newList.length) initFuse(newList)
+})
+
+watch(show, (value) => {
+    if (value) {
+        document.body.addEventListener('click', close)
+    } else {
+        document.body.removeEventListener('click', close)
+    }
+})
+
+// Инициализация при монтировании
+onMounted(() => {
+    searchPool.value = generateRoutes(permission_routes.value)
 })
 </script>
 

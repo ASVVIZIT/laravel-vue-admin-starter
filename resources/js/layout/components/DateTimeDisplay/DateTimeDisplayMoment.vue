@@ -1,6 +1,10 @@
 <template>
     <div class="datetime-container">
-        <div class="controls">
+        <div class="title">
+            <h3>Moment</h3>
+        </div>
+        <div class="card">
+            <div class="controls">
             <div class="control-group">
                 <label>Timezone: </label>
                 <select v-model="store.selectedTimezone">
@@ -24,17 +28,20 @@
                 </label>
             </div>
         </div>
-
-        <div class="time-display">
-            {{ formattedTime }}
+        </div>
+        <div class="card">
+            <div class="time-display">
+                {{ formattedTime }}
+            </div>
         </div>
     </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
-import { useDateTimeStore } from 'resources/js/store/datetime';
+import { useDateTimeStore } from '@/store/datetime';
 import moment from 'moment-timezone';
+const TIME_ZONE = 'Asia/Yekaterinburg';
 
 // Store initialization
 // Инициализация хранилища
@@ -44,22 +51,31 @@ const store = useDateTimeStore();
 // Реактивная ссылка на текущее время
 const currentTime = ref(moment());
 
+moment.locale('ru');
+/*moment.updateLocale('ru', {
+    months : 'январь_февраль_март_апрель_май_июнь_июль_август_сентябрь_октябрь_ноябрь_декабрь'.split('_')
+});*/
 // Timezone options
 // Опции часовых поясов
 const timezones = ref([
     'UTC',
+     TIME_ZONE,
     'Europe/Moscow',
     'America/New_York',
     'Asia/Tokyo',
     'Europe/London'
 ]);
 
+currentTime.value.tz(timezones[2])
+
 // Date format options
 // Опции форматов даты
 const dateFormats = ref([
     { value: 'HH:mm', label: '24-hour format' },
     { value: 'hh:mm A', label: '12-hour format' },
-    { value: 'MMMM Do YYYY, HH:mm', label: 'Long format' }
+    { value: 'dddd, MMMM Do', label: 'День, Месяц 5th' },
+    { value: 'MMMM Do YYYY, HH:mm', label: 'Long format' },
+    { value: 'LT', label: 'Локализация' },
 ]);
 
 // Update time every second
