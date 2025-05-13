@@ -34,8 +34,8 @@
 </template>
 
 <script>
-import noAuthGif from '@/assets/401_images/401.gif'
-import noAuthJpg from '@/assets/401_images/401.jpg'
+import noAuthGif from '@assets/401_images/401.gif'
+import noAuthJpg from '@assets/401_images/401.jpg'
 
 export default {
   name: 'Page401',

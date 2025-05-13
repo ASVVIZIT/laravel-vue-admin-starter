@@ -1,5 +1,5 @@
 import defaultSettings from '@/settings';
-import i18n from '@/lang';
+import i18n from '@lang/index';
 
 const title = defaultSettings.title || 'Laravel Fenix Admin';
 

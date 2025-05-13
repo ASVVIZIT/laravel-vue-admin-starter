@@ -2,9 +2,9 @@ import {login, logout, getInfo} from '@/api/auth'
 import {isLogged, setToken, removeToken} from '@/utils/auth'
 import router, {resetRouter} from '../router'
 import {defineStore} from "pinia"
-import {usePermissionStore} from "@/store/permission";
+import {permissionStore} from "@store/permission";
 
-export const useUserStore = defineStore('user', {
+export const userStore = defineStore('user', {
   state: () => {
     return {
       id: null,
@@ -108,8 +108,8 @@ export const useUserStore = defineStore('user', {
 
         // generate accessible routes map based on roles
 
-        const permissionStore = usePermissionStore()
-        const accessRoutes = await permissionStore.generateRoutes(roles, permissions)
+        const usePermissionStore = permissionStore() //permissionStore
+        const accessRoutes = await usePermissionStore.generateRoutes(roles, permissions)
 
         // dynamically add accessible routes
         accessRoutes.forEach((item) => {

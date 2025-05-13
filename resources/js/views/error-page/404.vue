@@ -28,8 +28,8 @@
 </template>
 
 <script>
-import icon404 from '@/assets/404_images/404.png'
-import icon404Cloud from '@/assets/404_images/404_cloud.png'
+import icon404 from '@assets/404_images/404.png'
+import icon404Cloud from '@assets/404_images/404_cloud.png'
 
 export default {
   name: 'Page404',

@@ -25,25 +25,25 @@
 import Logo from './Logo.vue'
 import SidebarItem from './SidebarItem.vue'
 //get scss variable
-import scssExportJson from '@/styles/variables-to-js.scss'
-import { useAppStore } from '@/store/app'
-import { usePermissionStore } from '@/store/permission'
+import scssExportJson from '@styles/variables-to-js.scss'
+import { appStore } from '@store/app'
+import { permissionStore } from '@store/permission'
 
-const appStore = useAppStore()
+const useAppStore = appStore()
 const settings = computed(() => {
-  return appStore.settings
+  return useAppStore.settings
 })
 
 const route = useRoute()
-const permissionStore = usePermissionStore()
+const usePermissionStore = permissionStore() // permissionStore
 const routes = computed(() => {
-  return permissionStore.routes
+  return usePermissionStore.routes
 })
 const isCollapse = computed(() => {
-  return appStore.sidebar.opened
+  return useAppStore.sidebar.opened
 })
 
-//change scss variable to js
+//change  scss variable to js
 const dillScssExportToJson = (scssExportJson) => {
   const jsonString = scssExportJson.replace(/:export\s*/, '').replace(/[\s+\r\n]/g, '')
   const scssJson = {}

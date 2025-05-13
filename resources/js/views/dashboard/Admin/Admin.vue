@@ -60,7 +60,7 @@
 
 <script setup>
 import { toRefs, reactive } from 'vue'
-import GithubCorner from '@/views/dashboard/GithubCorner'
+import GithubCorner from '@views/dashboard/GithubCorner'
 import PanelGroup from './components/PanelGroup.vue'
 import LineChart from './components/LineChart.vue'
 import RaddarChart from './components/RaddarChart.vue'

@@ -3,6 +3,8 @@ import path from 'path'
 // @ts-ignore
 import {defineConfig} from 'vite'
 // @ts-ignore
+import laravel from 'laravel-vite-plugin';
+// @ts-ignore
 import vue from '@vitejs/plugin-vue'
 // @ts-ignore
 import vueJsx from '@vitejs/plugin-vue-jsx'
@@ -33,6 +35,10 @@ export default defineConfig({
         'import.meta.env': {}
     },
     plugins: [
+        laravel({
+            input: 'resources/js/app.js',
+            refresh: true,
+        }),
         vue(),
         vueJsx(),
         VueSetupExtend(),
@@ -58,9 +64,21 @@ export default defineConfig({
         alias: {
             // @ts-ignore
             '@': path.join(__dirname, '/resources/js'),
+            '@styles': path.join(__dirname, '/resources/js/styles'),
+            '@api': path.join(__dirname, '/resources/js/api'),
+            '@lang': path.join(__dirname, '/resources/js/lang'),
+            '@utils': path.join(__dirname, '/resources/js/utils'),
+            '@router': path.join(__dirname, '/resources/js/router'),
+            '@assets': path.join(__dirname, '/resources/js/assets'),
+            '@constants': path.join(__dirname, '/resources/js/constants'),
+            '@layout': path.join(__dirname, '/resources/js/layout'),
+            '@components': path.join(__dirname, '/resources/js/components'),
+            '@store': path.join(__dirname, '/resources/js/store'),
+            '@views': path.join(__dirname, '/resources/js/views'),
             //remove i18n waring
             'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js'
-        }
+        },
+        extensions: ['.jsx', '.js', '.vue', '.json', '.scss', '.sass']
     },
     build: {
         // 在 outDir 中生成 manifest.json

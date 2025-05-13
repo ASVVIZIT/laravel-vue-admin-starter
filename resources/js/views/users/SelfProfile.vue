@@ -1,80 +1,47 @@
 <template>
-    <div class="app-container scroll-y">
-        <!-- Формa отображается только при наличии данных пользователя -->
-        <!-- Form shows only when user data exists -->
-        <el-form v-if="user" :model="user">
-            <el-row :gutter="16">
-                <el-col :span="10">
-                    <!-- Карточка пользователя с передачей пропсов -->
-                    <!-- User card with props passing -->
-                    <UserCard :user="user" />
-
-                    <!-- Биография пользователя -->
-                    <!-- User biography -->
-                    <UserBio />
-                </el-col>
-
-                <el-col :span="14">
-                    <!-- Активность пользователя с передачей пропсов -->
-                    <!-- User activity with props passing -->
-                    <UserActivity :user="user" />
-                </el-col>
-            </el-row>
-        </el-form>
-    </div>
+  <div class="app-container scroll-y">
+    <el-form v-if="user" :model="user">
+      <el-row :gutter="16">
+        <el-col :span="10">
+          <user-card :user="user" />
+          <user-bio />
+        </el-col>
+        <el-col :span="14">
+          <user-activity :user="user" />
+        </el-col>
+      </el-row>
+    </el-form>
+  </div>
 </template>
 
-<!-- Используем синтаксис script setup для Composition API -->
-<!-- Use script setup syntax for Composition API -->
-<script setup>
-// Импорт функций жизненного цикла и реактивности
-// Import lifecycle and reactivity functions
-import { onMounted, ref } from 'vue'
+<script>
+import UserBio from '@views/users/components/UserBio.vue'
+import UserCard from '@views/users/components/UserCard.vue'
+import UserActivity from '@views/users/components/UserActivity.vue'
+import {onMounted, reactive, toRefs} from 'vue'
+import {userStore} from '@store/user';
 
-// Импорт хранилища Pinia
-// Import Pinia store
-import { useUserStore } from '@/store/user'
+export default {
+  name: 'SelfProfile',
+  components: { UserBio, UserCard, UserActivity },
+  setup() {
+    const resData = reactive({
+      user: {},
+    })
 
-// Импорт компонентов
-// Import components
-import UserBio from './components/UserBio.vue'
-import UserCard from './components/UserCard.vue'
-import UserActivity from './components/UserActivity.vue'
+    onMounted(() => {
+      getUser()
+    })
 
-// Реактивная ссылка для хранения данных пользователя
-// Reactive reference for user data
-const user = ref(null)
+    const useUserStore = userStore()
 
-// Получаем экземпляр хранилища пользователя
-// Get user store instance
-const userStore = useUserStore()
-
-// Асинхронная функция получения данных пользователя
-// Async function to fetch user data
-const getUser = async () => {
-    try {
-        // Вызываем действие хранилища и сохраняем результат
-        // Call store action and save result
-        user.value = await userStore.getInfo()
-    } catch (error) {
-        console.error('Ошибка при загрузке пользователя:', error)
-        // Можно добавить обработку ошибки (например, уведомление пользователя)
-        // Add error handling here (e.g. user notification)
+    const getUser = async () => {
+        resData.user = await useUserStore.getInfo()
     }
-}
 
-// Хук жизненного цикла: выполняем при монтировании компонента
-// Lifecycle hook: execute when component is mounted
-onMounted(() => {
-    getUser()
-})
+    return {
+      ...toRefs(resData)
+    }
+  },
+};
 </script>
-
-<style scoped>
-/* Стили контейнера с вертикальным скроллом */
-/* Scroll container styles */
-.scroll-y {
-    overflow-y: auto;
-    height: 100vh;
-}
-</style>

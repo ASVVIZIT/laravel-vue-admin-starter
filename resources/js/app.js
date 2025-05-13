@@ -1,12 +1,12 @@
-import './styles/index.scss'
+import '@styles/index.scss'
 import 'bootstrap-icons/font/bootstrap-icons.scss'
 
 import Cookies from 'js-cookie'
 
 import {createApp, ref} from 'vue'
-import App from './views/App.vue'
-import Icon from './components/Icon/index.vue'
-import router from './router'
+import App from '@views/App.vue'
+import Icon from '@components/Icon/Icon.vue'
+import router from '@router/index'
 
 // ElementPlus
 import ElementPlus from 'element-plus'
@@ -15,7 +15,7 @@ import {dayjs} from 'element-plus'
 import dayjsLocale from "dayjs/locale/ru"
 import elementLocale from 'element-plus/es/locale/lang/ru'
 // i18n lang
-import i18n from './lang'; // Internationalization
+import i18n from '@lang/index'; // Internationalization
 
 // Moment.js
 import moment from 'moment-timezone'
@@ -30,9 +30,9 @@ dayjs.locale(dayjsLocale)
 app.use(i18n)
 
 app.use(ElementPlus, {
-  size: Cookies.get('size') || 'medium', // set element-plus default size
-  i18n: (key, value) => i18n.t(key, value),
-  locale: elementLocale
+    size: Cookies.get('size') || 'medium', // set element-plus default size
+    i18n: (key, value) => i18n.t(key, value),
+    locale: elementLocale
 })
 
 // pinia
@@ -40,7 +40,7 @@ import {createPinia} from 'pinia'
 app.use(createPinia())
 
 // element svg icon
-import ElSvgIcon from '@/components/ElSvgIcon.vue'
+import ElSvgIcon from '@components/ElSvgIcon.vue'
 
 app.component('ElSvgIcon', ElSvgIcon)
 

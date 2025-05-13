@@ -1,4 +1,4 @@
-import {useUserStore} from '@/store/user';
+import {userStore} from '@store/user';
 
 /**
  * @param {Array} value
@@ -6,9 +6,9 @@ import {useUserStore} from '@/store/user';
  * @example see @/views/permission/Directive.vue
  */
 export default function checkPermission(value) {
-  const userStore = useUserStore()
+  const useUserStore = userStore()
   if (value && value instanceof Array && value.length > 0) {
-    const permissions = userStore.permissions
+    const permissions = useUserStore.permissions
     const requiredPermissions = value
 
     return permissions.some(permission => {

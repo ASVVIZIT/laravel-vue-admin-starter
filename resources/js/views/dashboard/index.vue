@@ -19,18 +19,18 @@ import { computed } from 'vue'
 
 // Pinia store for user management
 // Импорт хранилища Pinia для управления пользователем
-import { useUserStore } from '@/store/user'
+import { userStore } from '@/store/user'
 
 // Initialize user store
 // Инициализация хранилища пользователя
-const userStore = useUserStore()
+const useUserStore = userStore()
 
 // Reactive computed property to check admin role
 // Реактивное вычисляемое свойство для проверки роли администратора
 const hasAdminRole = computed(() => {
     // Convert roles object values to array and check inclusion
     // Преобразование значений объекта ролей в массив и проверка наличия
-    return Object.values(userStore.roles).includes('admin')
+    return Object.values(useUserStore.roles).includes('admin')
 })
 </script>
 

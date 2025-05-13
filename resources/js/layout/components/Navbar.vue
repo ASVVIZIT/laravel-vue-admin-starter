@@ -12,8 +12,11 @@
     </div>
     <!--nav title-->
     <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
+    <div class="heardCenterTitle">
+<!--        <Timer></Timer>-->
+    </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
-      <Search id="header-search" />
+<!--      <Search id="header-search" />-->
       <ScreenFull />
       <SizeSelect />
       <LangSelect />
@@ -48,7 +51,7 @@
 import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
 const {t} = useI18n({useScope: 'global'})
-import Search from '@/components/HeaderSearchNew/index.vue'
+import Search from '@/components/HeaderSearch/index.vue'
 import SizeSelect from '@/components/SizeSelect/index.vue'
 import LangSelect from '@/components/LangSelect/index.vue'
 import ScreenFull from '@/components/ScreenFull/index.vue'
@@ -56,25 +59,26 @@ import ScreenFull from '@/components/ScreenFull/index.vue'
 import { CaretBottom } from '@element-plus/icons-vue'
 import Breadcrumb from './Breadcrumb'
 import Hamburger from './Hamburger'
-import { useAppStore } from '@/store/app'
-import { useUserStore } from '@/store/user'
+import { appStore } from '@/store/app'
+import { userStore } from '@/store/user'
+import moment from "moment";
 
 const router = useRouter()
 const route = useRoute()
 
-const appStore = useAppStore()
-const userStore = useUserStore()
+const useUserStore = userStore()
+const useAppStore = appStore()
 
 const settings = computed(() => {
-  return appStore.settings
+  return useAppStore.settings
 })
 
 const opened = computed(() => {
-  return appStore.sidebar.opened
+  return useAppStore.sidebar.opened
 })
 
 const toggleSideBar = () => {
-    appStore.toggleSideBar()
+  useAppStore.toggleSideBar()
 }
 
 const loginOut = async () => {

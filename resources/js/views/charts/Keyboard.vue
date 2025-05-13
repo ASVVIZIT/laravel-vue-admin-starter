@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import Chart from '@/components/Charts/Keyboard.vue';
+import Chart from '@components/Charts/Keyboard.vue';
 
 export default {
   name: 'KeyboardChart',

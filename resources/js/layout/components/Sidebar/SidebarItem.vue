@@ -26,10 +26,10 @@
 
 <script setup>
 import Link from './Link.vue'
-import Item from '@/components/Item/Item'
-import { isExternal } from '@/utils/validate'
+import Item from '@components/Item/Item'
+import { isExternal } from '@utils/validate'
 import path from 'path'
-import i18n from '@/utils/i18n'
+import i18n from '@utils/i18n'
 
 const {generateTitle} = i18n()
 const props = defineProps({

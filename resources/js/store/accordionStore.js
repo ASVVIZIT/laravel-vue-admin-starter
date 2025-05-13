@@ -61,13 +61,13 @@ export const useAccordionStore = defineStore('accordion', () => {
                 ? activePanels.value.push(id)
                 : activePanels.value.splice(index, 1)
 
-/*            if (index === -1) {
-                console.log('Добавление панели', id)
-                activePanels.value.push(id)
-            } else {
-                console.log('Удаление панели', id)
-                activePanels.value.splice(index, 1)
-            }*/
+            /*            if (index === -1) {
+                            console.log('Добавление панели', id)
+                            activePanels.value.push(id)
+                        } else {
+                            console.log('Удаление панели', id)
+                            activePanels.value.splice(index, 1)
+                        }*/
         }
         console.log('Обновленные активные панели:', activePanels.value)
 

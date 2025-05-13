@@ -30,16 +30,12 @@
 </template>
 
 <script setup>
-import PanThumb from '@/components/PanThumb/index.vue'
-import {uppercaseFirst, toThousandFilter} from "@/utils/index"
+import PanThumb from '@components/PanThumb/index.vue'
+import {uppercaseFirst, toThousandFilter} from "@utils/index"
 import {useI18n} from "vue-i18n";
 
 const {t} = useI18n({useScope: 'global'})
 
-/*const date1 = moment(moment(), 'YYYY-MM-DD HH:mm:ss');
-console.log('date1 ', date1)
-const diffInYears = date1.diff(props.user.birthday, 'years');
-console.log(`Difference in years: ${diffInYears}`);*/
 const props = defineProps({
   user: {
     type: Object,

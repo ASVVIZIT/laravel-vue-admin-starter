@@ -1,7 +1,7 @@
 import {createRouter, createWebHashHistory} from 'vue-router'
 
 /* Layout */
-import Layout from '@/layout/Layout.vue'
+import Layout from '@layout/Layout.vue'
 
 /* Router for modules */
 import chartsRoutes from './modules/charts'

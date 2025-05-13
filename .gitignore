@@ -1,5 +1,4 @@
 /node_modules
-/public/W*
 /public/hot
 /public/storage
 /storage/*.key
@@ -7,13 +6,7 @@
 .env
 .env.backup
 .phpunit.result.cache
-/tmp
-/docker/
-/docker/*
-/_docker/
-/_docker/*
-/supervisor/*
-/supervisor/supervisord.conf
+docker-compose.*.yml
 docker-compose.override.yml
 Homestead.json
 Homestead.yaml
@@ -23,3 +16,9 @@ yarn-error.log
 /.vscode
 package-lock.json
 composer.lock
+/supervisor
+/supervisor/*
+/docker
+/docker/*
+/.run
+/.run/*

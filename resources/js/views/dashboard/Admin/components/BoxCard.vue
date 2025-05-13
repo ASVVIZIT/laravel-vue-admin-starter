@@ -6,7 +6,7 @@
     <div style="position:relative;">
       <pan-thumb :image="avatar" class="panThumb"/>
       <div class="mallki-text">
-        Laravel Vue Admin
+        Laravel Vue Admin Starter
       </div>
       <div style="padding-top:35px;" class="progress-item">
         <span>Laravel</span>
@@ -28,22 +28,32 @@
   </el-card>
 </template>
 
-<script setup>
-// Импорт компонентов и необходимых функций Vue
-// Importing components and required Vue functions
-import { computed } from 'vue'
-import PanThumb from '@/components/PanThumb/index.vue'
-import { useUserStore } from '@/store/user'
+<script>
+import PanThumb from '@components/PanThumb/index.vue'
+import {computed, reactive, toRefs} from "vue"
+import {userStore} from "@store/user"
 
-// Инициализация хранилища Pinia
-// Initializing Pinia store
-const userStore = useUserStore()
+export default {
+  components: {PanThumb},
+  setup() {
+    const useUserStore = userStore()
+    const resData = reactive({
+      name: computed(() => {
+        return useUserStore.name
+      }),
+      avatar: computed(() => {
+        return useUserStore.avatar
+      }),
+      roles: computed(() => {
+        return useUserStore.roles
+      }),
+    })
 
-// Вычисляемые свойства из хранилища
-// Computed properties from the store
-const name = computed(() => userStore.name)         // Имя пользователя / User name
-const avatar = computed(() => userStore.avatar)     // Аватар пользователя / User avatar
-const roles = computed(() => userStore.roles)       // Роли пользователя / User roles
+    return {
+      ...toRefs((resData))
+    }
+  },
+};
 </script>
 
 <style rel="stylesheet/scss" lang="scss">
