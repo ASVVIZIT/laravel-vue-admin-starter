@@ -1,119 +1,124 @@
 <template>
-<!--  <div ref="rightPanel" :class="{show:show}" class="rightPanel-container">
-    <div class="rightPanel-background" />
+  <div ref="rightPanel" :class="{show: opened}" class="rightPanel-container">
+    <div class="rightPanel-background" @click="toggleRightPanel"/>
     <div class="rightPanel">
-      <div class="handle-button" :style="{'top':buttonTop+'px','background-color':theme}" @click="show=!show">
-        <i :class="show?'el-icon-close':'el-icon-setting'" />
+      <div
+          class="handle-button"
+          :style="{'top': buttonTop + 'px', 'background-color': theme}"
+          @click="toggleRightPanel"
+      >
+        <i :class="opened ? 'bi bi-x' : 'bi bi-gear'" />
       </div>
-      <div class="rightPanel-items">
-        <slot />
+      <div class="rightPanel-wrapper-items">
+        <div class="rightPanel-items">
+          <slot />
+        </div>
       </div>
     </div>
-  </div>-->
-    <div>
-        панель
-    </div>
+  </div>
 </template>
 
-<!--<script>
-import { addClass, removeClass } from '/resources/js/utils/index.js'
+<script setup>
+import { appStore } from '@store/app'
 
-export default {
-  name: 'RightPanel',
-  props: {
-    clickNotClose: {
-      default: false,
-      type: Boolean
-    },
-    buttonTop: {
-      default: 250,
-      type: Number
-    }
+// Define component props / Определение пропсов компонента
+const props = defineProps({
+  clickNotClose: {
+    type: Boolean,
+    default: false
   },
-  data() {
-    return {
-      show: false
-    }
-  },
-  computed: {
-    theme() {
-      return this.$store.state.settings.theme
-    }
-  },
-  watch: {
-    show(value) {
-      if (value && !this.clickNotClose) {
-        this.addEventClick()
-      }
-      if (value) {
-        addClass(document.body, 'showRightPanel')
-      } else {
-        removeClass(document.body, 'showRightPanel')
-      }
-    }
-  },
-  mounted() {
-    this.insertToBody()
-  },
-  beforeDestroy() {
-    const elx = this.$refs.rightPanel
-    elx.remove()
-  },
-  methods: {
-    addEventClick() {
-      window.addEventListener('click', this.closeSidebar)
-    },
-    closeSidebar(evt) {
-      const parent = evt.target.closest('.rightPanel')
-      if (!parent) {
-        this.show = false
-        window.removeEventListener('click', this.closeSidebar)
-      }
-    },
-    insertToBody() {
-      const elx = this.$refs.rightPanel
-      const body = document.querySelector('body')
-      body.insertBefore(elx, body.firstChild)
-    }
+  buttonTop: {
+    type: Number,
+    default: 250
   }
-}-->
+})
+
+// Store initialization / Инициализация хранилища
+const appUseStore = appStore()
+
+
+// Computed properties / Вычисляемые свойства
+const settings = computed(() => appUseStore.settings)
+const theme = computed(() => appUseStore.settings.theme)
+const opened = computed(() => appUseStore.rightPanel.opened)
+
+// Toggle panel visibility / Переключение видимости панели
+const toggleRightPanel = () => {
+  appUseStore.toggleRightPanel()
+}
+
+/*const addEventClick = () => {
+    window.addEventListener('click', closeSidebar)
+};*/
+
+// Close sidebar when clicking outside / Закрытие панели при клике снаружи
+const closeSidebar = (evt) => {
+  const parent = evt.target.closest('.rightPanel')
+  if (!parent) {
+    appUseStore.setRightPanel(false)
+    window.removeEventListener('click', closeSidebar)
+  }
+}
+
+// Watch for panel state changes / Следим за изменениями состояния панели
+watch(opened, (newVal) => {
+  if (newVal && !props.clickNotClose) {
+    window.addEventListener('click', closeSidebar)
+  } else {
+    window.removeEventListener('click', closeSidebar)
+  }
+})
+
 </script>
 
-<style>
+<style lang="scss" scoped>
+/* Styles remain unchanged / Стили остаются без изменений */
 .showRightPanel {
   overflow: hidden;
   position: relative;
-  width: calc(100% - 15px);
+  width: calc(100% - 25px);
 }
-</style>
 
-<style lang="scss" scoped>
 .rightPanel-background {
   position: fixed;
   top: 0;
   left: 0;
   opacity: 0;
-  transition: opacity .3s cubic-bezier(.7, .3, .1, 1);
-  background: rgba(0, 0, 0, .2);
+  transition: opacity 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
+  background: rgba(0, 0, 0, 0.2);
   z-index: -1;
 }
 
 .rightPanel {
   width: 100%;
-  max-width: 260px;
+  min-width: 280px;
+  max-width: fit-content;
   height: 100vh;
   position: fixed;
   top: 0;
-  right: 0;
-  box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, .05);
-  transition: all .25s cubic-bezier(.7, .3, .1, 1);
+  right: 2px;
+  box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.7, 0.3, 0.1, 1);
   transform: translate(100%);
   background: #fff;
   z-index: 40000;
 }
 
+.rightPanel-wrapper-items {
+  height: calc(100vh - 50px);
+  display: block;
+  position: relative;
+  width: 100%;
+  padding: 2px;
+  overflow: auto;
+}
+
+.rightPanel-items {
+  height: 100%;
+}
+
 .show {
-  transition: all .3s cubic-bezier(.7, .3, .1, 1);
+  transition: all 0.3s cubic-bezier(0.7, 0.3, 0.1, 1);
 
   .rightPanel-background {
     z-index: 20000;
@@ -140,6 +145,7 @@ export default {
   cursor: pointer;
   color: #fff;
   line-height: 48px;
+
   i {
     font-size: 24px;
     line-height: 48px;

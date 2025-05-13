@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import Chart from '@/components/Charts/MixChart.vue';
+import Chart from '@components/Charts/MixChart.vue';
 
 export default {
   name: 'MixChart',

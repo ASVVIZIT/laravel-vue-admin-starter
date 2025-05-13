@@ -141,15 +141,15 @@
 </template>
 
 <script>
-import CustomTable from '@/components/CustomTable.vue'
-import ElSvgItem from "@/components/Item/ElSvgItem.vue"
-import UserResource from '@/api/user'
-import Resource from '@/api/resource'
-import checkPermission from '@/utils/permission'
+import CustomTable from '@components/CustomTable.vue'
+import ElSvgItem from "@components/Item/ElSvgItem.vue"
+import UserResource from '@api/user'
+import Resource from '@api/resource'
+import checkPermission from '@utils/permission'
 import {ElMessage, ElMessageBox} from "element-plus"
-import {uppercaseFirst} from "../../utils"
+import {uppercaseFirst} from "@utils/index"
 import {useI18n} from "vue-i18n"
-import {userStore} from "@/store/user" // Permission checking
+import {userStore} from "@store/user";
 import {Search, Plus} from '@element-plus/icons-vue'
 import dayjs from 'dayjs'
 
@@ -331,7 +331,7 @@ export default {
 
     const getList = () => {
       resData.loading = true
-      userResource.list(resData.params).then((res) => {
+      useUserStore.list(resData.params).then((res) => {
         resData.tableData = res.data
         resData.pagination = res.meta
         resData.loading = false

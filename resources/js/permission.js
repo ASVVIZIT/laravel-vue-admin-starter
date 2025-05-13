@@ -1,11 +1,11 @@
-import router from './router'
-import { ElMessage } from 'element-plus'
+import router from '@router/index'
+import {ElMessage} from 'element-plus'
 import NProgress from 'nprogress' // progress bar
 import 'nprogress/nprogress.css' // progress bar style
-import { isLogged } from '@/utils/auth'
-import getPageTitle from '@/utils/get-page-title'
-import {userStore } from "@/store/user"
-import { permissionStore } from "@/store/permission"
+import {isLogged} from '@utils/auth'
+import getPageTitle from '@utils/get-page-title'
+import {userStore} from "@store/user"
+import {permissionStore} from "@store/permission"
 
 NProgress.configure({ showSpinner: false }) // NProgress Configuration
 
@@ -19,8 +19,8 @@ router.beforeEach(async (to, from, next) => {
 
   // determine whether the user has logged in
   const isUserLogged = isLogged()
-  const useUserStore = userStore()
-  const usePermissionStore = permissionStore()
+  const useUserStore = userStore() //userStore
+  const usePermissionStore = permissionStore() //permissionStore
 
   if (isUserLogged) {
     if (to.path === '/login') {

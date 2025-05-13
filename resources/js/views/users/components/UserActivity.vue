@@ -68,7 +68,7 @@
 </template>
 
 <script setup>
-import UserResource from '@/api/user'
+import UserResource from '@api/user'
 import dayjs from 'dayjs'
 import {ElMessage} from "element-plus"
 import {useI18n} from "vue-i18n";

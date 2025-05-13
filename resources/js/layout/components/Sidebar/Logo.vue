@@ -15,7 +15,7 @@
 
 <script setup>
 import setting from '@/settings'
-import favicon from '@/assets/login/favicon.ico'
+import favicon from '@assets/login/favicon.ico'
 defineProps({
   collapse: {
     type: Boolean,

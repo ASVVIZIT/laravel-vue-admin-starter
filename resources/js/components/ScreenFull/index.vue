@@ -5,7 +5,7 @@
 </template>
 
 <script setup>
-import screenfull from 'screenfull'
+import screenFull from 'screenfull'
 import { onMounted, onUnmounted, reactive, toRefs } from 'vue'
 import { ElMessage } from 'element-plus'
 
@@ -21,27 +21,27 @@ onUnmounted(() => {
 })
 
 const click = () => {
-  if (!screenfull.isEnabled) {
+  if (!screenFull.isEnabled) {
     ElMessage({
       message: 'you browser can not work',
       type: 'warning'
     })
     return false
   }
-  screenfull.toggle()
+  screenFull.toggle()
 }
 const change = () => {
-  resData.isFullscreen = screenfull.isFullscreen
+  resData.isFullscreen = screenFull.isFullscreen
     console.log(resData.isFullscreen)
 }
 const init = () => {
-  if (screenfull.isEnabled) {
-    screenfull.on('change', change)
+  if (screenFull.isEnabled) {
+    screenFull.on('change', change)
   }
 }
 const destroy = () => {
-  if (screenfull.enabled) {
-    screenfull.off('change', change)
+  if (screenFull.enabled) {
+    screenFull.off('change', change)
   }
 }
 

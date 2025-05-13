@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import {fetchList} from '@/api/order'
+import {fetchList} from '@api/order'
 import {toRefs, reactive, onBeforeMount} from 'vue'
 
 const resData = reactive({

@@ -14,11 +14,11 @@
 </template>
 
 <script>
-import Resource from '@/api/resource'
-import UserBio from './components/UserBio.vue'
-import UserCard from './components/UserCard.vue'
-import UserActivity from './components/UserActivity.vue'
-import {userStore} from "../../store/user"
+import Resource from '@api/resource'
+import UserBio from '@views/users/components/UserBio.vue'
+import UserCard from '@views/users/components/UserCard.vue'
+import UserActivity from '@views/users/components/UserActivity.vue'
+import {userStore} from "@store/user"
 import {getCurrentInstance, onMounted, reactive, toRefs} from "vue"
 
 const userResource = new Resource('users')

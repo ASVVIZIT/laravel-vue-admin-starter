@@ -15,11 +15,11 @@
 </template>
 
 <script>
-import UserBio from './components/UserBio.vue'
-import UserCard from './components/UserCard.vue'
-import UserActivity from './components/UserActivity.vue'
-import {onMounted, reactive, toRefs} from "vue"
-import {userStore} from "@/store/user";
+import UserBio from '@views/users/components/UserBio.vue'
+import UserCard from '@views/users/components/UserCard.vue'
+import UserActivity from '@views/users/components/UserActivity.vue'
+import {onMounted, reactive, toRefs} from 'vue'
+import {userStore} from '@store/user';
 
 export default {
   name: 'SelfProfile',

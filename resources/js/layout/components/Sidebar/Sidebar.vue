@@ -25,9 +25,9 @@
 import Logo from './Logo.vue'
 import SidebarItem from './SidebarItem.vue'
 //get scss variable
-import scssExportJson from '@/styles/variables-to-js.scss'
-import { appStore } from '@/store/app'
-import { permissionStore } from '@/store/permission'
+import scssExportJson from '@styles/variables-to-js.scss'
+import { appStore } from '@store/app'
+import { permissionStore } from '@store/permission'
 
 const useAppStore = appStore()
 const settings = computed(() => {
@@ -35,7 +35,7 @@ const settings = computed(() => {
 })
 
 const route = useRoute()
-const usePermissionStore = permissionStore()
+const usePermissionStore = permissionStore() // permissionStore
 const routes = computed(() => {
   return usePermissionStore.routes
 })

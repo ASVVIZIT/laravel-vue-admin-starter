@@ -55,14 +55,14 @@
 </template>
 
 <script>
-import CustomTable from '@/components/CustomTable.vue'
-import ElSvgItem from "@/components/Item/ElSvgItem.vue"
-import Resource from '@/api/resource'
-import RoleResource from '@/api/role'
-import checkPermission from '@/utils/permission'
+import CustomTable from '@components/CustomTable.vue'
+import ElSvgItem from "@components/Item/ElSvgItem.vue"
+import Resource from '@api/resource'
+import RoleResource from '@api/role'
+import checkPermission from '@utils/permission'
 import {useI18n} from "vue-i18n"
-import {uppercaseFirst} from "../../utils"
-import {userStore} from "../../store/user"
+import {uppercaseFirst} from "@utils/index"
+import {userStore} from "@store/user"
 import {ElMessage} from "element-plus" // Permission checking
 
 export default {

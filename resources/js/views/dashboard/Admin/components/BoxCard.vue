@@ -6,7 +6,7 @@
     <div style="position:relative;">
       <pan-thumb :image="avatar" class="panThumb"/>
       <div class="mallki-text">
-        Laravel Vue Admin
+        Laravel Vue Admin Starter
       </div>
       <div style="padding-top:35px;" class="progress-item">
         <span>Laravel</span>
@@ -29,9 +29,9 @@
 </template>
 
 <script>
-import PanThumb from '@/components/PanThumb/index.vue'
+import PanThumb from '@components/PanThumb/index.vue'
 import {computed, reactive, toRefs} from "vue"
-import {userStore} from "@/store/user"
+import {userStore} from "@store/user"
 
 export default {
   components: {PanThumb},

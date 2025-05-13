@@ -43,7 +43,7 @@ const $route = useRoute()
 const $router = useRouter()
 
 const {generateTitle} = i18n()
-const usePermissionStore = permissionStore()
+const usePermissionStore = permissionStore() //permissionStore
 const useTagsViewStore = tagsViewStore()
 const useAppStore = appStore()
 

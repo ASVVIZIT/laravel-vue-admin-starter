@@ -1,6 +1,6 @@
 import '@/bootstrap';
 import { ElMessage } from 'element-plus';
-import { isLogged, getToken } from '@/utils/auth';
+import { isLogged, getToken } from '@utils/auth';
 
 // Create axios instance
 const service = window.axios.create({

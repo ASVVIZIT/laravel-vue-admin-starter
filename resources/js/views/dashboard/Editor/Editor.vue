@@ -19,16 +19,16 @@
 </template>
 
 <script setup>
-import PanThumb from '@/views/dashboard/PanThumb'
-import GithubCorner from '@/views/dashboard/GithubCorner'
+import PanThumb from '@views/dashboard/PanThumb'
+import GithubCorner from '@views/dashboard/GithubCorner'
 import { toRefs, reactive, computed } from 'vue'
-import { userStore } from '@/store/user'
+import { userStore } from '@store/user'
 const resData = reactive({
   yierGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/yier.gif',
   bubuGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/bubu.gif'
 })
 
-const useUserStore = userStore()
+const useUserStore = userStore() //useUserStore
 const name = computed(() => {
   return useUserStore.name
 })

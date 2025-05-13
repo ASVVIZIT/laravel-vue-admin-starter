@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import Chart from '@/components/Charts/LineMarker.vue';
+import Chart from '@components/Charts/LineMarker.vue';
 
 export default {
   name: 'LineChart',

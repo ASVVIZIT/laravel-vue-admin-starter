@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./resources/js/*"],
+      "@styles/*": ["resources/js/styles/*"],
+      "@api/*": ["./resources/js/api/*"],
+      "@lang/*": ["./resources/js/lang/*"],
+      "@utils/*": ["./resources/js/utils/*"],
+      "@router/*": ["./resources/js/router/*"],
+      "@assets/*": ["./resources/js/assets/*"],
+      "@constants/*": ["./resources/js/constants/*"],
+      "@layout/*": ["./resources/js/layout/*"],
+      "@components/*": ["./resources/js/components/*"],
+      "@store/*": ["./resources/js/store/*"],
+      "@views/*": ["./resources/js/views/*"]
+    },
+    "module": "ESNext",
+    "target": "ESNext",
+    "checkJs": true
+  },
+  "include": ["resources/js/**/*"],
+  "exclude": ["node_modules", "vendor"]
+}

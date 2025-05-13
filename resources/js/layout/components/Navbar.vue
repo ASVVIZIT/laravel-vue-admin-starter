@@ -50,7 +50,6 @@
 <script setup>
 import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
-import Timer from './Timer/Timer.vue'
 const {t} = useI18n({useScope: 'global'})
 import Search from '@/components/HeaderSearch/index.vue'
 import SizeSelect from '@/components/SizeSelect/index.vue'
@@ -70,14 +69,6 @@ const route = useRoute()
 const useUserStore = userStore()
 const useAppStore = appStore()
 
-/*const timeZone = "Asia/Yekaterinburg"
-let stringInput = new Date()
-let dateObject = new Date(stringInput).toLocaleString("ru-RU", {
-    timeZone,
-})
-
-//dateObject = moment(stringInput, 'MMMM Do YYYY, h:mm:ss a').fromNow()*/
-
 const settings = computed(() => {
   return useAppStore.settings
 })
@@ -91,7 +82,7 @@ const toggleSideBar = () => {
 }
 
 const loginOut = async () => {
-  await useUserStore.logout().then(() => {
+  await userStore.logout().then(() => {
     router.push(`/login?redirect=/`)
   })
 }
