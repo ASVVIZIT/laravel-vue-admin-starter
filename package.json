@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.23.2",
-    "@element-plus/icons-vue": "^2.1.0",
+    "@element-plus/icons-vue": "^2.3.1",
     "@types/node": "^20.8.9",
     "@types/vue-moment": "^4.0.7",
     "@typescript-eslint/eslint-plugin": "^6.9.0",
@@ -39,6 +39,7 @@
     "unplugin-auto-import": "^0.16.7",
     "vite": "^4.5.0",
     "vite-plugin-laravel": "^0.3.1",
+    "vite-plugin-vue-devtools": "^7.7.6",
     "vite-plugin-vue-setup-extend-plus": "^0.1.0",
     "vue": "^3.3.7",
     "vue-i18n": "^9.6.1",

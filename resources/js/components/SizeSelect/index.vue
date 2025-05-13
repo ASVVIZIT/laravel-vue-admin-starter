@@ -38,7 +38,7 @@ const handleSetSize = (size) => {
   localStorage.setItem('size', size)
   location.reload()
 }
-// 导出属性到页面中使用
+// Export attributes for use on page
 let {sizeOptions} = toRefs(state)
 </script>
 

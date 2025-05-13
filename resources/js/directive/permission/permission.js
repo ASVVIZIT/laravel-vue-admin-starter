@@ -1,21 +1,21 @@
-import {userStore} from '@/store/user';
+import { useUserStore } from '@/store/user';
 
 export default {
-  inserted(el, binding, vnode) {
-    const {value} = binding;
-    const permissions = userStore.permissions;
+    mounted(el, binding) {
+        const userStore = useUserStore();
+        const { value } = binding;
 
-    if (value && value instanceof Array && value.length > 0) {
-      const requiredPermissions = value;
-      const hasPermission = permissions.some(permission => {
-        return requiredPermissions.includes(permission);
-      });
+        if (value && Array.isArray(value) && value.length) {
+            const requiredPermissions = value;
+            const hasPermission = userStore.permissions.some(permission =>
+                requiredPermissions.includes(permission)
+            );
 
-      if (!hasPermission) {
-        el.parentNode && el.parentNode.removeChild(el);
-      }
-    } else {
-      throw new Error(`Permissions are required! Example: v-permission="['manage user','manage permission']"`);
+            if (!hasPermission && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        } else {
+            throw new Error('Permissions are required! Example: v-permission="[\'manage user\',\'manage permission\']"');
+        }
     }
-  },
 };

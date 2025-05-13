@@ -1,11 +1,11 @@
 <script setup>
 import { provide } from 'vue'
-import { ACCORDION_CONTEXT } from '@constants/contextKeys.js'
+import { ACCORDION_CONTEXT } from '@/constants/contextKeys'
 
 // Явно передаем объект контекста
 const contextValue = {
-  isAccordion: true,
-  version: '1.0'
+    isAccordion: true,
+    version: '1.0'
 }
 
 // Предоставляем слоты дочерним компонентам

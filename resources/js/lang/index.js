@@ -6,10 +6,10 @@ import ruLocale from './ru'
 import enLocale from './en'
 
 const messages = {
-    ru: {
-        ...ruLocale,
-        ...elementRuLocale,
-    },
+  ru: {
+    ...ruLocale,
+    ...elementRuLocale,
+  },
   en: {
     ...enLocale,
     ...elementEnLocale,

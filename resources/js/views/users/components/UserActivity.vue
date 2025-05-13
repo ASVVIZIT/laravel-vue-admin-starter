@@ -135,7 +135,7 @@ const onSubmit = () => {
       .then(response => {
         resData.updating = false
         ElMessage({
-          message: 'User information has been updated successfully',
+          message: t('permission.table.elMessage.updated.success.message'),
           type: 'success',
           duration: 5 * 1000,
         })

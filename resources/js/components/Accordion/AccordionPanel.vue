@@ -68,13 +68,13 @@ const toggle = () => {
           return
       }*/
 
-  console.log('[AccordionPanel] Вызов togglePanel для', props.id)
-  store.togglePanel(props.id)
+    console.log('[AccordionPanel] Вызов togglePanel для', props.id)
+    store.togglePanel(props.id)
 }
 
 // Добавляем вычисляемое свойство для блокировки
 const isClickDisabled = computed(() => {
-  return ['all', 'none'].includes(store.accordionMode)
+    return ['all', 'none'].includes(store.accordionMode)
 })
 
 </script>
@@ -108,6 +108,34 @@ const isClickDisabled = computed(() => {
       </div>
     </transition>
   </div>
+    <div class="panel" :class="{ 'is-active': isActive }">
+        <div
+            class="panel-header"
+            @click="!isClickDisabled && toggle()"
+            :class="{ 'disabled-click': isClickDisabled }"
+        >
+            <el-icon v-if="!isClickDisabled" :class="['arrow-icon toggle-arrow-left', { 'rotate': isActive }]" >
+                <CaretBottom />
+            </el-icon>
+            <el-icon v-else class="arrow-icon">
+                <Lock />
+            </el-icon>
+            <!-- Заголовок панели -->
+            <div class="panel-header-title">{{ title }} - {{ name }}</div>
+            <!-- Стрелка справа с анимацией -->
+            <el-icon :class="['arrow-icon toggle-arrow-right', { 'rotate': isActive }]">
+                <CaretBottom />
+            </el-icon>
+        </div>
+        <transition name="slide">
+            <div v-show="isActive" class="panel-content">
+                <!-- Слот для контента с передачей данных -->
+                <slot>
+                    <component :is="content" v-bind="props"/>
+                </slot>
+            </div>
+        </transition>
+    </div>
 </template>
 
 <style lang="scss" scoped>
@@ -170,6 +198,62 @@ const isClickDisabled = computed(() => {
     background-color: #f4f4d9;
     border: 2px solid #1890ff;
   }
+    border-bottom: 1px solid #e4e7ed;
+    &-header {
+        padding: 2px;
+        cursor: pointer;
+        display: flex;
+        gap: 2px;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f5f7fa;
+        transition: background-color 0.3s;
+
+        &-title {
+            font-weight: bold;
+            padding: 2px;
+            font-size: 14px;
+        }
+
+        .arrow-icon {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .toggle-arrow-left {
+            margin-right: auto;
+            transition: transform 0.3s;
+
+            &.rotate {
+                transform: rotate(180deg);
+            }
+        }
+        .toggle-arrow-right {
+            margin-left: auto;
+            transition: transform 0.3s;
+
+            &.rotate {
+                transform: rotate(180deg);
+            }
+        }
+        &:hover {
+            background-color: #ebedf0;
+        }
+    }
+
+    .disabled-click {
+        cursor: not-allowed !important;
+        opacity: 0.6;
+
+        &:hover {
+            background-color: initial !important;
+        }
+    }
+
+    &-content {
+        padding: 1px;
+        background-color: #fff;
+    }
 }
 
 .slide-enter-active,
