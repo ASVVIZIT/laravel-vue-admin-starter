@@ -67,7 +67,7 @@ import RaddarChart from './components/RaddarChart.vue'
 import PieChart from './components/PieChart.vue'
 import BarChart from './components/BarChart.vue'
 import TransactionTable from './components/TransactionTable.vue'
-import TodoList from './components/TodoList/index.vue'
+import TodoList from './components/TodoList/TodoList.vue'
 import BoxCard from './components/BoxCard.vue'
 const lineChart = {
   newVisitis: {

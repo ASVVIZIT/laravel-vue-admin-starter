@@ -1,0 +1,11 @@
+.el-button {
+  &--custom {
+    border-radius: 8px;
+    padding: 12px 24px;
+    transition: transform 0.2s ease;
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}

@@ -6,6 +6,11 @@
 .env
 .env.backup
 .phpunit.result.cache
+supervisor/
+supervisor/*
+docker
+docker/*
+docker-compose.dev.yml
 docker-compose.override.yml
 Homestead.json
 Homestead.yaml

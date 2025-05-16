@@ -52,10 +52,10 @@ import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
 import Timer from './Timer/Timer.vue'
 const {t} = useI18n({useScope: 'global'})
-import Search from '@/components/HeaderSearch/index.vue'
-import SizeSelect from '@/components/SizeSelect/index.vue'
-import LangSelect from '@/components/LangSelect/index.vue'
-import ScreenFull from '@/components/ScreenFull/index.vue'
+import Search from '@/components/HeaderSearch/HeaderSearch.vue'
+import SizeSelect from '@/components/SizeSelect/SizeSelect.vue'
+import LangSelect from '@/components/LangSelect/LangSelect.vue'
+import ScreenFull from '@/components/ScreenFull/ScreenFull.vue'
 
 import { CaretBottom } from '@element-plus/icons-vue'
 import Breadcrumb from './Breadcrumb'

@@ -1,13 +1,6 @@
-@use 'variables.scss';
-@use 'transition.scss';
-@use 'scss-suger.scss';
-@use 'elemenet-style-overflow.scss';
-@use "sidebar.scss";
-@use "driverjs.scss";
+@use '../core/variables';
 
-//scroll
 @mixin main-show-wh() {
-  /* css 声明 */
   height: calc(100vh - #{variables.$navBarHeight} - #{variables.$tagViewHeight} - #{variables.$appMainPadding * 2});
   width: 100%;
 }

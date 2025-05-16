@@ -14,12 +14,12 @@ if (!function_exists('responseSuccess')) {
      * @param array $other
      * @return JsonResponse
      */
-    function responseSuccess($data = [], $msg = '操作成功', $other = []): JsonResponse
+    function responseSuccess($data = [],string $msg = 'Успешная операция', array $other = [], int $statusCode = 200): JsonResponse
     {
         $res = [
             'message' => $msg,
             'data' => $data,
-            'code' => 200,
+            'code' => $statusCode,
         ];
 
         $res = !empty($other) ? array_merge($res, $other) : $res;
@@ -49,7 +49,7 @@ if (!function_exists('responseFailed')) {
      * @param array $data
      * @return JsonResponse
      */
-    function responseFailed(string $msg = '操作失败', int $statusCode = 400, $data = []): JsonResponse
+    function responseFailed(string $msg = 'Операция завершилась неудачей', int $statusCode = 400, array $data = []): JsonResponse
     {
         if (config('app.debug')) {
             return response()->json([

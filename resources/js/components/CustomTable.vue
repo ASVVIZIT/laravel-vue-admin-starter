@@ -66,7 +66,7 @@
         <template #default="scope">
           <template v-if="tableOption.item_actions">
             <slot v-if="tableOption.slot" name="table_options" v-bind="scope"/>
-            <template v-else-if="tableOption.item_actions.length <= 3">
+            <template v-else-if="tableOption.item_actions.length < 1">
               <el-button v-for="(action, index) in tableOption.item_actions"
                          :type="action.type ? action.type : 'primary'"
                          :size="action.size ? action.size : ''"
@@ -97,6 +97,7 @@
   <template v-if="paginate && pagination.total>0">
     <section class="pagination-container">
       <el-pagination
+          background
           :page-sizes="pageSizes"
           :layout="layout"
           :current-page="pagination.current_page"
@@ -110,7 +111,7 @@
 </template>
 
 <script>
-import {useI18n} from "vue-i18n";
+import {useI18n} from "vue-i18n"
 import ElSvgItem from "./Item/ElSvgItem.vue"
 import {defineEmits} from "vue"
 

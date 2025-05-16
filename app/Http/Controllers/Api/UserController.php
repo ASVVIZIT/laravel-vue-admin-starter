@@ -42,10 +42,10 @@ class UserController extends BaseController
                     $q->where('name', $params['role']);
                 });
             })
-            ->when(!empty($params['keyword']), function (Builder $query) use ($params) {
+            ->when(!empty($params['search']), function (Builder $query) use ($params) {
                 $query->where(function ($q) use ($params) {
-                    $q->where('name', 'like', '%' . $params['keyword'] . '%')
-                        ->orWhere('email', 'like', '%' . $params['keyword'] . '%');
+                    $q->where('name', 'like', '%' . $params['search'] . '%')
+                        ->orWhere('email', 'like', '%' . $params['search'] . '%');
                 });
             })
             ->paginate($params['per_page'] ?? 10);
@@ -194,7 +194,17 @@ class UserController extends BaseController
         }
 
         try {
-            $user->delete();
+            $currentUser = Auth::user();
+    /*        dd([
+                '$currentUser' => $currentUser->getAuthIdentifier(),
+                '$user' => $user->getAuthIdentifier(),
+            ]);*/
+
+            if ($currentUser->getAuthIdentifier() === $user->getAuthIdentifier()) {
+                return responseFailed('Can not delete - Its ure', Response::HTTP_NOT_MODIFIED);
+            } else {
+                $user->delete();
+            }
         } catch (\Exception $ex) {
             return responseFailed($ex->getMessage(), Response::HTTP_FORBIDDEN);
         }

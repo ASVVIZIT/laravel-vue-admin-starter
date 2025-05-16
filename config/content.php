@@ -6,8 +6,15 @@ return [
 
     // Admin Credentials
     'admin_name' => env('ADMIN_NAME', 'admin'),
-    'admin_email' => env('ADMIN_EMAIL', 'admin@admin.com'),
+    'admin_email' => env('ADMIN_EMAIL', 'admin@fenix.dev'),
     'admin_password' => env('ADMIN_PASSWORD', '123456'),
+
+    'user_name' => env('USER_NAME', 'user'),
+    'user_email' => env('USER_EMAIL', 'user@fenix.dev'),
+    'user_password' => env('USER_PASSWORD', '123456'),
+
+    'mail_stat' => env('MAIL_STAT', '@fenix.dev'),
+    'mail_stat_pass' => env('MAIL_STAT_PASS', 'fenix001'),
 
     // Default Avatar
     'default_avatar' => env('DEFAULT_AVATAR', '/images/avatar.png'),

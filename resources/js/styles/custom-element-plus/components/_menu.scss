@@ -1,0 +1,42 @@
+@use "sass:map";
+@use "../../custom-element-plus/proxy" as *;
+@use "../../core/variables" as *;
+/**
+ * Кастомизация компонента Menu
+ * @component ElMenu
+ * @modified 2023-10-20
+ * @see https://element-plus.org/en-US/component/menu.html
+ */
+.el-menu {
+  border-right: solid 1px var(--el-menu-border-color);
+  list-style: none;
+  position: relative;
+  margin: 0;
+  padding-left: 0;
+  background-color:  map.get($menu, 'backgroundColor');
+  box-sizing: border-box;
+  // Настройки меню
+
+         // "backgroundColor": #304156,          // Фон меню
+         // "hoverBackgroundColor": #263445,     // Hover состояния
+         // "activeColor": #e59808              // Активный элемент
+
+  &-item {
+    transition: background-color 0.2s ease;
+    &:hover {
+      background-color:  map.get($menu, 'hoverBackgroundColor');
+    }
+    &.is-active {
+      color: map.get($colors, 'activeColor');
+      &::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100%;
+        width: 3px;
+        background: map.get($menu, 'activeColor');
+      }
+    }
+  }
+}

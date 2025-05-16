@@ -1,47 +1,89 @@
-import './styles/index.scss'
-import 'bootstrap-icons/font/bootstrap-icons.scss'
+// ==============================================
+// SECTION 1: Импорт глобальных стилей и иконок
+// ==============================================
+import './styles/main.scss'          // Основные SCSS-стили проекта (кастомные переменные, миксины, сброс стилей)
+import 'bootstrap-icons/font/bootstrap-icons.scss' // Иконки Bootstrap (глобальное подключение всех иконок)
 
-import Cookies from 'js-cookie'
+// ==============================================
+// SECTION 2: Импорт сторонних библиотек
+// SUBSECTION 2.1: Базовые утилиты
+// ----------------------------
+import Cookies from 'js-cookie'      // Работа с cookies (хранение настроек размера компонентов)
+import { createApp } from 'vue'      // Ядро Vue 3 для создания экземпляра приложения
 
-import {createApp} from 'vue'
-import App from './views/App.vue'
-import Icon from './components/Icon/Icon.vue'
-import router from './router'
-import './permission' // permission control
-// ElementPlus
-import ElementPlus from 'element-plus'
-import 'element-plus/dist/index.css'
-import {dayjs} from 'element-plus'
-import dayjsLocale from "dayjs/locale/ru"
-import elementLocale from 'element-plus/es/locale/lang/ru'
-// i18n lang
-import i18n from './lang'; // Internationalization
+// ----------------------------
+// SUBSECTION 2.2: UI-библиотека ElementPlus
+// ----------------------------
+import ElementPlus from 'element-plus' // Основной пакет ElementPlus UI-компонентов
+import 'element-plus/dist/index.css'   // Базовые стили ElementPlus (обязательное подключение)
+import { dayjs } from 'element-plus'   // Интеграция dayjs для работы с датами в ElementPlus
+import elementLocale from 'element-plus/es/locale/lang/ru' // Локализация ElementPlus на русский язык
 
-import moment from 'moment-timezone'
-const timeZone = "Asia/Yekaterinburg"
-moment.locale('ru-ru')
-moment.tz(timeZone)
+// ----------------------------
+// SUBSECTION 2.3: Работа с датами/временем
+// ----------------------------
+import moment from 'moment-timezone'      // Библиотека для продвинутой работы с датами и временными зонами
+import dayjsLocale from 'dayjs/locale/ru' // Локализация dayjs для русского языка
 
-const app = createApp(App)
-app.config.globalProperties.moment = moment
-dayjs.locale(dayjsLocale)
-app.use(i18n)
+// ==============================================
+// SECTION 3: Импорт компонентов приложения
+// ==============================================
+import App from './views/App.vue'                  // Корневой компонент-контейнер приложения
+import Icon from './components/Icon/Icon.vue'      // Кастомный компонент для SVG-иконок
+import ElSvgIcon from '@/components/ElSvgIcon.vue' // Обёртка для иконок ElementPlus
 
+// ==============================================
+// SECTION 4: Маршрутизация и безопасность
+// ==============================================
+import router from './router'        // Конфигурация маршрутов (vue-router)
+import './permission'                // Система контроля доступа (навигационные хуки)
+
+// ==============================================
+// SECTION 5: Локализация
+// ==============================================
+import i18n from './lang'            // Модуль интернационализации (vue-i18n конфиг)
+
+// ==============================================
+// SECTION 6: Инициализация временных настроек
+// ==============================================
+const timeZone = "Asia/Yekaterinburg"  // Установка временной зоны для всего приложения
+moment.locale('ru-ru')         // Локализация moment.js
+moment.tz(timeZone)                    // Применение временной зоны
+
+// ==============================================
+// SECTION 7: Создание экземпляра приложения
+// ==============================================
+const app = createApp(App)           // Инициализация Vue-приложения
+
+// Глобальные настройки
+app.config.globalProperties.moment = moment // Экспорт moment в глобальные свойства
+dayjs.locale(dayjsLocale)                   // Применение локали для dayjs
+
+// ==============================================
+// SECTION 8: Подключение плагинов
+// ==============================================
+
+// Подключение ElementPlus с кастомными параметрами
 app.use(ElementPlus, {
-  size: Cookies.get('size') || 'medium', // set element-plus default size
-  i18n: (key, value) => i18n.t(key, value),
-  locale: elementLocale
+  size: Cookies.get('size') || 'medium',    // Динамический размер из cookies (medium - дефолт)
+  i18n: (key, value) => i18n.t(key, value), // Интеграция с системой i18n
+  locale: elementLocale                     // Применение русской локализации
 })
 
-// pinia
-import {createPinia} from 'pinia'
+// Подключение Pinia (состояние приложения)
+import { createPinia } from 'pinia'
 app.use(createPinia())
 
-// element svg icon
-import ElSvgIcon from '@/components/ElSvgIcon.vue'
+// ==============================================
+// SECTION 9: Глобальная регистрация компонентов
+// ==============================================
+app.component('ElSvgIcon', ElSvgIcon) // Глобальная регистрация SVG-иконок
+app.component('Icon', Icon)           // Глобальная регистрация кастомных иконок
 
-app.component('ElSvgIcon', ElSvgIcon)
-
-app.component('Icon', Icon)
-
-app.use(router).mount('#app')
+// ==============================================
+// SECTION 10: Запуск приложения
+// ==============================================
+app
+    .use(i18n)                  // Активация системы i18n
+    .use(router)                // Активация маршрутизатора
+    .mount('#app')   // Монтирование в DOM-элемент #app

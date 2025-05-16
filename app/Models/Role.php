@@ -8,7 +8,7 @@ use Spatie\Permission\Models\Permission;
  *
  * @property Permission[] $permissions
  * @property string $name
- * @package App\Laravue\Models
+ * @package App\Models
  */
 class Role extends \Spatie\Permission\Models\Role
 {
@@ -20,6 +20,6 @@ class Role extends \Spatie\Permission\Models\Role
      */
     public function isAdmin(): bool
     {
-        return $this->name === Acl::ROLE_ADMIN;
+        return $this->name === \App\Models\Acl::ROLE_ADMIN;
     }
 }

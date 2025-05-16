@@ -1,0 +1,114 @@
+// vendor
+@use '../vendor/vendor';
+
+// Core
+@use '../core/variables';
+@use '../core/reset';
+@use '../core/fonts';
+
+// Element Plus
+@use '../element-plus/variables-overrides' as ep; //есть мало
+@use '../element-plus/components/dialog'; //есть
+@use '../element-plus/components/table'; //есть мало
+//@use 'node_modules/element-plus/theme-chalk/src/index.scss';
+
+// Компоненты
+@use '../element-plus/components/buttons';  //есть
+@use '../element-plus/components/dialog';   //есть
+@use '../element-plus/components/forms';    //есть мало
+@use '../element-plus/components/menu';     //есть мало
+@use '../element-plus/components/table';    //есть мало
+
+// Layout
+@use '../layout/header'; //пусто
+@use '../layout/navbar'; //пусто
+@use '../layout/sidebar';//есть
+
+// Утилиты
+@use '../utils/helpers';            //пусто
+@use '../utils/transitions';        //есть
+@use '../utils/mixins';             // пусто
+@use '../utils/driver-overrides';   //есть
+
+// Глобальные миксины и хелперы
+@use '../element-plus/overrides/mixins'; //есть
+@use '../element-plus/overrides/helpers';//пусто
+
+
+
+// @use 'variables.scss';
+// @use 'transition.scss';
+// @use 'scss-suger.scss';
+// @use 'elemenet-style-overflow.scss';
+// @use "sidebar.scss";
+// @use "driverjs.scss";
+// @use "icons.scss";
+
+// Ваши кастомные стили
+// @use "./element-plus/variables";
+// @use "./element-plus/components-overrides";
+
+//scroll
+
+@mixin main-show-wh() {
+  height: calc(100vh - #{variables.$navBarHeight} - #{variables.$tagViewHeight} - #{variables.$appMainPadding * 2});
+  width: 100%;
+}
+.scroll-y {
+  @include main-show-wh();
+  overflow-y: overlay;
+}
+.scroll-x {
+  @include main-show-wh();
+  overflow-x: auto;
+}
+.scroll-xy {
+  @include main-show-wh();
+  overflow: overlay;
+}
+
+#app {
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  height: 100%;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+}
+
+label {
+  font-weight: 700;
+}
+
+.filter-container {
+  padding-bottom: 10px;
+
+  .filter-item {
+    vertical-align: middle;
+    margin-bottom: 10px;
+  }
+}
+.box-center {
+  margin: 0 auto;
+  display: table;
+}
+
+span,
+output {
+  display: inline-block;
+  line-height: 1;
+}

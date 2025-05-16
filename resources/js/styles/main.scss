@@ -1,0 +1,37 @@
+// app
+@use 'app/app';
+
+// vendor
+//@use 'vendor/vendor';
+
+// Core
+@use 'core/variables' as *;
+@use 'core/reset';
+@use 'core/fonts';
+
+// Layout
+@use 'layout/header';  //пусто
+@use 'layout/navbar';  //пусто
+@use 'layout/sidebar'; //есть
+
+// Глобальные миксины и helpers
+//@use 'node_modules/element-plus/theme-chalk/src/index';
+@use 'custom-element-plus/overrides/mixins' as *;  //есть
+@use 'custom-element-plus/overrides/helpers'; //пусто
+
+// Element Plus
+//@use 'custom-element-plus/base-overrides';
+//@use 'custom-element-plus/variables-overrides';
+
+// Компоненты
+@use 'custom-element-plus/components/breadcrumb';  //есть
+@use 'custom-element-plus/components/buttons';     //есть
+@use 'custom-element-plus/components/dialog';      //есть
+@use 'custom-element-plus/components/forms';       //есть мало
+@use 'custom-element-plus/components/menu';        //есть мало
+@use 'custom-element-plus/components/table';       //есть мало
+@use 'custom-element-plus/components/upload';      //есть
+
+// Утилиты
+@use 'utils/driver-overrides' as *;   //есть
+@use 'utils/transitions';        //есть

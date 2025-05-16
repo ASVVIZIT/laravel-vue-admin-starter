@@ -45,6 +45,19 @@ export default {
     loginSuccess: 'Успешный вход в систему'
   },
   validateMassages: {
+      "validation": {
+          "required": "Обязательное поле",
+          "minLength": "Минимум {min} символов",
+          "email": "Некорректный email",
+          "phone": "Неверный формат телефона",
+          "match": "Должно совпадать с {field}",
+          "specialChars": "Требуется минимум {min} специальных символов"
+      },
+      "fields": {
+          "password": "паролем",
+          "phone": "телефоном",
+          "email": "электронной почтой"
+      },
       rules: {
           role: {
               required: 'Требуется роль',
@@ -71,7 +84,8 @@ export default {
   },
   permission: {
     addRole: 'Добавить разрешение для редактирования',
-    editPermission: 'Редактировать разрешения',
+    editPermission: 'Разрешения',
+    editPermissionForForm: 'Изменить разрешения для',
     roles: 'Ваши роли',
     switchRoles: 'Поменяйтесь ролями',
     tips: 'В некоторых случаях он не подходит для использования v-role/v-permission, например, элемент Tab component или el-table-column и другие случаи асинхронного рендеринга dom, которые могут быть достигнуты только путем ручной настройки v-if с checkRole или/и checkPermission.',
@@ -104,6 +118,11 @@ export default {
 
         },
         elMessage: {
+            update: {
+                success: {
+                    message: 'Обновление разрешений прошло успешно',
+                },
+            },
             delete: {
                 success: {
                     message: 'Удаление завершено',
@@ -140,9 +159,10 @@ export default {
     remark: 'Замечание',
     search: 'Поиск',
     add: 'Добавить',
+    filterReset: 'Сбросить все фильтры',
     export: 'Экспорт',
     reviewer: 'рецензент',
-    id: 'Номер - ID',
+    id: 'ID',
     date: 'Дата',
     author: 'Автор',
     readings: 'Readings',
@@ -166,7 +186,7 @@ export default {
     },
     roleColumn: {
         label: {
-            id: 'Номер - ID',
+            id: 'ID',
             name: 'Имя',
             email: 'Электронная почта',
             role: 'Роль',
@@ -208,11 +228,12 @@ export default {
   roles: {
     name: 'Роль',
     description: {
-      admin: 'Super Administrator. Иметь доступ и полное разрешение на доступ ко всем страницам.',
-      manager: 'Manager. Иметь доступ и разрешения на большинство страниц, за исключением страницы разрешений.',
-      editor: 'Editor. Иметь доступ к большинству страниц, полное разрешение на доступ к статьям и связанным с ними ресурсам.',
-      user: 'Normal user. Иметь доступ к некоторым страницам.',
-      visitor: 'Visitor. Иметь доступ к статическим страницам, не иметь никаких разрешений на запись.',
+      superadmin: 'Super Administrator. Имеет доступ и полное разрешение на доступ ко всем страницам, и многое другое.',
+      admin: 'Administrator. Имеет доступ и полное разрешение на доступ ко всем страницам.',
+      manager: 'Manager. Имеет доступ и разрешения на большинство страниц, за исключением страницы разрешений.',
+      editor: 'Editor. Имеет доступ к большинству страниц, полное разрешение на доступ к статьям и связанным с ними ресурсам.',
+      user: 'Normal user. Имеет доступ к некоторым страницам.',
+      visitor: 'Visitor. Имеет доступ к статическим страницам, не иметь никаких разрешений на запись.',
     },
   },
   switchLang: {

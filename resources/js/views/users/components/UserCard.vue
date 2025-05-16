@@ -30,7 +30,7 @@
 </template>
 
 <script setup>
-import PanThumb from '@/components/PanThumb/index.vue'
+import PanThumb from '../../../components/PanThumb/PanThumb.vue'
 import {uppercaseFirst, toThousandFilter} from "@/utils/index"
 import {useI18n} from "vue-i18n";
 

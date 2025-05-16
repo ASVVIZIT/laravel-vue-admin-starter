@@ -20,6 +20,7 @@ class SetupRolePermissions extends Migration
             Role::findOrCreate($role);
         }
 
+        $superAdminRole = Role::findByName(Acl::ROLE_SUPER_ADMIN);
         $adminRole = Role::findByName(Acl::ROLE_ADMIN);
         $managerRole = Role::findByName(Acl::ROLE_MANAGER);
         $editorRole = Role::findByName(Acl::ROLE_EDITOR);
@@ -31,6 +32,7 @@ class SetupRolePermissions extends Migration
         }
 
         // Setup basic permission
+        $superAdminRole->givePermissionTo(Acl::permissions());
         $adminRole->givePermissionTo(Acl::permissions());
         $managerRole->givePermissionTo(Acl::permissions([Acl::PERMISSION_PERMISSION_MANAGE]));
         $editorRole->givePermissionTo(Acl::menuPermissions());
@@ -40,6 +42,23 @@ class SetupRolePermissions extends Migration
         $visitorRole->givePermissionTo([
             Acl::PERMISSION_VIEW_MENU_PERMISSION,
         ]);
+
+
+        foreach (Acl::roles() as $role) {
+            /** @var
+             * \App\User[] $users
+             */
+            $users = \App\Models\User::where('role', $role)->get();
+            $role = Role::findByName($role);
+            foreach ($users as $user) {
+                $user->syncRoles($role);
+            }
+        }
+
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('role');
+        });
+
     }
 
     /**
@@ -55,8 +74,10 @@ class SetupRolePermissions extends Migration
             });
         }
 
-        /** @var \App\User[] $users */
-        $users = \App\Laravue\Models\User::all();
+        /** @var
+         * \App\User[] $users
+         */
+        $users = \App\Models\User::all();
         foreach ($users as $user) {
             $roles = array_reverse(Acl::roles());
             foreach ($roles as $role) {

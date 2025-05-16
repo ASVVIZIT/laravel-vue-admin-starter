@@ -14,9 +14,9 @@ class AlterUniNameToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropUnique('users_name_unique');
+            $table->dropUnique('users_nickname_unique');
             $table->dropUnique('users_email_unique');
-            $table->unique(['name', 'deleted_at'], 'uni_name_deleted_at');
+            $table->unique(['nickname', 'deleted_at'], 'uni_nickname_deleted_at');
             $table->unique(['email', 'deleted_at'], 'uni_email_deleted_at');
         });
     }

@@ -50,7 +50,7 @@
             </el-button>
           </el-form-item>
           <div class="tips">
-            <span style="margin-right:20px;">Email: admin@admin.com</span>
+            <span style="margin-right:20px;">Email: admin@fenix.dev</span>
             <span>Password: 123456</span>
           </div>
         </el-form>
@@ -60,7 +60,7 @@
 </template>
 
 <script>
-import LangSelect from '@/components/LangSelect/index.vue'
+import LangSelect from '@/components/LangSelect/LangSelect.vue'
 import {validEmail} from '@/utils/validate'
 import {csrf} from '@/api/auth'
 import {reactive, toRefs, watch} from "vue"
@@ -83,15 +83,15 @@ export default {
       }
     }
     const validatePass = (rule, value, callback) => {
-      if (value.length < 4) {
-        callback(new Error('Password cannot be less than 4 digits'))
+      if (value.length < 6) {
+        callback(new Error('Password cannot be less than 6 digits'))
       } else {
         callback()
       }
     }
     const resData = reactive({
       loginForm: {
-        email: 'admin@admin.com',
+        email: 'admin@fenix.dev',
         password: '123456',
       },
       ruleFormRef: {},

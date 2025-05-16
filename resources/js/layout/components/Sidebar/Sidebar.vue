@@ -1,69 +1,64 @@
 <template>
-  <div id="Sidebar" class="reset-menu-style">
-    <!--logo-->
+  <div id="Sidebar" class="reset-menu-style" :width="sideBarWidth">
+    <!-- Logo -->
     <Logo v-if="settings.sidebarLogo" :collapse="!isCollapse" />
-    <!--router nav-->
+    <!-- Router Navigation -->
     <el-scrollbar>
-      <el-menu
-        class="el-menu-vertical"
-        :default-active="activeMenu"
-        :collapse="!isCollapse"
-        :unique-opened="false"
-        :collapse-transition="false"
-        :background-color="scssJson.menuBg"
-        :text-color="scssJson.menuText"
-        :active-text-color="scssJson.menuActiveText"
-        mode="vertical"
+      <div>
+        {{sideBarWidth}}
+        {{menuBg}}
+        {{menuText}}
+        {{menuActiveText}}
+      </div>
+      <el-menu ref="sidebarMenuEl"
+          class="el-menu-vertical"
+          :default-active="activeMenu"
+          :collapse="!isCollapse"
+          :unique-opened="true"
+          :collapse-transition="false"
+          :background-color="menuBg"
+          :text-color="menuText"
+          :active-text-color="menuActiveText"
+          mode="vertical"
       >
-        <sidebar-item v-for="route in routes" :key="route.path" :item="route" :base-path="route.path" />
+        <sidebar-item
+            v-for="route in routes"
+            :key="route.path"
+            :item="route"
+            :base-path="route.path"
+        />
       </el-menu>
     </el-scrollbar>
   </div>
 </template>
 
 <script setup>
+import { useCssVar } from '@vueuse/core'
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
 import Logo from './Logo.vue'
 import SidebarItem from './SidebarItem.vue'
-//get scss variable
-import scssExportJson from '@/styles/variables-to-js.scss'
 import { appStore } from '@/store/app'
 import { permissionStore } from '@/store/permission'
 
-const useAppStore = appStore()
-const settings = computed(() => {
-  return useAppStore.settings
-})
+// CSS-переменные (более надежный способ)
+const sidebarMenuEl = ref(null);
+const sideBarWidth = useCssVar('width:--side-bar-width', sidebarMenuEl)
+const menuBg = useCssVar('background-color:--menu-bg', sidebarMenuEl)
+const menuText = useCssVar('color:--el-menu-text-color', sidebarMenuEl)
+const menuActiveText = useCssVar('color:--el-menu-text-color', sidebarMenuEl)
 
 const route = useRoute()
+const useAppStore = appStore()
 const usePermissionStore = permissionStore()
-const routes = computed(() => {
-  return usePermissionStore.routes
-})
-const isCollapse = computed(() => {
-  return useAppStore.sidebar.opened
-})
 
-//change  scss variable to js
-const dillScssExportToJson = (scssExportJson) => {
-  const jsonString = scssExportJson.replace(/:export\s*/, '').replace(/[\s+\r\n]/g, '')
-  const scssJson = {}
-  jsonString
-    .slice(1, jsonString.length - 2)
-    .split(';')
-    .forEach((fItem) => {
-      const arr = fItem.split(':')
-      scssJson[arr[0]] = arr[1]
-    })
-  return scssJson
-}
-const scssJson = dillScssExportToJson(scssExportJson)
+// Computed properties
+const settings = computed(() => useAppStore.settings)
+const routes = computed(() => usePermissionStore.routes)
+const isCollapse = computed(() => useAppStore.sidebar.opened)
+
 const activeMenu = computed(() => {
-  const { meta, fullPath } = route
-  // if set path, the sidebar will highlight the path you set
-  if (meta.activeMenu) {
-    return meta.activeMenu
-  }
-  return fullPath
+  return route.meta.activeMenu || route.fullPath
 })
 </script>
 
@@ -72,15 +67,17 @@ const activeMenu = computed(() => {
   .el-menu {
     border-right: none;
   }
+
   .el-scrollbar__wrap {
     padding-bottom: 10vh;
   }
 }
 
 .el-menu-vertical {
-  width: $sideBarWidth;
+  width: var(--side-bar-width); /* Используем CSS-переменную */
 
-  .el-menu-item, .el-sub-menu {
+  .el-menu-item,
+  .el-sub-menu {
     svg {
       margin-right: 16px;
       position: relative;

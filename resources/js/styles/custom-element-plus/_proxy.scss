@@ -1,0 +1,28 @@
+/*-------------------------------------
+  Глобальные переменные Element Plus
+  Документация: https://element-plus.org/en-US/guide/theming.html
+---------------------------------------*/
+@forward "node_modules/element-plus/theme-chalk/src/common/var.scss" with (
+  // Основные цвета
+  $colors: (
+    "primary": (
+      "base": #007bff,    // Основной brand-цвет
+      "hover": #0069d9,   // Состояние hover
+      "active": #0056b3   // Состояние active
+    ),
+  ),
+
+  // Настройки меню
+  $menu: (
+    "backgroundColor": #304156,          // Фон меню
+    "hoverBackgroundColor": #263445,     // Hover состояния
+    "activeColor": #e59808              // Активный элемент
+  ),
+
+  // Размеры компонентов
+  $common-component-size: (
+    "default": 36px,
+    "small": 32px,
+    "large": 40px
+  )
+);

@@ -11,7 +11,7 @@ import errorRoutes from './modules/error'
 export const constantRoutes = [
   {
     path: '/login',
-    component: () => import('@/views/login/index.vue'),
+    component: () => import('@/views/login/login.vue'),
     hidden: true,
   },
   {
@@ -37,7 +37,7 @@ export const constantRoutes = [
     children: [
       {
         path: 'dashboard',
-        component: () => import('@/views/dashboard/index.vue'),
+        component: () => import('@/views/dashboard/dashboard.vue'),
         name: 'Dashboard',
         meta: { title: 'dashboard', bootstrapIcon: 'house-fill', affix: true, noCache: false },
       },
@@ -63,7 +63,7 @@ export const constantRoutes = [
     children: [
         {
             path: 'index',
-            component: () => import('@/views/guide/index.vue'),
+            component: () => import('@/views/guide/guide.vue'),
             name: 'Guide',
             meta: {title: 'guide', bootstrapIcon: 'bi bi-megaphone-fill', noCache: true}
         }

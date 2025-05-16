@@ -59,10 +59,10 @@ ResizeHook()
 }
 .closeSidebar {
   .sidebar-container {
-    width: 54px !important;
+    width: $sideBarMiniWidth !important;
   }
   .main-container {
-    margin-left: 54px !important;
+    margin-left: $sideBarMiniWidth !important;
   }
 }
 .hideSidebar {

@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import PanThumb from '@/components/PanThumb/index.vue'
+import PanThumb from '@/components/PanThumb/PanThumb.vue'
 import {computed, reactive, toRefs} from "vue"
 import {userStore} from "@/store/user"
 

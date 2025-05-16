@@ -24,6 +24,14 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @return void
      */
+
+    /**
+     * The path to the "home" route for your application.
+     *
+     * @var string
+     */
+    public const HOME = '/home';
+
     public function boot()
     {
         $this->configureRateLimiting();
