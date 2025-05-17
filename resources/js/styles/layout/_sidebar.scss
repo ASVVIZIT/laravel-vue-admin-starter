@@ -90,11 +90,11 @@
 
   .hideSidebar {
     .sidebar-container {
-      width: 60px !important;
+      width: variables.$sideBarMiniWidth !important;
     }
 
     .main-container {
-      margin-left: 60px;
+      margin-left: variables.$sideBarMiniWidth;
     }
 
     .svg-icon {
@@ -109,7 +109,7 @@
         padding: 0 !important;
 
         .svg-icon {
-          margin-left: 20px;
+          margin-left: 16px;
         }
       }
     }
@@ -121,7 +121,7 @@
         padding: 0 !important;
 
         .svg-icon {
-          margin-left: 20px;
+          margin-left: 16px;
         }
 
         .el-submenu__icon-arrow {
@@ -198,11 +198,27 @@
     white-space: nowrap;
   }
 
-
   &>.el-menu {
     .svg-icon {
-      margin-right: 16px;
+      margin-right: 12px;
     }
+  }
+
+  .el-sub-menu__title {
+    display: flex;
+    align-items: center;
+    height: var(--el-menu-item-height);
+    line-height: var(--el-menu-item-height);
+    font-size: var(--el-menu-item-font-size);
+    color: var(--el-menu-text-color);
+    padding: 0 var(--el-menu-base-level-padding);
+    list-style: none;
+    cursor: pointer;
+    position: relative;
+    transition: border-color var(--el-transition-duration), background-color var(--el-transition-duration), color var(--el-transition-duration);
+    box-sizing: border-box;
+    white-space: nowrap;
+    padding-right: calc(var(--el-menu-base-level-padding) + var(--el-menu-icon-width));
   }
 
   .nest-menu .el-submenu>.el-submenu__title,
@@ -217,6 +233,12 @@
   >.el-menu--popup {
     max-height: 100vh;
     overflow-y: auto;
+    z-index: 100;
+    min-width: 150px;
+    border: none;
+    padding: 2px 0;
+    border-radius: unset;
+    box-shadow: var(--el-box-shadow-light);
 
     &::-webkit-scrollbar-track-piece {
       background: #d3dce6;

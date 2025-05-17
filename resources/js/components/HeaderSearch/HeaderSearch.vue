@@ -174,7 +174,7 @@ export default {
     display: inline-block;
     vertical-align: middle;
 
-    ::v-deep .el-input__inner {
+    :deep(.el-input__inner) {
       border-radius: 0;
       border: 0;
       padding-left: 0;
@@ -184,7 +184,7 @@ export default {
       vertical-align: middle;
     }
 
-    ::v-deep .el-select__wrapper {
+    :deep(.el-select__wrapper) {
       padding: 4px 28px 4px 8px !important;
     }
   }

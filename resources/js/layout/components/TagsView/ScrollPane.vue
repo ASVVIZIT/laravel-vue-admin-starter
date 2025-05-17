@@ -1,79 +1,90 @@
 <template>
-  <el-scrollbar ref="scrollContainer" :vertical="false" class="scroll-container" @wheel.native.prevent="handleScroll">
-    <slot />
-  </el-scrollbar>
+  <div>
+    <el-scrollbar
+        ref="scrollContainer"
+        :vertical="false"
+        class="scroll-container"
+        @wheel.native.prevent="handleWheelScroll"
+        role="region"
+        aria-label="Панель горизонтальной прокрутки"
+    >
+      <slot />
+    </el-scrollbar>
+  </div>
 </template>
 
-<script>
-const tagAndTagSpacing = 4 // tagAndTagSpacing
+<script setup>
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
-export default {
-  name: 'ScrollPane',
-  data() {
-    return {
-      left: 0
-    }
-  },
-  computed: {
-    scrollWrapper() {
-      return this.$refs.scrollContainer.$refs.wrap
-    }
-  },
-  mounted() {
-   // this.scrollWrapper.addEventListener('scroll', this.emitScroll, true)
-  },
-  beforeDestroy() {
-    this.scrollWrapper.removeEventListener('scroll', this.emitScroll)
-  },
-  methods: {
-    handleScroll(e) {
-      const eventDelta = e.wheelDelta || -e.deltaY * 40
-      const $scrollWrapper = this.scrollWrapper
-      $scrollWrapper.scrollLeft = $scrollWrapper.scrollLeft + eventDelta / 4
-    },
-    emitScroll() {
-      this.$emit('scroll')
-    },
-    moveToTarget(currentTag) {
-      const $container = this.$refs.scrollContainer.$el
-      const $containerWidth = $container.offsetWidth
-      const $scrollWrapper = this.scrollWrapper
-      const tagList = this.$parent.$refs.tag
+const emit = defineEmits(['scroll'])
+const scrollContainer = ref(null)
+const scrollWrapper = ref(null)
+const resizeObserver = ref(null)
+const currentActiveTag = ref(null)
+const isDev = process.env.NODE_ENV === 'development'
 
-      let firstTag = null
-      let lastTag = null
-
-      // find first tag and last tag
-      if (tagList.length > 0) {
-        firstTag = tagList[0]
-        lastTag = tagList[tagList.length - 1]
-      }
-
-      if (firstTag === currentTag) {
-        $scrollWrapper.scrollLeft = 0
-      } else if (lastTag === currentTag) {
-        $scrollWrapper.scrollLeft = $scrollWrapper.scrollWidth - $containerWidth
-      } else {
-        // find preTag and nextTag
-        const currentIndex = tagList.findIndex(item => item === currentTag)
-        const prevTag = tagList[currentIndex - 1]
-        const nextTag = tagList[currentIndex + 1]
-
-        // the tag's offsetLeft after of nextTag
-        const afterNextTagOffsetLeft = nextTag.$el.offsetLeft + nextTag.$el.offsetWidth + tagAndTagSpacing
-
-        // the tag's offsetLeft before of prevTag
-        const beforePrevTagOffsetLeft = prevTag.$el.offsetLeft - tagAndTagSpacing
-
-        if (afterNextTagOffsetLeft > $scrollWrapper.scrollLeft + $containerWidth) {
-          $scrollWrapper.scrollLeft = afterNextTagOffsetLeft - $containerWidth
-        } else if (beforePrevTagOffsetLeft < $scrollWrapper.scrollLeft) {
-          $scrollWrapper.scrollLeft = beforePrevTagOffsetLeft
-        }
-      }
-    }
-  }
+const getScrollWrapper = () => {
+  isDev && console.log('[ScrollPane] Получение wrapRef')
+  return scrollContainer.value?.wrapRef
 }
+
+const updateScrollPosition = (tag) => {
+  if (!scrollWrapper.value || !tag?.$el) {
+    isDev && console.warn('[ScrollPane] Элементы недоступны')
+    return
+  }
+
+  const container = scrollContainer.value?.$el
+  const tagEl = tag.$el
+  const containerWidth = container.offsetWidth
+  const tagWidth = tagEl.offsetWidth
+  const tagLeft = tagEl.offsetLeft
+  const maxScroll = scrollWrapper.value.scrollWidth - containerWidth
+
+  const targetPosition = Math.max(0, Math.min(
+      tagLeft - (containerWidth - tagWidth) / 2,
+      maxScroll
+  ))
+
+  scrollWrapper.value.scrollTo({ left: targetPosition, behavior: 'smooth' })
+}
+
+const moveToTarget = (tag) => {
+  if (!tag?.$el || !document.contains(tag.$el)) {
+    isDev && console.error('[ScrollPane] Невалидный тег:', tag)
+    return
+  }
+
+  if (resizeObserver.value) resizeObserver.value.disconnect()
+
+  currentActiveTag.value = tag
+  resizeObserver.value = new ResizeObserver(() => updateScrollPosition(tag))
+  resizeObserver.value.observe(tag.$el)
+  updateScrollPosition(tag)
+}
+
+const handleWheelScroll = (e) => {
+  if (!scrollWrapper.value) return
+  const delta = e.deltaY ? -e.deltaY * 2 : e.wheelDelta / 2
+  scrollWrapper.value.scrollLeft += delta
+}
+
+const emitScroll = () => emit('scroll')
+
+onMounted(async () => {
+  await nextTick()
+  scrollWrapper.value = getScrollWrapper()
+  if (scrollWrapper.value) {
+    scrollWrapper.value.addEventListener('scroll', emitScroll, { passive: true })
+  }
+})
+
+onBeforeUnmount(() => {
+  if (scrollWrapper.value) scrollWrapper.value.removeEventListener('scroll', emitScroll)
+  if (resizeObserver.value) resizeObserver.value.disconnect()
+})
+
+defineExpose({ moveToTarget })
 </script>
 
 <style lang="scss" scoped>
@@ -82,13 +93,52 @@ export default {
   position: relative;
   overflow: hidden;
   width: 100%;
-  ::v-deep {
-    .el-scrollbar__bar {
-      bottom: 0px;
+  background: #304156;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  :deep(.el-scrollbar__bar) {
+    bottom: 0;
+    height: 6px;
+    background-color: rgba(200, 200, 200, 0.3);
+    transition: height 0.2s;
+
+    &:hover {
+      height: 10px;
+      background-color: rgba(150, 150, 150, 0.5);
     }
-    .el-scrollbar__wrap {
-      height: 49px;
+  }
+
+  :deep(.el-scrollbar__wrap) {
+    scroll-behavior: smooth;
+    height: 40px;
+    padding: 3px 0;
+    margin-bottom: -6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    [aria-hidden="true"] {
+      display: none;
     }
+  }
+
+  :deep(.el-scrollbar__thumb) {
+    background-color: rgba(100, 100, 100, 0.4);
+    border-radius: 3px;
+
+    &:hover {
+      background-color: rgba(80, 80, 80, 0.6);
+    }
+  }
+
+  :deep(.el-scrollbar__view) {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 2px;
   }
 }
 </style>

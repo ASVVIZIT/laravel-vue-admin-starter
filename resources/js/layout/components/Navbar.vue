@@ -10,13 +10,7 @@
       />
       <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
     </div>
-    <!--nav title-->
-    <div v-if="settings.showNavbarTitle" class="heardCenterTitle">{{ settings.showNavbarTitle }}</div>
-    <div class="heardCenterTitle">
-<!--        <Timer></Timer>-->
-    </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
-<!--      <Search id="header-search" />-->
       <ScreenFull />
       <SizeSelect />
       <LangSelect />
@@ -62,21 +56,12 @@ import Breadcrumb from './Breadcrumb'
 import Hamburger from './Hamburger'
 import { appStore } from '@/store/app'
 import { userStore } from '@/store/user'
-import moment from "moment";
 
 const router = useRouter()
 const route = useRoute()
 
 const useUserStore = userStore()
 const useAppStore = appStore()
-
-/*const timeZone = "Asia/Yekaterinburg"
-let stringInput = new Date()
-let dateObject = new Date(stringInput).toLocaleString("ru-RU", {
-    timeZone,
-})
-
-//dateObject = moment(stringInput, 'MMMM Do YYYY, h:mm:ss a').fromNow()*/
 
 const settings = computed(() => {
   return useAppStore.settings

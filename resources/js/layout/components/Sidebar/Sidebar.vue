@@ -15,7 +15,7 @@
           :default-active="activeMenu"
           :collapse="!isCollapse"
           :unique-opened="true"
-          :collapse-transition="false"
+          :collapse-transition="true"
           :background-color="menuBg"
           :text-color="menuText"
           :active-text-color="menuActiveText"

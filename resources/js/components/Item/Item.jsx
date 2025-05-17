@@ -16,7 +16,7 @@ export default defineComponent({
                 // view https://element-plus.org/zh-CN/component/icon.html
                 return <el-svg-item showClass='el-svg-icon' elSvgName={props.meta.elSvgIcon}/>
             } else if (props.meta?.bootstrapIcon) {
-                return <i class={`bi bi-${props.meta?.bootstrapIcon}`} style={{marginRight: '16px', fontSize: '20px', color: '#bfcbd9'}}></i>
+                return <i class={`bi bi-${props.meta?.bootstrapIcon}`} style={{marginRight: '14px', fontSize: '16px', color: '#bfcbd9'}}></i>
             }
         }
         return () => {

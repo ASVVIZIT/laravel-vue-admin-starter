@@ -9,29 +9,30 @@
 @use 'core/reset';
 @use 'core/fonts';
 
-// Layout
-@use 'layout/header';  //пусто
-@use 'layout/navbar';  //пусто
-@use 'layout/sidebar'; //есть
 
 // Глобальные миксины и helpers
 //@use 'node_modules/element-plus/theme-chalk/src/index';
-@use 'custom-element-plus/overrides/mixins' as *;  //есть
-@use 'custom-element-plus/overrides/helpers'; //пусто
+@use 'custom-element-plus/overrides/mixins' as *;
+@use 'custom-element-plus/overrides/helpers';
 
 // Element Plus
 //@use 'custom-element-plus/base-overrides';
 //@use 'custom-element-plus/variables-overrides';
 
+// Layout
+@use 'layout/header';
+@use 'layout/navbar';
+@use 'layout/sidebar';
+
 // Компоненты
-@use 'custom-element-plus/components/breadcrumb';  //есть
-@use 'custom-element-plus/components/buttons';     //есть
-@use 'custom-element-plus/components/dialog';      //есть
-@use 'custom-element-plus/components/forms';       //есть мало
-@use 'custom-element-plus/components/menu';        //есть мало
-@use 'custom-element-plus/components/table';       //есть мало
-@use 'custom-element-plus/components/upload';      //есть
+@use 'custom-element-plus/components/breadcrumb';
+@use 'custom-element-plus/components/buttons';
+@use 'custom-element-plus/components/dialog';
+@use 'custom-element-plus/components/forms';
+@use 'custom-element-plus/components/menu';
+@use 'custom-element-plus/components/table';
+@use 'custom-element-plus/components/upload';
 
 // Утилиты
-@use 'utils/driver-overrides' as *;   //есть
-@use 'utils/transitions';        //есть
+@use 'utils/driver-overrides' as *;
+@use 'utils/transitions';

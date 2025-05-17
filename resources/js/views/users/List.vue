@@ -27,13 +27,13 @@
     </div>
 
     <custom-table
-        :tableHeight="'450px'"
+        :tableHeight="'100%'"
         :table-data="tableData"
         :table-column="basicColumn"
         :table-option="tableOption"
         :pagination="pagination"
         :paginate="true"
-        :page-sizes="pageSizes"
+        :page-sizes="per_pages"
         :loading="loading"
         @filter-change="handleFilterChange"
         @table-action="tableActions"
@@ -74,9 +74,9 @@
       <template #append>
         <el-pagination
             :total="pagination.total"
-            :current-page="pagination.currentPage"
-            :page-size="pagination.pageSize"
-            :page-sizes="pageSizes"
+            :current-page="pagination.current_page"
+            :page-size="pagination.per_page"
+            :page-sizes="per_pages"
             layout="total, sizes, prev, pager, jumper, next"
             @size-change="handleSizeChange"
             @current-change="handlePageChange"
@@ -240,13 +240,13 @@ const filters = ref({
 
 const pagination = reactive({
   total: 0,
-  currentPage: 1,
-  pageSize: 10
+  current_page: 1,
+  per_page: 10
 })
 
 const params = reactive({
-  page: pagination.currentPage,
-  per_page: pagination.pageSize,
+  page: pagination.current_page,
+  per_page: pagination.per_page,
   role: [],
   search: ''
 })
@@ -349,7 +349,7 @@ const roleConfig = ref({
 const roles = computed(() => roleConfig.value.all)
 const nonAdminRoles = computed(() => roleConfig.value.nonAdmin)
 const roleColors = computed(() => roleConfig.value.colors)
-const pageSizes = ref([5, 10, 30, 50, 100, 150, 200])
+const per_pages = ref([5, 10, 30, 50, 100, 150, 200])
 
 const tableOption = computed(() => {
   if (!checkPermission(['manage user'])) return {}
@@ -422,11 +422,11 @@ const basicColumn = computed(() => [
 
 // Обработчики изменения пагинации
 const handleSizeChange = (newSize) => {
-  pagination.pageSize = newSize
+  pagination.per_page = newSize
 }
 
 const handlePageChange = (newPage) => {
-  pagination.currentPage = newPage
+  pagination.current_page = newPage
 }
 
 // Открытие фильтра
@@ -458,16 +458,16 @@ const getList = async () => {
     const q = {
       ...params,
       total: pagination.total,
-      page: pagination.currentPage,
-      per_page: pagination.pageSize,
+      page: pagination.current_page,
+      per_page: pagination.per_page,
     }
     console.log('q ', q)
     const res = await userResource.list(q)
     console.log('params ', res)
     tableData.value = res.data
     pagination.total = res.meta.total
-    pagination.currentPage = res.meta.current_page
-    pagination.pageSize = res.meta.per_page
+    pagination.current_page = res.meta.current_page
+    pagination.per_page = res.meta.per_page
   } catch (error) {
     ElMessage.error(t('error.fetchUsers'))
   } finally {

@@ -15,11 +15,6 @@
   padding-left: 0;
   background-color:  map.get($menu, 'backgroundColor');
   box-sizing: border-box;
-  // Настройки меню
-
-         // "backgroundColor": #304156,          // Фон меню
-         // "hoverBackgroundColor": #263445,     // Hover состояния
-         // "activeColor": #e59808              // Активный элемент
 
   &-item {
     transition: background-color 0.2s ease;

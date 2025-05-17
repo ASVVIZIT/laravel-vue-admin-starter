@@ -50,7 +50,15 @@ class UserController extends BaseController
             })
             ->paginate($params['per_page'] ?? 10);
 
-        return UserResource::collection($data);
+        return response()->json([
+            'data' => UserResource::collection($data),
+            'meta' => [
+                'total' => $data->total(),
+                'current_page' => $data->currentPage(),
+                'per_page' => $data->perPage(),
+                'last_page' => $data->lastPage(),
+            ]
+        ]);
     }
 
     /**

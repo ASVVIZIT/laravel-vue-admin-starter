@@ -33,7 +33,7 @@ const { elSvgName, showClass } = props
   width: 1em;
   height: 1em;
   margin-left: -2px; //el-svg-icon has some margin
-  font-size: 20px !important;
+  font-size: 16px !important;
   text-align: left !important;
 }
 </style>

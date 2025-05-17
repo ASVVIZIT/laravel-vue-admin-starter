@@ -38,7 +38,7 @@ return [
     'footer' => [
         'github' => [
             'open' => true,
-            'url'  => 'https://github.com/trumanwong',
+            'url'  => 'https://github.com/asvvizit',
         ],
         'meta' => '© Laravel Vue Admin 2022. Powered By Truman',
     ],

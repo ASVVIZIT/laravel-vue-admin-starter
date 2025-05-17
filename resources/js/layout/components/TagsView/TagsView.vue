@@ -1,297 +1,372 @@
 <template>
   <div id="tags-view-container" class="tags-view-container">
-      <scroll-pane ref="scrollPane" class="tags-view-wrapper" @scroll="handleScroll">
-        <div class="tags-view-wrapper">
-          <router-link
-            v-for="tag in visitedViews"
-            ref="refTag"
-            :key="tag.path"
-            :class="isActive(tag) ? 'active' : ''"
-            :to="{ path: tag.path, query: tag.query, fullPath: tag.fullPath }"
-            tag="span"
-            class="tags-view-item"
-            @click.middle="!isAffix(tag) ? closeSelectedTag(tag) : ''"
+    <scroll-pane
+        ref="scrollPane"
+        class="tags-view-wrapper"
+        @scroll="handleScroll"
+    >
+      <template v-for="tag in filteredTags" :key="tag">
+        <router-link
+            :ref="(el) => setTagRef(el, tag)"
+            :class="['tags-view-item', { active: isActive(tag) }]"
+            :to="tag.fullPath"
+            :href="tag.fullPath"
+            @click.middle="!isAffix(tag) ? closeSelectedTag(tag, $event) : ''"
             @contextmenu.prevent="openMenu(tag, $event)"
-          >
-            {{ generateTitle(tag.title) }}
-            <Close v-if="!isAffix(tag)" class="el-icon-close" @click.prevent.stop="closeSelectedTag(tag)"></Close>
-          </router-link>
-        </div>
-      </scroll-pane>
-    <ul v-show="visible" :style="{ left: left + 'px', top: top + 'px' }" class="contextmenu">
-      <li @click="refreshSelectedTag(selectedTag)">{{ t('tagsView.refresh')}}</li>
-      <li v-if="!isAffix(selectedTag)" @click="closeSelectedTag(selectedTag)">{{ t('tagsView.close')}}</li>
-      <li @click="closeOthersTags">{{ t('tagsView.closeOthers')}}</li>
-      <li @click="closeAllTags(selectedTag)">{{ t('tagsView.closeAll')}}</li>
+        >
+          <div class="tag-content-wrapper">
+            <span class="tag-title">
+              {{ generateTitle(tag.title || 'Untitled') }}
+            </span>
+            <div class="tag-actions">
+              <el-icon v-if="isAffix(tag)" class="lock-icon">
+                <Lock />
+              </el-icon>
+              <el-icon
+                  v-else
+                  class="close-icon"
+                  @click.prevent.stop="closeSelectedTag(tag, $event)"
+              >
+                <Close />
+              </el-icon>
+            </div>
+          </div>
+        </router-link>
+      </template>
+    </scroll-pane>
+
+    <ul
+        v-show="state.visible"
+        :style="{ left: state.left + 'px', top: state.top + 'px' }"
+        class="context-menu"
+    >
+      <li @click="refreshSelectedTag(state.selectedTag)">{{ t('tagsView.refresh') }}</li>
+      <li
+          v-if="state.selectedTag && !isAffix(state.selectedTag)"
+          @click="closeSelectedTag(state.selectedTag, $event)"
+      >
+        {{ t('tagsView.close') }}
+      </li>
+      <li @click="closeOthersTags">{{ t('tagsView.closeOthers') }}</li>
+      <li @click="closeAllTags(state.selectedTag)">{{ t('tagsView.closeAll') }}</li>
     </ul>
   </div>
 </template>
 
 <script setup>
 import ScrollPane from './ScrollPane.vue'
-import {useI18n} from "vue-i18n";
-const {t} = useI18n({useScope: 'global'});
-
+import { useI18n } from "vue-i18n"
 import path from 'path'
-import { Close } from '@element-plus/icons-vue'
-import { appStore } from '@/store/app'
-import { tagsViewStore } from '@/store/tags-view'
+import { Close, Lock } from '@element-plus/icons-vue'
+import { storeToRefs } from 'pinia'
+import { useRoute, useRouter } from 'vue-router'
+import { getCurrentInstance, watch, ref, reactive, onMounted, nextTick, computed } from 'vue'
 import { permissionStore } from '@/store/permission'
+import { tagsViewStore } from '@/store/tags-view'
 import i18n from "@/utils/i18n"
 
+const { t } = useI18n({ useScope: 'global' })
+const { generateTitle } = i18n()
 const $route = useRoute()
 const $router = useRouter()
+const { proxy } = getCurrentInstance()
 
-const {generateTitle} = i18n()
-const usePermissionStore = permissionStore()
-const useTagsViewStore = tagsViewStore()
-const useAppStore = appStore()
+const permission = permissionStore()
+const tagsView = tagsViewStore()
+const { visitedViews } = storeToRefs(tagsView)
+const { routes } = storeToRefs(permission)
 
-const resData = reactive({
+const state = reactive({
   visible: false,
   top: 0,
   left: 0,
-  selectedTag: {},
+  selectedTag: null,
   affixTags: []
 })
 
-const visitedViews = computed(() => {
-  return useTagsViewStore.visitedViews
+const refTags = ref({})
+const scrollPane = ref(null)
+
+const filteredTags = computed(() => {
+  return visitedViews.value
+      ?.filter(tag => tag?.path && !tag.hidden)
+      ?.sort((a, b) => (a.meta?.order || 0) - (b.meta?.order || 0)) || []
 })
-const routes = computed(() => {
-  return usePermissionStore.routes
-})
-watch(
-  () => $route.path,
-  () => {
-    addTags()
-  }
-)
-watch(
-  () => resData.visible,
-  (value) => {
-    if (value) {
-      document.body.addEventListener('click', closeMenu)
-    } else {
-      document.body.removeEventListener('click', closeMenu)
-    }
-  }
-)
+
+const setTagRef = (el, tag) => {
+  if (el && tag?.path) refTags.value[tag.path] = el
+}
+
+watch(visitedViews, (newVal) => {
+  nextTick(() => {
+    refTags.value = Object.fromEntries(
+        newVal
+            ?.filter(tag => tag?.path)
+            ?.map(tag => [tag.path, refTags.value[tag.path]]) || []
+    )
+  })
+}, { deep: true })
 
 onMounted(() => {
-  initTags()
-  addTags()
+  initAffixTags()
+  addCurrentTag()
 })
 
-const isActive = (route) => {
-  return route.path === $route.path
-}
-const isAffix = (tag) => {
-  return tag.meta && tag.meta.affix
-}
+watch(
+    () => $route?.path,
+    () => {
+      addCurrentTag()
+      nextTick(scrollToActiveTag)
+    }
+)
 
-const filterAffixTags = (routes, basePath = '/') => {
-  let tags = []
-  routes.forEach((route) => {
-    if (route.meta && route.meta.affix) {
-      const tagPath = path.resolve(basePath, route.path)
-      tags.push({
-        fullPath: tagPath,
-        path: tagPath,
-        name: route.name,
-        meta: { ...route.meta }
-      })
-    }
-    if (route.children) {
-      const tempTags = filterAffixTags(route.children, route.path)
-      if (tempTags.length >= 1) {
-        tags = [...tags, ...tempTags]
-      }
-    }
-  })
-  return tags
-}
-const initTags = () => {
-  const affixTags = (resData.affixTags = filterAffixTags(routes.value))
-  for (const tag of affixTags) {
-    // Must have tag name
-    if (tag.name) {
-      useTagsViewStore.addVisitedView(tag)
-    }
-  }
-}
+const closeMenu = () => state.visible = false
 
-const addTags = () => {
-  const { name } = $route
-  if (name) {
-    useTagsViewStore.addView($route)
-  }
-  return false
-}
-const refreshSelectedTag = (view) => {
-  const { fullPath } = view
-  nextTick(() => {
-    $router.replace({
-      path: '/redirect' + fullPath
+watch(
+    () => state.visible,
+    (visible) => {
+      visible
+          ? document.body.addEventListener('click', closeMenu)
+          : document.body.removeEventListener('click', closeMenu)
+    }
+)
+
+const isActive = (tag) => tag?.path === $route?.path
+const isAffix = (tag) => !!tag?.meta?.affix
+
+
+const scrollToActiveTag = () => {
+  const currentRoute = $route
+  const currentPath = decodeURIComponent(currentRoute.path) // Декодируем URI
+      .split('#')[0]
+      .split('?')[0]
+      .toLowerCase() // Приводим к нижнему регистру
+
+  console.log('[DEBUG] Ищем тег для пути:', currentPath)
+
+  const activeTag = Object.values(refTags.value)?.find(tag => {
+    if (!tag?.$el) return false
+
+    const href = tag.$el.getAttribute('href')
+    const tagPath = decodeURIComponent(href) // Декодируем URI
+        .split('#')[0]
+        .split('?')[0]
+        .toLowerCase() // Приводим к нижнему регистру
+
+    console.log('[DEBUG] Сравниваем:', {
+      currentPath,
+      tagPath,
+      href
     })
+
+    return tagPath === currentPath
   })
-}
-const closeSelectedTag = (view) => {
-  useTagsViewStore.delView(view).then(({ visitedViews }) => {
-    if (isActive(view)) {
-      toLastView(visitedViews, view)
-    }
-    //remove keep-alive by the closeTabRmCache
-    if (view.meta?.closeTabRmCache) {
-      const routerLevel = view.matched.length
-      if (routerLevel === 2) {
-        useAppStore.M_DEL_CACHED_VIEW(view.name)
-      }
-      if (routerLevel === 3) {
-        useAppStore.M_DEL_CACHED_VIEW_DEEP(view.name)
-      }
-    }
-  })
-}
-const closeOthersTags = () => {
-  $router.push(resData.selectedTag)
-  useTagsViewStore.delOthersViews(resData.selectedTag)
-}
-const closeAllTags = (view) => {
-  useTagsViewStore.delAllViews().then(({ visitedViews }) => {
-    if (resData.affixTags.some((tag) => tag.path === view.path)) {
-      return
-    }
-    toLastView(visitedViews, view)
-  })
-}
-const toLastView = (visitedViews, view) => {
-  const latestView = visitedViews.slice(-1)[0]
-  if (latestView) {
-    $router.push(latestView.fullPath)
+
+  if (activeTag && scrollPane.value?.moveToTarget) {
+    console.log('[DEBUG] Найден активный тег:', activeTag)
+    nextTick(() => scrollPane.value.moveToTarget(activeTag))
   } else {
-    // now the default is to redirect to the home page if there is no tags-view,
-    // you can adjust it according to your needs.
-    if (view.name === 'Dashboard') {
-      // to reload home page
-      $router.replace({ path: '/redirect' + view.fullPath })
-    } else {
-      $router.push('/')
-    }
+    console.error('[TagsView] Активный тег не найден. Доступные теги:',
+        Object.values(refTags.value).map(t => ({
+          text: t?.$el?.innerText,
+          path: t?.$el?.getAttribute('href')
+        }))
+    )
   }
 }
 
-const { proxy } = getCurrentInstance()
+const initAffixTags = () => {
+  const filterAffix = (routes, basePath = '/') => {
+    return routes?.flatMap(route => {
+      const children = route?.children ? filterAffix(route.children, route.path) : []
+      if (route?.meta?.affix) {
+        return [{
+          ...route,
+          path: path.resolve(basePath, route.path),
+          fullPath: path.resolve(basePath, route.path)
+        }, ...children]
+      }
+      return children
+    }) || []
+  }
+
+  state.affixTags = filterAffix(routes.value)
+  state.affixTags?.forEach(tag => tagsView.addVisitedView(tag))
+}
+
+const addCurrentTag = () => {
+  if ($route?.name && !visitedViews.value.some(v => v.path === $route.path)) {
+    tagsView.addView($route)
+  }
+}
+
 const openMenu = (tag, e) => {
-  const menuMinWidth = 105
-  const offsetLeft = proxy.$el.getBoundingClientRect().left // container margin left
-  const offsetWidth = proxy.$el.offsetWidth // container width
-  const maxLeft = offsetWidth - menuMinWidth // left boundary
-  const left = e.clientX - offsetLeft + 15 // 15: margin right
-
-  if (left > maxLeft) {
-    resData.left = maxLeft
-  } else {
-    resData.left = left
-  }
-  resData.top = e.clientY
-  resData.visible = true
-  resData.selectedTag = tag
-}
-const closeMenu = () => {
-  resData.visible = false
-}
-const handleScroll = () => {
-    closeMenu()
+  if (!tag || !proxy?.$el || !e) return
+  const menuWidth = 120
+  const containerRect = proxy.$el.getBoundingClientRect()
+  state.left = Math.min(e.clientX - containerRect.left + 15, containerRect.width - menuWidth)
+  state.top = e.clientY
+  state.visible = true
+  state.selectedTag = tag
 }
 
-//export to page use
-const { visible, top, left, selectedTag } = toRefs(resData)
+const refreshSelectedTag = (view) => {
+  if (!view?.fullPath) return
+  $router.replace({ path: '/redirect' + view.fullPath }).catch(() => {})
+}
+
+const closeSelectedTag = async (view, e) => {
+  if (!view?.path || !e) return
+  await tagsView.delView(view)
+  if (isActive(view)) toLastView()
+  nextTick(() => {
+    const remainingTags = Object.values(refTags.value)
+    if (remainingTags?.length) scrollPane.value?.moveToTarget?.(remainingTags.at(-1))
+  })
+}
+
+const closeOthersTags = () => {
+  if (!state.selectedTag?.path) return
+  $router.push(state.selectedTag).catch(() => {})
+  tagsView.delOthersViews(state.selectedTag)
+}
+
+const closeAllTags = async (view) => {
+  if (!view?.path) return
+  await tagsView.delAllViews()
+  if (!state.affixTags?.some(tag => tag.path === view.path)) toLastView()
+}
+
+const toLastView = () => {
+  const latestView = tagsView.visitedViews?.slice(-1)[0]
+  latestView?.fullPath
+      ? $router.push(latestView.fullPath).catch(() => {})
+      : $router.push('/').catch(() => {})
+}
+
+const handleScroll = () => state.visible = false
 </script>
 
 <style lang="scss" scoped>
 .tags-view-container {
-  height: $tagViewHeight;
-  width: 100%;
-  background: #fff;
-  border-bottom: 1px solid #d8dce5;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.12), 0 0 3px 0 rgba(0, 0, 0, 0.04);
+  height: 40px;
+  background: #ffffff;
+  border-bottom: 1px solid #e6ebf5;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.06);
+  position: relative;
+
   .tags-view-wrapper {
-    .tags-view-item {
-      display: inline-block;
-      position: relative;
-      cursor: pointer;
-      height: 27px;
-      line-height: 26px;
-      border: 1px solid #d8dce5;
-      color: #495060;
-      background: #fff;
-      padding: 0 8px;
-      font-size: 12px;
-      margin-left: 5px;
-      margin-top: 3px;
-      &:first-of-type {
-        margin-left: 10px;
+    height: 100%;
+
+    :deep(.el-scrollbar__view) {
+      overflow-x: auto !important; // Включить горизонтальную прокрутку
+      flex-wrap: nowrap;
+      display: flex;
+      align-items: center;
+      height: 100%;
+      padding: 0 15px;
+    }
+  }
+
+  .tags-view-item {
+    display: inline-flex;
+    align-items: center;
+    height: 30px;
+    padding: 0 15px;
+    margin-right: 6px;
+    font-size: 13px;
+    color: #606266;
+    background: #f0f2f5;
+    border-radius: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      background: #e4e7ed;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    &.active {
+      background: #409eff;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(32, 160, 255, 0.3);
+
+      .lock-icon {
+        color: rgba(255, 255, 255, 0.9);
       }
-      &:last-of-type {
-        margin-right: 15px;
+
+      .tag-title {
+        font-weight: 500;
       }
-      &.active {
-        background-color: #42b983;
-        color: #fff;
-        border-color: #42b983;
-        &::before {
-          content: '';
-          background: #fff;
-          display: inline-block;
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          position: relative;
-          margin-right: 2px;
+    }
+
+    .tag-content-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 100%;
+    }
+
+    .tag-title {
+      white-space: nowrap;
+      line-height: 1;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tag-actions {
+      display: flex;
+      align-items: center;
+      margin-left: 4px;
+
+      .el-icon {
+        width: 14px;
+        height: 14px;
+        transition: transform 0.2s;
+
+        &:hover {
+          transform: scale(1.2);
         }
       }
-    }
-  }
-  .contextmenu {
-    margin: 0;
-    background: #fff;
-    z-index: 3000;
-    position: absolute;
-    list-style-type: none;
-    padding: 5px 0;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 400;
-    color: #333;
-    box-shadow: 2px 2px 3px 0 rgba(0, 0, 0, 0.3);
-    li {
-      margin: 0;
-      padding: 7px 16px;
-      cursor: pointer;
-      &:hover {
-        background: #eee;
+
+      .close-icon:hover {
+        color: #f56c6c;
+      }
+
+      .lock-icon {
+        color: #909399;
       }
     }
   }
-}
-</style>
 
-<style lang="scss">
-//reset element css of el-icon-close
-.tags-view-wrapper {
-  .tags-view-item {
-    border-radius: 3px;
-    .el-icon-close {
-      border-radius: 6px;
-      width: 12px;
-      height: 12px;
-      transition: all 0.3s cubic-bezier(0.645, 0.045, 0.355, 1);
-      transform-origin: 100% 50%;
-      vertical-align: -2px;
+  .context-menu {
+    position: absolute;
+    z-index: 3000;
+    margin: 0;
+    padding: 6px 0;
+    background: #ffffff;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    list-style: none;
+    min-width: 120px;
+
+    li {
+      padding: 8px 16px;
+      font-size: 12px;
+      color: #606266;
+      cursor: pointer;
+      transition: all 0.2s;
+
       &:hover {
-        background-color: #b4bccc;
-        color: #fff;
+        background: #f5f7fa;
+        color: #409eff;
+      }
+
+      &:active {
+        background: #ebf5ff;
       }
     }
   }

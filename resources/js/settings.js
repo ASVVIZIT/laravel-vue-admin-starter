@@ -75,7 +75,7 @@ export default {
    * @type {boolean} true | false
    * @description Whether show the title in Navbar
    */
-  showNavbarTitle: false,
+  showNavbarTitle: true,
   /**
    * @type {boolean} true | false
    * @description Whether show the drop-down

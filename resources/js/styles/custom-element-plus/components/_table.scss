@@ -1,3 +1,19 @@
-.el-table .el-table__cell {
-  padding: 0;
+@use "sass:map";
+@use "../../custom-element-plus/proxy" as *;
+@use "../../core/variables" as *;
+
+
+#app {
+  .main-container {
+    .el-table .el-table__cell {
+      padding: 1px 0px;
+      min-width: 0;
+      box-sizing: border-box;
+      text-overflow: ellipsis;
+      vertical-align: middle;
+      position: relative;
+      text-align: left;
+      z-index: 1;
+    }
+  }
 }
