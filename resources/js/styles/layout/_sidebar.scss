@@ -4,13 +4,13 @@
 
   .main-container {
     min-height: 100%;
-    transition: margin-left .28s;
+    transition: margin-left .20s;
     margin-left: variables.$sideBarWidth;
     position: relative;
   }
 
   .sidebar-container {
-    transition: width 0.28s;
+    transition: width 0.20s;
     width: variables.$sideBarWidth;
     background-color: variables.$menuBg;
     height: 100%;
@@ -21,6 +21,31 @@
     left: 0;
     z-index: 1001;
     overflow: hidden;
+    display: block;
+
+    .sidebar-logo-container {
+      display: block;
+      position: relative;
+      top: 0;
+      left: 0;
+      .sidebar-title {
+        font-family: 'Akronim', sans-serif;
+        font-size: 24px;
+        font-weight: normal;
+        color: var(--el-menu-active-color);
+      }
+
+      .sidebar-logo:hover {
+        text-shadow: 2px 2px 12px #9f6d09;
+        transform: scale(1.1);
+        z-index: 4000;
+      }
+      .sidebar-title:hover {
+        text-shadow: 2px 2px 12px #9f6d09;
+        transform: scale(1.1);
+        z-index: 4000;
+      }
+    }
 
     // reset element-ui css
     .horizontal-collapse-transition {
@@ -74,14 +99,18 @@
     }
 
     .is-active>.el-submenu__title {
+      list-style: none !important;
       color: variables.$subMenuActiveText !important;
     }
 
     & .nest-menu .el-submenu>.el-submenu__title,
     & .el-submenu .el-menu-item {
+      list-style: none !important;
       min-width: variables.$sideBarWidth !important;
       background-color: variables.$subMenuBg !important;
-
+      &:after {
+        color: var(--el-menu-active-color) !important;
+      }
       &:hover {
         background-color: variables.$subMenuHover !important;
       }
@@ -221,13 +250,34 @@
     padding-right: calc(var(--el-menu-base-level-padding) + var(--el-menu-icon-width));
   }
 
+  .el-sub-menu.is-active .el-sub-menu__title:after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 6px;
+    background: var(--el-menu-active-color);
+  }
+
+  .el-sub-menu.is-active .el-sub-menu__title,
+  .el-sub-menu.is-active .el-sub-menu__title i {
+    font-size: 15px;
+    color: var(--el-menu-active-color) !important;
+  }
+
   .nest-menu .el-submenu>.el-submenu__title,
+  .nest-menu .el-submenu>.el-submenu__title i,
   .el-menu-item {
     &:hover {
       // you can use $subMenuHover
       background-color: variables.$menuHover !important;
     }
   }
+
+  .el-menu-item.is-active i:before {
+      color: var(--el-menu-active-color) !important;
+    }
 
   // the scroll bar appears when the subMenu is too long
   >.el-menu--popup {

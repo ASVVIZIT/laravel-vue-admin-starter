@@ -4,12 +4,6 @@
     <Logo v-if="settings.sidebarLogo" :collapse="!isCollapse" />
     <!-- Router Navigation -->
     <el-scrollbar>
-      <div>
-        {{sideBarWidth}}
-        {{menuBg}}
-        {{menuText}}
-        {{menuActiveText}}
-      </div>
       <el-menu ref="sidebarMenuEl"
           class="el-menu-vertical"
           :default-active="activeMenu"

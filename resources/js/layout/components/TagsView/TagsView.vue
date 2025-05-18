@@ -205,7 +205,7 @@ const openMenu = (tag, e) => {
   const menuWidth = 120
   const containerRect = proxy.$el.getBoundingClientRect()
   state.left = Math.min(e.clientX - containerRect.left + 15, containerRect.width - menuWidth)
-  state.top = e.clientY
+  state.top = e.clientY - 30
   state.visible = true
   state.selectedTag = tag
 }
@@ -264,17 +264,17 @@ const handleScroll = () => state.visible = false
       display: flex;
       align-items: center;
       height: 100%;
-      padding: 0 15px;
+      padding: 0 10px;
     }
   }
 
   .tags-view-item {
     display: inline-flex;
     align-items: center;
-    height: 30px;
-    padding: 0 15px;
-    margin-right: 6px;
-    font-size: 13px;
+    height: 22px;
+    padding: 0 4px 0px 8px;
+    margin-right: 2px;
+    font-size: 11px;
     color: #606266;
     background: #f0f2f5;
     border-radius: 4px;
@@ -284,8 +284,9 @@ const handleScroll = () => state.visible = false
 
     &:hover {
       background: #e4e7ed;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transform: translateY(-2px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(100, 118, 161, 0.89);
     }
 
     &.active {
@@ -294,7 +295,7 @@ const handleScroll = () => state.visible = false
       box-shadow: 0 2px 8px rgba(32, 160, 255, 0.3);
 
       .lock-icon {
-        color: rgba(255, 255, 255, 0.9);
+        color: #f56c6c;
       }
 
       .tag-title {
@@ -305,14 +306,14 @@ const handleScroll = () => state.visible = false
     .tag-content-wrapper {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 2px;
       height: 100%;
     }
 
     .tag-title {
       white-space: nowrap;
       line-height: 1;
-      max-width: 150px;
+      max-width: 200px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -331,13 +332,15 @@ const handleScroll = () => state.visible = false
           transform: scale(1.2);
         }
       }
-
+      .lock-icon {
+        color: #606266;
+      }
       .close-icon:hover {
         color: #f56c6c;
       }
 
-      .lock-icon {
-        color: #909399;
+      .lock-icon:hover {
+        color: #f56c6c;
       }
     }
   }
@@ -347,26 +350,27 @@ const handleScroll = () => state.visible = false
     z-index: 3000;
     margin: 0;
     padding: 6px 0;
-    background: #ffffff;
+    background: #fdfdfd;
     border-radius: 4px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
     list-style: none;
-    min-width: 120px;
+    min-width: 100px;
+    max-width: 150px;
 
     li {
-      padding: 8px 16px;
-      font-size: 12px;
+      padding: 2px 8px;
+      font-size: 13px;
       color: #606266;
       cursor: pointer;
       transition: all 0.2s;
 
       &:hover {
-        background: #f5f7fa;
-        color: #409eff;
+        background: rgba(24, 144, 255, 0.90);
+        color: #ebf5ff;
       }
 
       &:active {
-        background: #ebf5ff;
+        background: rgba(24, 186, 255, 0.7);
       }
     }
   }

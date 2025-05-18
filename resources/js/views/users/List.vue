@@ -31,13 +31,15 @@
         :table-data="tableData"
         :table-column="basicColumn"
         :table-option="tableOption"
-        :pagination="pagination"
+        :pagination="{ meta: pagination }"
         :paginate="true"
         :page-sizes="per_pages"
         :loading="loading"
         @filter-change="handleFilterChange"
         @table-action="tableActions"
-        @set-params="setParams">
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+    >
       <template #header="{ column }">
         <div class="custom-header">
           <span>{{ column.label }}</span>
@@ -68,19 +70,7 @@
             <el-svg-item :el-svg-name="action.icon" :title="action.label"></el-svg-item>
           </el-button>
         </div>
-        <div v-else style="font-style: italic;font-weight: 300;">Данных пользователей нельзя редактировать</div>
-      </template>
-      <!-- Пагинация -->
-      <template #append>
-        <el-pagination
-            :total="pagination.total"
-            :current-page="pagination.current_page"
-            :page-size="pagination.per_page"
-            :page-sizes="per_pages"
-            layout="total, sizes, prev, pager, jumper, next"
-            @size-change="handleSizeChange"
-            @current-change="handlePageChange"
-        />
+        <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
       </template>
     </custom-table>
 
@@ -239,16 +229,17 @@ const filters = ref({
 })
 
 const pagination = reactive({
-  total: 0,
   current_page: 1,
-  per_page: 10
+  per_page: 10,
+  total: 0,
+  last_page: 1
 })
 
 const params = reactive({
-  page: pagination.current_page,
-  per_page: pagination.per_page,
-  role: [],
-  search: ''
+  get role() { return filters.value.role },
+  set role(value) { filters.value.role = value }, // Добавляем сеттер
+  get search() { return filters.value.search },
+  set search(value) { filters.value.search = value }, // Добавляем сеттер
 })
 
 const newUser = reactive({
@@ -374,7 +365,7 @@ const tableOption = computed(() => {
 
   return {
     slot: true,
-    width: '280',
+    width: '250',
     label: t('table.actions'),
     fixed: 'right',
     item_actions: actions
@@ -382,7 +373,7 @@ const tableOption = computed(() => {
 })
 
 // Emits
-const emit = defineEmits(['set-params'])
+// const emit = defineEmits(['set-params'])
 
 // Метод фильтрации
 const filterRole = (value, row) => {
@@ -392,12 +383,13 @@ const filterRole = (value, row) => {
 }
 
 const basicColumn = computed(() => [
-  { prop: 'id', label: t('table.roleColumn.label.id'), width: '80' , resizable: false, sortable: true, fixed: true },
-  { prop: 'name', label: t('table.roleColumn.label.name'), width: '120' , sortable: true, fixed: true },
+  { prop: 'id', label: t('table.roleColumn.label.id'), width: '65' , resizable: false, sortable: true, fixed: true },
+  { prop: 'name', label: t('table.roleColumn.label.name'), width: '130' , sortable: true, fixed: true },
   { prop: 'email', label: t('table.roleColumn.label.email'), sortable: true },
   {
     prop: 'roles',
     label: t('table.roleColumn.label.role'),
+    width: '110',
     slot: true,
     columnKey: 'roles',
     filters: computed(() => {
@@ -420,14 +412,17 @@ const basicColumn = computed(() => [
 ])
 
 
-// Обработчики изменения пагинации
-const handleSizeChange = (newSize) => {
-  pagination.per_page = newSize
+// Обработчики пагинации
+const handleSizeChange = (size) => {
+  pagination.per_page = size
+  pagination.current_page = 1
+  getList()
 }
 
 const handlePageChange = (newPage) => {
   pagination.current_page = newPage
-}
+  getList();
+};
 
 // Открытие фильтра
 const openFilter = (column) => {
@@ -454,25 +449,41 @@ const isAdmin = (userRoles) =>
 const getList = async () => {
   loading.value = true
   try {
+    // Явная передача параметров с нормализацией значений
+    const params = {
+      role: filters.value.role || null,
+      search: filters.value.search || null,
+      page: pagination.current_page || 1,
+      per_page: pagination.per_page || 10
+    };
 
-    const q = {
-      ...params,
-      total: pagination.total,
-      page: pagination.current_page,
-      per_page: pagination.per_page,
+    // Делаем запрос с явным указанием структуры ответа
+    const response = await userResource.list(params)
+    // Извлекаем данные и метаданные напрямую
+    // Исправленный доступ к данным
+
+    console.log('response ', response)
+        // Прямое обращение к items
+        tableData.value = response.items || [];
+        // Обновляем только изменяемые мета-данные
+        pagination.total = response.meta.total;
+        pagination.last_page = response.meta.last_page;
+    } catch (error) {
+      // Расширенная отладка
+      console.error('Error details:', {
+        url: error.config?.url,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+
+      ElMessage.error(
+          error.response?.data?.message ||
+          error.message ||
+          'Ошибка загрузки данных'
+      );
+    } finally {
+      loading.value = false
     }
-    console.log('q ', q)
-    const res = await userResource.list(q)
-    console.log('params ', res)
-    tableData.value = res.data
-    pagination.total = res.meta.total
-    pagination.current_page = res.meta.current_page
-    pagination.per_page = res.meta.per_page
-  } catch (error) {
-    ElMessage.error(t('error.fetchUsers'))
-  } finally {
-    loading.value = false
-  }
 }
 
 // 3. Обработчик изменения фильтров
@@ -481,20 +492,15 @@ const handleFilterChange = (columnKey, values) => {
     getList()
 }
 
+// Фильтрация
 const handleFilter = () => {
-  params.page = 1
+  pagination.current_page = 1
   getList()
 }
 
 const handleFilterReset = () => {
   console.log('Сброс фильтра')
   handleFilter()
-}
-
-const setParams = (key, value) => {
-  if (key !== 'per_page' && key !== 'page') params.page = 1
-  params[key] = value
-  getList()
 }
 
 const handleCreate = () => {
@@ -753,9 +759,9 @@ const permissionKeys = (permissions) =>
 
 
 // Автоматический запрос при изменении параметров
-watchEffect(() => {
+/*watchEffect(() => {
   getList()
-})
+})*/
 // Хук жизненного цикла
 onMounted(async () => {
   await getList()

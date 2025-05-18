@@ -15,7 +15,7 @@
         @sort-change="handleSortChange"
         @selection-change="handleSelectionChange"
     >
-      <template v-for="(item,index) in tableColumn" :key="index">
+      <template v-for="(item, index) in tableColumn" :key="index">
         <el-table-column
             v-if="item.filters"
             :key="index+1"
@@ -66,24 +66,30 @@
         <template #default="scope">
           <template v-if="tableOption.item_actions">
             <slot v-if="tableOption.slot" name="table_options" v-bind="scope"/>
-            <template v-else-if="tableOption.item_actions.length < 1">
-              <el-button v-for="(action, index) in tableOption.item_actions"
-                         :type="action.type ? action.type : 'primary'"
-                         :size="action.size ? action.size : ''"
-                         @click="callAction(action.name, scope.row)">
-                <el-svg-item :el-svg-name="action.icon" :title="action.label"></el-svg-item>
+            <template v-else-if="tableOption.item_actions.length <= 3">
+              <el-button
+                  v-for="(action, index) in tableOption.item_actions"
+                  :key="index"
+                  :type="action.type ? action.type : 'primary'"
+                  :size="action.size ? action.size : ''"
+                  @click="callAction(action.name, scope.row)"
+              >
+                <el-svg-item :el-svg-name="action.icon" :title="action.label"/>
               </el-button>
             </template>
             <template v-else>
               <el-dropdown>
-                  <span class="el-dropdown-link">
-                    {{ t('table.actions') }}<i class="el-icon-arrow-down el-icon--right"></i>
-                  </span>
+                <span class="el-dropdown-link">
+                  {{ t('table.actions') }}<i class="el-icon-arrow-down el-icon--right"/>
+                </span>
                 <el-dropdown-menu slot="dropdown">
-                  <el-dropdown-item v-for="(action, index) in tableOption.item_actions"
-                                    :command="action.name"
-                                    @click.native="callAction(action.name, scope.row)">
-                    <el-svg-item :el-svg-name="action.icon" :title="action.label"></el-svg-item>
+                  <el-dropdown-item
+                      v-for="(action, index) in tableOption.item_actions"
+                      :key="index"
+                      :command="action.name"
+                      @click.native="callAction(action.name, scope.row)"
+                  >
+                    <el-svg-item :el-svg-name="action.icon" :title="action.label"/>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
@@ -92,62 +98,41 @@
         </template>
       </el-table-column>
     </el-table>
-  </section>
 
-  <template v-if="paginate && pagination.total>0">
-    <section class="pagination-container">
-      <el-pagination
-          background
-          :page-sizes="pageSizes"
-          :layout="layout"
-          :current-page="pagination.current_page"
-          :page-size="pagination.per_page"
-          :total="pagination.total"
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-      />
-    </section>
-  </template>
+    <template v-if="paginate && pagination.meta.total>0">
+      <section class="pagination-container">
+        <el-pagination
+            background
+            :page-sizes="pageSizes"
+            :layout="layout"
+            :current-page="pagination.meta.current_page"
+            :page-size="pagination.meta.per_page"
+            :total="pagination.meta.total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+        />
+      </section>
+    </template>
+  </section>
 </template>
 
 <script>
-import {useI18n} from "vue-i18n"
+import { useI18n } from "vue-i18n"
 import ElSvgItem from "./Item/ElSvgItem.vue"
-import {defineEmits} from "vue"
+import { reactive, ref, toRefs } from "vue"
 
 export default {
-  components: {ElSvgItem},
+  components: { ElSvgItem },
   props: {
-    loading: {
-      type: Boolean,
-      default: false
-    },
-    stripe: {
-      type: Boolean,
-      default: true
-    },
-    border: {
-      type: Boolean,
-      default: true
-    },
-    tooltipEffect: {
-      type: String,
-      default: 'dark'
-    },
-    tableData: {
-      type: Array,
-      required: true
-    },
-    tableColumn: {
-      type: Array,
-      required: true
-    },
-    tableOption: {
-      type: Object,
-      default: () => {
-        return {}
-      }
-    },
+    loading: Boolean,
+    stripe: { type: Boolean, default: true },
+    border: { type: Boolean, default: true },
+    tooltipEffect: { type: String, default: 'dark' },
+    tableData: { type: Array, required: true },
+    tableColumn: { type: Array, required: true },
+    tableOption: { type: Object, default: () => ({}) },
+    paginate: {type: Boolean, default: true},
+    pagination: { type: Object, default: () => ({ meta: {} }) },
     itemActions: {
       type: Array,
       default() {
@@ -165,65 +150,26 @@ export default {
         ]
       }
     },
-    paginate: {
-      // 是否需要翻页组件
-      type: Boolean,
-      default: true
-    },
-    layout: {
-      // 翻页组件布局，子组件名用逗号分隔
-      type: String,
-      default: 'total, sizes, prev, pager, next, jumper'
-    },
-    pageSizes: {
-      // 每页显示个数选择器的选项设置
-      type: Array,
-      default: () => [10, 30, 50, 100]
-    },
-    pagination: {
-      type: Object,
-      default: () => {
-        return {
-          total: 0,
-          currentPage: 1,
-          pageSize: 10
-        }
-      },
-    },
-    tableHeight: {
-      type: String,
-    }
+    tableHeight: String,
+    pageSizes: { type: Array, default: () => [10, 30, 50, 100] },
+    layout: { type: String, default: 'total, sizes, prev, pager, next, jumper' }
   },
   setup(props, ctx) {
-    const {t} = useI18n()
+    const { t } = useI18n()
     const resData = reactive({
       tableRef: ref(null)
     })
+
     const show = (row, key) => {
-      let arr = key.split('.')
-      for (let i in arr) {
-        row = row[arr[i]]
-      }
-      return row
+      return key.split('.').reduce((obj, k) => obj?.[k], row) || ''
     }
-    const handleSortChange = (sort) => {
-      ctx.emit('handle-sort-change', sort)
-    }
-    const handleSelectionChange = (val) => {
-      ctx.emit('handle-selection-change', val)
-    }
-    const filterHandler = (value, row, column) => {
-      const property = column['property']
-      return row[property] === value
-    }
-    const toggleExpand = (row) => {
-      resData.tableRef.toggleRowExpansion(row)
-    }
+
     const handleSizeChange = (perPage) => {
-      ctx.emit('set-params', 'per_page', perPage)
+      ctx.emit('size-change', perPage)
     }
+
     const handleCurrentChange = (current) => {
-      ctx.emit('set-params', 'page', current)
+      ctx.emit('current-change', current)
     }
     const callAction = (action, data) => {
       console.log(1111)
@@ -243,26 +189,28 @@ export default {
     return {
       ...toRefs(resData),
       show,
-      handleSortChange,
-      handleSelectionChange,
-      filterHandler,
-      toggleExpand,
+      handleSortChange: (sort) => ctx.emit('handle-sort-change', sort),
+      handleSelectionChange: (val) => ctx.emit('handle-selection-change', val),
+      filterHandler: (value, row, column) => row[column.property] === value,
+      toggleExpand: (row) => resData.tableRef.toggleRowExpansion(row),
       handleSizeChange,
       handleCurrentChange,
-      callAction,
-      closeTag,
-      handleToggleRowSelection,
-      getRowKey
+      callAction: (action, data) => ctx.emit('table-action', action, data),
+      closeTag: (obj) => ctx.emit('close-tag', obj),
+      handleToggleRowSelection: (row, isSelected) => {
+        nextTick(() => resData.tableRef.toggleRowSelection(row, isSelected))
+      },
+      getRowKey: (row) => row.id,
+      t
     }
   }
 }
 </script>
 
-
 <style scoped>
 .pagination-container {
   background: #fff;
-  padding: 32px 16px;
+  padding: 12px 8px;
 }
 .pagination-container.hidden {
   display: none;

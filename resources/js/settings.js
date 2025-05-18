@@ -2,7 +2,7 @@ export default {
   /**
    * @type {String}
    */
-  title: 'Laravel Fenix Admin',
+  title: 'System Fenix Reports',
   theme: '#1890ff',
 
   /**

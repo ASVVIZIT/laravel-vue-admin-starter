@@ -120,7 +120,7 @@ const refOtherPermissions = ref(null)
 // Основные данные таблицы
 const tableData = ref([])
 const loading = ref(true)
-const pageSizes = ref([10, 20, 50])
+const per_pages = ref([5, 10, 30, 50, 100, 150, 200])
 
 // Пагинация и параметры запроса
 const pagination = reactive({
@@ -198,6 +198,14 @@ const roleOtherPermissions = computed(() =>
 const getRoles = async () => {
   loading.value = true
   try {
+
+    const params = {
+      role: filters.value.role || null,
+      search: filters.value.search || null,
+      page: pagination.current_page || 1,
+      per_page: pagination.per_page || 10
+    };
+
     const res = await roleResource.list(params)
     res.data.forEach(role => {
       role.description = t(`roles.description.${role.name}`)

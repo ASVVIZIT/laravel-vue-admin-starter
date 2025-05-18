@@ -1,0 +1,31 @@
+#app {
+  ul a:hover,
+  ul a:active,
+  ul li,
+  ul li.active,
+  ul li:hover,
+  ul li:active,
+  ul li a:hover,
+  ul li a:active {
+    text-decoration: none !important;
+    list-style: none !important;
+  }
+}
+a,
+li,
+ul a:hover,
+ul a:active,
+ul li,
+ul li.active,
+ul li:hover,
+ul li:active,
+ul li a:hover,
+ul li a:active {
+  text-decoration: none !important;
+  list-style: none !important;
+}
+
+.el-popper.is-light {
+  background: unset !important;
+  border: unset !important;
+}

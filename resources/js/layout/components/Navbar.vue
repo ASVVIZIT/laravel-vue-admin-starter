@@ -83,6 +83,9 @@ const loginOut = async () => {
 </script>
 
 <style lang="scss" scoped>
+
+
+
 .navbar {
   height: $navBarHeight;
   overflow: hidden;

@@ -10,8 +10,9 @@ use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -30,35 +31,74 @@ class UserController extends BaseController
      * Display a listing of the user resource.
      *
      * @param Request $request
-     * @return AnonymousResourceCollection
+     * @return JsonResponse
      */
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
-        $params = $request->all();
+        try {
+            // Валидация параметров
+            $params = $request->all();
+            $validator = Validator::make($params, [
+                'per_page' => 'nullable|integer|min:1|max:300',
+                'current_page' => 'nullable|integer|min:1',
+                'role' => 'nullable|string',
+                'search' => 'nullable|string|max:255',
+            ]);
 
-        $data = User::query()
-            ->when(!empty($params['role']), function (Builder $query) use ($params) {
-                $query->whereHas('roles', function ($q) use ($params) {
-                    $q->where('name', $params['role']);
-                });
-            })
-            ->when(!empty($params['search']), function (Builder $query) use ($params) {
-                $query->where(function ($q) use ($params) {
-                    $q->where('name', 'like', '%' . $params['search'] . '%')
-                        ->orWhere('email', 'like', '%' . $params['search'] . '%');
-                });
-            })
-            ->paginate($params['per_page'] ?? 10);
+            if ($validator->fails()) {
+                return $this->sendValidationError($validator->errors());
+            }
 
-        return response()->json([
-            'data' => UserResource::collection($data),
-            'meta' => [
-                'total' => $data->total(),
-                'current_page' => $data->currentPage(),
-                'per_page' => $data->perPage(),
-                'last_page' => $data->lastPage(),
-            ]
-        ]);
+            // Построение запроса
+            $query = User::with('roles')
+                ->when(!empty($params['role']), function (Builder $query) use ($params) {
+                    $query->whereHas('roles', function ($q) use ($params) {
+                        $q->where('name', $params['role']);
+                    });
+                })
+                ->when(!empty($params['search']), function (Builder $query) use ($params) {
+                    $query->where(function ($q) use ($params) {
+                        $q->where('name', 'like', '%' . $params['search'] . '%')
+                            ->orWhere('email', 'like', '%' . $params['search'] . '%');
+                    });
+                });
+
+            // Пагинация
+            $users = $query->paginate(
+                $params['per_page'] ?? 10,
+                ['*'],
+                'page',
+                $params['page'] ?? 1
+            );
+
+            // Успешный ответ
+            return response()->json([
+                'success' => true,
+                'items' => UserResource::collection($users),
+                'meta' => [
+                    'total' => $users->total(),
+                    'page' => $users->currentPage(),
+                    'per_page' => $users->perPage(),
+                    'last_page' => $users->lastPage(),
+                ]
+            ]);
+
+        } catch (QueryException $e) {
+            // Ошибка базы данных
+            Log::error('UserController DB Error: ' . $e->getMessage(), [
+                'params' => $params,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendDatabaseError($e);
+
+        } catch (\Exception $e) {
+            // Непредвиденная ошибка
+            Log::error('UserController Server Error: ' . $e->getMessage(), [
+                'params' => $params,
+                'trace' => $e->getTraceAsString()
+            ]);
+            return $this->sendServerError($e);
+        }
     }
 
     /**
@@ -119,7 +159,7 @@ class UserController extends BaseController
      * @param User $user
      * @return UserResource|\Illuminate\Http\JsonResponse
      */
-    public function show(User $user)
+    public function show(User $user): UserResource
     {
         return new UserResource($user);
     }
@@ -131,7 +171,7 @@ class UserController extends BaseController
      * @param User $user
      * @return UserResource|\Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, User $user): UserResource
     {
         if ($user === null) {
             return response()->json(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
@@ -165,7 +205,7 @@ class UserController extends BaseController
      * @param User $user
      * @return UserResource|\Illuminate\Http\JsonResponse
      */
-    public function updatePermissions(Request $request, User $user)
+    public function updatePermissions(Request $request, User $user): UserResource
     {
         if (empty($user)) {
             return responseFailed('User not found', Response::HTTP_NOT_FOUND);

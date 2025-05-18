@@ -102,22 +102,23 @@ defineExpose({ moveToTarget })
   }
 
   :deep(.el-scrollbar__bar) {
-    bottom: 0;
-    height: 6px;
-    background-color: rgba(200, 200, 200, 0.3);
-    transition: height 0.2s;
+    bottom: 0px;
+    height: 4px;
+    margin-top: -2px;
+    background-color: rgba(150, 150, 150, 0.5);
+    transition: height 0.3s;
 
     &:hover {
       height: 10px;
-      background-color: rgba(150, 150, 150, 0.5);
+      background-color: rgba(103, 114, 140, 0.5);
     }
   }
 
   :deep(.el-scrollbar__wrap) {
     scroll-behavior: smooth;
     height: 40px;
-    padding: 3px 0;
-    margin-bottom: -6px;
+    padding: 0px 0px;
+    margin-bottom: 0px;
     overflow-x: auto;
     overflow-y: hidden;
 
@@ -127,18 +128,18 @@ defineExpose({ moveToTarget })
   }
 
   :deep(.el-scrollbar__thumb) {
-    background-color: rgba(100, 100, 100, 0.4);
+    background-color: rgba(80, 80, 80, 0.7);
     border-radius: 3px;
 
     &:hover {
-      background-color: rgba(80, 80, 80, 0.6);
+      background-color: rgba(168, 118, 118, 0.7);
     }
   }
 
   :deep(.el-scrollbar__view) {
     display: inline-flex !important;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
   }
 }
 </style>

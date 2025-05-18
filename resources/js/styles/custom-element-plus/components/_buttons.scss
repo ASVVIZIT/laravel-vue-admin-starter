@@ -1,12 +1,16 @@
-.el-button {
-  height: 24px;
-  &--custom {
-    border-radius: 8px;
-    padding: 8px 14px;
-    transition: transform 0.2s ease;
-
-    &:active {
-      transform: scale(0.88);
+#app {
+  .main-container {
+    .el-button {
+      height: 24px;
+      padding: 2px 8px;
+      &--custom {
+        border-radius: 8px;
+        padding: 2px 8px;
+        transition: transform 0.2s ease;
+        &:active {
+          transform: scale(0.88);
+        }
+      }
     }
   }
 }

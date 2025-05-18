@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Resources\PermissionResource;
 use App\Models\Permission;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use App\Models\Role;
 use App\Http\Resources\RoleResource;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Class RoleController
@@ -19,10 +21,45 @@ class RoleController extends BaseController
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request): \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+    public function index(Request $request): JsonResponse
     {
-        $list = Role::query()->paginate($request->input('per_page', 10));
-        return RoleResource::collection($list);
+        // Валидация параметров
+        $params = $request->all();
+        $validator = Validator::make($params, [
+            'per_page' => 'nullable|integer|min:1|max:300',
+            'current_page' => 'nullable|integer|min:1',
+            'role' => 'nullable|string',
+            'search' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->sendValidationError($validator->errors());
+        }
+
+
+
+        $query = Role::query()->get();
+
+
+        // Пагинация
+        $users = $query->paginate(
+            $params['per_page'] ?? 10,
+            ['*'],
+            'page',
+            $params['page'] ?? 1
+        );
+
+        // Успешный ответ
+        return response()->json([
+            'success' => true,
+            'items' => RoleResource::collection($users),
+            'meta' => [
+                'total' => $users->total(),
+                'page' => $users->currentPage(),
+                'per_page' => $users->perPage(),
+                'last_page' => $users->lastPage(),
+            ]
+        ]);
     }
 
     /**

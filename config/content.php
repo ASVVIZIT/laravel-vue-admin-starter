@@ -24,7 +24,7 @@ return [
 
     // Meta
     'meta' => [
-        'keywords' => 'Laravel Vue Admin, laravel, vuejs',
+        'keywords' => 'Laravel Vue Admin, Portal Fenix Reports, laravel, vuejs',
         'description' => 'Talk is cheap. Show me the code.'
     ],
 
@@ -40,6 +40,6 @@ return [
             'open' => true,
             'url'  => 'https://github.com/asvvizit',
         ],
-        'meta' => '© Laravel Vue Admin 2022. Powered By Truman',
+        'meta' => '© Laravel Vue Admin 2025. Powered By ASV',
     ],
 ];

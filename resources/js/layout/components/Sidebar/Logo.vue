@@ -5,9 +5,9 @@
         <img v-if="logo" :src="logo" class="sidebar-logo" />
         <h1 v-else class="sidebar-title">{{ title }}</h1>
       </router-link>
-      <router-link v-else key="expand" class="sidebar-logo-link" to="/">
+      <router-link v-else key="expand" class="sidebar-logo-link fenix_effect" to="/">
         <img v-if="logo" :src="logo" class="sidebar-logo" />
-        <h1 class="sidebar-title">{{ title }}</h1>
+        <h1 class="sidebar-title fenix_effect_blazing">{{ title }}</h1>
       </router-link>
     </transition>
   </div>
@@ -44,25 +44,26 @@ const { title, logo } = toRefs(resData)
   height: 50px;
   line-height: 50px;
   background: #2b2f3a;
-  padding-left: 14px;
-  text-align: left;
+  padding-left: 0px;
+  padding-right: 0px;
+  text-align: center;
   overflow: hidden;
   & .sidebar-logo-link {
     height: 100%;
     width: 100%;
     & .sidebar-logo {
-      width: 32px;
-      height: 32px;
+      width: 40px;
+      height: 40px;
+      margin-right: 0px;
       vertical-align: middle;
-      margin-right: 12px;
     }
     & .sidebar-title {
-      display: inline-block;
-      margin: 0;
+      display: inline-flex;
+      margin: 0 22px 0 22px;
       color: #fff;
       font-weight: 600;
       line-height: 50px;
-      font-size: 14px;
+      font-size: 17px;
       font-family: Avenir, Helvetica Neue, Arial, Helvetica, sans-serif;
       vertical-align: middle;
     }
