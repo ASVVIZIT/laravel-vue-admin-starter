@@ -1,5 +1,5 @@
 <template>
-  <el-breadcrumb class="app-breadcrumb" separator="/">
+  <el-breadcrumb class="app-breadcrumb" :separator-icon="ArrowRight">
     <!--has transition  Judging by settings.mainNeedAnimation-->
     <transition-group v-if="settings.mainNeedAnimation" name="breadcrumb">
       <el-breadcrumb-item v-for="(item, index) in levelList" :key="item.path">
@@ -23,6 +23,7 @@
 
 <script setup>
 import { compile } from 'path-to-regexp'
+import { ArrowRight } from '@element-plus/icons-vue'
 const levelList = ref(null)
 
 //Whether close the animation fo breadcrumb

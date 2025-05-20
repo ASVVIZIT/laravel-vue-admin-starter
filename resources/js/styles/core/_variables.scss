@@ -172,17 +172,3 @@ $appMainPadding: 10px;
   --el-menu-icon-width: 14px;
 }
 
-.el-input.el-input--small {
-  --el-input-height: 32px !important;
-  --el-input-inner-height:calc(var(--el-input-height) - 2px) !important;
-}
-
-.el-input.el-input--medium {
-  --el-input-height: 36px !important;
-  --el-input-inner-height:calc(var(--el-input-height) - 2px) !important;
-}
-
-.el-input.el-input--large {
-  --el-input-height: 40px !important;
-  --el-input-inner-height:calc(var(--el-input-height) - 2px) !important;
-}

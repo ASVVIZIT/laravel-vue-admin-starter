@@ -8,7 +8,7 @@ export default function () {
     return rect.width - 1 < WIDTH
   }
   const $_resizeHandler = () => {
-    if (!document.hidden) {
+    if (!document.hidden && !useAppStore.isSidebarLocked) {
       const isMobile = $_isMobile()
       if (isMobile) {
         // console.log('closeSideBar')
@@ -26,16 +26,22 @@ export default function () {
     window.addEventListener('resize', $_resizeHandler)
   })
   onMounted(() => {
-    const isMobile = $_isMobile()
-    if (isMobile) {
-      useAppStore.openSideBar(false)
-     // useAppStore.openRightPanel(false)
-    } else {
-      useAppStore.openSideBar(true)
-     // useAppStore.openRightPanel(true)
+    if (!document.hidden && !useAppStore.isSidebarLocked) {
+      const isMobile = $_isMobile()
+      if (isMobile) {
+        useAppStore.openSideBar(false)
+        //useAppStore.openRightPanel(false)
+      } else {
+        useAppStore.openSideBar(true)
+        // useAppStore.openRightPanel(true)
+      }
     }
   })
   onBeforeUnmount(() => {
+    if (!useAppStore.isSidebarLocked) {
+      const isMobile = $_isMobile()
+      useAppStore.openSideBar(!isMobile)
+    }
     window.removeEventListener('resize', $_resizeHandler)
   })
 }

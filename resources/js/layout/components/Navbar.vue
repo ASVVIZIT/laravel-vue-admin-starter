@@ -8,6 +8,10 @@
         class="hamburger-container"
         @toggleClick="toggleSideBar"
       />
+      <el-icon class="lock-icon" @click="toggleSidebarLock">
+        <Lock v-if="isSidebarLocked" />
+        <Unlock v-else />
+      </el-icon>
       <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
     </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
@@ -44,9 +48,11 @@
 <script setup>
 import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
+
 import Timer from './Timer/Timer.vue'
 const {t} = useI18n({useScope: 'global'})
-import Search from '@/components/HeaderSearch/HeaderSearch.vue'
+import { Unlock, Lock } from '@element-plus/icons-vue'
+import HeaderSearch from '@/components/HeaderSearch/HeaderSearch.vue'
 import SizeSelect from '@/components/SizeSelect/SizeSelect.vue'
 import LangSelect from '@/components/LangSelect/LangSelect.vue'
 import ScreenFull from '@/components/ScreenFull/ScreenFull.vue'
@@ -71,15 +77,26 @@ const opened = computed(() => {
   return useAppStore.sidebar.opened
 })
 
-const toggleSideBar = () => {
-  useAppStore.toggleSideBar()
-}
-
 const loginOut = async () => {
   await useUserStore.logout().then(() => {
     router.push(`/login?redirect=/`)
   })
 }
+
+// Добавим вычисляемое свойство и метод
+const isSidebarLocked = computed(() => useAppStore.isSidebarLocked)
+
+const toggleSidebarLock = () => {
+  useAppStore.toggleSidebarLock()
+}
+
+// Обновим метод toggleSideBar
+const toggleSideBar = () => {
+  if (!useAppStore.isSidebarLocked) {
+    useAppStore.toggleSideBar()
+  }
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -90,6 +107,21 @@ const loginOut = async () => {
   position: relative;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
+}
+
+/* Добавим стили для иконки */
+.lock-icon {
+  margin-left: 16px;
+  cursor: pointer;
+  padding: 5px;
+  transition: all 0.3s;
+  &:hover {
+    background: #f5f5f5;
+    border-radius: 4px;
+  }
+  svg {
+    display: block;
+  }
 }
 
 //logo

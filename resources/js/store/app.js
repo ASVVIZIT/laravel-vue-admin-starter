@@ -6,6 +6,7 @@ import defaultSettings from '../settings'
 export const appStore = defineStore('app', {
   state: () => {
     return {
+      isSidebarLocked: Cookies.get('isSidebarLocked') ? !!+Cookies.get('isSidebarLocked') : true,
       sidebar: {
         opened: Cookies.get('sidebarStatus') ? !!+Cookies.get('sidebarStatus') : true,
         withoutAnimation: true,
@@ -16,13 +17,19 @@ export const appStore = defineStore('app', {
       },
       device: 'desktop',
       language: getLanguage(),
-      size: Cookies.get('size') || 'medium',
+      size: Cookies.get('size') || 'small',
       cachedViews: [],
       cachedViewsDeep: [],
       settings: defaultSettings
     }
   },
   actions: {
+    toggleSidebarLock() {
+      this.$patch((state) => {
+        state.isSidebarLocked = !state.isSidebarLocked
+        Cookies.set('isSidebarLocked', state.isSidebarLocked ? 1 : 0)
+      })
+    },
     toggleSideBar() {
       this.$patch((state) => {
         state.sidebar.opened = !state.sidebar.opened;
@@ -43,7 +50,7 @@ export const appStore = defineStore('app', {
     closeSideBar(withoutAnimation) {
       this.$patch((state) => {
         Cookies.set('sidebarStatus', 0)
-        state.sidebar.opened = false
+        state.sidebar.opened = 0
         state.sidebar.withoutAnimation = withoutAnimation;
       })
     },

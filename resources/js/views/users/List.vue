@@ -1,86 +1,97 @@
 <template>
   <div class="app-container scroll-y">
-    <div class="filter-container">
-      <el-input
-          v-model="params.search"
-          :size="store.size"
-          :placeholder="$t('table.user.form.fields.name.title') + '/' + $t('table.user.form.fields.email.title')"
-          clearable
-          class="filter-item search-filter-item"
-          @keyup.enter.native="handleFilter"/>
-      <el-select
-          v-model="params.role"
-          :size="store.size"
-          :placeholder="$t('table.user.form.fields.role.title')"
-          clearable
-          class="filter-item select-role-filter-item"
-          @change="handleFilter">
-        <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
-      </el-select>
-      <el-button :size="store.size" class="filter-item"  type="primary" :icon="Search" @click="handleFilter">
-        {{ t('table.general.search') }}
-      </el-button>
-      <el-button :size="store.size" class="filter-item" type="primary" :icon="Refresh" @click="handleFilterReset">
-        {{ t('table.general.filterReset') }}
-      </el-button>
-      <el-button :size="store.size" class="filter-item" type="success" :icon="Plus"  @click="handleCreate">
-        {{ t('table.general.add') }}
-      </el-button>
-    </div>
-
-    <custom-table
-        :size="store.size"
-        :tableHeight="'100%'"
-        :table-data="tableData"
-        :table-column="basicColumn"
-        :table-option="tableOption"
-        :pagination="{ meta: pagination }"
-        :paginate="true"
-        :page-sizes="per_pages"
-        :loading="loading"
-        @filter-change="handleFilterChange"
-        @table-action="tableActions"
-        @size-change="handleSizeChange"
-        @current-change="handlePageChange"
-        :row-style="{fontSize: store.size === 'small' ? '12px' : '14px'}"
-        :header-cell-style="{fontSize: store.size === 'small' ? '13px' : '15px'}">
-    >
-      <template #header="{ column }">
-        <div class="custom-header">
-          <span>{{ column.label }}</span>
-          <el-icon class="filter-icon" @click="openFilter(column)">
-            <Filter />
-          </el-icon>
-        </div>
-      </template>
-      <template #roles="{ row }">
-        <el-tag
-            v-for="role in row.roles"
-            :key="role"
-            :type="roleConfig.getColor(role)"
-            class="role-tag"
-            effect="dark"
+      <div class="filter-container">
+        <el-input
+            v-model="filters.search"
             :size="store.size"
-        >
-          {{ role }}
-        </el-tag>
-      </template>
-      <template #table_options="scope">
-        <div v-if="!isAdmin(scope.row.roles)">
-          <el-button v-for="(action, index) in tableOption.item_actions"
-                     :key="index"
-                     :type="action.type || 'primary'"
-                     :round="action.round || false"
-                     @click="tableActions(action.name, scope.row)"
-                     :size="store.size"
-          >
-            <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
-          </el-button>
-        </div>
-        <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
-      </template>
-    </custom-table>
+            :placeholder="$t('table.user.form.fields.name.title') + '/' + $t('table.user.form.fields.email.title')"
+            clearable
+            class="filter-item search-filter-item"
+            @keyup.enter.native="handleSearchInput"/>
+        <el-select
+            v-model="filters.singleRole"
+            filterable
+            multiple
+            :size="store.size"
+            :placeholder="$t('table.user.form.fields.role.title')"
+            clearable
+            class="filter-item select-role-filter-item"
+            remote
+            reserve-keyword
+            remote-show-suffix
+            :loading="loading"
+            @change="handleSingleRoleSelect">
+          <el-option
+              v-for="item in roles"
+              :key="item"
+              :label="uppercaseFirst(item)"
+              :value="item"
+              :disabled="disabledRoles.includes(item)"
+          />
+        </el-select>
+        <el-button :size="store.size" class="filter-item"  type="primary" :icon="Search" @click="handleFilter">
+          {{ t('table.general.search') }}
+        </el-button>
+        <el-button :size="store.size" class="filter-item" type="danger" :icon="Refresh" @click="resetFilters">
+          {{ t('table.general.filterReset') }}
+        </el-button>
+        <el-button :size="store.size" class="filter-item" type="success" :icon="Plus"  @click="handleCreate">
+          {{ t('table.general.add') }}
+        </el-button>
+      </div>
 
+      <custom-table
+          :size="store.size"
+          :tableHeight="'100%'"
+          :table-data="tableData"
+          :table-column="basicColumn"
+          :table-option="tableOption"
+          :pagination="{ meta: pagination }"
+          :paginate="true"
+          :page-sizes="per_pages"
+          :loading="loading"
+          @filter-change="handleTableFilter"
+          @table-action="tableActions"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+          :row-style="{fontSize: store.size === 'small' ? '12px' : '14px'}"
+          :header-cell-style="{fontSize: store.size === 'small' ? '13px' : '15px'}">
+      >
+        <template #header="{ column }">
+          <div class="custom-header">
+            <span>{{ column.label }}</span>
+            <el-icon class="filter-icon" @click="openFilter(column)">
+              <Filter />
+            </el-icon>
+          </div>
+        </template>
+        <template #roles="{ row }">
+          <el-tag
+              v-for="role in row.roles"
+              :key="role"
+              :type="roleConfig.getColor(role)"
+              class="role-tag"
+              effect="dark"
+              :size="store.size"
+          >
+            {{ role }}
+          </el-tag>
+        </template>
+        <template #table_options="scope">
+          <div v-if="!isAdmin(scope.row.roles)">
+            <el-button v-for="(action, index) in tableOption.item_actions"
+                       :key="index"
+                       :type="action.type || 'primary'"
+                       :round="action.round || false"
+                       @click="tableActions(action.name, scope.row)"
+                       :size="store.size"
+            >
+              <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
+            </el-button>
+          </div>
+          <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
+        </template>
+      </custom-table>
     <el-dialog
         v-model="dialogFormVisible"
         :title="$t('table.user.form.title.create')"
@@ -221,9 +232,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watchEffect } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 //import { ElForm, ElFormItem, ElInput, ElSelect, ElOption } from 'element-plus'
 import { Search, Plus, Refresh, Filter } from '@element-plus/icons-vue'
 import CustomTable from '@/components/CustomTable.vue'
@@ -237,6 +248,7 @@ import { appStore } from '@/store/app'
 import { userStore } from "@/store/user"
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
+import { debounce } from 'lodash-es'
 
 const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
@@ -246,8 +258,8 @@ const store = appStore()
 const useUserStore = userStore()
 
 // Реактивные переменные
-const tableData = ref([])
 const loading = ref(true)
+const tableData = ref([])
 const dialogFormVisible = ref(false)
 const dialogPermissionVisible = ref(false)
 const dialogPermissionLoading = ref(false)
@@ -256,10 +268,10 @@ const userCreating = ref(false)
 const validationStatus = ref('');
 const errorMessage = ref('');
 
-// 1. Добавляем фильтры в параметры запроса
 const filters = ref({
-  role: [],
   search: '',
+  roles: [],
+  singleRole: ''
 })
 
 const pagination = reactive({
@@ -269,12 +281,12 @@ const pagination = reactive({
   last_page: 1
 })
 
-const params = reactive({
+/*const params = reactive({
   get role() { return filters.value.role },
   set role(value) { filters.value.role = value }, // Добавляем сеттер
   get search() { return filters.value.search },
   set search(value) { filters.value.search = value }, // Добавляем сеттер
-})
+})*/
 
 const newUser = reactive({
   role: 'user',
@@ -351,14 +363,12 @@ const refUserForm = ref(null)
 const refMenuPermissions = ref(null)
 const refOtherPermissions = ref(null)
 
-// Вычисляемые свойства
+// Конфигурация ролей
 const roleConfig = ref({
   // Все доступные роли
   all: ['superadmin', 'admin', 'manager', 'editor', 'user', 'visitor'],
-
   // Роли без админа (для ограничения действий)
   nonAdmin: ['manager', 'editor', 'user', 'visitor'],
-
   // Цвета для тегов
   colors: {
     superadmin: 'danger',
@@ -368,7 +378,6 @@ const roleConfig = ref({
     user: 'success',
     visitor: 'info'
   },
-
   // Метод получения цвета по роли
   getColor(role) {
     return this.colors[role] || 'info'
@@ -408,9 +417,6 @@ const tableOption = computed(() => {
   }
 })
 
-// Emits
-// const emit = defineEmits(['set-params'])
-
 // Метод фильтрации
 const filterRole = (value, row) => {
   console.log('value ', value)
@@ -428,27 +434,31 @@ const basicColumn = computed(() => [
     width: '110',
     slot: true,
     columnKey: 'roles',
-    filters: computed(() => {
-      // Проверка наличия данных
-      if (!roles.value?.length) return [];
-
-      return roles.value.map(role => ({
-        text: role.toUpperCase(),
-        value: role,
-        style: { color: roleConfig.value.getColor(role) } // Исправлена опечатка
-      }));
-    }),
-    filterMethod: (value, row) => {
-      // Проверка на наличие roles у строки
-      return Array.isArray(row.roles) && row.roles.includes(value);
-    },
+    filters: roles.value.map(role => ({
+      text: role.toUpperCase(),
+      value: role,
+      style: { color: roleConfig.value.getColor(role) }
+    })),
+    filterMethod: (value, row) => row.roles.includes(value),
     filterPlacement: 'bottom-end',
-    filteredValue: []
+    filteredValue:  allSelectedRoles.value
   },
 ])
 
-
-// Обработчики пагинации
+// Обработка ошибок
+const handleError = (error) => {
+  console.error('Error details:', {
+    url: error.config?.url,
+    status: error.response?.status,
+    data: error.response?.data
+  });
+  ElMessage.error(
+      error.response?.data?.message ||
+      error.message ||
+      'Ошибка загрузки данных'
+  );
+}
+// Остальные методы без изменений
 const handleSizeChange = (size) => {
   pagination.per_page = size
   pagination.current_page = 1
@@ -457,8 +467,8 @@ const handleSizeChange = (size) => {
 
 const handlePageChange = (newPage) => {
   pagination.current_page = newPage
-  getList();
-};
+  getList()
+}
 
 // Открытие фильтра
 const openFilter = (column) => {
@@ -481,14 +491,63 @@ const roleTags = (roles) => roles.map(role => ({
 const isAdmin = (userRoles) =>
     ['superadmin', 'admin'].some(role => userRoles.includes(role));
 
+// Методы фильтрации
+const handleSearchInput = debounce(() => {
+  getList()
+}, 500)
+
+// Добавляем вычисляемые свойства
+const allSelectedRoles = computed(() => {
+  const roles = []
+  if (filters.value.singleRole) roles.push(filters.value.singleRole)
+  roles.push(...filters.value.roles)
+
+  console.log('roles ', roles)
+  return [...new Set(roles)]
+})
+
+const disabledRoles = computed(() => filters.value.roles)
+
+const handleSingleRoleSelect = (role) => {
+  console.log('role ', role)
+  if (filters.value.roles.includes(role)) {
+    // Если роль уже выбрана в таблице - отмена выбора
+    filters.value.singleRole = ''
+    return
+  }
+
+  filters.value.roles = role ? [role] : []
+  getList()
+}
+
+const handleTableFilter = (columnFilters) => {
+/*  filters.value.roles = filtersData.roles || []
+  filters.value.singleRole = filters.value.roles[0] || ''*/
+  if (columnFilters.roles) {
+    // Синхронизация с селектом
+    filters.value.roles = columnFilters.roles
+    filters.value.singleRole = columnFilters.roles.length === 1
+        ? columnFilters.roles[0]
+        : ''
+  }
+
+  getList()
+}
+
+const resetFilters = () => {
+  filters.value = { search: '', roles: [], singleRole: '' }
+  pagination.current_page = 1
+  getList()
+}
+
 // Методы
 const getList = async () => {
   loading.value = true
   try {
     // Явная передача параметров с нормализацией значений
     const params = {
-      role: filters.value.role || null,
       search: filters.value.search || null,
+      role: allSelectedRoles.value || null,
       page: pagination.current_page || 1,
       per_page: pagination.per_page || 10
     };
@@ -508,17 +567,7 @@ const getList = async () => {
         pagination.last_page = response.meta.last_page;
     } catch (error) {
       // Расширенная отладка
-      console.error('Error details:', {
-        url: error.config?.url,
-        status: error.response?.status,
-        data: error.response?.data
-      });
-
-      ElMessage.error(
-          error.response?.data?.message ||
-          error.message ||
-          'Ошибка загрузки данных'
-      );
+      handleError(error)
     } finally {
       loading.value = false
     }
@@ -815,11 +864,7 @@ const permissionKeys = (permissions) =>
     permissions.map(p => p.id);
 
 
-// Автоматический запрос при изменении параметров
-/*watchEffect(() => {
-  getList()
-})*/
-// Хук жизненного цикла
+// Инициализация
 onMounted(async () => {
   await getList()
   if (checkPermission(['manage permission'])) {
@@ -840,10 +885,9 @@ onMounted(async () => {
 .filter-icon {
   cursor: pointer;
   transition: color 0.2s;
-}
-
-.filter-icon:hover {
-  color: #409eff;
+  &:hover {
+    color: var(--el-color-primary);
+  }
 }
 
 .el-tag {
@@ -891,6 +935,15 @@ onMounted(async () => {
       margin-top: 1rem;
     }
   }
+  .el-table-filter__checkbox-group {
+    max-height: 300px;
+    overflow-y: auto;
+
+    .is-checked {
+      color: var(--el-color-primary);
+      font-weight: 500;
+    }
+  }
 
   .filter-container {
 
@@ -902,6 +955,13 @@ onMounted(async () => {
       width: 110px;
       margin-right: 5px;
     }
+    .select-role-filter-item {
+      &.is-disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+
   }
   .block {
     float: left;

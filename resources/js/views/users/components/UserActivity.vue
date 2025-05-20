@@ -1,7 +1,7 @@
 <template>
   <el-card v-if="user.id">
-    <el-tabs v-model="activeActivity" @tab-click="handleClick">
-      <el-tab-pane :label="t('user.profile.tabs.timeline')" name="first">
+    <el-tabs v-model="activeActivity" @tab-click="handleClick" type="border-card">
+      <el-tab-pane :size="store.size" :label="t('user.profile.tabs.timeline')" name="first">
         <div class="block">
           <el-timeline class="el-timeline">
                 <el-timeline-item
@@ -28,6 +28,7 @@
           <el-form-item :label="t('user.profile.fields.name.title')" >
             <el-input
                 v-model="user.name"
+                :size="store.size"
                 :disabled="disabled"
                 :placeholder="t('user.profile.fields.name.placeholder')"
             />
@@ -35,19 +36,21 @@
           <el-form-item :label="t('user.profile.fields.email.title')">
             <el-input
                 v-model="user.email"
+                :size="store.size"
                 :disabled="props.user.roles.includes('admin') === disabled"
                 :placeholder="t('user.profile.fields.email.placeholder')"
             />
           </el-form-item>
           <el-form-item :label="t('user.profile.fields.sex.title')">
             <el-radio-group v-model="user.sex">
-              <el-radio :label="0">{{ $t('user.profile.fields.male.title') }}</el-radio>
-              <el-radio :label="1">{{ $t('user.profile.fields.female.title') }}</el-radio>
+              <el-radio :size="store.size" :label="0">{{ $t('user.profile.fields.male.title') }}</el-radio>
+              <el-radio :size="store.size" :label="1">{{ $t('user.profile.fields.female.title') }}</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item :label="t('user.profile.fields.birthday.title')">
             <el-date-picker
                 v-model="user.birthday"
+                :size="store.size"
                 type="datetime"
                 :placeholder="t('user.profile.fields.birthday.placeholder')"
                 value-format="YYYY-MM-DD HH:mm:ss"
@@ -56,6 +59,7 @@
           <el-form-item :label="t('user.profile.fields.description.title')">
             <el-input
                 v-model="user.description"
+                :size="store.size"
                 :autosize="{ minRows: 3, maxRows: 6 }"
                 maxlength="255"
                 :placeholder="t('user.profile.fields.description.placeholder')"
@@ -65,7 +69,11 @@
             />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" @click="onSubmit">
+            <el-button
+                type="primary"
+                @click="onSubmit"
+                :size="store.size"
+            >
               {{t('form.button.save')}}
             </el-button>
           </el-form-item>
@@ -80,6 +88,10 @@ import UserResource from '@/api/user'
 import dayjs from 'dayjs'
 import {ElMessage} from "element-plus"
 import {useI18n} from "vue-i18n";
+const {t} = useI18n({useScope: 'global'})
+import { appStore } from '@/store/app'
+const store = appStore()
+const userResource = new UserResource('users')
 
 const props = defineProps({
   user: {
@@ -98,9 +110,6 @@ const props = defineProps({
   },
 })
 
-const {t} = useI18n({useScope: 'global'})
-
-const userResource = new UserResource('users')
 const resData = reactive({
   activeActivity: 'second',
   disabled: computed(() => {

@@ -41,7 +41,8 @@ class UserController extends BaseController
             $validator = Validator::make($params, [
                 'per_page' => 'nullable|integer|min:1|max:300',
                 'current_page' => 'nullable|integer|min:1',
-                'role' => 'nullable|string',
+                'role' => 'nullable|array',
+                'role.*' => 'string|exists:roles,name',
                 'search' => 'nullable|string|max:255',
             ]);
 

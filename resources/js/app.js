@@ -18,8 +18,8 @@ import { createPinia } from 'pinia'
 const pinia = createPinia()
 app.use(pinia)
 
-import { appStore } from '@/store/app'
-const store = appStore()
+/*import { appStore } from '@/store/app'
+const store = appStore()*/
 
 // ----------------------------
 // SUBSECTION 2.2: UI-библиотека ElementPlus
@@ -72,6 +72,7 @@ dayjs.locale(dayjsLocale)                   // Применение локали
 // Подключение ElementPlus с кастомными параметрами
 
 app.use(ElementPlus, {
+  size: 'small',
   i18n: (key, value) => i18n.t(key, value), // Интеграция с системой i18n
   locale: elementLocale                     // Применение русской локализации
 })
