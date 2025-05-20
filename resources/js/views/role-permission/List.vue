@@ -23,7 +23,7 @@
               :type="action.type || 'primary'"
               @click="tableActions(action.name, scope.row)"
           >
-            <el-svg-item
+            <svg-item
                 :el-svg-name="action.icon"
                 :title="action.label"
             />
@@ -94,13 +94,13 @@
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import CustomTable from '@/components/CustomTable.vue'
-import ElSvgItem from "@/components/Item/ElSvgItem.vue"
+import SvgItem from "@/components/Item/SvgItem.vue"
 import Resource from '@/api/resource'
 import RoleResource from '@/api/role'
 import checkPermission from '@/utils/permission'
 import {useI18n} from "vue-i18n"
-import {uppercaseFirst} from "../../utils"
-import {userStore} from "../../store/user"
+import {uppercaseFirst} from "@/utils"
+import {userStore} from "@/store/user"
 import {ElMessage} from "element-plus"
 
 // Инициализация локализации
@@ -124,16 +124,17 @@ const per_pages = ref([5, 10, 30, 50, 100, 150, 200])
 
 // Пагинация и параметры запроса
 const pagination = reactive({
+  current_page: 1,
+  per_page: 10,
   total: 0,
-  currentPage: 1,
-  pageSize: 10
+  last_page: 1
 })
 
 const params = reactive({
-  page: 1,
-  per_page: 10,
-  keyword: '',
-  role: '',
+  get role() { return filters.value.role },
+  set role(value) { filters.value.role = value }, // Добавляем сеттер
+  get search() { return filters.value.search },
+  set search(value) { filters.value.search = value }, // Добавляем сеттер
 })
 
 // Данные для диалога редактирования
@@ -206,14 +207,16 @@ const getRoles = async () => {
       per_page: pagination.per_page || 10
     };
 
-    const res = await roleResource.list(params)
-    res.data.forEach(role => {
+    const response = await roleResource.list(params)
+    response.data.forEach(role => {
       role.description = t(`roles.description.${role.name}`)
     })
-    tableData.value = res.data
-    pagination.total = res.meta.total
-    pagination.currentPage = res.meta.current_page
-    pagination.pageSize = res.meta.per_page
+    tableData.value = response.items || []
+    pagination.total = response.meta.total
+    pagination.currentPage = response.meta.current_page
+    //pagination.pageSize = response.meta.per_page
+    pagination.total = response.meta.total;
+    pagination.last_page = response.meta.last_page;
   } finally {
     loading.value = false
   }
@@ -234,10 +237,22 @@ const tableActions = (action, data) => {
  * Загрузка разрешений с сервера
  */
 const getPermissions = async () => {
-  const { data } = await permissionResource.list({})
-  const { menu, other } = classifyPermissions(data)
-  menuPermissions.value = menu
-  otherPermissions.value = other
+  try {
+    const {data} = await permissionResource.list({});
+    const {menu, other} = classifyPermissions(data);
+    menuPermissions.value = menu;
+    otherPermissions.value = other;
+  } catch (error) {
+    console.error('Ошибка загрузки разрешений:', error);
+    let message = t('error.loadPermissions'); // Основное сообщение
+    if (error.response?.data?.message) {
+      message += `: ${error.response.data.message}`; // Добавляем детали от сервера
+    } else if (error.message) {
+      message += `: ${error.message}`; // Сообщение об ошибке сети
+    }
+
+    ElMessage.error(message);
+  }
 }
 
 /**

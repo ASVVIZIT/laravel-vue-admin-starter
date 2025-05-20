@@ -9,6 +9,7 @@ const adminRoutes = {
   alwaysShow: true,
   meta: {
     title: 'administrator',
+    description: 'Управление пользователями и правами доступа',
     bootstrapIcon: 'person-workspace',
     permissions: ['view menu administrator'],
   },
@@ -25,7 +26,7 @@ const adminRoutes = {
       path: 'users',
       component: () => import('@/views/users/List.vue'),
       name: 'UserList',
-      meta: {title: 'users', bootstrapIcon: 'people', permissions: ['manage user']},
+      meta: {title: 'users', bootstrapIcon: 'people', showInGuide: true, permissions: ['manage user']},
     },
     /** Role and permission */
     {

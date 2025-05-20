@@ -130,6 +130,13 @@ return [
     */
 
     'custom' => [
+        'password' => [
+            'not_match' => [
+                'email' => ':attribute не должен совпадать с email',
+                'name' => ':attribute не должен совпадать с именем',
+            ],
+            'match' => 'Пароли должны совпадать',
+        ],
         'attribute-name' => [
             'rule-name' => 'custom-message',
         ],

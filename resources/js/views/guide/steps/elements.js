@@ -2,24 +2,24 @@ export default [
     {
         element: '#hamburger-container',
         popover: {
-            title: 'Hamburger',
-            description: 'Open && Close sidebar',
+            title: 'Гамбургер-меню',
+            description: 'Открытие и закрытие боковой панели',
             position: 'bottom'
         }
     },
     {
         element: '#breadcrumb-container',
         popover: {
-            title: 'Breadcrumb',
-            description: 'Indicate the current page location',
-            position: 'bottom',
+            title: 'Хлебные крошки',
+            description: 'Показывает текущее расположение в системе',
+            position: 'bottom'
         }
     },
     {
         element: '#header-search',
         popover: {
-            title: 'Page Search',
-            description: 'Page search, quick navigation',
+            title: 'Поиск по странице',
+            description: 'Быстрая навигация между разделами',
             position: 'left'
         }
     },
@@ -37,6 +37,8 @@ export default [
             title: 'Switch Size',
             description: 'Switch the system size',
             position: 'left',
+            nextBtnText: 'Next',
+            prevBtnText: 'Prev',
         }
     },
     {
@@ -47,5 +49,13 @@ export default [
             position: 'bottom'
         },
         padding: 0
+    },
+    {
+        element: '#non-existent-element',
+        popover: {
+            title: 'Тестовый элемент',
+            description: 'Этот элемент не существует (пример)',
+            position: 'bottom'
+        }
     }
 ]

@@ -3,30 +3,33 @@
     <div class="filter-container">
       <el-input
           v-model="params.search"
-          :placeholder="$t('user.name') + '/' + $t('user.email')"
+          :size="store.size"
+          :placeholder="$t('table.user.form.fields.name.title') + '/' + $t('table.user.form.fields.email.title')"
           clearable
           class="filter-item search-filter-item"
           @keyup.enter.native="handleFilter"/>
       <el-select
           v-model="params.role"
-          :placeholder="$t('roles.name')"
+          :size="store.size"
+          :placeholder="$t('table.user.form.fields.role.title')"
           clearable
           class="filter-item select-role-filter-item"
           @change="handleFilter">
         <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
       </el-select>
-      <el-button class="filter-item" type="primary" :icon="Search" @click="handleFilter">
-        {{ t('table.search') }}
+      <el-button :size="store.size" class="filter-item"  type="primary" :icon="Search" @click="handleFilter">
+        {{ t('table.general.search') }}
       </el-button>
-      <el-button class="filter-item" type="primary" :icon="Plus"  @click="handleCreate">
-        {{ t('table.add') }}
+      <el-button :size="store.size" class="filter-item" type="primary" :icon="Refresh" @click="handleFilterReset">
+        {{ t('table.general.filterReset') }}
       </el-button>
-      <el-button class="filter-item" type="primary" :icon="Plus" @click="handleFilterReset">
-        {{ t('table.filterReset') }}
+      <el-button :size="store.size" class="filter-item" type="success" :icon="Plus"  @click="handleCreate">
+        {{ t('table.general.add') }}
       </el-button>
     </div>
 
     <custom-table
+        :size="store.size"
         :tableHeight="'100%'"
         :table-data="tableData"
         :table-column="basicColumn"
@@ -39,6 +42,8 @@
         @table-action="tableActions"
         @size-change="handleSizeChange"
         @current-change="handlePageChange"
+        :row-style="{fontSize: store.size === 'small' ? '12px' : '14px'}"
+        :header-cell-style="{fontSize: store.size === 'small' ? '13px' : '15px'}">
     >
       <template #header="{ column }">
         <div class="custom-header">
@@ -55,6 +60,7 @@
             :type="roleConfig.getColor(role)"
             class="role-tag"
             effect="dark"
+            :size="store.size"
         >
           {{ role }}
         </el-tag>
@@ -64,17 +70,22 @@
           <el-button v-for="(action, index) in tableOption.item_actions"
                      :key="index"
                      :type="action.type || 'primary'"
-                     :size="action.size || 'default'"
                      :round="action.round || false"
-                     @click="tableActions(action.name, scope.row)">
-            <el-svg-item :el-svg-name="action.icon" :title="action.label"></el-svg-item>
+                     @click="tableActions(action.name, scope.row)"
+                     :size="store.size"
+          >
+            <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
           </el-button>
         </div>
         <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
       </template>
     </custom-table>
 
-    <el-dialog :title="$t('table.form.create.user')" v-model="dialogFormVisible">
+    <el-dialog
+        v-model="dialogFormVisible"
+        :title="$t('table.user.form.title.create')"
+        :width="store.size === 'small' ? '40%' : '60%'"
+    >
       <div v-loading="userCreating" class="form-container">
         <el-form
             ref="refUserForm"
@@ -84,70 +95,91 @@
             label-position="right"
             label-width="170px"
             style="max-width: 600px;">
-          <el-form-item :label="$t('user.role')" prop="role">
-            <el-select v-if="isAdmin(roles)" v-model="newUser.role" class="filter-item" :placeholder="$t('table.form.create.role.select.placeholder')">
+          <el-form-item :label="$t('table.user.form.fields.role.title')" prop="role">
+            <el-select v-if="isAdmin(roles)" :size="store.size" v-model="newUser.role" class="filter-item" :placeholder="$t('table.user.form.fields.role.placeholder')">
               <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
             </el-select>
-            <el-select v-else-if="!isAdmin(roles)" v-model="newUser.role" class="filter-item" :placeholder="$t('table.form.create.role.select.placeholder')">
+            <el-select v-else-if="!isAdmin(roles)" :size="store.size" v-model="newUser.role" class="filter-item" :placeholder="$t('table.form.fields.role.placeholder')">
               <el-option v-for="item in nonAdminRoles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
             </el-select>
           </el-form-item>
-          <el-form-item :label="$t('user.name')" prop="name">
-            <el-input v-model="newUser.name"/>
-          </el-form-item>
-          <el-form-item :label="$t('user.email')" prop="email">
-            <el-input v-model="newUser.email"/>
-          </el-form-item>
-          <el-form-item :label="$t('user.password')" prop="password">
+          <el-form-item :label="$t('table.user.form.fields.name.title')" prop="name">
             <el-input
-                v-model="newUser.password"
-                type="password"
-                show-password
+                v-model="newUser.name"
+                :size="store.size"
+                type="text"
+                :placeholder="$t('table.user.form.fields.name.placeholder')"
+            />
+          </el-form-item>
+          <el-form-item :label="$t('table.user.form.fields.email.title')" prop="email">
+            <el-input
+                v-model="newUser.email"
+                :size="store.size"
+                type="email"
+                :placeholder="$t('table.user.form.fields.email.placeholder')"
             />
           </el-form-item>
           <el-form-item
-              :label="$t('user.confirmPassword')"
+              :label="$t('table.user.form.fields.password.title')"
+              prop="password"
+              :validate-status="validationStatus"
+              :error="errorMessage"
+          >
+            <el-input
+                v-model="newUser.password"
+                :size="store.size"
+                type="password"
+                show-password
+                :placeholder="$t('table.user.form.fields.password.placeholder')"
+            />
+          </el-form-item>
+          <el-form-item
+              :label="$t('table.user.form.fields.confirmPassword.title')"
               prop="confirmPassword"
               :validate-status="validationStatus"
               :error="errorMessage"
           >
             <el-input
                 v-model="newUser.confirmPassword"
+                :size="store.size"
                 type="password"
                 show-password
                 @change="checkPasswordMatch"
+                :placeholder="$t('table.user.form.fields.confirmPassword.placeholder')"
             />
           </el-form-item>
-          <el-form-item :label="$t('user.sex')">
+          <el-form-item :label="$t('table.user.form.fields.sex.title')">
             <el-radio-group v-model="newUser.sex">
-              <el-radio :label="0">{{ $t('user.male') }}</el-radio>
-              <el-radio :label="1">{{ $t('user.female') }}</el-radio>
+              <el-radio :size="store.size" :label="0">{{ $t('table.user.form.fields.male.title') }}</el-radio>
+              <el-radio :size="store.size" :label="1">{{ $t('table.user.form.fields.female.title') }}</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item :label="$t('user.birthday')">
+          <el-form-item :label="$t('table.user.form.fields.birthday.title')">
             <el-date-picker
                 v-model="newUser.birthday_model"
+                :size="store.size"
                 type="datetime"
-                :placeholder="$t('user.birthday')"
+                :placeholder="$t('table.user.form.fields.birthday.placeholder')"
                 value-format="YYYY-MM-DD HH:mm:ss"
             />
           </el-form-item>
-          <el-form-item :label="$t('user.description')">
+          <el-form-item :label="$t('table.user.form.fields.description.title')">
             <el-input
                 v-model="newUser.description"
+                :size="store.size"
                 maxlength="255"
-                :placeholder="$t('user.description')"
+                :placeholder="$t('table.user.form.fields.description.placeholder')"
                 show-word-limit
                 type="textarea"
             />
           </el-form-item>
         </el-form>
         <div slot="footer" class="dialog-footer">
-          <el-button @click="dialogFormVisible = false">
-            {{ t('table.cancel') }}
+          <el-button :size="store.size" @click="dialogFormVisible = false">
+            {{ t('table.general.cancel') }}
           </el-button>
-          <el-button type="primary" @click="createUser(refUserForm)">
-            {{ t('table.confirm') }}
+          <el-button :size="store.size" type="primary" @click="createUser(refUserForm)">
+            {{ t('table.general.confirm') }}
           </el-button>
         </div>
       </div>
@@ -176,10 +208,10 @@
           <div class="clear-left" />
         </div>
         <div style="text-align:right;">
-          <el-button type="danger" @click="dialogPermissionVisible=false">
+          <el-button :size="store.size" type="danger" @click="dialogPermissionVisible=false">
             {{ t('permission.cancel') }}
           </el-button>
-          <el-button type="primary" @click="confirmPermission">
+          <el-button :size="store.size" type="primary" @click="confirmPermission">
             {{ t('permission.confirm') }}
           </el-button>
         </div>
@@ -192,15 +224,16 @@
 import { ref, reactive, computed, onMounted, nextTick, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ElForm, ElFormItem, ElInput, ElSelect, ElOption } from 'element-plus'
-import { Search, Plus, Filter } from '@element-plus/icons-vue'
+//import { ElForm, ElFormItem, ElInput, ElSelect, ElOption } from 'element-plus'
+import { Search, Plus, Refresh, Filter } from '@element-plus/icons-vue'
 import CustomTable from '@/components/CustomTable.vue'
-import ElSvgItem from "@/components/Item/ElSvgItem.vue"
+import SvgItem from "@/components/Item/SvgItem.vue"
 import UserResource from '@/api/user'
 import Resource from '@/api/resource'
 import checkPermission from '@/utils/permission'
 import { uppercaseFirst } from "@/utils"
 import createValidators from '@/utils/validators'
+import { appStore } from '@/store/app'
 import { userStore } from "@/store/user"
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
@@ -209,6 +242,7 @@ const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
 const userResource = new UserResource()
 const permissionResource = new Resource('permissions')
+const store = appStore()
 const useUserStore = userStore()
 
 // Реактивные переменные
@@ -256,7 +290,7 @@ const newUser = reactive({
 // Валидатор подтверждения пароля
 const validateConfirmPassword = (rule, value, callback) => {
   if (value !== newUser.password) {
-    callback(new Error(t('validation.confirmPassword.mismatch')));
+    callback(new Error(t('validation.rules.confirmPassword.mismatched')));
   } else {
     callback(); // Автоматически установит статус 'success'
   }
@@ -268,7 +302,7 @@ const checkPasswordMatch = (value) => {
     errorMessage.value = '';
   } else {
     validationStatus.value = 'error';
-    errorMessage.value = 'Минимум 6 символов';
+    errorMessage.value = t('validation.general.minLength');
   }
 };
 
@@ -281,30 +315,34 @@ const currentUser = reactive({
   }
 })
 
-
 // Инициализируем валидаторы с доступом к форме
 const v = createValidators(newUser)
 
 // Каскадная валидация
 const complexValidator = (rule, value, callback) => {
   if (value === 'admin') {
-    callback(new Error('Нельзя использовать это имя'))
+    callback(new Error(t('validation.general.notNameAdmin') + ' ' + value))
   } else {
-    v.minLength(4).validator(rule, value, callback)
+    v.minLength(2).validator(rule, value, callback)
   }
 }
 // Правила валидации
 const rules = {
   name: [
     v.required(),
-    v.minLength(4),
+    v.minLength(2),
     { validator: complexValidator, trigger: 'change' } // не писать admin
   ],
   email: [v.required(), v.email()],
-  password: [v.required(), v.minLength(6)],
+  password: [
+    v.required(),
+    v.minLength(6),
+    v.notMatch('email', t('validation.general.passwordNotEmail')), // Пароль != email
+    v.notMatch('name', t('validation.general.passwordNotName'))    // Пароль != name
+  ],
   confirmPassword: [
     v.required(),
-    v.match('password') // Автоматически сравнивает с newUser.password
+    v.match('password', t('validation.general.matchPassword')) // Совпадение с паролем
   ]
 }
 
@@ -346,10 +384,8 @@ const tableOption = computed(() => {
   if (!checkPermission(['manage user'])) return {}
 
   const actions = [
-    /*{ name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('table.edit'), size: 'mini', round: true },
-    { name: 'delete-item', type: 'danger', icon: 'Delete', label: t('table.delete'), size: 'mini', round: true }*/
-    { name: 'edit-item', type: 'primary', icon: 'EditPen', size: 'mini', round: false },
-    { name: 'delete-item', type: 'danger', icon: 'Delete', size: 'mini', round: false },
+    { name: 'edit-item', type: 'primary', icon: 'EditPen', size: 'small', round: false },
+    { name: 'delete-item', type: 'danger', icon: 'Delete', size: 'small', round: false },
   ]
 
   if (checkPermission(['manage permission'])) {
@@ -357,8 +393,8 @@ const tableOption = computed(() => {
       name: 'edit-permission-item',
       type: 'warning',
       icon: 'EditPen',
-      label: t('permission.editPermission'),
-      size: 'mini',
+      label: t('permission.actions.editPermission'),
+      size: 'small',
       round: false
     })
   }
@@ -366,7 +402,7 @@ const tableOption = computed(() => {
   return {
     slot: true,
     width: '250',
-    label: t('table.actions'),
+    label: t('table.general.actions'),
     fixed: 'right',
     item_actions: actions
   }
@@ -383,12 +419,12 @@ const filterRole = (value, row) => {
 }
 
 const basicColumn = computed(() => [
-  { prop: 'id', label: t('table.roleColumn.label.id'), width: '65' , resizable: false, sortable: true, fixed: true },
-  { prop: 'name', label: t('table.roleColumn.label.name'), width: '130' , sortable: true, fixed: true },
-  { prop: 'email', label: t('table.roleColumn.label.email'), sortable: true },
+  { prop: 'id', label: t('table.user.columns.id'), width: '65' , resizable: false, sortable: true, fixed: true },
+  { prop: 'name', label: t('table.user.columns.name'), width: '130' , sortable: true, fixed: true },
+  { prop: 'email', label: t('table.user.columns.email'), sortable: true },
   {
     prop: 'roles',
-    label: t('table.roleColumn.label.role'),
+    label: t('table.user.columns.role'),
     width: '110',
     slot: true,
     columnKey: 'roles',
@@ -462,11 +498,13 @@ const getList = async () => {
     // Извлекаем данные и метаданные напрямую
     // Исправленный доступ к данным
 
-    console.log('response ', response)
+        console.log('response ', response)
         // Прямое обращение к items
         tableData.value = response.items || [];
         // Обновляем только изменяемые мета-данные
         pagination.total = response.meta.total;
+        pagination.currentPage = response.meta.current_page
+        pagination.pageSize = response.meta.per_page
         pagination.last_page = response.meta.last_page;
     } catch (error) {
       // Расширенная отладка
@@ -605,19 +643,38 @@ const tableActions = (action, row) => {
 // Обработчик удаления пользователя
 const handleDeleteUser = async (user) => {
   try {
+/*    await ElMessageBox.confirm({
+      title: 'Удаление пользователя!',
+      message: t('table.user.elMessageBox.confirm1.message@j', {
+        name: user.name
+      }),
+      confirmButtonText: t('table.user.elMessageBox.confirmButtonText'),
+      cancelButtonText: t('table.user.elMessageBox.cancelButtonText'),
+      dangerouslyUseHTMLString: true,
+      type: 'warning'
+    })*/
+
+
     await ElMessageBox.confirm(
-        t('confirm.deleteUser', { name: user.name }),
-        { type: 'warning' }
+        t('table.user.elMessageBox.confirm1.message@j', { name: user.name }),
+        t('table.user.elMessageBox.deleteTitle'),
+        {
+          confirmButtonText: t('table.user.elMessageBox.confirmButtonText'),
+          cancelButtonText: t('table.user.elMessageBox.cancelButtonText'),
+          dangerouslyUseHTMLString: true,
+          type: 'warning'
+        }
     );
+
     await userResource.destroy(user.id);
     // Логика удаления пользователя
     console.log('Удаление пользователя:', user)
     // Здесь можно добавить вызов API и обновление данных
-    ElMessage.success(t('success.userDeleted'));
+    ElMessage.success(t('table.user.elMessage.delete.success.message'));
     await getList();
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error(t('error.deleteUser'));
+      ElMessage.error(t('table.user.elMessage.delete.error.message'));
     }
   }
 };
@@ -723,11 +780,11 @@ const createUser = async (formEl) => {
 
     await userResource.store(userData)
 
-    ElMessage.success(t('success.userCreated'))
+    ElMessage.success(t('table.user.elMessage.created.success.message'))
     dialogFormVisible.value = false
     await getList()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || t('error.createUser'))
+    ElMessage.error(error.response?.data?.message || t('table.user.elMessage.created.success.error'))
   } finally {
     userCreating.value = false
   }
@@ -828,6 +885,12 @@ onMounted(async () => {
   justify-content: space-between;
   font-size: 14px;
   padding-right: 8px;
+
+  .el-dialog__body {
+    .form-container {
+      margin-top: 1rem;
+    }
+  }
 
   .filter-container {
 

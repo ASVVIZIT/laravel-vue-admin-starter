@@ -33,15 +33,20 @@ const toggleClick = () => {
 .hamburger {
   display: inline-block;
   vertical-align: middle;
-  width: 25px;
-  height: 25px;
+  width: 26px;
+  height: 26px;
 }
-
+.hamburger-container {
+  margin-left: 10px;
+}
 .hamburger-container:hover {
   cursor: pointer;
-  animation: 1s ease 0s pulse infinite;
-  color: var(--el-menu-active-color) !important;
-  background-color: rgba(72, 90, 148, 0.85);
+  animation: 0.3s ease 0.9s pulse infinite;
+  background-color: rgba(91, 104, 148, 0.25);
+  border-radius: 6px;
+  .hamburger{
+    color: var(--el-menu-active-color) !important;
+  }
 }
 
 .hamburger.is-active {

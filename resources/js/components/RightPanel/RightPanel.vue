@@ -1,22 +1,11 @@
 <template>
-<!--  <div ref="rightPanel" :class="{show:show}" class="rightPanel-container">
-    <div class="rightPanel-background" />
-    <div class="rightPanel">
-      <div class="handle-button" :style="{'top':buttonTop+'px','background-color':theme}" @click="show=!show">
-        <i :class="show?'el-icon-close':'el-icon-setting'" />
-      </div>
-      <div class="rightPanel-items">
-        <slot />
-      </div>
-    </div>
-  </div>-->
     <div>
         панель
     </div>
 </template>
 
-<!--<script>
-import { addClass, removeClass } from '/resources/js/utils/index.js'
+<script>
+import { addClass, removeClass } from '@/utils/index.js'
 
 export default {
   name: 'RightPanel',
@@ -76,7 +65,7 @@ export default {
       body.insertBefore(elx, body.firstChild)
     }
   }
-}-->
+}
 </script>
 
 <style>
@@ -128,10 +117,10 @@ export default {
 }
 
 .handle-button {
-  width: 48px;
-  height: 48px;
+  width: 34px;
+  height: 34px;
   position: absolute;
-  left: -48px;
+  left: -34px;
   text-align: center;
   font-size: 24px;
   border-radius: 6px 0 0 6px !important;
@@ -139,10 +128,10 @@ export default {
   pointer-events: auto;
   cursor: pointer;
   color: #fff;
-  line-height: 48px;
+  line-height: 34px;
   i {
-    font-size: 24px;
-    line-height: 48px;
+    font-size: 20px;
+    line-height: 34px;
   }
 }
 </style>

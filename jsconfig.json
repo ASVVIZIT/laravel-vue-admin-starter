@@ -1,8 +1,31 @@
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "allowJs": true,
+    "checkJs": false,
+    "jsx": "preserve",
+    "declaration": true,
+    "removeComments": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "strictNullChecks": true,
+    "preserveConstEnums": true,
+    "outDir": "./ts-out-dir",
+    "sourceMap": true,
+    "noUnusedLocals": false,
+    "resolveJsonModule": true,
+    "noUnusedParameters": false,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "~/*": ["./node_modules/*"],
       "@/*": ["./resources/js/*"],
+      "@fonts/*": ["./resources/fonts/*"],
       "@styles/*": ["./resources/js/styles/*"],
       "@api/*": ["./resources/js/api/*"],
       "@lang/*": ["./resources/js/lang/*"],
@@ -14,13 +37,29 @@
       "@components/*": ["./resources/js/components/*"],
       "@store/*": ["./resources/js/store/*"],
       "@views/*": ["./resources/js/views/*"],
-      "element-plus/*": ["node_modules/element-plus/*"],
-      "moment/*": ["node_modules/moment/*"]
+      "element-plus/*": ["./node_modules/element-plus/*"],
+      "moment/*": ["./node_modules/moment/*"]
     },
-    "module": "ESNext",
-    "target": "ESNext",
-    "checkJs": true
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [
+      "vite/client",
+      "vite-plugin-checker",
+      "element-plus/global"
+    ],
+    "useDefineForClassFields": true
   },
-  "include": ["resources/js/**/*"],
-  "exclude": ["node_modules", "vendor"]
+  "include": [
+    "resources/js/**/*",
+    "resources/fonts/**/*",
+    "resources/styles/**/*",
+    "vite.config.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "vendor",
+    "public/build",
+    "**/*.spec.ts",
+    "**/__tests__/*"
+  ]
 }

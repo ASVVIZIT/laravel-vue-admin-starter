@@ -1,43 +1,31 @@
 {
   "compilerOptions": {
-    "target": "esnext",
-    "module": "esnext",
-    // Enable all strict type-checking options. / Включить все строгие проверки типов
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
     "strict": true,
-    // Allow compiling JS/JSX files. / Разрешить компиляцию JS и JSX файлов
     "allowJs": true,
-    // Report errors in JS files (used with allowJs). / Проверять ошибки в JS файлах (обычно с allowJs)
     "checkJs": false,
-    // Preserve JSX syntax. / Сохранять синтаксис JSX
     "jsx": "preserve",
     "declaration": true,
-    // Remove comments. / Удалять комментарии
     "removeComments": true,
-    // Disallow implicit 'any' type. / Запретить неявный тип 'any'
     "noImplicitAny": true,
-    // Enable strict 'this' checks. / Строгая проверка типа 'this'
     "noImplicitThis": true,
-    // Strict null/undefined checks. / Строгая проверка null/undefined
     "strictNullChecks": true,
-    // Preserve const enums in code. / Сохранять const enum в коде
     "preserveConstEnums": true,
     "outDir": "./ts-out-dir",
-    // Generate sourcemaps. / Генерировать sourcemap-файлы
     "sourceMap": true,
-    // Allow unused locals. / Разрешить неиспользуемые переменные
     "noUnusedLocals": false,
-    // Import JSON as modules. / Импортировать JSON как модули
     "resolveJsonModule": true,
-    // Allow unused parameters. / Разрешить неиспользуемые параметры
     "noUnusedParameters": false,
-    "moduleResolution": "node",
-    // Improve ES/CJS interoperability. / Совместимость ES и CommonJS модулей
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    // Skip library type checks. / Пропускать проверку типов библиотек
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "~/*": ["./node_modules/*"],
       "@/*": ["./resources/js/*"],
+      "@fonts/*": ["./resources/fonts/*"],
       "@styles/*": ["./resources/js/styles/*"],
       "@api/*": ["./resources/js/api/*"],
       "@lang/*": ["./resources/js/lang/*"],
@@ -49,11 +37,28 @@
       "@components/*": ["./resources/js/components/*"],
       "@store/*": ["./resources/js/store/*"],
       "@views/*": ["./resources/js/views/*"],
-      "element-plus/*": ["node_modules/element-plus/*"],
-      "moment/*": ["node_modules/moment/*"]
+      "element-plus/*": ["./node_modules/element-plus/*"],
+      "moment/*": ["./node_modules/moment/*"]
     },
-    "lib": ["ES2018", "DOM"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [
+      "vite/client",
+      "vite-plugin-checker",
+      "element-plus/global"
+    ]
   },
-  "include": ["resources/js/**/*"],
-  "exclude": ["node_modules", "vendor"]
+  "include": [
+    "resources/js/**/*",
+    "resources/fonts/**/*",
+    "resources/styles/**/*",
+    "vite.config.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "vendor",
+    "public/build",
+    "**/*.spec.ts",
+    "**/__tests__/*"
+  ]
 }

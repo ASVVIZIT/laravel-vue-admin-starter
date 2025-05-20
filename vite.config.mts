@@ -1,46 +1,90 @@
 /**
  * ========================================================
- * Vite Configuration File (v4.1) - ESM-совместимая версия
+ * Vite Configuration File (v5.4+) - ESM-совместимая версия
  * ========================================================
  *
- * Основные режимы работы:
- * [Переменная окружения VITE_MODE в .env-файле]
+ * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+ *                     РЕЖИМЫ РАБОТЫ
+ * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
  *
- * 1. local-dev    - Локальная разработка (режим по умолчанию)
- * 2. docker-dev   - Сборка для Docker-окружения
- * 3. production   - Продакшен-сборка с оптимизациями
+ * [Переменная окружения APP_ENV в .env]
  *
- * Команды запуска:
- * ┌──────────────┬───────────────────────┬────────────────────────┐
- * │   Режим      │       Команда         │ Переменная окружения   │
- * ├──────────────┼───────────────────────┼────────────────────────┤
- * │ local-dev    │ npm run dev           │ VITE_MODE=development  │
- * │ docker-dev   │ npm run docker-dev    │ VITE_MODE=docker       │
- * │ production   │ npm run build         │ VITE_MODE=production   │
- * └──────────────┴───────────────────────┴────────────────────────┘
+ * 1. development    — Локальная разработка (default)
+ *    → .env: APP_ENV=development
+ *    → Особенности: HMR, sourcemaps, dev-сервер
  *
- * Особенности реализации:
- * - Конфигурация адаптирована для TypeScript и ESM-модулей
- * - Поддержка Vue 3 с JSX и плагинами Element Plus
- * - Интеграция с Laravel Vite Plugin
- * - Анализ размера бандла через rollup-plugin-visualizer
- * ================================================================
+ * 2. docker-dev   — Docker-окружение
+ *    → .env: APP_ENV=docker
+ *    → Особенности: HMR через host.docker.internal
+ *
+ * 3. production   — Продакшен-сборка
+ *    → .env: APP_ENV=production
+ *    → Особенности: минификация, чанкинг, Brotli-сжатие
+ *
+ *
+ * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+ *                     КОМАНДЫ ЗАПУСКА
+ * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+ *
+ * ┌──────────────┬───────────────────────┬───────────────────────┐
+ * │   РЕЖИМ      │       КОМАНДА         │ ПЕРЕМЕННЫЕ .ENV       │
+ * ├──────────────┼───────────────────────┼───────────────────────┤
+ * │ development  │ npm run dev           │ VITE_DEV_SERVER_URL=  │
+ * │              │                       │ http://localhost:5173 │
+ * ├──────────────┼───────────────────────┼───────────────────────┤
+ * │ docker-dev   │ npm run docker-dev    │ VITE_DOCKER_SERVER_URL│
+ * │              │                       │ =http://host.docker...│
+ * ├──────────────┼───────────────────────┼───────────────────────┤
+ * │ production   │ npm run build         │ VITE_BASE_PATH=/build/│
+ * └──────────────┴───────────────────────┴───────────────────────┘
+ *
+ *
+ * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+ *               ОСОБЕННОСТИ РЕАЛИЗАЦИИ
+ * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+ *
+ * ✓ Поддержка Vue 3 Composition API + JSX
+ * ✓ Интеграция с Element Plus (кастомизация темы)
+ * ✓ Автоматический импорт компонентов (unplugin-auto-import)
+ * ✓ Полная поддержка TypeScript (строгая типизация)
+ * ✓ Оптимизированные алиасы путей (@/ → /resources/js)
+ * ✓ Анализ бандла через rollup-plugin-visualizer
+ * ✓ Горячая перезагрузка Blade-шаблонов
+ * ✓ Поддержка SCSS-модулей с глобальными переменными
+ * ✓ PostCSS-обработка (автопрефиксер, чистка CSS)
+ *
+ *
+ * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
+ *                 ТРЕБОВАНИЯ К ОКРУЖЕНИЮ
+ * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
+ *
+ • Node.js 20.02+ • npm 11.3+ • PHPStorm 2021.2+ • Docker 24+
+ * ========================================================
  */
 
-
-import path from 'path'
-import * as sass from 'sass'
-import { createRequire } from 'node:module'
-const require = createRequire(import.meta.url)
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import laravel from 'laravel-vite-plugin'
+import vue from '@vitejs/plugin-vue'
+import VueJsx from '@vitejs/plugin-vue-jsx'
 import VueSetupExtend from 'unplugin-vue-setup-extend/vite'
 import ElementPlus from 'unplugin-element-plus/vite'
-import vue from '@vitejs/plugin-vue'
-import vueJsx from '@vitejs/plugin-vue-jsx'
-import compress from 'vite-plugin-compression'
+import Icons from 'unplugin-icons/vite'
+import IconsResolver from 'unplugin-icons/resolver'
 import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import compress from 'vite-plugin-compression'
+import vueDevTools from 'vite-plugin-vue-devtools'
+import { createHtmlPlugin } from 'vite-plugin-html'
 import { visualizer } from 'rollup-plugin-visualizer'
+import * as sass from 'sass'
+
+// Получение ESM-совместимого __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const root = path.join(__dirname, 'resources/js')
+const typesRoot = path.join(__dirname, 'types')
 
 // Конфиг визуализатора
 const BUNDLE_ANALYZER = {
@@ -49,28 +93,35 @@ const BUNDLE_ANALYZER = {
     template: 'treemap',
     gzipSize: true,
     brotliSize: true,
-    projectRoot: '/', // Показывать пути от корня проекта
-    sourcemap: true // Учитывать sourcemaps
+    projectRoot: '/',
+    sourcemap: true
 }
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), ['VITE_', 'APP_'])
-    const isProduction = env.VITE_MODE === 'production'
-    const isDocker = env.VITE_MODE === 'docker'
-    const isDev = env.VITE_MODE === 'development'
+    const isProduction = env.APP_ENV === 'production'
+    const isDocker = env.APP_ENV === 'docker'
+    const isDev = env.APP_ENV === 'development'
 
     // ==================== Общие настройки ====================
     const commonConfig = {
         define: {
+            __VUE_PROD_DEVTOOLS__: true,
             'process.platform': null,
             'process.version': null,
             'import.meta.env': {}
         },
         plugins: [
             laravel({
-                input: 'resources/js/app.js',
-                refresh: true,
-                // Фикс для горячей перезагрузки в development
+                input: [
+                    'resources/js/app.js'
+                ],
+                refresh: [
+                    {
+                        paths: ['resources/views/**/*.blade.php'],
+                        config: { delay: 300 }
+                    }
+                ],
                 handleHotUpdate({ file, server }) {
                     if (file.endsWith('.blade.php')) {
                         server.ws.send({ type: 'full-reload' })
@@ -82,45 +133,70 @@ export default defineConfig(({ mode }) => {
                     transformAssetUrls: {
                         base: null,
                         includeAbsolute: false
+                    },
+                    compilerOptions: {
+                        isCustomElement: tag => tag.startsWith('x-')
                     }
                 }
             }),
-            vueJsx(),
+            vueDevTools(),
+            createHtmlPlugin({}),
+            VueJsx(),
             VueSetupExtend(),
-            ElementPlus({ useSource: true }),
+            ElementPlus({
+                useSource: true,
+                defaultLocale: 'ru'
+            }),
             AutoImport({
-                imports: ['vue', 'vue-router'],
+                imports: ['vue', 'vue-router', 'pinia'],
+                resolvers: [
+                    ElementPlusResolver(),
+                    IconsResolver({
+                        prefix: 'Icon',
+                    }),
+                ],
                 dts: 'types/auto-imports.d.ts',
                 eslintrc: {
-                    enabled: true, // Default `false`
-                    filepath: './.eslintrc-auto-import.json', // Default `./.eslintrc-auto-import.json`
-                    globalsPropValue: true // Default `true`, (true | false | 'readonly' | 'readable' | 'writable' | 'writeable')
-                },
+                    enabled: true,
+                    filepath: './.eslintrc-auto-import.json',
+                    globalsPropValue: true
+                }
             }),
-            compress()
+             Components({
+                dirs: ['resources/js/components/!**!/!*.vue'],
+                extensions: ['vue','js', 'jsx'],
+                resolvers: [
+                    ElementPlusResolver({ importStyle: 'sass' }),
+                    IconsResolver({ prefix: 'Icon', enabledCollections: ['ep'] }),
+                ],
+                dts: 'types/components.d.ts'
+            }),
+            Icons({
+                autoInstall: true,
+            }),
+            compress({
+                algorithm: 'brotliCompress',
+                ext: '.br'
+            })
         ],
         resolve: {
             alias: createAliases(),
-            extensions: ['.jsx', '.js', '.vue', '.json', '.scss', '.sass']
+            extensions: ['.jsx', '.mjs', '.js', '.ts', '.vue', '.json', '.scss', '.sass']
         },
         css: {
             devSourcemap: true,
             postcss: {
-                plugins: [
-                    charsetRemovalPlugin()
-                ]
+                plugins: [charsetRemovalPlugin()]
             },
             preprocessorOptions: {
                 scss: {
                     api: "modern",
-                    sassOptions: {
-                        quietDeps: true
-                    },
+                    sassOptions: { quietDeps: true },
                     implementation: sass,
                     additionalData: `
-                                @use "@/styles/core/variables" as *;
-                                @use "@/styles/custom-element-plus/proxy" as *;
-                              `,
+                            @use "@/styles/core/variables" as *;
+                            @use "@/styles/custom-element-plus/proxy" as *;
+                        `
                 }
             }
         }
@@ -133,11 +209,30 @@ export default defineConfig(({ mode }) => {
             host: '0.0.0.0',
             port: 5173,
             strictPort: true,
-            open: true,
-            hmr: { protocol: 'ws' }
+            open: '/',
+            hmr: {
+                protocol: 'ws',
+                host: 'localhost',
+                port: 5173
+            },
+            watch: {
+                usePolling: true,
+                interval: 1000
+            }
         },
-        build: { sourcemap: true },
-        css: { devSourcemap: true }
+        build: {
+            sourcemap: 'inline',
+            minify: false,
+            cssCodeSplit: false
+        },
+        optimizeDeps: {
+            include: [
+                'vue',
+                'element-plus',
+                'element-plus/dist/locale/ru.mjs'
+            ],
+            exclude: ['vue-demi']
+        }
     }
 
     // ==================== Режим Docker-Dev ====================
@@ -172,8 +267,8 @@ export default defineConfig(({ mode }) => {
                 plugins: [
                     visualizer({
                         ...BUNDLE_ANALYZER,
-                        title: `Анализ сборки (${mode.toUpperCase()})` // Динамическое название
-                    }),
+                        title: `Анализ сборки (${mode.toUpperCase()})`
+                    })
                 ],
                 output: {
                     entryFileNames: 'assets/js/[name]-[hash].js',
@@ -192,7 +287,6 @@ export default defineConfig(({ mode }) => {
         }
     }
 
-    // ==================== Сборка конфигурации ====================
     return {
         ...commonConfig,
         ...(isDev && devConfig),
@@ -202,13 +296,11 @@ export default defineConfig(({ mode }) => {
 })
 
 // ==================== Вспомогательные функции ====================
-
-/** Создание алиасов для путей */
 function createAliases() {
-    const root = path.join(__dirname, '/resources/js')
     return {
         '@': root,
-        '@font': path.join(__dirname, '/resources/font'),
+        '~': path.resolve(__dirname, 'node_modules'),
+        '@font': path.join(__dirname, 'resources/font'),
         '@styles': `${root}/styles`,
         '@api': `${root}/api`,
         '@lang': `${root}/lang`,
@@ -225,10 +317,8 @@ function createAliases() {
     }
 }
 
-/** Стратегия именования ассетов */
-function assetNamingStrategy(name) {
+function assetNamingStrategy(name: string) {
     const ext = name?.split('.').pop()?.toLowerCase() || 'misc'
-
     const formatMap = {
         css: 'assets/css/[name]-[hash][extname]',
         js: 'assets/js/[name]-[hash][extname]',
@@ -239,16 +329,14 @@ function assetNamingStrategy(name) {
         svg: 'assets/images/[name]-[hash][extname]',
         default: 'assets/[ext]/[name]-[hash][extname]'
     }
-
-    return formatMap[ext] || formatMap.default
+    return formatMap[ext as keyof typeof formatMap] || formatMap.default
 }
 
-/** Удаление @charset из CSS */
 function charsetRemovalPlugin() {
     return {
         postcssPlugin: 'internal:charset-removal',
         AtRule: {
-            charset: (atRule) => {
+            charset: (atRule: { name: string; remove: () => void }) => {
                 if (atRule.name === 'charset') atRule.remove()
             }
         }

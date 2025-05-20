@@ -1,8 +1,8 @@
 #app {
   .main-container {
     .el-button {
-      height: 24px;
-      padding: 2px 8px;
+     // height: 30px;
+     // padding: 0px 10px;
       &--custom {
         border-radius: 8px;
         padding: 2px 8px;
@@ -12,5 +12,13 @@
         }
       }
     }
+    .el-button {
+     // height: 30px;
+     // padding: 10px 10px;
+    }
+    .el-button+.el-button {
+      margin-left: 6px;
+    }
+
   }
 }

@@ -34,22 +34,23 @@
         </router-link>
       </template>
     </scroll-pane>
-
-    <ul
-        v-show="state.visible"
-        :style="{ left: state.left + 'px', top: state.top + 'px' }"
-        class="context-menu"
-    >
-      <li @click="refreshSelectedTag(state.selectedTag)">{{ t('tagsView.refresh') }}</li>
-      <li
-          v-if="state.selectedTag && !isAffix(state.selectedTag)"
-          @click="closeSelectedTag(state.selectedTag, $event)"
+    <div>
+      <ul
+          v-show="state.visible"
+          :style="{ left: state.left + 'px', top: state.top + 'px' }"
+          class="context-menu"
       >
-        {{ t('tagsView.close') }}
-      </li>
-      <li @click="closeOthersTags">{{ t('tagsView.closeOthers') }}</li>
-      <li @click="closeAllTags(state.selectedTag)">{{ t('tagsView.closeAll') }}</li>
-    </ul>
+        <li @click="refreshSelectedTag(state.selectedTag)">{{ t('tagsView.refresh') }}</li>
+        <li
+            v-if="state.selectedTag && !isAffix(state.selectedTag)"
+            @click="closeSelectedTag(state.selectedTag, $event)"
+        >
+          {{ t('tagsView.close') }}
+        </li>
+        <li @click="closeOthersTags">{{ t('tagsView.closeOthers') }}</li>
+        <li @click="closeAllTags(state.selectedTag)">{{ t('tagsView.closeAll') }}</li>
+      </ul>
+    </div>
   </div>
 </template>
 
@@ -210,10 +211,23 @@ const openMenu = (tag, e) => {
   state.selectedTag = tag
 }
 
-const refreshSelectedTag = (view) => {
+/*const refreshSelectedTag = (view) => {
   if (!view?.fullPath) return
   $router.replace({ path: '/redirect' + view.fullPath }).catch(() => {})
-}
+}*/
+
+const refreshSelectedTag = (view) => {
+  if (!view?.fullPath) return;
+
+  // Убираем начальный слеш из view.fullPath (если есть)
+  const cleanPath = view.fullPath.replace(/^\//, '');
+    console.log('view.fullPath ', view.fullPath)
+    console.log('cleanPath ', cleanPath)
+  $router.replace({
+    path: `/redirect/${cleanPath}`,
+    query: { ...view.query } // Сохраняем query-параметры
+  }).catch(() => {});
+};
 
 const closeSelectedTag = async (view, e) => {
   if (!view?.path || !e) return
@@ -271,28 +285,29 @@ const handleScroll = () => state.visible = false
   .tags-view-item {
     display: inline-flex;
     align-items: center;
-    height: 22px;
-    padding: 0 4px 0px 8px;
+    height: 24px;
+    padding: 0 5px 0px 9px;
     margin-right: 2px;
-    font-size: 11px;
+    font-size: 12px;
     color: #606266;
     background: #f0f2f5;
-    border-radius: 4px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 3px;
+    transition: all 0.2s cubic-bezier(0.5, 0, 0.2, 1);
     text-decoration: none;
     cursor: pointer;
 
     &:hover {
       background: #e4e7ed;
       transform: translateY(-2px);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s cubic-bezier(0.5, 0, 0.2, 1);
       box-shadow: 0 2px 8px rgba(100, 118, 161, 0.89);
     }
 
     &.active {
-      background: #409eff;
-      color: #ffffff;
-      box-shadow: 0 2px 8px rgba(32, 160, 255, 0.3);
+      height: 27px;
+      background: #4b88cc;
+      color: #e8e8e8;
+      box-shadow: 0px 0px 7px 3px rgba(72, 142, 216, 0.35);
 
       .lock-icon {
         color: #f56c6c;
@@ -340,6 +355,8 @@ const handleScroll = () => state.visible = false
       }
 
       .lock-icon:hover {
+        cursor: not-allowed;
+        pointer-events: all !important;
         color: #f56c6c;
       }
     }

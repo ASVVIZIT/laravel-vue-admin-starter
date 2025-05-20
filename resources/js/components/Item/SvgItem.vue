@@ -1,14 +1,14 @@
 <template>
   <section>
     <el-icon :class="showClass" style="display: contents">
-      <component :is="ElSvg[elSvgName]" />
+      <component :is="Svg[elSvgName]" />
     </el-icon>
     <span v-if="title">{{title}}</span>
   </section>
 </template>
 
 <script setup>
-import * as ElSvg from '@element-plus/icons-vue'
+import * as Svg from '@element-plus/icons-vue'
 const props = defineProps({
   elSvgName: {
     require: true,

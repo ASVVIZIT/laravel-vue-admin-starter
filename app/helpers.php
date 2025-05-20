@@ -124,20 +124,107 @@ if (!function_exists('randomBoolean')) {
     }
 }
 
-
 if (!function_exists('vite_assets')) {
-    /**
-     * @return HtmlString
-     */
     function vite_assets(): HtmlString
     {
-        $manifest = json_decode(file_get_contents(
-            public_path('build/manifest.json')
-        ), true);
+        $isProduction = app()->isProduction();
+        $isDocker = config('app.env') === 'docker';
+        $viteBase = config('vite.base', '/build/');
+
+        // ==================== PRODUCTION MODE ====================
+        if ($isProduction) {
+            $manifestPath = public_path('build/manifest.json');
+
+            if (!file_exists($manifestPath)) {
+                throw new \RuntimeException(
+                    'Vite manifest not found. Run "npm run build" and check public directory.'
+                );
+            }
+
+            $manifest = json_decode(file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+            $entry = $manifest['resources/js/app.js'] ?? throw new \RuntimeException('Entry point not found');
+
+            // Основные теги
+            $tags = sprintf(
+                '<script type="module" src="%s%s"></script>',
+                $viteBase,
+                htmlspecialchars($entry['file'], ENT_QUOTES)
+            );
+
+            // CSS файлы
+            foreach ($entry['css'] ?? [] as $css) {
+                $tags .= sprintf(
+                    '<link rel="stylesheet" href="%s%s">',
+                    $viteBase,
+                    htmlspecialchars($css, ENT_QUOTES)
+                );
+            }
+
+            // Предзагрузка ассетов
+            foreach ($entry['assets'] ?? [] as $asset) {
+                $ext = pathinfo($asset, PATHINFO_EXTENSION);
+                if (in_array($ext, ['woff', 'woff2', 'ttf', 'eot', 'otf'])) {
+                    $tags .= sprintf(
+                        '<link rel="preload" href="%s%s" as="font" type="font/%s" crossorigin>',
+                        $viteBase,
+                        htmlspecialchars($asset, ENT_QUOTES),
+                        $ext
+                    );
+                }
+            }
+
+            return new HtmlString($tags);
+        }
+
+        // ==================== DEVELOPMENT MODE ====================
+        $devServer = $isDocker
+            ? rtrim(env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173'), '/')
+            : rtrim(env('VITE_DEV_SERVER_URL', 'http://localhost:5173'), '/');
 
         return new HtmlString(<<<HTML
-        <script type="module" src="/build/{$manifest['resources/js/app.js']['file']}"></script>
-        <link rel="stylesheet" href="/build/{$manifest['resources/js/app.js']['css'][0]}">
-    HTML);
+            <script type="module" src="$devServer/@vite/client"></script>
+            <script type="module" src="$devServer/resources/js/app.js"></script>
+            <link rel="icon" type="image/x-icon" href="$devServer/resources/images/favicon.ico">
+        HTML);
     }
 }
+
+
+/*if (!function_exists('vite_assets')) {
+    function vite_assets(): HtmlString
+    {
+        $env = config('app.env');
+        $isProduction = $env === 'production';
+        $isDocker = $env === 'docker';
+        $manifestPath = public_path('build/manifest.json');
+
+        // Production mode
+        if ($isProduction && file_exists($manifestPath)) {
+            $manifest = json_decode(file_get_contents($manifestPath), true);
+
+            if (!isset($manifest['resources/js/app.js'])) {
+                throw new Exception('Vite manifest entry not found');
+            }
+
+            $script = '/build/' . $manifest['resources/js/app.js']['file'];
+            $css = $manifest['resources/js/app.js']['css'][0] ?? '';
+
+            $html = "<script type=\"module\" src=\"$script\"></script>";
+            if ($css) {
+                $html .= "<link rel=\"stylesheet\" href=\"/build/$css\">";
+            }
+
+            return new HtmlString($html);
+        }
+
+        // Development modes
+        $devServer = $isDocker
+            ? env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173')
+            : env('VITE_DEV_SERVER_URL', 'http://localhost:5173');
+
+        return new HtmlString(<<<HTML
+            <script type="module" src="$devServer/@vite/client"></script>
+            <script type="module" src="$devServer/resources/js/app.js"></script>
+        HTML);
+    }
+}*/

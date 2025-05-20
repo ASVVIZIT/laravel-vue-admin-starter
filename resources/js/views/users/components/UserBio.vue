@@ -1,12 +1,12 @@
 <template>
   <el-card class="box-card user-bio">
     <div slot="header" class="clearfix">
-      <span>{{ t('user.about_me') }}</span>
+      <span>{{ t('user.profile.about_me') }}</span>
     </div>
     <div class="user-education user-bio-section">
       <div class="user-bio-section-header">
         <icon class-name="book" />
-        <span>{{ t('user.education') }}</span>
+        <span>{{ t('user.profile.education') }}</span>
       </div>
       <div class="user-bio-section-body">
         <div class="text-muted">
@@ -17,7 +17,7 @@
     <div class="user-skills user-bio-section">
       <div class="user-bio-section-header">
         <icon class-name="list-check" />
-        <span>{{ t('user.skills') }}</span>
+        <span>{{ t('user.profile.skills') }}</span>
       </div>
       <div class="user-bio-section-body">
         <div class="progress-item">

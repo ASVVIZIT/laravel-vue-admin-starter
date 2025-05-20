@@ -18,19 +18,26 @@
             size="default"
             border
         >
-          <el-descriptions-item :label="t('user.name')">{{ user.name }}</el-descriptions-item>
-          <el-descriptions-item :label="t('user.email')">{{ user.email }}</el-descriptions-item>
-          <el-descriptions-item :label="t('user.sex')">{{ user.sex ? t('user.female') : t('user.male') }}</el-descriptions-item>
-          <el-descriptions-item :label="t('user.age')">{{ (user.age === null || user.age === '0')  ? 'нет данных' : user.age }}</el-descriptions-item>
-          <el-descriptions-item :label="t('user.description')">{{ (user.description === null || user.description === '')  ? '-' : user.description }}</el-descriptions-item>
+          <el-descriptions-item :label="t('user.profile.fields.name.title')">{{ user.name }}</el-descriptions-item>
+          <el-descriptions-item :label="t('user.profile.fields.email.title')">{{ user.email }}</el-descriptions-item>
+          <el-descriptions-item :label="t('user.profile.fields.sex.title')">{{ user.sex ? t('user.profile.fields.female.title') : t('user.profile.fields.male.title') }}</el-descriptions-item>
+          <el-descriptions-item :label="t('user.profile.fields.age.title')">{{ (user.age === null || user.age === '0')  ? 'нет данных' : user.age }}</el-descriptions-item>
+          <el-descriptions-item :label="t('user.profile.fields.description.title')">{{ (user.description === null || user.description === '')  ? '-' : user.description }}</el-descriptions-item>
         </el-descriptions>
+      </div>
+    </div>
+  </el-card>
+  <el-card v-else>
+    <div>
+      <div class="user-profile">
+          {{t('user.profile.notfound')}}
       </div>
     </div>
   </el-card>
 </template>
 
 <script setup>
-import PanThumb from '../../../components/PanThumb/PanThumb.vue'
+import PanThumb from '@/components/PanThumb/PanThumb.vue'
 import {uppercaseFirst, toThousandFilter} from "@/utils/index"
 import {useI18n} from "vue-i18n";
 

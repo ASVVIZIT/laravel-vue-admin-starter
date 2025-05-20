@@ -1,0 +1,14 @@
+// tsconfig.node.json
+{
+  "extends": "@tsconfig/node20/tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "outDir": "./public/build",
+    "types": ["node"]
+  },
+  "include": [
+    "vite.config.mts"
+  ],
+  "exclude": ["node_modules"]
+}

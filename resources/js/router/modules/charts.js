@@ -8,6 +8,8 @@ const chartsRoutes = {
   name: 'Charts',
   meta: {
     title: 'charts',
+    showInGuide: true,
+    description: 'Визуализация данных и аналитика',
     bootstrapIcon: 'bar-chart-fill',
     permissions: ['view menu charts'],
   },
@@ -16,7 +18,7 @@ const chartsRoutes = {
       path: 'keyboard',
       component: () => import('@/views/charts/Keyboard.vue'),
       name: 'KeyboardChart',
-      meta: {title: 'keyboardChart', bootstrapIcon: 'bar-chart-steps', noCache: true},
+      meta: {title: 'keyboardChart', bootstrapIcon:  'bar-chart-steps', showInGuide: true, noCache: true},
     },
     {
       path: 'line',

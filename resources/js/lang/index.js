@@ -6,10 +6,10 @@ import ruLocale from './ru'
 import enLocale from './en'
 
 const messages = {
-    ru: {
-        ...ruLocale,
-        ...elementRuLocale,
-    },
+  ru: {
+      ...ruLocale,
+      ...elementRuLocale,
+  },
   en: {
     ...enLocale,
     ...elementEnLocale,
@@ -38,6 +38,13 @@ const i18n = createI18n({
   locale: getLanguage(),
   legacy: false,
   globalInjection: true,
+  allowComposition: true,
+  escapeParameterHtml: false,
+  interpolation: {
+    escapeValue: false,
+    prefix: '{',
+    suffix: '}'
+  }
 })
 
 export default i18n

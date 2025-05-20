@@ -113,6 +113,7 @@ watch(
 </script>
 
 <style scoped lang="scss">
+@use '@/styles/core/variables' as *;
 .app-main {
   padding: $appMainPadding;
   /*50 = navbar  */

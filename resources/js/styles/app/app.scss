@@ -1,5 +1,9 @@
 @use '../core/variables';
 
+.el-message-box__message {
+  white-space: pre-line;
+}
+
 @mixin main-show-wh() {
   height: calc(100vh - #{variables.$navBarHeight} - #{variables.$tagViewHeight} - #{variables.$appMainPadding * 2});
   width: 100%;

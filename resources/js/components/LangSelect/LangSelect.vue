@@ -11,7 +11,7 @@
             :command="item.value"
             :disabled="language === item.value"
         >
-          <h3 class="pt-1 pb-1 font-langPx14">{{ item.label }}</h3>
+          <h3 class="font-langPx12">{{ item.label }}</h3>
         </el-dropdown-item>
       </el-dropdown-menu>
     </template>

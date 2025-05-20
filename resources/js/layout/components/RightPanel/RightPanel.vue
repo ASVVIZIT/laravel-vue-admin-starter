@@ -21,7 +21,7 @@ defineProps({
         default: false
     },
     buttonTop: {
-        default: 250,
+        default: 6,
         type: Number
     }
 })
@@ -69,7 +69,7 @@ const closeSidebar = (evt) => {
   top: 0;
   left: 0;
   opacity: 0;
-  transition: opacity .3s cubic-bezier(.7, .3, .1, 1);
+  transition: opacity .8s cubic-bezier(.7, .3, .1, 1);
   background: rgba(0, 0, 0, .2);
   z-index: -1;
 }
@@ -82,14 +82,14 @@ const closeSidebar = (evt) => {
   top: 0;
   right: 0;
   box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, .05);
-  transition: all .25s cubic-bezier(.7, .3, .1, 1);
+  transition: all .85s cubic-bezier(.7, .3, .1, 1);
   transform: translate(100%);
   background: #fff;
   z-index: 40000;
 }
 
 .show {
-  transition: all .3s cubic-bezier(.7, .3, .1, 1);
+  transition: all .8s cubic-bezier(.7, .3, .1, 1);
 
   .rightPanel-background {
     z-index: 20000;
@@ -104,21 +104,21 @@ const closeSidebar = (evt) => {
 }
 
 .handle-button {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   position: absolute;
-  left: -48px;
+  left: -40px;
   text-align: center;
-  font-size: 24px;
+  font-size: 26px;
   border-radius: 6px 0 0 6px !important;
   z-index: 0;
   pointer-events: auto;
   cursor: pointer;
   color: #fff;
-  line-height: 48px;
+  line-height: 40px;
   i {
-    font-size: 24px;
-    line-height: 48px;
+    font-size: 22px;
+    line-height: 40px;
   }
 }
 </style>

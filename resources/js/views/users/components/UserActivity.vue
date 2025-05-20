@@ -1,7 +1,7 @@
 <template>
   <el-card v-if="user.id">
     <el-tabs v-model="activeActivity" @tab-click="handleClick">
-      <el-tab-pane :label="t('user.timeline')" name="first">
+      <el-tab-pane :label="t('user.profile.tabs.timeline')" name="first">
         <div class="block">
           <el-timeline class="el-timeline">
                 <el-timeline-item
@@ -19,38 +19,46 @@
           </el-timeline>
         </div>
       </el-tab-pane>
-      <el-tab-pane v-loading="updating" :label="t('user.account')" name="second">
+      <el-tab-pane v-loading="updating" :label="t('user.profile.tabs.account')" name="second">
         <el-form
             :model="user"
             label-width="120px"
-            :label-position="right"
+            label-position="right"
         >
-          <el-form-item :label="t('user.name')" >
-            <el-input v-model="user.name" :disabled="disabled"/>
+          <el-form-item :label="t('user.profile.fields.name.title')" >
+            <el-input
+                v-model="user.name"
+                :disabled="disabled"
+                :placeholder="t('user.profile.fields.name.placeholder')"
+            />
           </el-form-item>
-          <el-form-item :label="t('user.email')">
-            <el-input v-model="user.email" :disabled="props.user.roles.includes('admin') === disabled"/>
+          <el-form-item :label="t('user.profile.fields.email.title')">
+            <el-input
+                v-model="user.email"
+                :disabled="props.user.roles.includes('admin') === disabled"
+                :placeholder="t('user.profile.fields.email.placeholder')"
+            />
           </el-form-item>
-          <el-form-item :label="t('user.sex')">
+          <el-form-item :label="t('user.profile.fields.sex.title')">
             <el-radio-group v-model="user.sex">
-              <el-radio :label="0">{{ $t('user.male') }}</el-radio>
-              <el-radio :label="1">{{ $t('user.female') }}</el-radio>
+              <el-radio :label="0">{{ $t('user.profile.fields.male.title') }}</el-radio>
+              <el-radio :label="1">{{ $t('user.profile.fields.female.title') }}</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item :label="t('user.birthday')">
+          <el-form-item :label="t('user.profile.fields.birthday.title')">
             <el-date-picker
                 v-model="user.birthday"
                 type="datetime"
-                :placeholder="t('user.birthday')"
+                :placeholder="t('user.profile.fields.birthday.placeholder')"
                 value-format="YYYY-MM-DD HH:mm:ss"
             />
           </el-form-item>
-          <el-form-item :label="t('user.description')">
+          <el-form-item :label="t('user.profile.fields.description.title')">
             <el-input
                 v-model="user.description"
                 :autosize="{ minRows: 3, maxRows: 6 }"
                 maxlength="255"
-                :placeholder="t('user.description')"
+                :placeholder="t('user.profile.fields.description.placeholder')"
                 show-word-limit
                 style="width: 200px"
                 type="textarea"
@@ -94,7 +102,7 @@ const {t} = useI18n({useScope: 'global'})
 
 const userResource = new UserResource('users')
 const resData = reactive({
-  activeActivity: 'first',
+  activeActivity: 'second',
   disabled: computed(() => {
     if (props.user.id) {
       getTimeLines()
@@ -135,7 +143,7 @@ const onSubmit = () => {
       .then(response => {
         resData.updating = false
         ElMessage({
-          message: 'User information has been updated successfully',
+          message: t('user.profile.elMessage.update.success.message'),
           type: 'success',
           duration: 5 * 1000,
         })

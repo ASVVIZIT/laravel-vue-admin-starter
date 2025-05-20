@@ -84,10 +84,24 @@ export const appStore = defineStore('app', {
         Cookies.set('language', language)
       })
     },
-    setSize(size) {
+
+    setSize(newSize) {
       this.$patch((state) => {
-        state.size = size
-        Cookies.set('size', size)
+        if (!['large', 'medium', 'small'].includes(newSize)) {
+          console.error('Недопустимый размер:', newSize);
+          return;
+        }
+        state.size = newSize;
+        Cookies.set('size', newSize, { expires: 7 });
+
+        // Динамическое обновление CSS-переменной
+       /* const root = document.documentElement
+        const sizes = {
+          large: 'var(--el-component-size-large)',
+          medium: 'var(--el-component-size)',
+          small: 'var(--el-component-size-small)'
+        }
+        root.style.setProperty('--current-el-size', sizes[newSize])*/
       })
     },
 

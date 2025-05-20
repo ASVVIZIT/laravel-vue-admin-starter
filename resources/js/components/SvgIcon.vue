@@ -1,11 +1,11 @@
 <template>
   <el-icon :size="size" :color="color">
-    <component :is="ElSvg[name]"/>
+    <component :is="Svg[name]"/>
   </el-icon>
 </template>
 
 <script setup>
-import * as ElSvg from '@element-plus/icons-vue'
+import * as Svg from '@element-plus/icons-vue'
 
 const props = defineProps({
   name: {

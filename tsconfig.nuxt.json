@@ -1,0 +1,7 @@
+// tsconfig.nuxt.json
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "vite.config.mts"
+  ]
+}

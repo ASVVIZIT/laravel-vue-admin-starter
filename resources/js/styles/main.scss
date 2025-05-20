@@ -12,12 +12,12 @@
 
 
 // Глобальные миксины и helpers
-//@use 'node_modules/element-plus/theme-chalk/src/index';
+//@use 'element-plus/theme-chalk/src/index';
 @use 'custom-element-plus/overrides/mixins' as *;
 @use 'custom-element-plus/overrides/helpers';
 
 // Element Plus
-//@use 'custom-element-plus/base-overrides';
+@use 'custom-element-plus/base-overrides';
 //@use 'custom-element-plus/variables-overrides';
 
 // Layout

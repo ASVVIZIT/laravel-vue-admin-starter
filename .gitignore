@@ -4,6 +4,7 @@
 /storage/*.key
 /vendor
 .env
+.env.txt
 .env.backup
 .phpunit.result.cache
 supervisor/
@@ -20,3 +21,6 @@ yarn-error.log
 /.vscode
 package-lock.json
 composer.lock
+/.env
+/types/
+/types/*

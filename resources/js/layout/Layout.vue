@@ -15,37 +15,46 @@
 </template>
 
 <script setup>
-import { AppMain, Navbar, Sidebar, TagsView, RightPanel } from './components'
+import { computed, watch } from 'vue'
 import { appStore } from '@/store/app'
-
+import { AppMain, Navbar, Sidebar, TagsView, RightPanel } from './components'
 const useAppStore = appStore()
-const opened = computed(() => {
-  return useAppStore.sidebar.opened
-})
 
-const settings = computed(() => {
-  return useAppStore.settings
-})
-const classObj = computed(() => {
-  return {
-    closeSidebar: !opened.value,
-    hideSidebar: !settings.value.showLeftMenu
-  }
-})
+// Вычисляемые свойства
+const opened = computed(() => useAppStore.sidebar.opened)
+const settings = computed(() => useAppStore.settings)
+const classObj = computed(() => ({
+  closeSidebar: !opened.value,
+  hideSidebar: !settings.value.showLeftMenu
+}))
 //import ResizeHook to   listen  page size that   open or close
 import ResizeHook from './hook/ResizeHandler'
 ResizeHook()
+
+// Обновление размера через action
+const updateElementSize = (newSize) => {
+  console.log('Обновление размера ElementPlus:', newSize)
+  useAppStore.setSize(newSize) // Вызов действия
+}
+
+// Реактивность на изменение размера
+watch(() => useAppStore.size, (newSize) => {
+  console.log('Изменение размера в хранилище:', newSize)
+  updateElementSize(newSize)
+})
+
 </script>
 
 <style lang="scss" scoped>
+@use "@styles/core/variables" as *;
 .main-container {
   min-height: 100%;
-  transition: margin-left 0.28s;
+  transition: margin-left 0.88s;
   margin-left: $sideBarWidth;
   position: relative;
 }
 .sidebar-container {
-  transition: width 0.28s;
+  transition: width 0.88s;
   width: $sideBarWidth !important;
   background-color: $menuBg;
   height: 100%;

@@ -74,7 +74,7 @@
                   :size="action.size ? action.size : ''"
                   @click="callAction(action.name, scope.row)"
               >
-                <el-svg-item :el-svg-name="action.icon" :title="action.label"/>
+                <svg-item :el-svg-name="action.icon" :title="action.label"/>
               </el-button>
             </template>
             <template v-else>
@@ -89,7 +89,7 @@
                       :command="action.name"
                       @click.native="callAction(action.name, scope.row)"
                   >
-                    <el-svg-item :el-svg-name="action.icon" :title="action.label"/>
+                    <svg-item :el-svg-name="action.icon" :title="action.label"/>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
@@ -118,11 +118,11 @@
 
 <script>
 import { useI18n } from "vue-i18n"
-import ElSvgItem from "./Item/ElSvgItem.vue"
+import SvgItem from "./Item/SvgItem.vue"
 import { reactive, ref, toRefs } from "vue"
 
 export default {
-  components: { ElSvgItem },
+  components: { SvgItem },
   props: {
     loading: Boolean,
     stripe: { type: Boolean, default: true },

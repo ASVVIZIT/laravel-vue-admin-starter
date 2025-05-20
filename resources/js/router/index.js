@@ -39,7 +39,7 @@ export const constantRoutes = [
         path: 'dashboard',
         component: () => import('@/views/dashboard/dashboard.vue'),
         name: 'Dashboard',
-        meta: { title: 'dashboard', bootstrapIcon: 'house-fill', affix: true, noCache: false },
+        meta: { title: 'dashboard', bootstrapIcon: 'house-fill', showInGuide: true, affix: true, noCache: false },
       },
     ],
   },
@@ -72,6 +72,11 @@ export const constantRoutes = [
 ]
 
 export const asyncRoutes = [
+  {
+    path: '/redirect/:path*', // Обрабатывает /redirect и вложенные пути
+    redirect: to => ({ path: `/${to.params.path || ''}` }), // Перенаправляет на исходный путь
+    hidden: true
+  },
   chartsRoutes,
   adminRoutes,
   errorRoutes,

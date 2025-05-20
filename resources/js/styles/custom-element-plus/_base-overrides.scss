@@ -1,0 +1,8 @@
+// Применение переменных к компонентам
+.el-button,
+.el-input,
+.el-select {
+  &[size="large"] { --el-component-size: var(--el-component-size-large) }
+  &[size="medium"] { --el-component-size: var(--el-component-size) }
+  &[size="small"] { --el-component-size: var(--el-component-size-small) }
+}

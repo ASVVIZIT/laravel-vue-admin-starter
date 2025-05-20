@@ -8,11 +8,9 @@ export const userStore = defineStore('user', {
   state: () => {
     return {
       id: null,
-      user: null,
       token: null,
       name: '',
       avatar: '',
-      introduction: '',
       roles: [],
       permissions: [],
     }

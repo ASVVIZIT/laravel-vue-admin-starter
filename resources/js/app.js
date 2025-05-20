@@ -1,7 +1,7 @@
 // ==============================================
 // SECTION 1: Импорт глобальных стилей и иконок
 // ==============================================
-import './styles/main.scss'          // Основные SCSS-стили проекта (кастомные переменные, миксины, сброс стилей)
+import '@styles/main.scss'          // Основные SCSS-стили проекта (кастомные переменные, миксины, сброс стилей)
 import 'bootstrap-icons/font/bootstrap-icons.scss' // Иконки Bootstrap (глобальное подключение всех иконок)
 
 // ==============================================
@@ -10,6 +10,16 @@ import 'bootstrap-icons/font/bootstrap-icons.scss' // Иконки Bootstrap (г
 // ----------------------------
 import Cookies from 'js-cookie'      // Работа с cookies (хранение настроек размера компонентов)
 import { createApp } from 'vue'      // Ядро Vue 3 для создания экземпляра приложения
+
+const app = createApp(App)           // Инициализация Vue-приложения
+
+// Подключение Pinia (состояние приложения)
+import { createPinia } from 'pinia'
+const pinia = createPinia()
+app.use(pinia)
+
+import { appStore } from '@/store/app'
+const store = appStore()
 
 // ----------------------------
 // SUBSECTION 2.2: UI-библиотека ElementPlus
@@ -28,15 +38,15 @@ import dayjsLocale from 'dayjs/locale/ru' // Локализация dayjs для
 // ==============================================
 // SECTION 3: Импорт компонентов приложения
 // ==============================================
-import App from './views/App.vue'                  // Корневой компонент-контейнер приложения
-import Icon from './components/Icon/Icon.vue'      // Кастомный компонент для SVG-иконок
-import ElSvgIcon from '@/components/ElSvgIcon.vue' // Обёртка для иконок ElementPlus
+import App from '@views/App.vue'                  // Корневой компонент-контейнер приложения
+import Icon from '@components/Icon/Icon.vue'      // Кастомный компонент для SVG-иконок
+import SvgIcon from '@components/SvgIcon.vue' // Обёртка для иконок ElementPlus
 
 // ==============================================
 // SECTION 4: Маршрутизация и безопасность
 // ==============================================
-import router from './router'        // Конфигурация маршрутов (vue-router)
-import './permission'                // Система контроля доступа (навигационные хуки)
+import router from '@/router'        // Конфигурация маршрутов (vue-router)
+import '@/permission'                // Система контроля доступа (навигационные хуки)
 
 // ==============================================
 // SECTION 5: Локализация
@@ -50,12 +60,8 @@ const timeZone = "Asia/Yekaterinburg"  // Установка временной 
 moment.locale('ru-ru')         // Локализация moment.js
 moment.tz(timeZone)                    // Применение временной зоны
 
-// ==============================================
-// SECTION 7: Создание экземпляра приложения
-// ==============================================
-const app = createApp(App)           // Инициализация Vue-приложения
-
 // Глобальные настройки
+app.config.devtools = true;
 app.config.globalProperties.moment = moment // Экспорт moment в глобальные свойства
 dayjs.locale(dayjsLocale)                   // Применение локали для dayjs
 
@@ -64,20 +70,16 @@ dayjs.locale(dayjsLocale)                   // Применение локали
 // ==============================================
 
 // Подключение ElementPlus с кастомными параметрами
+
 app.use(ElementPlus, {
-  size: Cookies.get('size') || 'medium',    // Динамический размер из cookies (medium - дефолт)
   i18n: (key, value) => i18n.t(key, value), // Интеграция с системой i18n
   locale: elementLocale                     // Применение русской локализации
 })
 
-// Подключение Pinia (состояние приложения)
-import { createPinia } from 'pinia'
-app.use(createPinia())
-
 // ==============================================
 // SECTION 9: Глобальная регистрация компонентов
 // ==============================================
-app.component('ElSvgIcon', ElSvgIcon) // Глобальная регистрация SVG-иконок
+app.component('SvgIcon', SvgIcon) // Глобальная регистрация SVG-иконок
 app.component('Icon', Icon)           // Глобальная регистрация кастомных иконок
 
 // ==============================================
