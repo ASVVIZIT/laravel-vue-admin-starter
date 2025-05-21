@@ -1,10 +1,8 @@
 <template>
   <section class="todoapp">
-    <!-- header -->
     <header class="header">
       <input class="new-todo" autocomplete="off" placeholder="Todo List" @keyup.enter="addTodo"/>
     </header>
-    <!-- main section -->
     <section v-show="todos.length" class="main">
       <input
         id="toggle-all"
@@ -25,7 +23,6 @@
         />
       </ul>
     </section>
-    <!-- footer -->
     <footer v-show="todos.length" class="footer">
       <span class="todo-count">
         <strong>{{ remaining }}</strong>
@@ -36,9 +33,9 @@
           <a :class="{ selected: visibility === key }" @click.prevent="visibility = key">{{ capitalize(key) }}</a>
         </li>
       </ul>
-      <!-- <button class="clear-completed" v-show="todos.length > remaining" @click="clearCompleted">
+      <button class="clear-completed" v-show="todos.length > remaining" @click="clearCompleted">
         Clear completed
-      </button> -->
+      </button>
     </footer>
   </section>
 </template>

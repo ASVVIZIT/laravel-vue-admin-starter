@@ -4,14 +4,18 @@
       <Link v-if="onlyOneChild.meta" :to="resolvePath(onlyOneChild.path)">
         <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{ 'submenu-title-noDropdown': !isNest }">
           <item :meta="onlyOneChild.meta || item.meta" />
-          <template #title>{{ generateTitle(onlyOneChild.meta?.title) }}</template>
+          <template #title>
+            <span class="menu-item-title">
+              {{ generateTitle(onlyOneChild.meta?.title) }}
+            </span>
+          </template>
         </el-menu-item>
       </Link>
     </template>
     <el-sub-menu v-else ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
       <template v-if="item.meta" #title>
         <item :meta="item.meta" />
-        <span>{{ generateTitle(item.meta.title) }}</span>
+        <span class="sub-menu-title">{{ generateTitle(item.meta.title) }}</span>
       </template>
       <SidebarItem
         v-for="child in item.children"
@@ -76,3 +80,47 @@ const resolvePath = (routePath) => {
   return path.resolve(props.basePath, routePath)
 }
 </script>
+<style lang="scss" scoped>
+/* Добавляем обрезку текста с многоточием */
+.menu-item-title,
+.sub-menu-title {
+  display: inline-block;
+  max-width: 220px; /* Фиксированная ширина с учетом отступов */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding-right: 20px; /* Место для точек */
+}
+
+/* Фикс для вложенных меню */
+.el-sub-menu {
+  :deep(.el-sub-menu__title) {
+    span {
+      @extend .sub-menu-title;
+      max-width: 190px; /* Уменьшаем ширину для вложенных элементов */
+    }
+  }
+}
+
+/* Гарантируем видимость точек в разных состояниях */
+.el-menu-item {
+  &:hover,
+  &.is-active {
+    .menu-item-title {
+      overflow: visible;
+      text-overflow: inherit;
+      background: inherit; /* Убираем артефакты */
+    }
+  }
+}
+
+/* Адаптация под свернутое меню */
+.el-menu--collapse {
+  .menu-item-title,
+  .sub-menu-title {
+    max-width: 50px; /* Ширина в свернутом состоянии */
+    padding-right: 5px;
+  }
+}
+</style>

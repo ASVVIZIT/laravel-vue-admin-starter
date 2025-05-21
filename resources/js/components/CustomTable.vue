@@ -3,7 +3,6 @@
     <el-table
         ref="tableRef"
         v-loading="loading"
-        :style="'width: 100%; height: ' + (tableHeight === '' ? '100%' : tableHeight)"
         highlight-current-row
         :tooltip-effect="tooltipEffect"
         :row-key="getRowKey"

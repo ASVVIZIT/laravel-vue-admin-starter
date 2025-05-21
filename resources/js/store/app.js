@@ -50,7 +50,7 @@ export const appStore = defineStore('app', {
     closeSideBar(withoutAnimation) {
       this.$patch((state) => {
         Cookies.set('sidebarStatus', 0)
-        state.sidebar.opened = 0
+        state.sidebar.opened = false
         state.sidebar.withoutAnimation = withoutAnimation;
       })
     },

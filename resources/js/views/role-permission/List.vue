@@ -32,7 +32,6 @@
       </template>
     </custom-table>
 
-    <!-- Диалог редактирования прав -->
     <el-dialog
         v-model="dialogVisible"
         :title="$t('permission.editPermissionForForm') + ' - ' + currentRole.name"

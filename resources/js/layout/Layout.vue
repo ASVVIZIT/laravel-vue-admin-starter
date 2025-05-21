@@ -1,8 +1,6 @@
 <template>
   <div :class="classObj" class="layout-wrapper">
-    <!--left side-->
     <Sidebar v-if="settings.showLeftMenu" class="sidebar-container" />
-    <!--right container-->
     <div class="main-container">
       <Navbar v-if="settings.showTopNavbar" />
       <TagsView v-if="settings.showTagsView" />

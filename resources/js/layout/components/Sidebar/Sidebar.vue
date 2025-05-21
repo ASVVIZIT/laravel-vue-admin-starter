@@ -34,6 +34,7 @@ import Logo from './Logo.vue'
 import SidebarItem from './SidebarItem.vue'
 import { appStore } from '@/store/app'
 import { permissionStore } from '@/store/permission'
+import path from 'path-browserify'
 
 // CSS-переменные (более надежный способ)
 const sidebarMenuEl = ref(null);
@@ -51,8 +52,19 @@ const settings = computed(() => useAppStore.settings)
 const routes = computed(() => usePermissionStore.routes)
 const isCollapse = computed(() => useAppStore.sidebar.opened)
 
+// Добавляем функцию resolvePath
+const resolvePath = (routePath, basePath = '') => {
+  if (isExternal(routePath)) return routePath
+  return path.resolve(basePath, routePath)
+}
+
+// Добавляем проверку внешних ссылок
+const isExternal = (path) => {
+  return /^(https?:|mailto:|tel:)/.test(path)
+}
+// Исправляем вычисление активного меню
 const activeMenu = computed(() => {
-  return route.meta.activeMenu || route.fullPath
+  return route.meta.activeMenu || resolvePath(route.fullPath)
 })
 </script>
 

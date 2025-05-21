@@ -11,14 +11,10 @@
         <el-select
             v-model="filters.singleRole"
             filterable
-            multiple
             :size="store.size"
             :placeholder="$t('table.user.form.fields.role.title')"
             clearable
             class="filter-item select-role-filter-item"
-            remote
-            reserve-keyword
-            remote-show-suffix
             :loading="loading"
             @change="handleSingleRoleSelect">
           <el-option
@@ -54,8 +50,8 @@
           @table-action="tableActions"
           @size-change="handleSizeChange"
           @current-change="handlePageChange"
-          :row-style="{fontSize: store.size === 'small' ? '12px' : '14px'}"
-          :header-cell-style="{fontSize: store.size === 'small' ? '13px' : '15px'}">
+          :row-style="{fontSize: store.size === 'small' ? '10px' : '12px'}"
+          :header-cell-style="{fontSize: store.size === 'small' ? '12px' : '14px'}">
       >
         <template #header="{ column }">
           <div class="custom-header">
@@ -401,7 +397,7 @@ const tableOption = computed(() => {
     actions.push({
       name: 'edit-permission-item',
       type: 'warning',
-      icon: 'EditPen',
+      icon: 'Finished',
       label: t('permission.actions.editPermission'),
       size: 'small',
       round: false
