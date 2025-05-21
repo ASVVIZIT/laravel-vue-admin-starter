@@ -1,7 +1,7 @@
 export default {
     // Навигация и маршруты
     route: {
-        dashboard: 'Админ панель (Dashboard)',
+        dashboard: 'Главная панель управления',
         permission: 'Разрешение (Permission)',
         pagePermission: 'Разрешение для страниц (Page Permission)',
         rolePermission: 'Разрешение для роли (Role Permission)',
