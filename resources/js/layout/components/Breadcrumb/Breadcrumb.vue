@@ -5,6 +5,7 @@
           v-for="item in visibleItems"
           :key="item.path"
           v-show="item.meta?.title"
+          :data-path="item.path"
       >
         <span v-if="item.redirect === 'noRedirect' || item.isLast" class="no-redirect">
           {{ generateTitle(item.meta?.title) }}
@@ -13,13 +14,17 @@
           {{ generateTitle(item.meta?.title) }}
         </a>
       </el-breadcrumb-item>
+
       <el-dropdown
           v-if="hiddenItems.length > 0"
           placement="bottom"
           class="breadcrumb-dropdown"
+          trigger="click"
       >
-        <span class="el-breadcrumb__item">
-          <span class="el-breadcrumb__inner">...</span>
+        <span>
+          <span class="dropdown-trigger">
+            <el-icon :size="16"><MoreFilled /></el-icon>
+          </span>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
@@ -34,11 +39,13 @@
         </template>
       </el-dropdown>
     </transition-group>
+
     <template v-else>
       <el-breadcrumb-item
           v-for="item in visibleItems"
           :key="item.path"
           v-show="item.meta?.title"
+          :data-path="item.path"
       >
         <span v-if="item.redirect === 'noRedirect' || item.isLast" class="no-redirect">
           {{ generateTitle(item.meta?.title) }}
@@ -52,9 +59,10 @@
           v-if="hiddenItems.length > 0"
           placement="bottom"
           class="breadcrumb-dropdown"
+          trigger="click"
       >
-        <span class="el-breadcrumb__item">
-          <span class="el-breadcrumb__inner">...</span>
+        <span class="dropdown-trigger">
+          <el-icon :size="16"><MoreFilled /></el-icon>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
@@ -73,26 +81,32 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { compile } from 'path-to-regexp'
-import { ArrowRight } from '@element-plus/icons-vue'
+import { ArrowRight, MoreFilled } from '@element-plus/icons-vue'
 import { useResizeObserver } from '@vueuse/core'
 import { appStore } from '@/store/app'
 import i18n from "@/utils/i18n"
-
 
 const { generateTitle } = i18n()
 const router = useRouter()
 const route = useRoute()
 const useAppStore = appStore()
 
-const settings = computed(() => {
-  return useAppStore.settings
-})
-
-// Оригинальная логика получения levelList
+const settings = computed(() => useAppStore.settings)
 const levelList = ref([])
+const breadcrumbRef = ref(null)
+const containerWidth = ref(0)
+const itemWidths = ref({})
+const maxLines = 2
+
+// Функции должны быть объявлены перед использованием
+const isDashboard = (route) => {
+  const name = route?.name?.trim().toLowerCase()
+  return name === 'dashboard'
+}
+
 const getBreadcrumb = () => {
   let matched = route.matched.filter(item => item.meta?.title)
   const first = matched[0]
@@ -113,47 +127,50 @@ const getBreadcrumb = () => {
       }))
 }
 
-// Новая логика адаптивного отображения
-const breadcrumbRef = ref(null)
-const containerWidth = ref(0)
-const itemWidths = ref({})
+const updateSizes = () => {
+  if (!breadcrumbRef.value?.$el) return
+
+  const container = breadcrumbRef.value.$el
+  containerWidth.value = container.offsetWidth
+
+  const items = container.querySelectorAll('.el-breadcrumb__item:not(.breadcrumb-dropdown)')
+  items.forEach(el => {
+    const path = el.dataset.path
+    if (path) {
+      const styles = window.getComputedStyle(el)
+      itemWidths.value[path] =
+          el.offsetWidth +
+          parseFloat(styles.marginLeft) +
+          parseFloat(styles.marginRight)
+    }
+  })
+}
+
+useResizeObserver(breadcrumbRef, () => {
+  updateSizes()
+  nextTick(updateSizes)
+})
 
 const visibleItems = computed(() => {
   if (!levelList.value?.length) return []
 
   let totalWidth = 0
   const result = []
-  const items = [...levelList.value]
+  const availableWidth = containerWidth.value * maxLines
 
-  // Всегда показываем первый элемент
-  const firstItem = items.shift()
-  result.push(firstItem)
-  totalWidth += itemWidths.value[firstItem.path] || 0
-
-  // Пытаемся добавить последние элементы
-  for(let i = items.length - 1; i >= 0; i--) {
-    const width = itemWidths.value[items[i].path] || 0
-    if(totalWidth + width + 80 < containerWidth.value) { // 80px для выпадающего меню
-      result.unshift(items[i])
-      totalWidth += width
-    } else {
-      break
-    }
+  for (const item of levelList.value) {
+    const itemWidth = itemWidths.value[item.path] || 0
+    if (totalWidth + itemWidth > availableWidth) break
+    result.push(item)
+    totalWidth += itemWidth
   }
 
   return result
 })
 
-const hiddenItems = computed(() => {
-  const visiblePaths = new Set(visibleItems.value.map(i => i.path))
-  return levelList.value.filter(item => !visiblePaths.has(item.path))
-})
-
-// Оригинальные функции
-const isDashboard = (route) => {
-  const name = route?.name?.trim().toLowerCase()
-  return name === 'dashboard'
-}
+const hiddenItems = computed(() =>
+    levelList.value.filter(item => !visibleItems.value.includes(item))
+)
 
 const pathCompile = (path) => {
   try {
@@ -181,60 +198,69 @@ const handleLink = (item) => {
   }
 }
 
-// Обновление размеров
-const updateWidths = () => {
-  if (!breadcrumbRef.value?.$el) return
-
-  const items = breadcrumbRef.value.$el.querySelectorAll('.el-breadcrumb__item')
-  items.forEach((el, index) => {
-    const item = levelList.value[index]
-    if (item) {
-      itemWidths.value[item.path] = el.offsetWidth
-    }
-  })
-}
-
-useResizeObserver(breadcrumbRef, () => {
-  containerWidth.value = breadcrumbRef.value?.$el.offsetWidth || 0
-  updateWidths()
-})
-
-// Watchers из оригинального кода
 watch(() => route.path, getBreadcrumb, { immediate: true })
 </script>
 
 <style lang="scss" scoped>
 .app-breadcrumb.el-breadcrumb {
-  display: inline-block;
-  font-size: 14px;
-  line-height: 50px;
-  margin-left: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  align-items: center;
+  gap: 2px;
+  line-height: 12px;
+  padding: 0 6px;
   max-width: 100%;
-  position: relative;
-  padding-right: 40px;
+  overflow: hidden;
 
   :deep(.el-breadcrumb__item) {
-    max-width: 200px;
+    flex-shrink: 0;
+    max-width: none;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    vertical-align: middle;
-    display: inline-flex !important;
-    align-items: center;
+    position: relative;
+    margin: 2px 0;
 
-    &:last-child .no-redirect {
-      color: #97a8be;
-      cursor: text;
+    .no-redirect {
+      color: var(--el-text-color-regular);
+      cursor: default;
+    }
+
+    a {
+      color: var(--el-text-color-regular);
+      transition: color 0.2s;
+
+      &:hover {
+        color: var(--el-color-primary);
+        text-decoration: underline;
+      }
     }
   }
 
   .breadcrumb-dropdown {
-    vertical-align: middle;
-    margin-left: 8px;
+    flex-shrink: 0;
+    margin-left: 4px;
 
-    :deep(.el-breadcrumb__inner) {
+    .dropdown-trigger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 24px;
+      background: var(--el-fill-color-light);
+      border-radius: 4px;
       cursor: pointer;
-      &:hover { color: var(--el-color-primary); }
+      transition: all 0.2s;
+
+      &:hover {
+        background: var(--el-color-primary-light-9);
+        color: var(--el-color-primary);
+      }
+
+      .el-icon {
+        transform: rotate(90deg);
+      }
     }
   }
 }

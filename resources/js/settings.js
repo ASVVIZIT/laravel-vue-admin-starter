@@ -2,7 +2,7 @@ export default {
   /**
    * @type {String}
    */
-  title: 'System Fenix Reports',
+  title: 'System Fenix',
   theme: '#1890ff',
 
   /**

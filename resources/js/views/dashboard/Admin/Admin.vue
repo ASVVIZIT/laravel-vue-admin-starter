@@ -1,8 +1,8 @@
 <template>
-  <div class="dashboard-editor-container">
+  <div class="dashboard-admin-container">
     <GithubCorner class="github-corner" />
     <PanelGroup @handleSetLineChartData="handleSetLineChartData" />
-    <el-row style="background: #fff; padding: 16px 16px 0; margin-bottom: 32px">
+    <el-row style="background: #fff; padding: 8px 8px 0; margin-bottom: 22px">
       <LineChart :chart-data="lineChartData ?? {}" />
     </el-row>
     <el-row :gutter="32">
@@ -99,13 +99,14 @@ let { lineChartData } = toRefs(state)
 </script>
 
 <style lang="scss" scoped>
-.dashboard-editor-container {
-  padding: 32px;
+.dashboard-admin-container {
+  padding: 20px;
   background-color: rgb(240, 242, 245);
   position: relative;
 
   .github-corner {
     position: absolute;
+    z-index: 2000;
     top: 0;
     border: 0;
     right: 0;
@@ -113,8 +114,8 @@ let { lineChartData } = toRefs(state)
 
   .chart-wrapper {
     background: #fff;
-    padding: 16px 16px 0;
-    margin-bottom: 32px;
+    padding: 8px 8px 0;
+    margin-bottom: 22px;
   }
 }
 

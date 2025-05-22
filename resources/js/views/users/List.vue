@@ -157,8 +157,8 @@
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.sex.title')">
             <el-radio-group v-model="newUser.sex">
-              <el-radio :size="store.size" :label="0">{{ $t('table.user.form.fields.male.title') }}</el-radio>
-              <el-radio :size="store.size" :label="1">{{ $t('table.user.form.fields.female.title') }}</el-radio>
+              <el-radio :size="store.size" :value="0">{{ $t('table.user.form.fields.male.title') }}</el-radio>
+              <el-radio :size="store.size" :value="1">{{ $t('table.user.form.fields.female.title') }}</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.birthday.title')">

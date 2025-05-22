@@ -7,11 +7,8 @@
         :is-active="opened"
         class="hamburger-container"
         @toggleClick="toggleSideBar"
+        @toggleSidebarLock="toggleSidebarLock"
       />
-      <el-icon class="lock-icon" @click="toggleSidebarLock">
-        <Lock v-if="isSidebarLocked" />
-        <Unlock v-else />
-      </el-icon>
       <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
     </div>
     <div v-if="settings.ShowDropDown" class="right-menu rowSC">
@@ -83,9 +80,6 @@ const loginOut = async () => {
   })
 }
 
-// Добавим вычисляемое свойство и метод
-const isSidebarLocked = computed(() => useAppStore.isSidebarLocked)
-
 const toggleSidebarLock = () => {
   useAppStore.toggleSidebarLock()
 }
@@ -107,21 +101,6 @@ const toggleSideBar = () => {
   position: relative;
   background: #fff;
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-}
-
-/* Добавим стили для иконки */
-.lock-icon {
-  margin-left: 16px;
-  cursor: pointer;
-  padding: 5px;
-  transition: all 0.3s;
-  &:hover {
-    background: #f5f5f5;
-    border-radius: 4px;
-  }
-  svg {
-    display: block;
-  }
 }
 
 //logo

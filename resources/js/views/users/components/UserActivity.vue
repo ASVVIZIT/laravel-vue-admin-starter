@@ -43,8 +43,8 @@
           </el-form-item>
           <el-form-item :label="t('user.profile.fields.sex.title')">
             <el-radio-group v-model="user.sex">
-              <el-radio :size="store.size" :label="0">{{ $t('user.profile.fields.male.title') }}</el-radio>
-              <el-radio :size="store.size" :label="1">{{ $t('user.profile.fields.female.title') }}</el-radio>
+              <el-radio :size="store.size" :value="0">{{ $t('user.profile.fields.male.title') }}</el-radio>
+              <el-radio :size="store.size" :value="1">{{ $t('user.profile.fields.female.title') }}</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item :label="t('user.profile.fields.birthday.title')">

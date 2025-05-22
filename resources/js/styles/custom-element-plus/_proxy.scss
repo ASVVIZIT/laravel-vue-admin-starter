@@ -16,13 +16,14 @@
   $menu: (
     "backgroundColor": #304156,          // Фон меню
     "hoverBackgroundColor": #263445,     // Hover состояния
+    "activeGroupColor": var(--el-menu-group-active-color),              // Активный элемент
     "activeColor": #e59808              // Активный элемент
   ),
 
   // Размеры компонентов
   $common-component-size: (
-    "default": 36px,
-    "small": 32px,
-    "large": 40px
+    "default": 32px,
+    "small": 28px,
+    "large": 36px
   )
 );

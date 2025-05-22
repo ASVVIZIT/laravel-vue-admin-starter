@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-editor-container">
+  <div class="dashboard-default-container">
     <div class="clearfix">
       <pan-thumb :image="avatar" style="float: left">
         Your roles:
@@ -49,7 +49,7 @@ let { yierGif, bubuGif } = toRefs(resData)
   max-height: 400px;
 }
 
-.dashboard-editor-container {
+.dashboard-default-container {
   background-color: #e3e3e3;
   min-height: 100vh;
   padding: 50px 60px 0;

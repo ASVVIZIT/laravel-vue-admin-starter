@@ -28,6 +28,7 @@
       position: relative;
       top: 0;
       left: 0;
+
       .sidebar-title {
         font-family: 'Akronim', sans-serif;
         font-size: 24px;
@@ -40,6 +41,7 @@
         transform: scale(1.1);
         z-index: 4000;
       }
+
       .sidebar-title:hover {
         text-shadow: 2px 2px 12px #9f6d09;
         transform: scale(1.1);
@@ -83,40 +85,7 @@
     .svg-icon {
       margin-right: 16px;
     }
-
-    .el-menu {
-      border: none;
-      height: 100%;
-      width: 100% !important;
-    }
-
-    // menu hover
-    .submenu-title-noDropdown,
-    .el-submenu__title {
-      &:hover {
-        background-color: variables.$menuHover !important;
-      }
-    }
-
-    .is-active>.el-submenu__title {
-      list-style: none !important;
-      color: variables.$subMenuActiveText !important;
-    }
-
-    & .nest-menu .el-submenu>.el-submenu__title,
-    & .el-submenu .el-menu-item {
-      list-style: none !important;
-      min-width: variables.$sideBarWidth !important;
-      background-color: variables.$subMenuBg !important;
-      &:after {
-        color: var(--el-menu-active-color) !important;
-      }
-      &:hover {
-        background-color: variables.$subMenuHover !important;
-      }
-    }
   }
-
   .hideSidebar {
     .sidebar-container {
       width: variables.$sideBarMiniWidth !important;
@@ -174,10 +143,6 @@
     }
   }
 
-  .el-menu--collapse .el-menu .el-submenu {
-    min-width: variables.$sideBarWidth !important;
-  }
-
   // mobile responsive
   .mobile {
     .main-container {
@@ -233,6 +198,7 @@
     }
   }
 
+
   .el-sub-menu__title {
     display: flex;
     align-items: center;
@@ -259,10 +225,26 @@
     width: 6px;
     background: var(--el-menu-active-color);
   }
+  .el-sub-menu.is-active,
+  .el-sub-menu.is-active ul.el-menu {
+    background-color: var(--el-submenu-active-bg-color);
+  }
 
-  .el-sub-menu.is-active .el-sub-menu__title,
-  .el-sub-menu.is-active .el-sub-menu__title i {
-    font-size: 15px;
+
+  .el-menu-item.is-active .menu-item-title {
+    font-style: italic;
+    color: var(--el-menu-group-active-color) !important;
+  }
+
+  .el-menu-item.is-active i:before {
+    color: var(--el-menu-group-active-color) !important;
+  }
+
+  .el-sub-menu.is-active >.el-sub-menu__title {
+    font-style: italic;
+  }
+  .el-sub-menu.is-active >.el-sub-menu__title,
+  .el-sub-menu.is-active >.el-sub-menu__title i {
     color: var(--el-menu-active-color) !important;
   }
 
@@ -272,17 +254,21 @@
     &:hover {
       // you can use $subMenuHover
       background-color: variables.$menuHover !important;
+      &:after {
+        content: "";
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100%;
+        width: 6px;
+        background: var(--el-menu-active-color);
+      }
     }
   }
-
-  .el-menu-item.is-active i:before {
-      color: var(--el-menu-active-color) !important;
-    }
 
   // the scroll bar appears when the subMenu is too long
   >.el-menu--popup {
     max-height: 100vh;
-    overflow-y: auto;
     z-index: 100;
     min-width: 150px;
     border: none;

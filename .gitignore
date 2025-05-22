@@ -24,3 +24,4 @@ composer.lock
 /.env
 /types/
 /types/*
+*structure*

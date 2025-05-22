@@ -7,38 +7,91 @@
  * @modified 2023-10-20
  * @see https://element-plus.org/en-US/component/menu.html
  */
-.el-menu {
-  border-right: solid 1px var(--el-menu-border-color);
-  list-style: none;
-  position: relative;
-  margin: 0;
-  padding-left: 0;
-  background-color:  map.get($menu, 'backgroundColor');
-  box-sizing: border-box;
 
-  &-item {
-    transition: background-color 0.2s ease;
-    &:hover {
-      background-color:  map.get($menu, 'hoverBackgroundColor');
-    }
-    &.is-active {
-      color: map.get($colors, 'activeColor');
-      &::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 0;
-        height: 100%;
-        width: 3px;
-        background: map.get($menu, 'activeColor');
+.el-menu--collapse .el-menu .el-submenu {
+  min-width: $sideBarWidth !important;
+}
+
+.sidebar-container {
+
+  .el-menu {
+    border-right: solid 1px var(--el-menu-border-color);
+    list-style: none;
+    position: relative;
+    margin: 0;
+    padding-left: 0;
+    background-color:  map.get($menu, 'backgroundColor');
+    box-sizing: border-box;
+
+    &-item {
+      transition: background-color 0.2s ease;
+      &:hover {
+        background-color:  map.get($menu, 'hoverBackgroundColor');
+      }
+      &.is-active {
+        color: map.get($colors, 'activeColor');
+        &::after {
+          content: '';
+          position: absolute;
+          right: 0;
+          top: 0;
+          height: 100%;
+          width: 3px;
+          background: map.get($menu, 'activeGroupColor');
+        }
       }
     }
   }
-}
-/* В глобальные стили */
-.el-sub-menu .el-sub-menu {
-  padding-left: 15px;
-}
-.el-sub-menu .el-menu-item {
-  padding-left: 35px !important;
+
+  .el-menu {
+    border: none;
+    height: 100%;
+    width: 100% !important;
+  }
+
+
+  .el-menu {
+    .el-sub-menu.is-opened {
+    //  background-color: var(--el-submenu-active-bg-color);
+      .el-menu-item {
+      //  background-color: var(--el-submenu-active-bg-color);
+      }
+    }
+  }
+
+  // menu hover
+  .submenu-title-noDropdown,
+  .el-submenu__title {
+    &:hover {
+      background-color: $menuHover !important;
+    }
+  }
+
+
+  .is-active>.el-submenu__title {
+    list-style: none !important;
+    color: $subMenuActiveText !important;
+  }
+
+  &.nest-menu .el-submenu > .el-submenu__title,
+  &.el-submenu .el-menu-item {
+    list-style: none !important;
+    min-width: $sideBarWidth !important;
+    background-color: $subMenuBg !important;
+
+    &:after {
+      color: var(--el-menu-group-active-color) !important;
+    }
+
+    &:hover {
+      background-color: $subMenuHover !important;
+    }
+  }
+  /* В глобальные стили */
+  .el-sub-menu .el-sub-menu {
+   // padding-left: 15px;
+  }
+  .el-sub-menu .el-menu-item {
+    //padding-left: 35px !important;
+  }
 }

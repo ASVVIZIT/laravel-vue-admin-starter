@@ -85,12 +85,14 @@ const resolvePath = (routePath) => {
 .menu-item-title,
 .sub-menu-title {
   display: inline-block;
-  max-width: 220px; /* Фиксированная ширина с учетом отступов */
+  max-width: 210px; /* Фиксированная ширина с учетом отступов */
   overflow: hidden;
+  line-height: 15px;
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
-  padding-right: 20px; /* Место для точек */
+  padding-left: 4px;
+  padding-right: 18px; /* Место для точек */
 }
 
 /* Фикс для вложенных меню */
@@ -98,27 +100,28 @@ const resolvePath = (routePath) => {
   :deep(.el-sub-menu__title) {
     span {
       @extend .sub-menu-title;
-      max-width: 190px; /* Уменьшаем ширину для вложенных элементов */
+      max-width: 180px; /* Уменьшаем ширину для вложенных элементов */
     }
   }
 }
 
 /* Гарантируем видимость точек в разных состояниях */
-.el-menu-item {
+/*.el-menu-item {
   &:hover,
   &.is-active {
     .menu-item-title {
       overflow: visible;
       text-overflow: inherit;
-      background: inherit; /* Убираем артефакты */
+      background: inherit; !* Убираем артефакты *!
     }
   }
-}
+}*/
 
 /* Адаптация под свернутое меню */
 .el-menu--collapse {
   .menu-item-title,
   .sub-menu-title {
+    display: inline-block;
     max-width: 50px; /* Ширина в свернутом состоянии */
     padding-right: 5px;
   }

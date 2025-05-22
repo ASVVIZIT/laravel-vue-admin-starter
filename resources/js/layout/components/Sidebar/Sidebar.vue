@@ -12,6 +12,7 @@
           :collapse-transition="true"
           :background-color="menuBg"
           :text-color="menuText"
+          :hover-text-color="menuHoverText"
           :active-text-color="menuActiveText"
           mode="vertical"
       >
@@ -39,9 +40,10 @@ import path from 'path-browserify'
 // CSS-переменные (более надежный способ)
 const sidebarMenuEl = ref(null);
 const sideBarWidth = useCssVar('width:--side-bar-width', sidebarMenuEl)
-const menuBg = useCssVar('background-color:--menu-bg', sidebarMenuEl)
+const menuBg = useCssVar('background-color:--el-menu-bg-color', sidebarMenuEl)
 const menuText = useCssVar('color:--el-menu-text-color', sidebarMenuEl)
-const menuActiveText = useCssVar('color:--el-menu-text-color', sidebarMenuEl)
+const menuActiveText = useCssVar('color:--el-menu-text-color-hover', sidebarMenuEl)
+const menuHoverText = useCssVar('color:--el-menu-text-color-active', sidebarMenuEl)
 
 const route = useRoute()
 const useAppStore = appStore()
