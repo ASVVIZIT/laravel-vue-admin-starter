@@ -16,11 +16,11 @@
     <table>
       <thead>
       <tr>
-        <th style="width: 30px;"></th>
+        <th style="width: 35px;"></th>
         <th v-for="column in columns" :key="column.id">
           {{ column.label }}
         </th>
-        <th style="width: 50px;">Actions</th>
+        <th style="width: 70px;">Actions</th>
       </tr>
       </thead>
       <tbody>
@@ -92,7 +92,7 @@ watch(store.rows, (newRows) => {
 
 <style lang="scss">
 .dynamic-table {
-  margin: 10px;
+  margin: 2px;
   border: 1px solid #ddd;
   border-radius: 4px;
   overflow-x: auto;

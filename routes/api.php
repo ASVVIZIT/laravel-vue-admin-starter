@@ -50,6 +50,14 @@ Route::prefix('table')->group(function () {
     Route::get('rows', [App\Http\Controllers\Api\TableRowController::class, 'index']);
 });
 
+
+Route::apiResources([
+    'brands' => App\Http\Controllers\Api\BrandController::class,
+    'circuit-breakers' => App\Http\Controllers\Api\CircuitBreakerController::class,
+    'rcds' => App\Http\Controllers\Api\RCDController::class,
+    'cables' => App\Http\Controllers\Api\CableController::class
+]);
+
 Route::get('/orders', function () {
     $rowsNumber = 8;
     $data = [];

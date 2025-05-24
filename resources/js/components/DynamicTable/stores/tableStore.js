@@ -41,7 +41,7 @@ export const useTableStore = defineStore('dynamicTable', () => {
     //===============================================================
     // ГЕНЕРАТОР МОКОВЫХ ДАННЫХ (на основе шаблона)
     //===============================================================
-    const generateMockData = (levels = 3, itemsPerLevel = 5) => {
+    const generateMockData = (levels = 3, itemsPerLevel = 12) => {
         if (!currentTemplate.value?.columns) return [];
 
         const columns = currentTemplate.value.columns;
@@ -63,11 +63,23 @@ export const useTableStore = defineStore('dynamicTable', () => {
                         case 'text':
                             row.data[column.label] = `Product ${idCounter}`;
                             break;
-                        case 'select':
-                            const options = column.options?.map(opt => opt.name) || [];
-                            row.data[column.label] = options[Math.floor(Math.random() * options.length)] || 'N/A';
-                            console.log('row.data[column] ', row.data)
+                        case 'select': {
+                            // Получаем опции из шаблона
+                            const options = column.options || [];
+
+                            // Определяем формат опций (объекты или строки)
+                            const isObjectOptions = options.length > 0 && typeof options[0] === 'object';
+
+                            // Выбираем случайное значение
+                            const randomIndex = Math.floor(Math.random() * options.length);
+                            const selectedOption = options[randomIndex];
+
+                            // Сохраняем ID для объекта или значение для строки
+                            row.data[column.label] = isObjectOptions
+                                ? selectedOption?.id || null
+                                : selectedOption || 'N/A';
                             break;
+                        }
                         case 'number':
                             row.data[column.label] = Math.floor(Math.random() * 1000) + 100;
                             break;

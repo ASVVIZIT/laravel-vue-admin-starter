@@ -96,8 +96,24 @@ class DatabaseSeeder extends Seeder
 
         $columns = [
             ['type' => 'text', 'label' => 'Product Name', 'order' => 1],
-            ['type' => 'select', 'label' => 'Category', 'options' => ['Electronics', 'Clothing'], 'order' => 2],
-            ['type' => 'number', 'label' => 'Price', 'order' => 3]
+            ['type' => 'select', 'label' => 'Category', 'options' => [
+                    'Electronics',
+                    'Clothing',
+                    'еще что то 1',
+                    'еще что то 2'
+                ],
+                'order' => 2
+            ],
+            ['type' => 'select', 'label' => 'Назначение', 'options' => [
+                'Назначение 1',
+                'Назначение 2',
+                'Назначение 3',
+                'Назначение 4',
+                'Назначение 5'
+            ],
+                'order' => 23
+            ],
+            ['type' => 'number', 'label' => 'Price', 'order' => 4]
         ];
 
         foreach ($columns as $col) {
@@ -109,7 +125,8 @@ class DatabaseSeeder extends Seeder
             'data' => [
                 'Product Name' => 'Main Product',
                 'Category' => 'Electronics',
-                'Price' => 100
+                'Назначение' => 'Назначение 1',
+                'Price' => 110
             ]
         ]);
 
@@ -119,12 +136,55 @@ class DatabaseSeeder extends Seeder
             'data' => [
                 'Product Name' => 'Sub Product',
                 'Category' => 'Components',
-                'Price' => 50
+                'Назначение' => 'Назначение 5',
+                'Price' => 550
+            ]
+        ]);
+
+        TableRow::create([
+            'template_id' => $template->id,
+            'parent_id' => $parentRow->id,
+            'data' => [
+                'Product Name' => 'Sub Product 2',
+                'Category' => 'Components',
+                'Назначение' => 'Назначение 3',
+                'Price' => 110
+            ]
+        ]);
+        TableRow::create([
+            'template_id' => $template->id,
+            'parent_id' => $parentRow->id,
+            'data' => [
+                'Product Name' => 'Sub Product 3',
+                'Category' => 'Components',
+                'Назначение' => 'Назначение 4',
+                'Price' => 150
             ]
         ]);
 
 
+        $parentRow2 = TableRow::create([
+            'template_id' => $template->id,
+            'data' => [
+                'Product Name' => 'Main Product 2',
+                'Category' => 'еще что то 1',
+                'Назначение' => 'Назначение 2',
+                'Price' => 110
+            ]
+        ]);
 
+        TableRow::create([
+            'template_id' => $template->id,
+            'parent_id' => $parentRow2->id,
+            'data' => [
+                'Product Name' => 'Sub Product 2',
+                'Category' => 'Components',
+                'Назначение' => 'Назначение 4',
+                'Price' => 550
+            ]
+        ]);
+
+        $this->call(CatalogSeeder::class);
 
     }
 }
