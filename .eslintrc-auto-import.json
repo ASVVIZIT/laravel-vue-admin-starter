@@ -87,6 +87,7 @@
     "setActivePinia": true,
     "setMapStoreSuffix": true,
     "storeToRefs": true,
-    "ElSvgIcon": true
+    "ElSvgIcon": true,
+    "ElMessage": true
   }
 }

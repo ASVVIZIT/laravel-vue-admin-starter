@@ -45,6 +45,20 @@ export const constantRoutes = [
     ],
   },
   {
+    path: '/dynamic-table',
+    component: Layout,
+    redirect: '/dynamic-table/:templateId?',
+    children: [
+      {
+        path: '/dynamic-table/:templateId?', // Маршрут с опциональным параметром
+        name: 'DynamicTable',
+        component: () => import('@/views/DynamicTable/FenixTable.vue'),
+        meta: { title: 'DynamicTable', bootstrapIcon: 'table' },
+        props: true // Передаем параметр маршрута как props
+      }
+    ]
+  },
+  {
     path: '/profile',
     component: Layout,
     redirect: '/profile/edit',
@@ -57,7 +71,7 @@ export const constantRoutes = [
       },
     ],
   },
-{
+  {
     path: '/guide',
     component: Layout,
     redirect: '/guide/index',
@@ -69,7 +83,7 @@ export const constantRoutes = [
             meta: {title: 'guide', bootstrapIcon: 'bi bi-megaphone-fill', noCache: true}
         }
     ]
-}
+  }
 ]
 
 export const asyncRoutes = [

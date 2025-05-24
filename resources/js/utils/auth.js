@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie';
 
-const TokenKey = 'token';
+const TokenKey = 'fenix-token';
 
 export function isLogged() {
   return !!Cookies.get(TokenKey);

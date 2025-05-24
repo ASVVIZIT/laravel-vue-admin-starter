@@ -11,6 +11,11 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Database\Seeder;
 
+use App\Models\Template; // Добавьте эту строку
+use App\Models\ColumnTemplate; // И эту
+use App\Models\TableRow; // И эту
+
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -84,5 +89,42 @@ class DatabaseSeeder extends Seeder
         $visitor->syncRoles($visitorRole);
 
         $this->call(UsersTableSeeder::class);
+
+
+
+        $template = Template::create(['name' => 'Product Catalog']);
+
+        $columns = [
+            ['type' => 'text', 'label' => 'Product Name', 'order' => 1],
+            ['type' => 'select', 'label' => 'Category', 'options' => ['Electronics', 'Clothing'], 'order' => 2],
+            ['type' => 'number', 'label' => 'Price', 'order' => 3]
+        ];
+
+        foreach ($columns as $col) {
+            $template->columns()->create($col);
+        }
+
+        $parentRow = TableRow::create([
+            'template_id' => $template->id,
+            'data' => [
+                'Product Name' => 'Main Product',
+                'Category' => 'Electronics',
+                'Price' => 100
+            ]
+        ]);
+
+        TableRow::create([
+            'template_id' => $template->id,
+            'parent_id' => $parentRow->id,
+            'data' => [
+                'Product Name' => 'Sub Product',
+                'Category' => 'Components',
+                'Price' => 50
+            ]
+        ]);
+
+
+
+
     }
 }

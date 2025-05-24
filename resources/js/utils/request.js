@@ -4,15 +4,27 @@ import { isLogged, getToken } from '@/utils/auth';
 
 // Create axios instance
 const service = window.axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000, // Request timeout
 });
 
 // Request intercepter
+/*service.interceptors.request.use(config => {
+    if (isTokenValid()) { // Используйте проверку валидности
+        config.withCredentials = true; // Для передачи кук
+        config.headers['Authorization'] = 'Bearer ' + getToken();
+    } else {
+        // Перенаправление на страницу входа
+        window.location.href = '/login';
+    }
+    return config;
+});*/
+
 service.interceptors.request.use(
   config => {
     const token = isLogged();
     if (token) {
+      config.withCredentials = true; // Для передачи кук
       config.headers['Authorization'] = 'Bearer ' + getToken(); // Set JWT token
     }
     return config;
@@ -27,10 +39,10 @@ service.interceptors.request.use(
 // response pre-processing
 service.interceptors.response.use(
   response => {
-    // if (response.headers.authorization) {
-    //   setLogged(response.headers.authorization);
-    //   response.data.token = response.headers.authorization;
-    // }
+    if (response.headers.authorization) {
+      setLogged(response.headers.authorization);
+      response.data.token = response.headers.authorization;
+    }
 
     return response.data;
   },

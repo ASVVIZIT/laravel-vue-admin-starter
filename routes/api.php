@@ -36,7 +36,18 @@ Route::namespace('Api')->group(function() {
 
         Route::get('roles/{role}/permissions', 'RoleController@permissions')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
         Route::get('requests', 'RequestController@index');
+
+        /*Route::group(['prefix' => 'table'], function (RouteContract $api) {
+            Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);
+            Route::get('rows', [App\Http\Controllers\Api\TableRowController::class, 'index']);
+            //Route::put('rows/{id}', [App\Http\Controllers\Api\TableRowController::class, 'index']);
+        });*/
     });
+});
+
+Route::prefix('table')->group(function () {
+    Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);
+    Route::get('rows', [App\Http\Controllers\Api\TableRowController::class, 'index']);
 });
 
 Route::get('/orders', function () {

@@ -32,7 +32,7 @@ class AuthController extends BaseController
             return responseFailed('These credentials do not match our records.', Response::HTTP_UNAUTHORIZED);
         }
 
-        $user->token = $user->createToken('laravel-vue-admin')->plainTextToken;
+        $user->token = $user->createToken('laravel-vue-admin-fenix')->plainTextToken;
 
         return responseSuccess($user);
     }
