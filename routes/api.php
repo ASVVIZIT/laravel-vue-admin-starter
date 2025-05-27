@@ -51,12 +51,21 @@ Route::prefix('table')->group(function () {
 });
 
 
-Route::apiResources([
+Route::prefix('ep')->group(function () {
+   // Route::get('/devices', \App\Http\Controllers\Api\ElectricalProtection\DeviceController::class);
+    Route::apiResource('brands', \App\Http\Controllers\Api\ElectricalProtection\BrandController::class);
+    Route::apiResource('device-types', \App\Http\Controllers\Api\ElectricalProtection\DeviceTypeController::class);
+    Route::apiResource('circuit-breakers', \App\Http\Controllers\Api\ElectricalProtection\CircuitBreakerController::class);
+
+});
+
+
+/*Route::apiResources([
     'brands' => App\Http\Controllers\Api\BrandController::class,
     'circuit-breakers' => App\Http\Controllers\Api\CircuitBreakerController::class,
     'rcds' => App\Http\Controllers\Api\RCDController::class,
     'cables' => App\Http\Controllers\Api\CableController::class
-]);
+]);*/
 
 Route::get('/orders', function () {
     $rowsNumber = 8;

@@ -2,19 +2,44 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Role;
 use App\Models\Acl;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
+use App\Models\Role;
+use App\Models\User;
+use Database\Seeders\ElectricalProtection\BrandsSeeder;
+use Database\Seeders\ElectricalProtection\CableSeeder;
+use Database\Seeders\ElectricalProtection\DeviceTypeSeeder;
+use Database\Seeders\ElectricalProtection\MeasurementUnitSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\BrandSchneiderSeeder;
+
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\CableAccessoriesSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\IdentificationSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\MechanicalAccessoriesSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\SpecialAccessoriesSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\SpecialSeriesSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\TwidoAccessorySeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\VigiDifferentialSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories\VigiNG125Seeder;
+
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\MainCircuitBreakers\IC60HSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\MainCircuitBreakers\IC60LSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\MainCircuitBreakers\IC60NSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\MainCircuitBreakers\C60HDCSeeder;
+
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries\NG125\NG125NSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries\NG125\NG125HSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries\NG125\NG125LSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries\NG125\NG125LMASeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries\C120Seeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries\STISBISeed;
+
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\SpecialSeries\IDPNSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\SpecialSeries\IDSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\SpecialSeries\IK60NSeeder;
+use Database\Seeders\ElectricalProtection\Schneider\Acti9\SpecialSeries\ReflexIC60\ReflexIC60Seeder;
+
 use Illuminate\Database\Seeder;
-
-use App\Models\Template; // Добавьте эту строку
-use App\Models\ColumnTemplate; // И эту
-use App\Models\TableRow; // И эту
-
+use Illuminate\Support\Facades\Hash;
+use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
@@ -90,101 +115,51 @@ class DatabaseSeeder extends Seeder
 
         $this->call(UsersTableSeeder::class);
 
+        $this->call(TemplateSeeder::class);
 
-
-        $template = Template::create(['name' => 'Product Catalog']);
-
-        $columns = [
-            ['type' => 'text', 'label' => 'Product Name', 'order' => 1],
-            ['type' => 'select', 'label' => 'Category', 'options' => [
-                    'Electronics',
-                    'Clothing',
-                    'еще что то 1',
-                    'еще что то 2'
-                ],
-                'order' => 2
-            ],
-            ['type' => 'select', 'label' => 'Назначение', 'options' => [
-                'Назначение 1',
-                'Назначение 2',
-                'Назначение 3',
-                'Назначение 4',
-                'Назначение 5'
-            ],
-                'order' => 23
-            ],
-            ['type' => 'number', 'label' => 'Price', 'order' => 4]
-        ];
-
-        foreach ($columns as $col) {
-            $template->columns()->create($col);
-        }
-
-        $parentRow = TableRow::create([
-            'template_id' => $template->id,
-            'data' => [
-                'Product Name' => 'Main Product',
-                'Category' => 'Electronics',
-                'Назначение' => 'Назначение 1',
-                'Price' => 110
-            ]
+        // Бренды и типы устройств
+        $this->call([
+            MeasurementUnitSeeder::class,
+            BrandSchneiderSeeder::class,
+            DeviceTypeSeeder::class,
         ]);
 
-        TableRow::create([
-            'template_id' => $template->id,
-            'parent_id' => $parentRow->id,
-            'data' => [
-                'Product Name' => 'Sub Product',
-                'Category' => 'Components',
-                'Назначение' => 'Назначение 5',
-                'Price' => 550
-            ]
+        // Аксессуары (Создаются в начале)
+        $this->call([
+            CableAccessoriesSeeder::class,
+            IdentificationSeeder::class,
+            MechanicalAccessoriesSeeder::class,
+            SpecialAccessoriesSeeder::class,
+            SpecialSeriesSeeder::class,
+            TwidoAccessorySeeder::class,
+            VigiDifferentialSeeder::class,
+            VigiNG125Seeder::class,
         ]);
 
-        TableRow::create([
-            'template_id' => $template->id,
-            'parent_id' => $parentRow->id,
-            'data' => [
-                'Product Name' => 'Sub Product 2',
-                'Category' => 'Components',
-                'Назначение' => 'Назначение 3',
-                'Price' => 110
-            ]
-        ]);
-        TableRow::create([
-            'template_id' => $template->id,
-            'parent_id' => $parentRow->id,
-            'data' => [
-                'Product Name' => 'Sub Product 3',
-                'Category' => 'Components',
-                'Назначение' => 'Назначение 4',
-                'Price' => 150
-            ]
+        // Основные автоматы
+        $this->call([
+            IC60NSeeder::class,
+            IC60HSeeder::class,
+            IC60LSeeder::class,
+            C60HDCSeeder::class,
         ]);
 
-
-        $parentRow2 = TableRow::create([
-            'template_id' => $template->id,
-            'data' => [
-                'Product Name' => 'Main Product 2',
-                'Category' => 'еще что то 1',
-                'Назначение' => 'Назначение 2',
-                'Price' => 110
-            ]
+        // Промышленные серии
+        $this->call([
+            NG125NSeeder::class,
+            NG125HSeeder::class,
+            NG125LSeeder::class,
+            NG125LMASeeder::class,
+            C120Seeder::class,
+            STISBISeed::class,
         ]);
 
-        TableRow::create([
-            'template_id' => $template->id,
-            'parent_id' => $parentRow2->id,
-            'data' => [
-                'Product Name' => 'Sub Product 2',
-                'Category' => 'Components',
-                'Назначение' => 'Назначение 4',
-                'Price' => 550
-            ]
+        // SpecialSeries серии
+        $this->call([
+            IDPNSeeder::class,
+            IDSeeder::class,
+            IK60NSeeder::class,
+            ReflexIC60Seeder::class,
         ]);
-
-        $this->call(CatalogSeeder::class);
-
     }
 }
