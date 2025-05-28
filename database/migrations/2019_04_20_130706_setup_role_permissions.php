@@ -38,6 +38,7 @@ class SetupRolePermissions extends Migration
         $editorRole->givePermissionTo(Acl::menuPermissions());
         $userRole->givePermissionTo([
             Acl::PERMISSION_VIEW_MENU_PERMISSION,
+            Acl::PERMISSION_VIEW_MENU_ENTITY,
         ]);
         $visitorRole->givePermissionTo([
             Acl::PERMISSION_VIEW_MENU_PERMISSION,

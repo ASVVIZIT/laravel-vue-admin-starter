@@ -9,7 +9,7 @@ use App\Models\ElectricalProtection\MeasurementUnit;
 use App\Models\ElectricalProtection\Accessory;
 use Illuminate\Database\Seeder;
 
-class ReflexIC60RCBOSEeder extends Seeder
+class ReflexIC60RCBOSeeder extends Seeder
 {
     public function run()
     {

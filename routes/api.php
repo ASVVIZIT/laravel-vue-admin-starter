@@ -37,13 +37,13 @@ Route::namespace('Api')->group(function() {
         Route::get('roles/{role}/permissions', 'RoleController@permissions')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
         Route::get('requests', 'RequestController@index');
 
-        /*Route::group(['prefix' => 'table'], function (RouteContract $api) {
-            Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);
-            Route::get('rows', [App\Http\Controllers\Api\TableRowController::class, 'index']);
-            //Route::put('rows/{id}', [App\Http\Controllers\Api\TableRowController::class, 'index']);
-        });*/
+
+        Route::prefix('entities')->group(function () {
+            Route::apiResource('ep_brands', \App\Http\Controllers\Api\Entity\BrandController::class)->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
+        });
     });
 });
+
 
 Route::prefix('table')->group(function () {
     Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);
@@ -51,13 +51,27 @@ Route::prefix('table')->group(function () {
 });
 
 
-Route::prefix('ep')->group(function () {
-   // Route::get('/devices', \App\Http\Controllers\Api\ElectricalProtection\DeviceController::class);
-    Route::apiResource('brands', \App\Http\Controllers\Api\ElectricalProtection\BrandController::class);
-    Route::apiResource('device-types', \App\Http\Controllers\Api\ElectricalProtection\DeviceTypeController::class);
-    Route::apiResource('circuit-breakers', \App\Http\Controllers\Api\ElectricalProtection\CircuitBreakerController::class);
 
+/*// Роуты для брендов
+Route::get('api/ep/brands', [BrandController::class, 'index'])->name('brands.index');
+Route::post('api/ep/brands', [BrandController::class, 'store'])->name('brands.store');
+
+Route::group(['prefix' => 'api/ep/brands/{brand}'], function () {
+    Route::get('/', [BrandController::class, 'show'])->name('brands.show');
+    Route::put('/', [BrandController::class, 'update'])->name('brands.update');
+    Route::delete('/', [BrandController::class, 'destroy'])->name('brands.destroy');
 });
+
+// Роуты для автоматических выключателей
+Route::get('api/ep/circuit-breakers', [CircuitBreakerController::class, 'index'])->name('circuit-breakers.index');
+Route::post('api/ep/circuit-breakers', [CircuitBreakerController::class, 'store'])->name('circuit-breakers.store');
+
+Route::group(['prefix' => 'api/ep/circuit-breakers/{circuit_breaker}'], function () {
+    Route::get('/', [CircuitBreakerController::class, 'show'])->name('circuit-breakers.show');
+    Route::put('/', [CircuitBreakerController::class, 'update'])->name('circuit-breakers.update');
+    Route::delete('/', [CircuitBreakerController::class, 'destroy'])->name('circuit-breakers.destroy');
+});*/
+
 
 
 /*Route::apiResources([

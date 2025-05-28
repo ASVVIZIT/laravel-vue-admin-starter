@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\ElectricalProtection;
 
 use App\Http\Controllers\Controller;
-use App\Models\Cable;
+use App\Models\ElectricalProtection\Cable;
 use Illuminate\Http\Request;
 
 class CableController extends Controller

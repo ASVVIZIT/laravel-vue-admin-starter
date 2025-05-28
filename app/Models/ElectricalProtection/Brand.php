@@ -2,15 +2,14 @@
 
 namespace App\Models\ElectricalProtection;
 
-use App\Models\ElectricalProtection\Cable;
-use App\Models\ElectricalProtection\CircuitBreaker;
-use App\Models\ElectricalProtection\RCD;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Brand extends Model {
-    protected $table = 'ep_brands';
+
     use HasFactory;
+
+    protected $table = 'ep_brands';
 
     protected $fillable = ['name', 'country', 'website', 'description'];
 

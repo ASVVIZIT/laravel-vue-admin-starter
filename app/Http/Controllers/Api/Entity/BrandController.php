@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\ElectricalProtection;
+namespace App\Http\Controllers\Api\Entity;
 
 use App\Http\Controllers\Controller;
 use App\Models\ElectricalProtection\Brand;
@@ -27,9 +27,6 @@ class BrandController extends Controller
                     'name' => $brand->name,
                     'country' => $brand->country,
                     'website' => $brand->website,
-                    'elements_count' => $brand->circuit_breakers_count
-                        + $brand->rcds_count
-                        + $brand->cables_count
                 ];
             }),
             'meta' => [
@@ -45,7 +42,19 @@ class BrandController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:100|unique:brands',
+            'country' => 'nullable|string|max:50',
+            'website' => 'nullable|url|max:100',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $brand = Brand::create($validated);
+
+        return response()->json([
+            'message' => 'Бренд создан успешно',
+            'data' => $brand
+        ], 201);
     }
 
     /**
@@ -53,7 +62,13 @@ class BrandController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $brand = Brand::find($id);
+
+        if (!$brand) {
+            return response()->json(['error' => 'Бренд не найден'], 404);
+        }
+
+        return response()->json($brand);
     }
 
     /**
@@ -61,7 +76,25 @@ class BrandController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $brand = Brand::find($id);
+
+        if (!$brand) {
+            return response()->json(['error' => 'Бренд не найден'], 404);
+        }
+
+        $validated = $request->validate([
+            'name' => 'string|max:100|unique:brands,name,' . $id,
+            'country' => 'nullable|string|max:50',
+            'website' => 'nullable|url|max:100',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $brand->update($validated);
+
+        return response()->json([
+            'message' => 'Бренд обновлён',
+            'data' => $brand
+        ]);
     }
 
     /**
@@ -69,6 +102,14 @@ class BrandController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $brand = Brand::find($id);
+
+        if (!$brand) {
+            return response()->json(['error' => 'Бренд не найден'], 404);
+        }
+
+        $brand->delete();
+
+        return response()->json(['message' => 'Бренд удалён']);
     }
 }
