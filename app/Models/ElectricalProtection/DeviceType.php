@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 class DeviceType extends Model
 {
     use HasFactory;
+
     protected $table = 'ep_device_types';
-    protected $fillable = ['name', 'code', 'description'];
+
+    protected $fillable = [
+        'name',
+        'code',
+        'description'
+    ];
 }

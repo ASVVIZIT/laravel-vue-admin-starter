@@ -1,13 +1,13 @@
 <template>
-  <el-card class="brand-table-container">
-    <h2>Список брендов</h2>
+  <el-card class="device-type-table-container">
+    <h2>Список типов устройств</h2>
 
     <!-- Панель поиска и добавления -->
     <el-row :gutter="12" class="toolbar">
       <el-col :span="12" style="text-align: left">
         <el-input
             v-model="searchQuery"
-            placeholder="Поиск по названию, стране или сайту..."
+            placeholder="Поиск по названию, коду или описанию..."
             clearable
             @input="debouncedSearch"
             @clear="debouncedSearch"
@@ -24,36 +24,29 @@
             @click="dialogVisibleAdd = true"
             :size="store.size"
         >
-          <el-icon><Plus /></el-icon> Добавить бренд
+          <el-icon><Plus /></el-icon> Добавить тип
         </el-button>
       </el-col>
     </el-row>
 
-    <!-- Таблица брендов -->
+    <!-- Таблица типов устройств -->
     <el-table
         border
         style="width: 100%"
-        :data="brandStore.brands"
-        v-loading="brandStore.loading"
+        :data="deviceTypeStore.deviceTypes"
+        v-loading="deviceTypeStore.loading"
         empty-text="Нет данных"
         :size="store.size"
         :height="tableHeight"
     >
-      <el-table-column prop="id" label="ID" width="50" />
+      <el-table-column prop="id" label="ID" width="80" />
       <el-table-column prop="name" label="Название" />
-      <el-table-column prop="country" label="Страна" width="110" />
-      <el-table-column prop="website" label="Веб-сайт">
-        <template #default="{row}">
-          <el-link :href="row.website" target="_blank" type="primary" :size="store.size">
-            {{ row.website }}
-          </el-link>
-        </template>
-      </el-table-column>
-
+      <el-table-column prop="code" label="Код" width="120" />
+      <el-table-column prop="description" label="Описание" />
       <el-table-column
-          label="Действия"
-          fixed="right"
-          width="100"
+        label="Действия"
+        fixed="right"
+        width="100"
       >
         <template #default="scope">
           <el-button-group :size="store.size">
@@ -78,7 +71,7 @@
         <div class="per-page-selector">
           <span>Записей на странице:</span>
           <el-select
-              v-model="brandStore.pagination.per_page"
+              v-model="deviceTypeStore.pagination.per_page"
               @change="handlePerPageChange"
               :size="store.size"
               style="width: 100px"
@@ -96,26 +89,26 @@
         <el-pagination
             background
             layout="prev, pager, next, jumper"
-            :total="brandStore.pagination.total"
-            :page-size="brandStore.pagination.per_page"
-            :current-page="brandStore.pagination.current_page"
+            :total="deviceTypeStore.pagination.total"
+            :page-size="deviceTypeStore.pagination.per_page"
+            :current-page="deviceTypeStore.pagination.current_page"
             @current-change="handlePageChange"
             :size="store.size"
         />
       </div>
       <div class="total-items">
-        Всего записей: {{ brandStore.pagination.total }}
+        Всего записей: {{ deviceTypeStore.pagination.total }}
       </div>
     </div>
 
     <!-- Диалог добавления -->
     <el-dialog
         v-model="dialogVisibleAdd"
-        title="Добавить бренд"
+        title="Добавить тип устройства"
         width="40%"
     >
       <el-form
-          :model="newBrand"
+          :model="newDeviceType"
           label-width="140px"
           ref="addForm"
           label-position="top"
@@ -124,45 +117,28 @@
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item
-                label="Название бренда"
+                label="Название типа"
                 prop="name"
                 :rules="[{ required: true, message: 'Название обязательно' }]"
             >
               <el-input
-                  v-model="newBrand.name"
-                  placeholder="Например: Schneider Electric"
+                  v-model="newDeviceType.name"
+                  placeholder="Например: Автоматический выключатель"
                   :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Страна производитель"
-                prop="country"
+                label="Код типа"
+                prop="code"
+                :rules="[{ required: true, message: 'Код обязателен' }]"
             >
               <el-input
-                  v-model="newBrand.country"
-                  placeholder="Например: Франция"
+                  v-model="newDeviceType.code"
+                  placeholder="Например: CB"
                   :size="store.size"
               />
-            </el-form-item>
-          </el-col>
-          <el-col :span="24">
-            <el-form-item
-                label="Веб-сайт"
-                prop="website"
-                :rules="[
-                  { required: true, message: 'Сайт обязателен' },
-                  { type: 'url', message: 'Введите корректный URL' }
-                ]"
-            >
-              <el-input
-                  v-model="newBrand.website"
-                  placeholder="https://example.com"
-                  :size="store.size"
-              >
-                <template #prepend>http://</template>
-              </el-input>
             </el-form-item>
           </el-col>
           <el-col :span="24">
@@ -171,9 +147,9 @@
                 prop="description"
             >
               <el-input
-                  v-model="newBrand.description"
+                  v-model="newDeviceType.description"
                   type="textarea"
-                  placeholder="Краткое описание бренда"
+                  placeholder="Краткое описание типа устройства"
                   :rows="3"
                   :size="store.size"
               />
@@ -201,45 +177,33 @@
     <!-- Диалог редактирования -->
     <el-dialog
         v-model="dialogVisible"
-        :title="`Редактирование: ${editingBrand?.name}`"
+        :title="`Редактирование: ${editingDeviceType?.name}`"
         width="40%"
     >
       <el-form
-          :model="editingBrand"
+          :model="editingDeviceType"
           label-width="140px"
           ref="editForm"
           label-position="top"
           :size="store.size"
       >
         <el-form-item
-            label="Название бренда"
+            label="Название типа"
             prop="name"
             :rules="[{ required: true, message: 'Название обязательно' }]"
         >
           <el-input
-              v-model="editingBrand.name"
+              v-model="editingDeviceType.name"
               :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Страна производитель"
-            prop="country"
+            label="Код типа"
+            prop="code"
+            :rules="[{ required: true, message: 'Код обязателен' }]"
         >
           <el-input
-              v-model="editingBrand.country"
-              :size="store.size"
-          />
-        </el-form-item>
-        <el-form-item
-            label="Веб-сайт"
-            prop="website"
-            :rules="[
-              { required: true, message: 'Сайт обязателен' },
-              { type: 'url', message: 'Введите корректный URL' }
-            ]"
-        >
-          <el-input
-              v-model="editingBrand.website"
+              v-model="editingDeviceType.code"
               :size="store.size"
           />
         </el-form-item>
@@ -248,7 +212,7 @@
             prop="description"
         >
           <el-input
-              v-model="editingBrand.description"
+              v-model="editingDeviceType.description"
               type="textarea"
               :rows="3"
               :size="store.size"
@@ -280,11 +244,11 @@ import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
-import { useBrandStore } from '@/store/brandStore';
+import { useDeviceTypeStore } from '@/store/deviceTypeStore';
 
 // Инициализация хранилищ
 const store = appStore();
-const brandStore = useBrandStore();
+const deviceTypeStore = useDeviceTypeStore();
 
 // Рефы для форм
 const addForm = ref(null);
@@ -294,15 +258,14 @@ const editForm = ref(null);
 const per_pages = ref([5, 10, 20, 30, 50, 100]);
 
 // Данные форм
-const newBrand = ref({
+const newDeviceType = ref({
   name: '',
-  country: '',
-  website: '',
+  code: '',
   description: ''
 });
 const dialogVisible = ref(false);
 const dialogVisibleAdd = ref(false);
-const editingBrand = ref(null);
+const editingDeviceType = ref(null);
 const searchQuery = ref('');
 
 // Конфигурация таблицы
@@ -329,36 +292,36 @@ const tableOption = ref({
 
 // Дебаунс для поиска (400мс)
 const debouncedSearch = debounce(() => {
-  brandStore.pagination.current_page = 1;
-  loadBrands();
+  deviceTypeStore.pagination.current_page = 1;
+  loadDeviceTypes();
 }, 400);
 
 // Загрузка данных с параметрами
-const loadBrands = async () => {
-  await brandStore.fetchAll({
+const loadDeviceTypes = async () => {
+  await deviceTypeStore.fetchAll({
     search: searchQuery.value,
-    page: brandStore.pagination.current_page,
-    per_page: brandStore.pagination.per_page
+    page: deviceTypeStore.pagination.current_page,
+    per_page: deviceTypeStore.pagination.per_page
   });
 };
 
 // Обработчик изменения количества строк на странице
 const handlePerPageChange = () => {
-  brandStore.pagination.current_page = 1;
-  loadBrands();
+  deviceTypeStore.pagination.current_page = 1;
+  loadDeviceTypes();
 };
 
 // Обработчик пагинации
 const handlePageChange = (page) => {
-  brandStore.pagination.current_page = page;
-  loadBrands();
+  deviceTypeStore.pagination.current_page = page;
+  loadDeviceTypes();
 };
 
 // Валидация и отправка формы добавления
 const validateAddForm = async () => {
   try {
     await addForm.value.validate();
-    await addBrand();
+    await addDeviceType();
   } catch (e) {
     console.log('Validation failed', e);
   }
@@ -374,20 +337,20 @@ const validateEditForm = async () => {
   }
 };
 
-// Добавление бренда
-const addBrand = async () => {
+// Добавление типа устройства
+const addDeviceType = async () => {
   try {
-    await brandStore.create(newBrand.value);
+    await deviceTypeStore.create(newDeviceType.value);
 
     ElMessage.success({
-      message: 'Бренд успешно добавлен',
+      message: 'Тип устройства успешно добавлен',
       duration: 3000
     });
 
     dialogVisibleAdd.value = false;
-    newBrand.value = { name: '', country: '', website: '', description: '' };
+    newDeviceType.value = { name: '', code: '', description: '' };
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка при добавлении бренда';
+    let errorMessage = error.message || 'Ошибка при добавлении типа устройства';
 
     // Обработка ошибок валидации
     if (error.errors) {
@@ -407,16 +370,16 @@ const addBrand = async () => {
   }
 };
 
-// Редактирование бренда
-const editBrand = (brand) => {
-  editingBrand.value = { ...brand };
+// Редактирование типа устройства
+const editDeviceType = (deviceType) => {
+  editingDeviceType.value = { ...deviceType };
   dialogVisible.value = true;
 };
 
 // Сохранение изменений
 const saveEdit = async () => {
   try {
-    await brandStore.update(editingBrand.value.id, editingBrand.value);
+    await deviceTypeStore.update(editingDeviceType.value.id, editingDeviceType.value);
 
     ElMessage.success({
       message: 'Изменения сохранены',
@@ -443,11 +406,11 @@ const saveEdit = async () => {
   }
 };
 
-// Удаление бренда
-const deleteBrand = async (id) => {
+// Удаление типа устройства
+const deleteDeviceType = async (id) => {
   try {
     await ElMessageBox.confirm(
-        'Вы уверены, что хотите удалить бренд? Это действие нельзя отменить.',
+        'Вы уверены, что хотите удалить тип устройства? Это действие нельзя отменить.',
         'Подтверждение удаления',
         {
           confirmButtonText: 'Удалить',
@@ -458,20 +421,20 @@ const deleteBrand = async (id) => {
         }
     );
 
-    await brandStore.delete(id);
+    await deviceTypeStore.delete(id);
 
     ElMessage.success({
-      message: 'Бренд успешно удален',
+      message: 'Тип устройства успешно удален',
       duration: 3000
     });
 
-    if (brandStore.brands.length === 0 && brandStore.pagination.current_page > 1) {
-      brandStore.pagination.current_page--;
-      loadBrands();
+    if (deviceTypeStore.deviceTypes.length === 0 && deviceTypeStore.pagination.current_page > 1) {
+      deviceTypeStore.pagination.current_page--;
+      loadDeviceTypes();
     }
   } catch (error) {
     if (error !== 'cancel') {
-      let errorMessage = error.message || 'Ошибка удаления бренда';
+      let errorMessage = error.message || 'Ошибка удаления типа устройства';
 
       if (error.details) {
         errorMessage = `${error.message}: ${error.details}`;
@@ -489,10 +452,10 @@ const deleteBrand = async (id) => {
 const tableActions = (actionName, row) => {
   switch (actionName) {
     case 'edit':
-      editBrand(row);
+      editDeviceType(row);
       break;
     case 'delete':
-      deleteBrand(row.id);
+      deleteDeviceType(row.id);
       break;
     default:
       console.warn(`Неизвестное действие: ${actionName}`);
@@ -504,9 +467,9 @@ const tableHeight = ref('calc(100vh - 1000px)');
 function updateTableHeight() {
   const titleHeight = 50;
   const tagHeight = 50;
-  const headerHeight = 120; // Высота вашего заголовка
-  const paginationHeight = 60; // Высота пагинации
-  const offset = 30; // Дополнительные отступы
+  const headerHeight = 120;      // Высота вашего заголовка
+  const paginationHeight = 60;   // Высота пагинации
+  const offset = 30;             // Дополнительные отступы
 
   tableHeight.value = `calc(100vh - ${titleHeight + tagHeight + headerHeight + paginationHeight + offset}px)`;
 }
@@ -514,8 +477,8 @@ function updateTableHeight() {
 // Инициализация компонента
 onMounted(() => {
   // Установка начального размера пагинации
-  brandStore.pagination.per_page = 20;
-  loadBrands();
+  deviceTypeStore.pagination.per_page = 5;
+  loadDeviceTypes();
 
   updateTableHeight();
   window.addEventListener('resize', updateTableHeight);
@@ -528,7 +491,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.brand-table-container {
+.device-type-table-container {
   margin: 10px;
 }
 
@@ -552,13 +515,13 @@ onUnmounted(() => {
 .per-page-selector {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 10px;
   font-size: 13px;
 }
 
 .total-items {
   text-align: right;
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
 }
 </style>

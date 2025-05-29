@@ -3,15 +3,14 @@
 namespace App\Http\Controllers\Api\Entity;
 
 use App\Http\Controllers\Controller;
-use App\Models\ElectricalProtection\Brand;
+use App\Models\ElectricalProtection\DeviceType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
-class BrandController extends Controller
+class DeviceTypeController extends Controller
 {
-
     public function __construct()
     {
         $this->middleware('auth:api');
@@ -20,35 +19,34 @@ class BrandController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = Brand::query();
+            $query = DeviceType::query();
 
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
-                        ->orWhere('country', 'LIKE', "%{$search}%")
-                        ->orWhere('website', 'LIKE', "%{$search}%")
+                        ->orWhere('code', 'LIKE', "%{$search}%")
                         ->orWhere('description', 'LIKE', "%{$search}%");
                 });
             }
 
             $perPage = $request->per_page ?? 10;
-            $brands = $query->paginate($perPage);
+            $deviceTypes = $query->paginate($perPage);
 
             return response()->json([
-                'data' => $brands->items(),
+                'data' => $deviceTypes->items(),
                 'meta' => [
-                    'total' => $brands->total(),
-                    'per_page' => $brands->perPage(),
-                    'current_page' => $brands->currentPage(),
-                    'last_page' => $brands->lastPage()
+                    'total' => $deviceTypes->total(),
+                    'per_page' => $deviceTypes->perPage(),
+                    'current_page' => $deviceTypes->currentPage(),
+                    'last_page' => $deviceTypes->lastPage()
                 ]
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Brand index error: ' . $e->getMessage());
+            Log::error('DeviceType index error: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Ошибка при загрузке брендов',
+                'error' => 'Ошибка при загрузке типов устройств',
                 'details' => $e->getMessage()
             ], 500);
         }
@@ -57,30 +55,27 @@ class BrandController extends Controller
     public function store(Request $request)
     {
         try {
-            Log::debug('Brand Store Request:', $request->all());
-
             $validated = $request->validate([
                 'name' => [
                     'required',
                     'string',
-                    'max:100',
-                    Rule::unique('ep_brands', 'name')
+                    'max:50',
+                    Rule::unique('ep_device_types', 'name')
                 ],
-                'website' => [
+                'code' => [
                     'required',
-                    'url',
-                    'max:100',
-                    Rule::unique('ep_brands', 'website')
+                    'string',
+                    'max:20',
+                    Rule::unique('ep_device_types', 'code')
                 ],
-                'country' => 'nullable|string|max:50',
                 'description' => 'nullable|string|max:255',
             ]);
 
-            $brand = Brand::create($validated);
+            $deviceType = DeviceType::create($validated);
 
             return response()->json([
-                'message' => 'Бренд создан успешно',
-                'data' => $brand
+                'message' => 'Тип устройства успешно создан',
+                'data' => $deviceType
             ], 201);
 
         } catch (ValidationException $e) {
@@ -90,9 +85,9 @@ class BrandController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-            Log::error('Brand store error: ' . $e->getMessage());
+            Log::error('DeviceType store error: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Ошибка при создании бренда',
+                'error' => 'Ошибка при создании типа устройства',
                 'details' => $e->getMessage()
             ], 500);
         }
@@ -101,13 +96,13 @@ class BrandController extends Controller
     public function show(string $id)
     {
         try {
-            $brand = Brand::findOrFail($id);
-            return response()->json($brand);
+            $deviceType = DeviceType::findOrFail($id);
+            return response()->json($deviceType);
 
         } catch (\Exception $e) {
-            Log::error('Brand show error: ' . $e->getMessage());
+            Log::error('DeviceType show error: ' . $e->getMessage());
             return response()->json([
-                'error' => 'Бренд не найден',
+                'error' => 'Тип устройства не найден',
                 'details' => $e->getMessage()
             ], 404);
         }
@@ -116,30 +111,29 @@ class BrandController extends Controller
     public function update(Request $request, string $id)
     {
         try {
-            $brand = Brand::findOrFail($id);
+            $deviceType = DeviceType::findOrFail($id);
 
             $validated = $request->validate([
                 'name' => [
                     'required',
                     'string',
-                    'max:100',
-                    Rule::unique('ep_brands', 'name')->ignore($id)
+                    'max:50',
+                    Rule::unique('ep_device_types', 'name')->ignore($id)
                 ],
-                'website' => [
+                'code' => [
                     'required',
-                    'url',
-                    'max:100',
-                    Rule::unique('ep_brands', 'website')->ignore($id)
+                    'string',
+                    'max:20',
+                    Rule::unique('ep_device_types', 'code')->ignore($id)
                 ],
-                'country' => 'nullable|string|max:50',
                 'description' => 'nullable|string|max:255',
             ]);
 
-            $brand->update($validated);
+            $deviceType->update($validated);
 
             return response()->json([
-                'message' => 'Бренд обновлён',
-                'data' => $brand
+                'message' => 'Тип устройства обновлен',
+                'data' => $deviceType
             ]);
 
         } catch (ValidationException $e) {
@@ -149,10 +143,10 @@ class BrandController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-            Log::error('Brand update error: ' . $e->getMessage());
+            Log::error('DeviceType update error: ' . $e->getMessage());
             $status = $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException ? 404 : 500;
             return response()->json([
-                'error' => $status === 404 ? 'Бренд не найден' : 'Ошибка при обновлении бренда',
+                'error' => $status === 404 ? 'Тип устройства не найден' : 'Ошибка при обновлении типа устройства',
                 'details' => $e->getMessage()
             ], $status);
         }
@@ -161,16 +155,16 @@ class BrandController extends Controller
     public function destroy(string $id)
     {
         try {
-            $brand = Brand::findOrFail($id);
-            $brand->delete();
+            $deviceType = DeviceType::findOrFail($id);
+            $deviceType->delete();
 
-            return response()->json(['message' => 'Бренд удалён']);
+            return response()->json(['message' => 'Тип устройства удален']);
 
         } catch (\Exception $e) {
-            Log::error('Brand destroy error: ' . $e->getMessage());
+            Log::error('DeviceType destroy error: ' . $e->getMessage());
             $status = $e instanceof \Illuminate\Database\Eloquent\ModelNotFoundException ? 404 : 500;
             return response()->json([
-                'error' => $status === 404 ? 'Бренд не найден' : 'Ошибка при удалении бренда',
+                'error' => $status === 404 ? 'Тип устройства не найден' : 'Ошибка при удалении типа устройства',
                 'details' => $e->getMessage()
             ], $status);
         }

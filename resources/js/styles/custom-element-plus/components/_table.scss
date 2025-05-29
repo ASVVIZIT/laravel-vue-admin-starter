@@ -5,6 +5,10 @@
 
 #app {
   .main-container {
+
+    .el-table tr {
+      max-height: 40px;
+    }
     .el-table .el-table__cell {
       padding: 1px 0px;
       min-width: 0;

@@ -1,13 +1,13 @@
 <template>
-  <el-card class="brand-table-container">
-    <h2>Список брендов</h2>
+  <el-card class="measurement-unit-table-container">
+    <h2>Список единиц измерений</h2>
 
     <!-- Панель поиска и добавления -->
     <el-row :gutter="12" class="toolbar">
       <el-col :span="12" style="text-align: left">
         <el-input
             v-model="searchQuery"
-            placeholder="Поиск по названию, стране или сайту..."
+            placeholder="Поиск по названию, символу, величине или категории..."
             clearable
             @input="debouncedSearch"
             @clear="debouncedSearch"
@@ -24,31 +24,26 @@
             @click="dialogVisibleAdd = true"
             :size="store.size"
         >
-          <el-icon><Plus /></el-icon> Добавить бренд
+          <el-icon><Plus /></el-icon> Добавить единицу
         </el-button>
       </el-col>
     </el-row>
 
-    <!-- Таблица брендов -->
+    <!-- Таблица единиц измерений -->
     <el-table
         border
         style="width: 100%"
-        :data="brandStore.brands"
-        v-loading="brandStore.loading"
+        :data="measurementUnitStore.measurementUnits"
+        v-loading="measurementUnitStore.loading"
         empty-text="Нет данных"
         :size="store.size"
         :height="tableHeight"
     >
       <el-table-column prop="id" label="ID" width="50" />
       <el-table-column prop="name" label="Название" />
-      <el-table-column prop="country" label="Страна" width="110" />
-      <el-table-column prop="website" label="Веб-сайт">
-        <template #default="{row}">
-          <el-link :href="row.website" target="_blank" type="primary" :size="store.size">
-            {{ row.website }}
-          </el-link>
-        </template>
-      </el-table-column>
+      <el-table-column prop="symbol" label="Символ" width="100" />
+      <el-table-column prop="physical_quantity" label="Физическая величина" width="120" />
+      <el-table-column prop="category" label="Категория" />
 
       <el-table-column
           label="Действия"
@@ -78,7 +73,7 @@
         <div class="per-page-selector">
           <span>Записей на странице:</span>
           <el-select
-              v-model="brandStore.pagination.per_page"
+              v-model="measurementUnitStore.pagination.per_page"
               @change="handlePerPageChange"
               :size="store.size"
               style="width: 100px"
@@ -96,26 +91,26 @@
         <el-pagination
             background
             layout="prev, pager, next, jumper"
-            :total="brandStore.pagination.total"
-            :page-size="brandStore.pagination.per_page"
-            :current-page="brandStore.pagination.current_page"
+            :total="measurementUnitStore.pagination.total"
+            :page-size="measurementUnitStore.pagination.per_page"
+            :current-page="measurementUnitStore.pagination.current_page"
             @current-change="handlePageChange"
             :size="store.size"
         />
       </div>
       <div class="total-items">
-        Всего записей: {{ brandStore.pagination.total }}
+        Всего записей: {{ measurementUnitStore.pagination.total }}
       </div>
     </div>
 
     <!-- Диалог добавления -->
     <el-dialog
         v-model="dialogVisibleAdd"
-        title="Добавить бренд"
+        title="Добавить единицу измерения"
         width="40%"
     >
       <el-form
-          :model="newBrand"
+          :model="newMeasurementUnit"
           label-width="140px"
           ref="addForm"
           label-position="top"
@@ -124,57 +119,52 @@
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item
-                label="Название бренда"
+                label="Название"
                 prop="name"
                 :rules="[{ required: true, message: 'Название обязательно' }]"
             >
               <el-input
-                  v-model="newBrand.name"
-                  placeholder="Например: Schneider Electric"
+                  v-model="newMeasurementUnit.name"
+                  placeholder="Например: Ампер"
                   :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Страна производитель"
-                prop="country"
+                label="Символ"
+                prop="symbol"
+                :rules="[{ required: true, message: 'Символ обязателен' }]"
             >
               <el-input
-                  v-model="newBrand.country"
-                  placeholder="Например: Франция"
+                  v-model="newMeasurementUnit.symbol"
+                  placeholder="Например: A"
                   :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Веб-сайт"
-                prop="website"
-                :rules="[
-                  { required: true, message: 'Сайт обязателен' },
-                  { type: 'url', message: 'Введите корректный URL' }
-                ]"
+                label="Физическая величина"
+                prop="physical_quantity"
+                :rules="[{ required: true, message: 'Физическая величина обязательна' }]"
             >
               <el-input
-                  v-model="newBrand.website"
-                  placeholder="https://example.com"
+                  v-model="newMeasurementUnit.physical_quantity"
+                  placeholder="Например: ток"
                   :size="store.size"
-              >
-                <template #prepend>http://</template>
-              </el-input>
+              />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Описание"
-                prop="description"
+                label="Категория"
+                prop="category"
+                :rules="[{ required: true, message: 'Категория обязательна' }]"
             >
               <el-input
-                  v-model="newBrand.description"
-                  type="textarea"
-                  placeholder="Краткое описание бренда"
-                  :rows="3"
+                  v-model="newMeasurementUnit.category"
+                  placeholder="Например: current"
                   :size="store.size"
               />
             </el-form-item>
@@ -201,56 +191,53 @@
     <!-- Диалог редактирования -->
     <el-dialog
         v-model="dialogVisible"
-        :title="`Редактирование: ${editingBrand?.name}`"
+        :title="`Редактирование: ${editingMeasurementUnit?.name}`"
         width="40%"
     >
       <el-form
-          :model="editingBrand"
+          :model="editingMeasurementUnit"
           label-width="140px"
           ref="editForm"
           label-position="top"
           :size="store.size"
       >
         <el-form-item
-            label="Название бренда"
+            label="Название"
             prop="name"
             :rules="[{ required: true, message: 'Название обязательно' }]"
         >
           <el-input
-              v-model="editingBrand.name"
+              v-model="editingMeasurementUnit.name"
               :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Страна производитель"
-            prop="country"
+            label="Символ"
+            prop="symbol"
+            :rules="[{ required: true, message: 'Символ обязателен' }]"
         >
           <el-input
-              v-model="editingBrand.country"
+              v-model="editingMeasurementUnit.symbol"
               :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Веб-сайт"
-            prop="website"
-            :rules="[
-              { required: true, message: 'Сайт обязателен' },
-              { type: 'url', message: 'Введите корректный URL' }
-            ]"
+            label="Физическая величина"
+            prop="physical_quantity"
+            :rules="[{ required: true, message: 'Физическая величина обязательна' }]"
         >
           <el-input
-              v-model="editingBrand.website"
+              v-model="editingMeasurementUnit.physical_quantity"
               :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Описание"
-            prop="description"
+            label="Категория"
+            prop="category"
+            :rules="[{ required: true, message: 'Категория обязательна' }]"
         >
           <el-input
-              v-model="editingBrand.description"
-              type="textarea"
-              :rows="3"
+              v-model="editingMeasurementUnit.category"
               :size="store.size"
           />
         </el-form-item>
@@ -280,11 +267,11 @@ import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
-import { useBrandStore } from '@/store/brandStore';
+import { useMeasurementUnitStore } from '@/store/measurementUnitStore';
 
 // Инициализация хранилищ
 const store = appStore();
-const brandStore = useBrandStore();
+const measurementUnitStore = useMeasurementUnitStore();
 
 // Рефы для форм
 const addForm = ref(null);
@@ -294,15 +281,15 @@ const editForm = ref(null);
 const per_pages = ref([5, 10, 20, 30, 50, 100]);
 
 // Данные форм
-const newBrand = ref({
+const newMeasurementUnit = ref({
   name: '',
-  country: '',
-  website: '',
-  description: ''
+  symbol: '',
+  physical_quantity: '',
+  category: ''
 });
 const dialogVisible = ref(false);
 const dialogVisibleAdd = ref(false);
-const editingBrand = ref(null);
+const editingMeasurementUnit = ref(null);
 const searchQuery = ref('');
 
 // Конфигурация таблицы
@@ -329,36 +316,36 @@ const tableOption = ref({
 
 // Дебаунс для поиска (400мс)
 const debouncedSearch = debounce(() => {
-  brandStore.pagination.current_page = 1;
-  loadBrands();
+  measurementUnitStore.pagination.current_page = 1;
+  loadMeasurementUnits();
 }, 400);
 
 // Загрузка данных с параметрами
-const loadBrands = async () => {
-  await brandStore.fetchAll({
+const loadMeasurementUnits = async () => {
+  await measurementUnitStore.fetchAll({
     search: searchQuery.value,
-    page: brandStore.pagination.current_page,
-    per_page: brandStore.pagination.per_page
+    page: measurementUnitStore.pagination.current_page,
+    per_page: measurementUnitStore.pagination.per_page
   });
 };
 
 // Обработчик изменения количества строк на странице
 const handlePerPageChange = () => {
-  brandStore.pagination.current_page = 1;
-  loadBrands();
+  measurementUnitStore.pagination.current_page = 1;
+  loadMeasurementUnits();
 };
 
 // Обработчик пагинации
 const handlePageChange = (page) => {
-  brandStore.pagination.current_page = page;
-  loadBrands();
+  measurementUnitStore.pagination.current_page = page;
+  loadMeasurementUnits();
 };
 
 // Валидация и отправка формы добавления
 const validateAddForm = async () => {
   try {
     await addForm.value.validate();
-    await addBrand();
+    await addMeasurementUnit();
   } catch (e) {
     console.log('Validation failed', e);
   }
@@ -374,20 +361,20 @@ const validateEditForm = async () => {
   }
 };
 
-// Добавление бренда
-const addBrand = async () => {
+// Добавление единицы измерения
+const addMeasurementUnit = async () => {
   try {
-    await brandStore.create(newBrand.value);
+    await measurementUnitStore.create(newMeasurementUnit.value);
 
     ElMessage.success({
-      message: 'Бренд успешно добавлен',
+      message: 'Единица измерения успешно добавлена',
       duration: 3000
     });
 
     dialogVisibleAdd.value = false;
-    newBrand.value = { name: '', country: '', website: '', description: '' };
+    newMeasurementUnit.value = { name: '', symbol: '', physical_quantity: '', category: '' };
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка при добавлении бренда';
+    let errorMessage = error.message || 'Ошибка при добавлении единицы измерения';
 
     // Обработка ошибок валидации
     if (error.errors) {
@@ -407,16 +394,16 @@ const addBrand = async () => {
   }
 };
 
-// Редактирование бренда
-const editBrand = (brand) => {
-  editingBrand.value = { ...brand };
+// Редактирование единицы измерения
+const editMeasurementUnit = (measurementUnit) => {
+  editingMeasurementUnit.value = { ...measurementUnit };
   dialogVisible.value = true;
 };
 
 // Сохранение изменений
 const saveEdit = async () => {
   try {
-    await brandStore.update(editingBrand.value.id, editingBrand.value);
+    await measurementUnitStore.update(editingMeasurementUnit.value.id, editingMeasurementUnit.value);
 
     ElMessage.success({
       message: 'Изменения сохранены',
@@ -443,11 +430,11 @@ const saveEdit = async () => {
   }
 };
 
-// Удаление бренда
-const deleteBrand = async (id) => {
+// Удаление единицы измерения
+const deleteMeasurementUnit = async (id) => {
   try {
     await ElMessageBox.confirm(
-        'Вы уверены, что хотите удалить бренд? Это действие нельзя отменить.',
+        'Вы уверены, что хотите удалить единицу измерения? Это действие нельзя отменить.',
         'Подтверждение удаления',
         {
           confirmButtonText: 'Удалить',
@@ -458,20 +445,20 @@ const deleteBrand = async (id) => {
         }
     );
 
-    await brandStore.delete(id);
+    await measurementUnitStore.delete(id);
 
     ElMessage.success({
-      message: 'Бренд успешно удален',
+      message: 'Единица измерения успешно удалена',
       duration: 3000
     });
 
-    if (brandStore.brands.length === 0 && brandStore.pagination.current_page > 1) {
-      brandStore.pagination.current_page--;
-      loadBrands();
+    if (measurementUnitStore.measurementUnits.length === 0 && measurementUnitStore.pagination.current_page > 1) {
+      measurementUnitStore.pagination.current_page--;
+      loadMeasurementUnits();
     }
   } catch (error) {
     if (error !== 'cancel') {
-      let errorMessage = error.message || 'Ошибка удаления бренда';
+      let errorMessage = error.message || 'Ошибка удаления единицы измерения';
 
       if (error.details) {
         errorMessage = `${error.message}: ${error.details}`;
@@ -489,10 +476,10 @@ const deleteBrand = async (id) => {
 const tableActions = (actionName, row) => {
   switch (actionName) {
     case 'edit':
-      editBrand(row);
+      editMeasurementUnit(row);
       break;
     case 'delete':
-      deleteBrand(row.id);
+      deleteMeasurementUnit(row.id);
       break;
     default:
       console.warn(`Неизвестное действие: ${actionName}`);
@@ -504,9 +491,9 @@ const tableHeight = ref('calc(100vh - 1000px)');
 function updateTableHeight() {
   const titleHeight = 50;
   const tagHeight = 50;
-  const headerHeight = 120; // Высота вашего заголовка
-  const paginationHeight = 60; // Высота пагинации
-  const offset = 30; // Дополнительные отступы
+  const headerHeight = 120;     // Высота вашего заголовка
+  const paginationHeight = 60;  // Высота пагинации
+  const offset = 30;            // Дополнительные отступы
 
   tableHeight.value = `calc(100vh - ${titleHeight + tagHeight + headerHeight + paginationHeight + offset}px)`;
 }
@@ -514,8 +501,8 @@ function updateTableHeight() {
 // Инициализация компонента
 onMounted(() => {
   // Установка начального размера пагинации
-  brandStore.pagination.per_page = 20;
-  loadBrands();
+  measurementUnitStore.pagination.per_page = 10;
+  loadMeasurementUnits();
 
   updateTableHeight();
   window.addEventListener('resize', updateTableHeight);
@@ -528,7 +515,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.brand-table-container {
+.measurement-unit-table-container {
   margin: 10px;
 }
 
@@ -553,12 +540,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .total-items {
   text-align: right;
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
 }
 </style>

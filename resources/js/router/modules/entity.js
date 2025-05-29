@@ -15,11 +15,72 @@ const entityRoutes = {
     },
     children: [
         {
-            path: 'brands',
+            path: '/brands',
             component: () => import('@/views/Entities/BrandsView/BrandsView.vue'),
-            name: 'brandsEntity',
-            meta: {title: 'brandsEntity', bootstrapIcon: 'entity', permissions: ['manage user']},
+            name: 'brands',
+            meta: {title: 'Бренды', bootstrapIcon: 'brand', permissions: ['manage entity']},
         },
+        {
+            path: '/deviceType',
+            component: () => import('@/views/Entities/DeviceTypeView/DeviceTypeView.vue'),
+            name: 'DeviceType',
+            meta: {title: 'Типы устройства', bootstrapIcon: 'device', permissions: ['manage entity']},
+        },
+        {
+            path: '/measurementUnit',
+            component: () => import('@/views/Entities/MeasurementUnit/MeasurementUnit.vue'),
+            name: 'MeasurementUnit',
+            meta: {title: 'Единицы измерений', bootstrapIcon: 'unit', permissions: ['manage entity']},
+        },
+
+        {
+            path: '/accessories',
+            redirect: '/accessories/list',
+            name: 'Accessories',
+            meta: {
+                title: 'Аксессуар Электрики',
+                bootstrapIcon: 'unit',
+                permissions: ['manage entity'],
+                requiresAuth: true
+            },
+            children: [
+                {
+                    path: '/accessories/list',
+                    name: 'AccessoriesList',
+                    component: () => import('@/views/Entities/AccessoriesView/AccessoriesView.vue'),
+                    meta: {
+                        title: 'Аксессуар Электрики',
+                        bootstrapIcon: 'unit',
+                        permissions: ['manage entity'],
+                        requiresAuth: true
+                    }
+                },
+                {
+                    path: '/accessories/create',
+                    name: 'AccessoryCreate',
+                    component: () => import('@/views/entities/AccessoriesView/AccessoryForm.vue'),
+                    meta: {
+                        title: 'Создание Аксессуара Электрики',
+                        bootstrapIcon: 'unit',
+                        permissions: ['manage entity'],
+                        requiresAuth: true
+                    }
+                },
+                {
+                    hidden: true,
+                    path: '/accessories/edit/:id',
+                    name: 'AccessoryEdit',
+                    component: () => import('@/views/entities/AccessoriesView/AccessoryForm.vue'),
+                    meta: {
+                        title: 'Редактирование Аксессуара Электрики',
+                        bootstrapIcon: 'unit',
+                        permissions: ['manage entity']
+                    }
+                }
+            ]
+
+        },
+
     ],
 }
 

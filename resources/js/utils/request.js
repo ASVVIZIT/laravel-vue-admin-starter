@@ -1,64 +1,92 @@
 import '@/bootstrap';
 import { ElMessage } from 'element-plus';
-import { isLogged, getToken } from '@/utils/auth';
+import { isLogged, getToken, setToken } from '@/utils/auth'; // Убедитесь, что setToken импортирован
 
-// Create axios instance
 const service = window.axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 10000, // Request timeout
+    baseURL: import.meta.env.VITE_API_BASE_URL,
+    timeout: 30000,
 });
 
-// Request intercepter
-/*service.interceptors.request.use(config => {
-    if (isTokenValid()) { // Используйте проверку валидности
-        config.withCredentials = true; // Для передачи кук
-        config.headers['Authorization'] = 'Bearer ' + getToken();
-    } else {
-        // Перенаправление на страницу входа
-        window.location.href = '/login';
-    }
-    return config;
-});*/
-
+// Интерцептор запросов
 service.interceptors.request.use(
-  config => {
-    const token = isLogged();
-    if (token) {
-      config.withCredentials = true; // Для передачи кук
-      config.headers['Authorization'] = 'Bearer ' + getToken(); // Set JWT token
+    config => {
+        const token = getToken(); // Получаем токен из хранилища
+
+        if (token && isLogged()) {
+            config.headers['Authorization'] = 'Bearer ' + token;
+            config.withCredentials = true; // Важно для передачи кук
+        }
+
+        return config;
+    },
+    error => {
+        return Promise.reject(error);
     }
-    return config;
-  },
-  error => {
-    // Do something with request error
-    console.log(error); // for debug
-    Promise.reject(error);
-  }
 );
 
-// response pre-processing
+// Интерцептор ответов
 service.interceptors.response.use(
-  response => {
-    if (response.headers.authorization) {
-      setLogged(response.headers.authorization);
-      response.data.token = response.headers.authorization;
-    }
+    response => {
+        // Обновление токена, если он пришел в заголовках
+        const newToken = response.headers['authorization'] || response.headers['Authorization'];
 
-    return response.data;
-  },
-  error => {
-    let message = error.message;
-    if (error.response.data && error.response.data.message) {
-      message = error.response.data.message;
-    }
+        if (newToken) {
+            setToken(newToken); // Сохраняем новый токен
+            response.data.token = newToken; // Для возможного использования
+        }
 
-    ElMessage({
-      message: message,
-      type: 'error',
-      duration: 5 * 1000,
-    });
-    return Promise.reject(error);
-  }
+        return response.data;
+    },
+    error => {
+        if (!error.response) {
+            ElMessage.error({
+                message: 'Сетевая ошибка: ' + error.message,
+                duration: 5000,
+            });
+            return Promise.reject(error);
+        }
+
+        const response = error.response;
+        const status = response.status;
+        let message = 'Произошла ошибка';
+        let details = '';
+
+        // Обработка 401 ошибки (неавторизован)
+        if (status === 401) {
+            message = 'Требуется авторизация';
+            // Перенаправление на страницу входа
+            window.location.href = '/login';
+            return Promise.reject(error);
+        }
+
+        // Стандартная обработка ошибок
+        if (response.data) {
+            message = response.data.error || response.data.message || message;
+            details = response.data.details || '';
+        }
+
+        // Ошибки валидации
+        if (status === 422 && response.data.errors) {
+            message = 'Ошибка валидации';
+            details = Object.values(response.data.errors)
+                .flat()
+                .join('; ');
+        }
+
+        const fullMessage = details ? `${message}: ${details}` : message;
+
+        ElMessage.error({
+            message: fullMessage,
+            duration: 5000,
+        });
+
+        return Promise.reject({
+            status,
+            message,
+            details,
+            response
+        });
+    }
 );
 
 export default service;

@@ -1,3 +1,5 @@
+// api/resource.js
+
 import request from '@/utils/request';
 
 /**

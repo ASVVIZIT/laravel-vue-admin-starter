@@ -6,7 +6,6 @@ use App\Models\Acl;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\ElectricalProtection\BrandsSeeder;
-use Database\Seeders\ElectricalProtection\CableSeeder;
 use Database\Seeders\ElectricalProtection\DeviceTypeSeeder;
 use Database\Seeders\ElectricalProtection\MeasurementUnitSeeder;
 use Database\Seeders\ElectricalProtection\Schneider\BrandSchneiderSeeder;
@@ -120,6 +119,7 @@ class DatabaseSeeder extends Seeder
         // Бренды и типы устройств
         $this->call([
             MeasurementUnitSeeder::class,
+            BrandsSeeder::class,
             BrandSchneiderSeeder::class,
             DeviceTypeSeeder::class,
         ]);

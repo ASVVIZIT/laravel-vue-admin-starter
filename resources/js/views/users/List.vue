@@ -1,5 +1,6 @@
 <template>
-  <div class="app-container scroll-y">
+  <el-card class="app-container">
+    <h2>Список пользователей</h2>
       <div class="filter-container">
         <el-input
             v-model="filters.search"
@@ -38,7 +39,6 @@
 
       <custom-table
           :size="store.size"
-          :tableHeight="'100%'"
           :table-data="tableData"
           :table-column="basicColumn"
           :table-option="tableOption"
@@ -51,7 +51,8 @@
           @size-change="handleSizeChange"
           @current-change="handlePageChange"
           :row-style="{fontSize: store.size === 'small' ? '10px' : '12px'}"
-          :header-cell-style="{fontSize: store.size === 'small' ? '12px' : '14px'}">
+          :header-cell-style="{fontSize: store.size === 'small' ? '12px' : '14px'}"
+          :table-height="tableHeight"
       >
         <template #header="{ column }">
           <div class="custom-header">
@@ -224,14 +225,13 @@
         </div>
       </div>
     </el-dialog>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
-//import { ElForm, ElFormItem, ElInput, ElSelect, ElOption } from 'element-plus'
 import { Search, Plus, Refresh, Filter } from '@element-plus/icons-vue'
 import CustomTable from '@/components/CustomTable.vue'
 import SvgItem from "@/components/Item/SvgItem.vue"
@@ -859,14 +859,34 @@ const confirmPermission = async () => {
 const permissionKeys = (permissions) =>
     permissions.map(p => p.id);
 
+const tableHeight = ref('calc(100vh - 1000px)');
+
+function updateTableHeight() {
+  const breadHeight = 50; // Высота вашего заголовка
+  const tagHeight = 50; // Высота вашего заголовка
+  const headerHeight = 140; // Высота вашего заголовка
+  const paginationHeight = 60; // Высота пагинации
+  const offset = 30; // Дополнительные отступы
+
+  tableHeight.value = `calc(100vh - ${breadHeight + tagHeight + headerHeight + paginationHeight + offset}px)`;
+}
 
 // Инициализация
 onMounted(async () => {
+  pagination.per_page = 20
+
+  updateTableHeight();
+  window.addEventListener('resize', updateTableHeight);
   await getList()
   if (checkPermission(['manage permission'])) {
     await getPermissions()
   }
 })
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateTableHeight);
+});
+
 
 </script>
 
@@ -924,7 +944,7 @@ onMounted(async () => {
   flex: 1;
   justify-content: space-between;
   font-size: 14px;
-  padding-right: 8px;
+  padding: 8px;
 
   .el-dialog__body {
     .form-container {

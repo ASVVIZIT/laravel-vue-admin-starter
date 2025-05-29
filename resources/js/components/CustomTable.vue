@@ -1,6 +1,6 @@
 <template>
   <section>
-    <el-table
+      <el-table
         ref="tableRef"
         v-loading="loading"
         highlight-current-row
@@ -98,20 +98,20 @@
       </el-table-column>
     </el-table>
 
-    <template v-if="paginate && pagination.meta.total>0">
-      <section class="pagination-container">
-        <el-pagination
-            background
-            :page-sizes="pageSizes"
-            :layout="layout"
-            :current-page="pagination.meta.current_page"
-            :page-size="pagination.meta.per_page"
-            :total="pagination.meta.total"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-        />
-      </section>
-    </template>
+      <template v-if="paginate && pagination.meta.total>0">
+        <section class="pagination-container">
+          <el-pagination
+              background
+              :page-sizes="pageSizes"
+              :layout="layout"
+              :current-page="pagination.meta.current_page"
+              :page-size="pagination.meta.per_page"
+              :total="pagination.meta.total"
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+          />
+        </section>
+      </template>
   </section>
 </template>
 
@@ -149,8 +149,8 @@ export default {
         ]
       }
     },
-    tableHeight: String,
-    pageSizes: { type: Array, default: () => [10, 30, 50, 100] },
+    tableHeight: { type: String, default: 'calc(100vh - 400px)' },
+    pageSizes: { type: Array, default: () => [5, 10, 30, 50, 100, 200] },
     layout: { type: String, default: 'total, sizes, prev, pager, next, jumper' }
   },
   setup(props, ctx) {
@@ -207,6 +207,12 @@ export default {
 </script>
 
 <style scoped>
+.pagination-container {
+  flex-shrink: 0;
+  background: #fff;
+  padding: 12px 8px;
+}
+
 .pagination-container {
   background: #fff;
   padding: 12px 8px;
