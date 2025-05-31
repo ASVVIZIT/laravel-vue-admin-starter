@@ -55,7 +55,7 @@ service.interceptors.response.use(
         if (status === 401) {
             message = 'Требуется авторизация';
             // Перенаправление на страницу входа
-            window.location.href = '/login';
+            window.location.href = '#/login';
             return Promise.reject(error);
         }
 

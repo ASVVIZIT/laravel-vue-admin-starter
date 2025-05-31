@@ -30,7 +30,7 @@ class DeviceTypeController extends Controller
                 });
             }
 
-            $perPage = $request->per_page ?? 10;
+            $perPage = $request->per_page ?? 100;
             $deviceTypes = $query->paginate($perPage);
 
             return response()->json([

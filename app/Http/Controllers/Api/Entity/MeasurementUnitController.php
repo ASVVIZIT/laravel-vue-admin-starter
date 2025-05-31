@@ -19,19 +19,23 @@ class MeasurementUnitController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = MeasurementUnit::query();
+            $query = MeasurementUnit::with('category');
 
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
                     $q->where('name', 'LIKE', "%{$search}%")
                         ->orWhere('symbol', 'LIKE', "%{$search}%")
+                        ->orWhere('display_symbol', 'LIKE', "%{$search}%")
                         ->orWhere('physical_quantity', 'LIKE', "%{$search}%")
-                        ->orWhere('category', 'LIKE', "%{$search}%");
+                        ->orWhereHas('category', function($q) use ($search) {
+                            $q->where('name', 'LIKE', "%{$search}%")
+                                ->orWhere('description', 'LIKE', "%{$search}%");
+                        });
                 });
             }
 
-            $perPage = $request->per_page ?? 10;
+            $perPage = $request->per_page ?? 100;
             $units = $query->paginate($perPage);
 
             return response()->json([
@@ -69,11 +73,13 @@ class MeasurementUnitController extends Controller
                     'max:10',
                     Rule::unique('ep_measurement_units', 'symbol')
                 ],
+                'display_symbol' => 'required|string|max:10',
                 'physical_quantity' => 'required|string|max:50',
-                'category' => 'required|string|max:50',
+                'measurement_category_id' => 'required|exists:ep_measurement_categories,id',
             ]);
 
             $unit = MeasurementUnit::create($validated);
+            $unit->load('category');
 
             return response()->json([
                 'message' => 'Единица измерения успешно создана',
@@ -98,7 +104,7 @@ class MeasurementUnitController extends Controller
     public function show(string $id)
     {
         try {
-            $unit = MeasurementUnit::findOrFail($id);
+            $unit = MeasurementUnit::with('category')->findOrFail($id);
             return response()->json($unit);
 
         } catch (\Exception $e) {
@@ -128,11 +134,13 @@ class MeasurementUnitController extends Controller
                     'max:10',
                     Rule::unique('ep_measurement_units', 'symbol')->ignore($id)
                 ],
+                'display_symbol' => 'required|string|max:10',
                 'physical_quantity' => 'required|string|max:50',
-                'category' => 'required|string|max:50',
+                'measurement_category_id' => 'required|exists:ep_measurement_categories,id',
             ]);
 
             $unit->update($validated);
+            $unit->load('category');
 
             return response()->json([
                 'message' => 'Единица измерения обновлена',

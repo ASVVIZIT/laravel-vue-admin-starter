@@ -7,14 +7,18 @@ use App\Models\ElectricalProtection\Accessory;
 use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class MechanicalAccessoriesSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
         $deviceType = DeviceType::where('code', 'ACCESSORY')->first();
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        // Получаем единицы измерения с нормализацией символов
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
 
         $accessories = [
             // Механическая блокировка
@@ -59,7 +63,7 @@ class MechanicalAccessoriesSeeder extends Seeder
             Accessory::updateOrCreate(
                 ['model' => $item['model']],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $deviceType->id,
                     'series' => 'Acti9 Mounting',
                     'name' => $item['name'],

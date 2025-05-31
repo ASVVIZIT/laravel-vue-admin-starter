@@ -4,17 +4,19 @@ namespace Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries
 
 use App\Models\ElectricalProtection\Brand;
 use App\Models\ElectricalProtection\CircuitBreaker;
+use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class STISBISeed extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
-        if (!$schneider) {
-            $schneider = Brand::updateOrCreate([
+        if (!$brand) {
+            $brand = Brand::updateOrCreate([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
                 'website' => 'https://www.se.com ',
@@ -22,7 +24,9 @@ class STISBISeed extends Seeder
             ]);
         }
 
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
 
         /**
          * Описание:
@@ -114,31 +118,33 @@ class STISBISeed extends Seeder
             ['SBI 4P 63A', 4, 63, 'B'],
         ];
 
+        $cbType = DeviceType::where('code', 'CB')->first();
+
         foreach ($models as $item) {
             CircuitBreaker::updateOrCreate(
                 ['model' => $item[0]],
                 [
-                    'brand_id' => $schneider->id,
-                    'type_id' => 1, // Предполагается, что тип "Автоматический выключатель" уже существует
+                    'brand_id' => $brand->id,
+                    'type_id' => $cbType->id, // Предполагается, что тип "Автоматический выключатель" уже существует
                     'series' => 'Acti9 STI/SBI',
                     'type' => $item[3],
                     'poles' => $item[1],
                     'modular_size' => $item[1] . 'D',
                     'nominal_current' => $item[2],
-                    'nominal_current_unit_id' => $units['A'] ?? null, // Убедитесь, что есть запись с символом "A"
+                    'nominal_current_unit_id' => $units['а'] ?? null, // Убедитесь, что есть запись с символом "A"
                     'trip_curve' => $item[3],
                     'breaking_capacity' => 6, // Icu=6kA
-                    'breaking_capacity_unit_id' => $units['кА'] ?? null,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
                     'voltage' => '440',
-                    'voltage_unit_id' => $units['V'] ?? null,
+                    'voltage_unit_id' => $units['v'] ?? null,
                     'energy_class' => 'A-III',
                     'ip_rating' => 'IP20',
                     'terminal_type' => 'Винтовой',
                     'protection' => 'Защита от перегрузки и короткого замыкания',
                     'temperature_range_min' => -5,
-                    'temperature_range_min_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_min_unit_id' => $units['°c'] ?? null,
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_max_unit_id' => $units['°c'] ?? null,
                     'pollution_degree' => 'Степень 2',
                     'housing_material' => 'Термопласт',
                     'standards' => 'IEC 60947-3',

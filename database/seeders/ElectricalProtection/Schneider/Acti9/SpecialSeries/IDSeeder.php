@@ -8,99 +8,143 @@ use App\Models\ElectricalProtection\CircuitBreaker;
 use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class IDSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        $brand = Brand::where('name', 'Schneider Electric')->first();
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [
+                Str::lower($unit->symbol) => $unit->id,
+                Str::lower($unit->name) => $unit->id // Добавляем поиск по названиям
+            ];
+        });
 
-        if (!$schneider) {
-            $schneider = Brand::create([
+        // Создаем недостающие единицы измерения
+        if (!isset($units['а'])) {
+            $ampereUnit = MeasurementUnit::updateOrCreate(
+                ['symbol' => 'А'],
+                ['name' => 'Ампер', 'description' => 'Единица измерения тока']
+            );
+            $units['а'] = $ampereUnit->id;
+        }
+
+        if (!isset($units['ма'])) {
+            $milliAmpereUnit = MeasurementUnit::updateOrCreate(
+                ['symbol' => 'мА'],
+                ['name' => 'Миллиампер', 'description' => 'Единица измерения тока утечки']
+            );
+            $units['ма'] = $milliAmpereUnit->id;
+        }
+
+        if (!$brand) {
+            $brand = Brand::create([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
-                'website' => 'https://www.se.com ',
+                'website' => 'https://www.se.com',
                 'description' => 'Мировой лидер в области автоматизации и управления энергией',
             ]);
         }
 
-        // Получаем ID типа устройства "RCD" (дифференциальное)
-        $deviceType = DeviceType::where('code', 'RCD')->first();
+        // Получаем типы устройств
+        $rcboType = DeviceType::where('code', 'RCBO')->first();
+        $rcdType = DeviceType::where('code', 'RCD')->first();
 
-        if (!$deviceType) {
-            $deviceType = DeviceType::updateOrCreate([
-                'code' => 'RCD',
-                'name' => 'Дифференциальное устройство',
-                'description' => 'Защита от тока утечки',
+        // Создаем типы если их нет
+        if (!$rcboType) {
+            $rcboType = DeviceType::updateOrCreate([
+                'code' => 'RCBO',
+                'name' => 'Дифференциальный автомат',
+                'description' => 'Комбинированная защита (автомат + УЗО)',
             ]);
         }
 
-        // Полный модельный ряд Acti9 iID и RCCB-iID
+        if (!$rcdType) {
+            $rcdType = DeviceType::updateOrCreate([
+                'code' => 'RCD',
+                'name' => 'УЗО',
+                'description' => 'Дифференциальная защита от тока утечки',
+            ]);
+        }
+
+        // Модели с указанием типа устройства
         $models = [
-            // Основная серия iID — дифференциальные выключатели нагрузки
-            ['iID 1P 10mA', 1, 10, 'C'],
-            ['iID 1P 30mA', 1, 30, 'C'],
-            ['iID 2P 10mA', 2, 10, 'C'],
-            ['iID 2P 30mA', 2, 30, 'C'],
-            ['iID 3P 10mA', 3, 10, 'C'],
-            ['iID 3P 30mA', 3, 30, 'C'],
-            ['iID 4P 10mA', 4, 10, 'C'],
-            ['iID 4P 30mA', 4, 30, 'C'],
+            // RCBO модели (дифференциальные автоматы)
+            ['iID 1P 10mA', 1, 10, 'C', 'RCBO'],
+            ['iID 1P 30mA', 1, 30, 'C', 'RCBO'],
+            ['iID 2P 10mA', 2, 10, 'C', 'RCBO'],
+            ['iID 2P 30mA', 2, 30, 'C', 'RCBO'],
+            ['iID 3P 10mA', 3, 10, 'C', 'RCBO'],
+            ['iID 3P 30mA', 3, 30, 'C', 'RCBO'],
+            ['iID 4P 10mA', 4, 10, 'C', 'RCBO'],
+            ['iID 4P 30mA', 4, 30, 'C', 'RCBO'],
 
-            // Серия RCCB-iID — дифференциальные выключатели нагрузки
-            ['RCCB-iID 1P 10mA', 1, 10, 'C'],
-            ['RCCB-iID 1P 30mA', 1, 30, 'C'],
-            ['RCCB-iID 2P 10mA', 2, 10, 'C'],
-            ['RCCB-iID 2P 30mA', 2, 30, 'C'],
-            ['RCCB-iID 3P 10mA', 3, 10, 'C'],
-            ['RCCB-iID 3P 30mA', 3, 30, 'C'],
-            ['RCCB-iID 4P 10mA', 4, 10, 'C'],
-            ['RCCB-iID 4P 30mA', 4, 30, 'C'],
-
-            // Дополнительные модели из документации
-            ['RCCB-ID 125A', 3, 125, 'C'],
-            ['RCCB-ID 80A', 3, 80, 'C'],
-            ['RCCB-ID 63A', 3, 63, 'C'],
-            ['RCCB-ID 50A', 3, 50, 'C'],
-            ['RCCB-ID 40A', 3, 40, 'C'],
-            ['RCCB-ID 32A', 3, 32, 'C'],
-            ['RCCB-ID 25A', 3, 25, 'C'],
-            ['RCCB-ID 20A', 3, 20, 'C'],
-            ['RCCB-ID 16A', 3, 16, 'C'],
-            ['RCCB-ID 13A', 3, 13, 'C'],
-            ['RCCB-ID 10A', 3, 10, 'C'],
+            // RCD модели (УЗО)
+            ['RCCB-ID 125A', 4, 125, null, 'RCD'],
+            ['RCCB-ID 80A', 4, 80, null, 'RCD'],
+            ['RCCB-ID 63A', 4, 63, null, 'RCD'],
+            ['RCCB-ID 50A', 4, 50, null, 'RCD'],
+            ['RCCB-ID 40A', 4, 40, null, 'RCD'],
+            ['RCCB-ID 32A', 4, 32, null, 'RCD'],
+            ['RCCB-ID 25A', 4, 25, null, 'RCD'],
+            ['RCCB-ID 20A', 4, 20, null, 'RCD'],
+            ['RCCB-ID 16A', 4, 16, null, 'RCD'],
+            ['RCCB-ID 13A', 4, 13, null, 'RCD'],
+            ['RCCB-ID 10A', 4, 10, null, 'RCD'],
         ];
 
         foreach ($models as $item) {
-            $breaker = CircuitBreaker::updateOrCreate(
-                ['model' => $item[0]],
-                [
-                    'brand_id' => $schneider->id,
-                    'type_id' => $deviceType->id,
-                    'series' => 'Acti9 iID',
-                    'type' => $item[3], // C, AC, B и т.д.
-                    'poles' => $item[1],
-                    'modular_size' => $item[1] . 'D',
-                    'nominal_current' => $item[2],
-                    'nominal_current_unit_id' => $units['мА'] ?? null,
-                    'trip_curve' => $item[3],
-                    'breaking_capacity' => 6, // Icu=6 kA
-                    'breaking_capacity_unit_id' => $units['кА'] ?? null,
-                    'voltage' => '400',
-                    'voltage_unit_id' => $units['V'] ?? null,
-                    'ip_rating' => 'IP40',
-                    'terminal_type' => 'Винтовой с защёлкой',
-                    'protection' => 'Дифференциальная защита',
+            [$model, $poles, $current, $curve, $type] = $item;
+
+            $baseData = [
+                'brand_id' => $brand->id,
+                'series' => 'Acti9 iID',
+                'poles' => $poles,
+                'modular_size' => $poles . 'D',
+                'ip_rating' => 'IP40',
+                'terminal_type' => 'Винтовой с защёлкой',
+                'standards' => 'IEC 60947-2',
+                'voltage' => $poles > 1 ? '400' : '230',
+                'voltage_unit_id' => $units['v'] ?? null,
+            ];
+
+            // Данные для RCBO (дифференциальные автоматы)
+            if ($type === 'RCBO') {
+                $data = array_merge($baseData, [
+                    'type_id' => $rcboType->id,
+                    'type' => $curve,
+                    'nominal_current' => 16, // Типовое значение для автомата
+                    'nominal_current_unit_id' => $units['а'] ?? null,
+                    'rated_diff_current' => $current,
+                    'rated_diff_current_unit_id' => $units['ма'] ?? null,
+                    'trip_curve' => $curve,
+                    'breaking_capacity' => 6,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
+                    'protection' => 'Дифференциальная защита, перегрузка, КЗ',
                     'combined_protection' => 'Диф. защита',
-                    'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'] ?? null,
-                    'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'] ?? null,
-                    'pollution_degree' => 'Степень 2',
-                    'housing_material' => 'Термопласт',
-                    'standards' => 'IEC 60898, IEC 60947-2',
-                ]
+                ]);
+            }
+            // Данные для RCD (УЗО)
+            else {
+                $data = array_merge($baseData, [
+                    'type_id' => $rcdType->id,
+                    'nominal_current' => $current,
+                    'nominal_current_unit_id' => $units['а'] ?? null,
+                    'rated_diff_current' => 30, // Стандартное значение для УЗО
+                    'rated_diff_current_unit_id' => $units['ма'] ?? null,
+                    'protection' => 'Дифференциальная защита',
+                    'combined_protection' => '',
+                    'trip_curve' => '',
+                    'breaking_capacity' => 0,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
+                ]);
+            }
+
+            $breaker = CircuitBreaker::updateOrCreate(
+                ['model' => $model],
+                $data
             );
 
             $accessories = [

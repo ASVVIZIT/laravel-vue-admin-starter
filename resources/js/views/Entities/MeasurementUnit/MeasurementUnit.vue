@@ -41,9 +41,13 @@
     >
       <el-table-column prop="id" label="ID" width="50" />
       <el-table-column prop="name" label="Название" />
-      <el-table-column prop="symbol" label="Символ" width="100" />
+      <el-table-column prop="display_symbol" label="Символ" width="100" />
       <el-table-column prop="physical_quantity" label="Физическая величина" width="120" />
-      <el-table-column prop="category" label="Категория" />
+      <el-table-column label="Категория">
+        <template #default="scope">
+          {{ getCategoryName(scope.row.measurement_category_id) || '-' }}
+        </template>
+      </el-table-column>
 
       <el-table-column
           label="Действия"
@@ -53,14 +57,18 @@
         <template #default="scope">
           <el-button-group :size="store.size">
             <el-button
-                v-for="(action, index) in tableOption.item_actions"
-                :key="index"
-                :type="action.type || 'primary'"
-                :icon="action.icon"
-                :title="action.label"
-                @click="tableActions(action.name, scope.row)"
+                type="primary"
+                :icon="Edit"
+                title="Редактировать"
+                @click="editMeasurementUnit(scope.row)"
                 circle
-                :size="store.size"
+            />
+            <el-button
+                type="danger"
+                :icon="Delete"
+                title="Удалить"
+                @click="deleteMeasurementUnit(scope.row.id)"
+                circle
             />
           </el-button-group>
         </template>
@@ -132,12 +140,25 @@
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Символ"
+                label="Символ (хранится)"
                 prop="symbol"
                 :rules="[{ required: true, message: 'Символ обязателен' }]"
             >
               <el-input
                   v-model="newMeasurementUnit.symbol"
+                  placeholder="Например: a (в нижнем регистре)"
+                  :size="store.size"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="24">
+            <el-form-item
+                label="Отображаемый символ"
+                prop="display_symbol"
+                :rules="[{ required: true, message: 'Отображаемый символ обязателен' }]"
+            >
+              <el-input
+                  v-model="newMeasurementUnit.display_symbol"
                   placeholder="Например: A"
                   :size="store.size"
               />
@@ -159,14 +180,25 @@
           <el-col :span="24">
             <el-form-item
                 label="Категория"
-                prop="category"
+                prop="measurement_category_id"
                 :rules="[{ required: true, message: 'Категория обязательна' }]"
             >
-              <el-input
-                  v-model="newMeasurementUnit.category"
-                  placeholder="Например: current"
+              <el-select
+                  v-model="newMeasurementUnit.measurement_category_id"
+                  placeholder="Выберите категорию"
                   :size="store.size"
-              />
+                  style="width: 100%"
+              >
+                <el-option
+                    v-for="category in categoryStore.categories"
+                    :key="category.id"
+                    :label="category.name"
+                    :value="category.id"
+                >
+                  <span>{{ category.name }}</span>
+                  <el-tag size="small" style="margin-left: 10px">{{ category.description }}</el-tag>
+                </el-option>
+              </el-select>
             </el-form-item>
           </el-col>
         </el-row>
@@ -212,12 +244,22 @@
           />
         </el-form-item>
         <el-form-item
-            label="Символ"
+            label="Символ (хранится)"
             prop="symbol"
             :rules="[{ required: true, message: 'Символ обязателен' }]"
         >
           <el-input
               v-model="editingMeasurementUnit.symbol"
+              :size="store.size"
+          />
+        </el-form-item>
+        <el-form-item
+            label="Отображаемый символ"
+            prop="display_symbol"
+            :rules="[{ required: true, message: 'Отображаемый символ обязателен' }]"
+        >
+          <el-input
+              v-model="editingMeasurementUnit.display_symbol"
               :size="store.size"
           />
         </el-form-item>
@@ -233,13 +275,25 @@
         </el-form-item>
         <el-form-item
             label="Категория"
-            prop="category"
+            prop="measurement_category_id"
             :rules="[{ required: true, message: 'Категория обязательна' }]"
         >
-          <el-input
-              v-model="editingMeasurementUnit.category"
+          <el-select
+              v-model="editingMeasurementUnit.measurement_category_id"
+              placeholder="Выберите категорию"
               :size="store.size"
-          />
+              style="width: 100%"
+          >
+            <el-option
+                v-for="category in categoryStore.categories"
+                :key="category.id"
+                :label="category.name"
+                :value="category.id"
+            >
+              <span style="min-width: 40px; max-width: 80px;">{{ category.name }}</span>
+              <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
+            </el-option>
+          </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -262,16 +316,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
 import { useMeasurementUnitStore } from '@/store/measurementUnitStore';
+import { useMeasurementCategoryStore } from '@/store/measurementCategoryStore';
 
 // Инициализация хранилищ
 const store = appStore();
 const measurementUnitStore = useMeasurementUnitStore();
+const categoryStore = useMeasurementCategoryStore();
 
 // Рефы для форм
 const addForm = ref(null);
@@ -284,35 +340,14 @@ const per_pages = ref([5, 10, 20, 30, 50, 100]);
 const newMeasurementUnit = ref({
   name: '',
   symbol: '',
+  display_symbol: '',
   physical_quantity: '',
-  category: ''
+  measurement_category_id: null
 });
 const dialogVisible = ref(false);
 const dialogVisibleAdd = ref(false);
 const editingMeasurementUnit = ref(null);
 const searchQuery = ref('');
-
-// Конфигурация таблицы
-const tableOption = ref({
-  slot: true,
-  width: '180',
-  label: 'Действия',
-  fixed: 'right',
-  item_actions: [
-    {
-      name: 'edit',
-      type: 'primary',
-      icon: Edit,
-      label: 'Редактировать',
-    },
-    {
-      name: 'delete',
-      type: 'danger',
-      icon: Delete,
-      label: 'Удалить',
-    },
-  ]
-});
 
 // Дебаунс для поиска (400мс)
 const debouncedSearch = debounce(() => {
@@ -339,6 +374,12 @@ const handlePerPageChange = () => {
 const handlePageChange = (page) => {
   measurementUnitStore.pagination.current_page = page;
   loadMeasurementUnits();
+};
+
+// Получение названия категории по ID
+const getCategoryName = (categoryId) => {
+  const category = categoryStore.categories.find(cat => cat.id === categoryId);
+  return category ? category.name : null;
 };
 
 // Валидация и отправка формы добавления
@@ -372,19 +413,26 @@ const addMeasurementUnit = async () => {
     });
 
     dialogVisibleAdd.value = false;
-    newMeasurementUnit.value = { name: '', symbol: '', physical_quantity: '', category: '' };
+    newMeasurementUnit.value = {
+      name: '',
+      symbol: '',
+      display_symbol: '',
+      physical_quantity: '',
+      measurement_category_id: null
+    };
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка при добавлении единицы измерения';
+    let errorMessage = 'Ошибка при добавлении единицы измерения';
 
-    // Обработка ошибок валидации
-    if (error.errors) {
-      errorMessage = Object.values(error.errors)
-          .flat()
-          .join('; ');
-    }
-    // Обработка стандартных ошибок
-    else if (error.details) {
-      errorMessage = `${error.message}: ${error.details}`;
+    if (error.response && error.response.data) {
+      if (error.response.data.errors) {
+        errorMessage = Object.values(error.response.data.errors)
+            .flat()
+            .join('; ');
+      } else if (error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+    } else {
+      errorMessage = error.message || errorMessage;
     }
 
     ElMessage.error({
@@ -403,7 +451,16 @@ const editMeasurementUnit = (measurementUnit) => {
 // Сохранение изменений
 const saveEdit = async () => {
   try {
-    await measurementUnitStore.update(editingMeasurementUnit.value.id, editingMeasurementUnit.value);
+    await measurementUnitStore.update(
+        editingMeasurementUnit.value.id,
+        {
+          name: editingMeasurementUnit.value.name,
+          symbol: editingMeasurementUnit.value.symbol,
+          display_symbol: editingMeasurementUnit.value.display_symbol,
+          physical_quantity: editingMeasurementUnit.value.physical_quantity,
+          measurement_category_id: editingMeasurementUnit.value.measurement_category_id
+        }
+    );
 
     ElMessage.success({
       message: 'Изменения сохранены',
@@ -412,15 +469,18 @@ const saveEdit = async () => {
 
     dialogVisible.value = false;
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка сохранения изменений';
+    let errorMessage = 'Ошибка сохранения изменений';
 
-    if (error.errors) {
-      errorMessage = Object.values(error.errors)
-          .flat()
-          .join('; ');
-    }
-    else if (error.details) {
-      errorMessage = `${error.message}: ${error.details}`;
+    if (error.response && error.response.data) {
+      if (error.response.data.errors) {
+        errorMessage = Object.values(error.response.data.errors)
+            .flat()
+            .join('; ');
+      } else if (error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+    } else {
+      errorMessage = error.message || errorMessage;
     }
 
     ElMessage.error({
@@ -452,16 +512,21 @@ const deleteMeasurementUnit = async (id) => {
       duration: 3000
     });
 
-    if (measurementUnitStore.measurementUnits.length === 0 && measurementUnitStore.pagination.current_page > 1) {
+    if (measurementUnitStore.measurementUnits.length === 0 &&
+        measurementUnitStore.pagination.current_page > 1) {
       measurementUnitStore.pagination.current_page--;
       loadMeasurementUnits();
     }
   } catch (error) {
     if (error !== 'cancel') {
-      let errorMessage = error.message || 'Ошибка удаления единицы измерения';
+      let errorMessage = 'Ошибка удаления единицы измерения';
 
-      if (error.details) {
-        errorMessage = `${error.message}: ${error.details}`;
+      if (error.response && error.response.data) {
+        if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else {
+        errorMessage = error.message || errorMessage;
       }
 
       ElMessage.error({
@@ -472,38 +537,23 @@ const deleteMeasurementUnit = async (id) => {
   }
 };
 
-// Обработчик действий таблицы
-const tableActions = (actionName, row) => {
-  switch (actionName) {
-    case 'edit':
-      editMeasurementUnit(row);
-      break;
-    case 'delete':
-      deleteMeasurementUnit(row.id);
-      break;
-    default:
-      console.warn(`Неизвестное действие: ${actionName}`);
-  }
-};
-
 const tableHeight = ref('calc(100vh - 1000px)');
 
 function updateTableHeight() {
   const titleHeight = 50;
   const tagHeight = 50;
-  const headerHeight = 120;     // Высота вашего заголовка
-  const paginationHeight = 60;  // Высота пагинации
-  const offset = 30;            // Дополнительные отступы
+  const headerHeight = 120;
+  const paginationHeight = 60;
+  const offset = 30;
 
   tableHeight.value = `calc(100vh - ${titleHeight + tagHeight + headerHeight + paginationHeight + offset}px)`;
 }
 
 // Инициализация компонента
 onMounted(() => {
-  // Установка начального размера пагинации
-  measurementUnitStore.pagination.per_page = 10;
+  measurementUnitStore.pagination.per_page = 100;
+  categoryStore.fetchAll(); // Загрузка категорий через стор
   loadMeasurementUnits();
-
   updateTableHeight();
   window.addEventListener('resize', updateTableHeight);
 });
@@ -511,7 +561,6 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('resize', updateTableHeight);
 });
-
 </script>
 
 <style scoped>

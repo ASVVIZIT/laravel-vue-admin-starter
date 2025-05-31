@@ -7,12 +7,13 @@ use App\Models\ElectricalProtection\Accessory;
 use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class VigiDifferentialSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
         // Получаем ID типа устройства "ACCESSORY" с проверкой
         $deviceType = DeviceType::where('code', 'ACCESSORY')->first();
@@ -25,8 +26,12 @@ class VigiDifferentialSeeder extends Seeder
         }
 
         // Получаем ID единицы "мА"
-        $units = MeasurementUnit::pluck('id', 'symbol');
-        $mAUnitId = $units['мА'] ?? null;
+        // Получаем единицы измерения с нормализацией символов
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
+
+        $mAUnitId = $units['ма'] ?? null;
 
         // Модели дифференциальных блоков Vigi iC60
         $diffUnits = ['10', '30', '100', '300', '500', '1000'];
@@ -35,7 +40,7 @@ class VigiDifferentialSeeder extends Seeder
             Accessory::updateOrCreate(
                 ['model' => "Vigi iC60 {$unit}mA"],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $deviceType->id,
                     'series' => 'Vigi',
                     'name' => "Дифференциальный модуль {$unit} mA",

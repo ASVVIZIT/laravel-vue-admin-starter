@@ -7,12 +7,13 @@ use App\Models\ElectricalProtection\Accessory;
 use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class CableAccessoriesSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
         // Получаем ID типа устройства "ACCESSORY"
         $deviceType = DeviceType::where('code', 'ACCESSORY')->first();
@@ -24,8 +25,10 @@ class CableAccessoriesSeeder extends Seeder
             ]);
         }
 
-        // Получаем ID единиц измерения
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        // Получаем единицы измерения с нормализацией символов
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
 
         /**
          * Кабельные аксессуары
@@ -39,7 +42,7 @@ class CableAccessoriesSeeder extends Seeder
                 'cross_section' => 70,
                 'cross_section_unit_id' => $units['мм²'] ?? null,
                 'current_rating' => 16,
-                'current_rating_unit_id' => $units['A'] ?? null,
+                'current_rating_unit_id' => $units['а'] ?? null,
                 'material' => 'Al',
                 'quantity_per_pack' => 10,
                 'quantity_per_pack_unit_id' => $units['шт.'] ?? null,
@@ -56,7 +59,7 @@ class CableAccessoriesSeeder extends Seeder
                 'cross_section' => 16,
                 'cross_section_unit_id' => $units['мм²'] ?? null,
                 'current_rating' => 25,
-                'current_rating_unit_id' => $units['A'] ?? null,
+                'current_rating_unit_id' => $units['а'] ?? null,
                 'material' => 'Cu',
                 'quantity_per_pack' => 250,
                 'quantity_per_pack_unit_id' => $units['шт.'] ?? null,
@@ -123,7 +126,7 @@ class CableAccessoriesSeeder extends Seeder
                 'cross_section' => 70,
                 'cross_section_unit_id' => $units['мм²'] ?? null,
                 'current_rating' => 16,
-                'current_rating_unit_id' => $units['A'] ?? null,
+                'current_rating_unit_id' => $units['а'] ?? null,
                 'material' => 'Al',
                 'quantity_per_pack' => 2,
                 'quantity_per_pack_unit_id' => $units['шт.'] ?? null,
@@ -138,7 +141,7 @@ class CableAccessoriesSeeder extends Seeder
             Accessory::updateOrCreate(
                 ['model' => $item['model']],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $deviceType->id,
                     'series' => 'Acti9 Mounting',
                     'name' => $item['name'],

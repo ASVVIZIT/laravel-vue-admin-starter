@@ -12,7 +12,7 @@ class DeviceTypeController extends Controller
     {
         $types = DeviceType::query()
             ->orderBy('name')
-            ->paginate($request->per_page ?? 10);
+            ->paginate($request->per_page ?? 100);
 
         return response()->json([
             'data' => $types,

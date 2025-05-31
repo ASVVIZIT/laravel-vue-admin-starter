@@ -14,7 +14,25 @@ class MeasurementUnit extends Model
     protected $fillable = [
         'name',
         'symbol',
+        'display_symbol',
         'physical_quantity',
-        'category'
+        'measurement_category_id'
     ];
+
+    public function category()
+    {
+        return $this->belongsTo(MeasurementCategory::class, 'measurement_category_id');
+    }
+
+    // Мутатор для приведения символа к нижнему регистру
+    public function setSymbolAttribute($value)
+    {
+        $this->attributes['symbol'] = mb_strtolower($value);
+    }
+
+    // Аксессор для получения отображаемого символа
+    public function getDisplaySymbolAttribute($value)
+    {
+        return $value ?: $this->symbol;
+    }
 }

@@ -30,7 +30,7 @@ class CircuitBreakerController extends Controller
         // Сортировка по умолчанию
         $query->orderBy('nominal_current')->orderBy('model');
 
-        $breakers = $query->paginate($request->per_page ?? 25);
+        $breakers = $query->paginate($request->per_page ?? 100);
 
         return response()->json([
             'data' => $breakers->map(function ($breaker) {

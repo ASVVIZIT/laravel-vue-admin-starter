@@ -36,7 +36,7 @@ class AccessoryController extends Controller
                 });
             }
 
-            $perPage = $request->per_page ?? 10;
+            $perPage = $request->per_page ?? 100;
             $accessories = $query->paginate($perPage);
 
             return response()->json([

@@ -10,6 +10,6 @@ class DeviceController extends Controller
 {
     public function index(Request $request)
     {
-        return Device::with(['brand', 'type', 'unit'])->paginate(20);
+        return Device::with(['brand', 'type', 'unit'])->paginate(40);
     }
 }

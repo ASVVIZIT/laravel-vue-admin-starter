@@ -11,7 +11,8 @@ class SpecialAccessoriesSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
+        $cbType = DeviceType::where('code', 'ACCESSORY')->first();
 
         $accessories = [
             ['iMN Расцепитель', 'Расцепитель минимального напряжения', 'iC60'],
@@ -24,8 +25,8 @@ class SpecialAccessoriesSeeder extends Seeder
             Accessory::updateOrCreate(
                 ['model' => $item[0]],
                 [
-                    'brand_id' => $schneider->id,
-                    'type_id' => DeviceType::where('code', 'ACCESSORY')->first()->id,
+                    'brand_id' => $brand->id,
+                    'type_id' => $cbType->id,
                     'series' => 'Acti9 Special',
                     'name' => $item[0],
                     'description' => $item[1],

@@ -12,10 +12,10 @@ class ReflexIC60DSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
-        if (!$schneider) {
-            $schneider = Brand::updateOrCreate([
+        if (!$brand) {
+            $brand = Brand::updateOrCreate([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
                 'website' => 'https://www.se.com ',
@@ -24,7 +24,7 @@ class ReflexIC60DSeeder extends Seeder
         }
 
         $units = MeasurementUnit::pluck('id', 'symbol');
-        $cbType = DeviceType::where('code', 'CB')->first()?->id ?? 1;
+        $cbType = DeviceType::where('code', 'CB')->first();
 
         $models = [
             ['Reflex iC60 1P 0.5A D', 1, 0.5],
@@ -108,29 +108,29 @@ class ReflexIC60DSeeder extends Seeder
             CircuitBreaker::updateOrCreate(
                 ['model' => $modelName],
                 [
-                    'brand_id' => $schneider->id,
-                    'type_id' => $cbType,
+                    'brand_id' => $brand->id,
+                    'type_id' => $cbType?->id ?? 1,
                     'series' => 'Acti9 Reflex iC60',
                     'type' => 'D',
                     'poles' => $poles,
                     'modular_size' => $poles . 'D',
                     'nominal_current' => $nominalCurrent,
-                    'nominal_current_unit_id' => $units['A'] ?? null,
+                    'nominal_current_unit_id' => $units['а'] ?? null,
                     'trip_curve' => 'D',
                     'breaking_capacity' => 6,
-                    'breaking_capacity_unit_id' => $units['кА'] ?? null,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
                     'tripping_time' => $this->getTrippingTime('D'),
                     'tripping_time_unit_id' => $units['мс'] ?? null,
                     'voltage' => $voltage,
-                    'voltage_unit_id' => $units['V'] ?? null,
+                    'voltage_unit_id' => $units['v'] ?? null,
                     'energy_class' => 'A-III',
                     'ip_rating' => 'IP40',
                     'terminal_type' => 'Винтовой с защёлкой',
                     'protection' => 'Токовая перегрузка, КЗ',
                     'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_min_unit_id' => $units['°c'] ?? null,
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_max_unit_id' => $units['°c'] ?? null,
                     'pollution_degree' => 'Степень 2',
                     'housing_material' => 'Термопласт',
                     'standards' => 'IEC 60898, IEC 60947-2',

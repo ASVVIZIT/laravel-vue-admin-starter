@@ -21,7 +21,7 @@ class CableController extends Controller
             $query->where('cross_section', $request->cross_section);
         }
 
-        $cables = $query->paginate($request->per_page ?? 15);
+        $cables = $query->paginate($request->per_page ?? 50);
 
         return response()->json([
             'data' => $cables->map(function ($cable) {

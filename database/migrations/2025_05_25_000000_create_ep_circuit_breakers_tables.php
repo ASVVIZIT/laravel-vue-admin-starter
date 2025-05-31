@@ -26,13 +26,24 @@ return new class extends Migration {
             $table->timestamps();
         });
 
-        // Единицы измерений
+        // Добавлена таблица категорий измерений
+        Schema::create('ep_measurement_categories', function (Blueprint $table) {
+            $table->id()->comment('Уникальный ID категории');
+            $table->string('name', 50)->collation('utf8mb4_bin')->comment('Системное имя категории');
+            $table->string('description', 255)->comment('Описание категории');
+            $table->timestamps();
+        });
+
+        // Обновлена таблица единиц измерений
         Schema::create('ep_measurement_units', function (Blueprint $table) {
             $table->id()->comment('Уникальный ID единицы');
             $table->string('name', 50)->unique()->comment('Название (Ампер, Вольт)');
             $table->string('symbol', 10)->unique()->comment('Символ (A, V)');
-            $table->string('physical_quantity', 50)->comment('Физическая величина (ток, напряжение)');
-            $table->string('category', 50)->comment('Категория (current, voltage)');
+            $table->string('display_symbol', 10)->comment('Отображаемый символ');
+            $table->string('physical_quantity', 50)->comment('Физическая величина');
+            $table->foreignId('measurement_category_id')
+                ->constrained('ep_measurement_categories')
+                ->comment('ID категории измерений');
             $table->timestamps();
         });
 
@@ -256,6 +267,7 @@ return new class extends Migration {
     {
         Schema::dropIfExists('ep_circuit_breakers');
         Schema::dropIfExists('ep_measurement_units');
+        Schema::dropIfExists('ep_measurement_categories');
         Schema::dropIfExists('ep_device_types');
         Schema::dropIfExists('ep_brands');
         Schema::dropIfExists('ep_cables');

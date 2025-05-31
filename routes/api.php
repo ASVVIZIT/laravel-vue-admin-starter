@@ -39,12 +39,14 @@ Route::namespace('Api')->group(function() {
 
 
         Route::prefix('entities')->group(function () {
-            Route::apiResource('ep_brands', \App\Http\Controllers\Api\Entity\BrandController::class)->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
-            Route::apiResource('ep_device_types', \App\Http\Controllers\Api\Entity\DeviceTypeController::class)->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
-            Route::apiResource('ep_measurement_units', \App\Http\Controllers\Api\Entity\MeasurementUnitController::class)->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
+            Route::apiResource('ep_brands', \App\Http\Controllers\Api\Entity\BrandController::class);
+            Route::apiResource('ep_device_types', \App\Http\Controllers\Api\Entity\DeviceTypeController::class);
 
-            Route::apiResource('ep_accessories', \App\Http\Controllers\Api\Entity\AccessoryController::class)->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
-        });
+            Route::apiResource('ep_measurement_categories', \App\Http\Controllers\Api\Entity\MeasurementCategoryController::class)
+                ->only(['index']);
+            Route::apiResource('ep_measurement_units', \App\Http\Controllers\Api\Entity\MeasurementUnitController::class);
+            Route::apiResource('ep_accessories', \App\Http\Controllers\Api\Entity\AccessoryController::class);
+        })->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
     });
 });
 

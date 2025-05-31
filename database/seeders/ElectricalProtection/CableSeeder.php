@@ -2,6 +2,7 @@
 
 namespace Database\Seeders\ElectricalProtection;
 
+use App\Models\ElectricalProtection\Brand;
 use App\Models\ElectricalProtection\Cable;
 use App\Models\ElectricalProtection\DeviceType;
 use Illuminate\Database\Seeder;
@@ -14,13 +15,13 @@ class CableSeeder extends Seeder
     public function run()
     {
         // Получаем ID типа "Кабель" из таблицы ep_device_types
-        $cableTypeId = DeviceType::where('code', 'CABLE')->first()->id;
-        $brandTypeId = DeviceType::where('code', 'CB')->first()->id;
+        $cableTypeId = DeviceType::where('code', 'CABLE')->first();
+        $brand = Brand::where('name', 'IEK')->first();
 
         // Создаем кабель ВВГнг-LS (IEK)
         Cable::factory()->create([
-            'brand_id' => $brandTypeId,
-            'type_id' => $cableTypeId,
+            'brand_id' => $brand->id,
+            'type_id' => $cableTypeId->id,
             'model' => 'Наименование',
             'insulation' => 'ПВХ',
             'cores' => 3,

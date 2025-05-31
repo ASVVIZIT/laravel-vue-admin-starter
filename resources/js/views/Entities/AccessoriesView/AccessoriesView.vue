@@ -197,7 +197,7 @@ function updateTableHeight() {
 
 // Инициализация
 onMounted(() => {
-  accessoryStore.pagination.per_page = 20; // По умолчанию 5 строк
+  accessoryStore.pagination.per_page = 100; // По умолчанию 100 строк
   loadAccessories();
 
   updateTableHeight();

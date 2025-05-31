@@ -11,10 +11,10 @@ class TwidoAccessorySeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
-        if (!$schneider) {
-            $schneider = Brand::create([
+        if (!$brand) {
+            $brand = Brand::create([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
                 'website' => 'https://www.se.com ',
@@ -303,7 +303,7 @@ class TwidoAccessorySeeder extends Seeder
             Accessory::updateOrCreate(
                 ['model' => $item['model']],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $deviceType->id,
                     'series' => $item['series'],
                     'name' => $item['name'],

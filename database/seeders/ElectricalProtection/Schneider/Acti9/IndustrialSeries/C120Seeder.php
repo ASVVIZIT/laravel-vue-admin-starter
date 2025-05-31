@@ -5,6 +5,7 @@ namespace Database\Seeders\ElectricalProtection\Schneider\Acti9\IndustrialSeries
 use App\Models\ElectricalProtection\Accessory;
 use App\Models\ElectricalProtection\Brand;
 use App\Models\ElectricalProtection\CircuitBreaker;
+use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
 
@@ -12,7 +13,17 @@ class C120Seeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
+
+        if (!$brand) {
+            $brand = Brand::updateOrCreate([
+                'name' => 'Schneider Electric',
+                'country' => 'Франция',
+                'website' => 'https://www.se.com ',
+                'description' => 'Мировой лидер в области автоматизации и управления энергией',
+            ]);
+        }
+
         $units = MeasurementUnit::pluck('id', 'symbol');
 
         /**
@@ -53,34 +64,36 @@ class C120Seeder extends Seeder
             ['C120H 3P D125', 3, 125, 'D', 'D'],
         ];
 
+        $cbType = DeviceType::where('code', 'CB')->first();
+
         foreach ($models as $model) {
             $breaker = CircuitBreaker::updateOrCreate(
                 ['model' => $model[0]],
                 [
-                    'brand_id' => $schneider->id,
-                    'type_id' => 1,
+                    'brand_id' => $brand->id,
+                    'type_id' => $cbType->id,
                     'series' => 'Acti9 C120',
                     'type' => $model[4],
                     'poles' => $model[1],
                     'modular_size' => $model[1] . 'D',
                     'nominal_current' => $model[2],
-                    'nominal_current_unit_id' => $units['A'],
+                    'nominal_current_unit_id' => $units['а'],
                     'trip_curve' => $model[3],
                     'breaking_capacity' => '25', // Icu=25 кА для C120H
-                    'breaking_capacity_unit_id' => $units['кА'],
+                    'breaking_capacity_unit_id' => $units['ка'],
                     'tripping_time' => 30,
                     'tripping_time_unit_id' => $units['мс'],
                     'rated_diff_current' => null,
                     'voltage' => '440',
-                    'voltage_unit_id' => $units['V'],
+                    'voltage_unit_id' => $units['v'],
                     'energy_class' => 'A-IV',
                     'ip_rating' => 'IP54',
                     'terminal_type' => 'Винтовой с защёлкой',
                     'protection' => 'Токовая перегрузка, КЗ (промышленные сети)',
                     'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'],
+                    'temperature_range_min_unit_id' => $units['°c'],
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'],
+                    'temperature_range_max_unit_id' => $units['°c'],
                     'pollution_degree' => 'Степень 3',
                     'housing_material' => 'Металл',
                     'standards' => 'IEC 60947-2',

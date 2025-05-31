@@ -4,15 +4,22 @@ namespace Database\Seeders\ElectricalProtection\Schneider\Acti9\Accessories;
 
 use App\Models\ElectricalProtection\Brand;
 use App\Models\ElectricalProtection\CircuitBreaker;
+use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class SpecialSeriesSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        $brand = Brand::where('name', 'Schneider Electric')->first();
+        $cbType = DeviceType::where('code', 'CB')->first();
+
+        // Получаем единицы измерения с нормализацией символов
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
 
         /**
          * Описание:
@@ -51,29 +58,29 @@ class SpecialSeriesSeeder extends Seeder
             CircuitBreaker::updateOrCreate(
                 ['model' => $modelName],
                 [
-                    'brand_id' => $schneider->id,
-                    'type_id' => 1, // ID типа "Автоматический выключатель"
+                    'brand_id' => $brand->id,
+                    'type_id' => $cbType->id, // ID типа "Автоматический выключатель"
                     'series' => $this->determineSeries($modelName),
                     'type' => $tripCurve, // Теперь 'MA' допустимо
                     'poles' => $poles,
                     'modular_size' => $poles . 'D',
                     'nominal_current' => $nominalCurrent,
-                    'nominal_current_unit_id' => $units['A'],
+                    'nominal_current_unit_id' => $units['а'],
                     'trip_curve' => $tripCurve,
                     'breaking_capacity' => $this->determineBreakingCapacity($modelName),
-                    'breaking_capacity_unit_id' => $units['кА'],
+                    'breaking_capacity_unit_id' => $units['ка'],
                     'tripping_time' => $this->determineTrippingTime($tripCurve),
                     'tripping_time_unit_id' => $units['мс'],
                     'voltage' => str_contains($modelName, 'NG125LMA') ? '250' : '440',
-                    'voltage_unit_id' => $units['V'],
+                    'voltage_unit_id' => $units['v'],
                     'energy_class' => str_contains($modelName, 'NG125LMA') ? 'A-III' : 'A-IV',
                     'ip_rating' => 'IP54',
                     'terminal_type' => 'Винтовой с защёлкой',
                     'protection' => 'Токовая перегрузка, КЗ (специализированные применения)',
                     'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'],
+                    'temperature_range_min_unit_id' => $units['°c'],
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'],
+                    'temperature_range_max_unit_id' => $units['°c'],
                     'pollution_degree' => 'Степень 3',
                     'housing_material' => 'Металл',
                     'standards' => $this->determineStandards($modelName),

@@ -514,7 +514,7 @@ function updateTableHeight() {
 // Инициализация компонента
 onMounted(() => {
   // Установка начального размера пагинации
-  brandStore.pagination.per_page = 20;
+  brandStore.pagination.per_page = 100;
   loadBrands();
 
   updateTableHeight();

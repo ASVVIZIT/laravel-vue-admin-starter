@@ -8,25 +8,28 @@ use App\Models\ElectricalProtection\Accessory;
 use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class IC60HSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
-        if (!$schneider) {
-            $schneider = Brand::create([
+        if (!$brand) {
+            $brand = Brand::create([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
                 'website' => 'https://www.se.com ',
                 'description' => 'Мировой лидер в области автоматизации и управления энергией',
             ]);
         }
-
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
 
         // Получаем ID типа устройства "RCBO" и "RCM"
+        $cbType = DeviceType::where('code', 'CB')->first();
         $rcboType = DeviceType::where('code', 'RCBO')->first();
         $rcmType = DeviceType::where('code', 'RCM')->first();
 
@@ -179,39 +182,39 @@ class IC60HSeeder extends Seeder
             // Определяем тип устройства
             $typeId = match ($deviceCode) {
                 'AC' => $rcboType->id,
-                default => 1, // Автоматический выключатель (CB)
+                default => $cbType->id, // Автоматический выключатель (CB)
             };
 
             CircuitBreaker::updateOrCreate(
                 ['model' => $modelName],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $typeId,
                     'series' => 'Acti9 iC60H',
                     'type' => $tripCurve,
                     'poles' => $poles,
                     'modular_size' => $poles . 'D',
                     'nominal_current' => $nominalCurrent,
-                    'nominal_current_unit_id' => $units['A'] ?? null,
+                    'nominal_current_unit_id' => $units['а'] ?? null,
                     'trip_curve' => $tripCurve,
                     'breaking_capacity' => match($tripCurve) {
                         'B', 'C', 'D' => 10,
                         default => 10,
                     },
-                    'breaking_capacity_unit_id' => $units['кА'] ?? null,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
                     'tripping_time' => $this->getTrippingTime($tripCurve),
                     'tripping_time_unit_id' => $units['мс'] ?? null,
                     'rated_diff_current' => $deviceCode === 'AC' ? 300 : null, // Пример: 300 mA
                     'voltage' => $this->getVoltageByPoles($poles),
-                    'voltage_unit_id' => $units['V'] ?? null,
+                    'voltage_unit_id' => $units['v'] ?? null,
                     'energy_class' => 'A-III',
                     'ip_rating' => 'IP40',
                     'terminal_type' => 'Винтовой с защёлкой',
                     'protection' => 'Токовая перегрузка, КЗ',
                     'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_min_unit_id' => $units['°c'] ?? null,
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_max_unit_id' => $units['°c'] ?? null,
                     'pollution_degree' => 'Степень 3',
                     'housing_material' => 'Термопласт',
                     'standards' => 'IEC 60898, IEC 60947-2',

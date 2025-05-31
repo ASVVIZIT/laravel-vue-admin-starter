@@ -1,7 +1,7 @@
 // Определение глобальной переменной
 $menuText: #bfcbd9;
 $menuActiveText: #e59808;
-$menuGroupActiveText: #d96f2c;
+$menuGroupActiveText: #9ec918;
 $subMenuActiveText: #f4f4f5;
 
 $menuBg: #304156;
@@ -164,9 +164,9 @@ $appMainPadding: 10px;
   --el-menu-bg-color: #{$menuBg};
   --el-menu-hover-bg-color: #{$menuHover};
   --el-submenu-active-bg-color: #{$subMenuBg};
-  --el-menu-item-height: 28px;
+  --el-menu-item-height: 32px;
   --el-menu-sub-item-height: calc(var(--el-menu-item-height) - 4px);
-  --el-menu-horizontal-sub-item-height: 26px;
+  --el-menu-horizontal-sub-item-height: 28px;
   --el-menu-item-font-size: var(--el-font-size-base);
   --el-menu-item-hover-fill: #{$menuBg};
   --el-menu-border-color: var(--el-border-color);

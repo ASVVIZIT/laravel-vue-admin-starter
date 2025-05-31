@@ -7,15 +7,16 @@ use App\Models\ElectricalProtection\CircuitBreaker;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use App\Models\ElectricalProtection\DeviceType;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class IC60LSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
-        if (!$schneider) {
-            $schneider = Brand::create([
+        if (!$brand) {
+            $brand = Brand::create([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
                 'website' => 'https://www.se.com ',
@@ -32,7 +33,9 @@ class IC60LSeeder extends Seeder
             ]);
         }
 
-        $units = MeasurementUnit::pluck('id', 'symbol');
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
 
         $models = [
             // Кривая B
@@ -94,29 +97,29 @@ class IC60LSeeder extends Seeder
             CircuitBreaker::updateOrCreate(
                 ['model' => $modelName],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $deviceType->id,
                     'series' => 'Acti9 iC60L',
                     'type' => $tripCurve,
                     'poles' => $poles,
                     'modular_size' => $poles . 'D',
                     'nominal_current' => $nominalCurrent,
-                    'nominal_current_unit_id' => $units['A'] ?? null,
+                    'nominal_current_unit_id' => $units['а'] ?? null,
                     'trip_curve' => $tripCurve,
                     'breaking_capacity' => 100,
-                    'breaking_capacity_unit_id' => $units['кА'] ?? null,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
                     'tripping_time' => $this->getTrippingTime($tripCurve),
                     'tripping_time_unit_id' => $units['мс'] ?? null,
                     'voltage' => $this->getVoltageByPoles($poles),
-                    'voltage_unit_id' => $units['V'] ?? null,
+                    'voltage_unit_id' => $units['v'] ?? null,
                     'energy_class' => 'A-III',
                     'ip_rating' => 'IP20',
                     'terminal_type' => 'Винтовой',
                     'protection' => 'Токовая перегрузка, КЗ, Защита двигателей',
                     'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_min_unit_id' => $units['°c'] ?? null,
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_max_unit_id' => $units['°c'] ?? null,
                     'pollution_degree' => 'Степень 2',
                     'housing_material' => 'Термопласт',
                     'standards' => 'IEC 60898, IEC 60947-2',

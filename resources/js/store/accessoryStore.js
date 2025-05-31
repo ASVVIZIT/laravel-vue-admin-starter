@@ -8,7 +8,7 @@ export const useAccessoryStore = defineStore('accessory', {
         loading: false,
         pagination: {
             total: 0,
-            per_page: 10,
+            per_page: '',
             current_page: 1,
             last_page: 1
         }

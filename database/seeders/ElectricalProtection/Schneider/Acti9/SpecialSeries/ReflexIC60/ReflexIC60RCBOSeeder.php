@@ -8,15 +8,16 @@ use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use App\Models\ElectricalProtection\Accessory;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class ReflexIC60RCBOSeeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
-        if (!$schneider) {
-            $schneider = Brand::updateOrCreate([
+        if (!$brand) {
+            $brand = Brand::updateOrCreate([
                 'name' => 'Schneider Electric',
                 'country' => 'Франция',
                 'website' => 'https://www.se.com ',
@@ -24,8 +25,10 @@ class ReflexIC60RCBOSeeder extends Seeder
             ]);
         }
 
-        $units = MeasurementUnit::pluck('id', 'symbol');
-        $rcboType = DeviceType::where('code', 'RCBO')->first()?->id ?? 1;
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
+        $rcboType = DeviceType::where('code', 'RCBO')->first();
 
         $models = [
             ['Reflex iC60 1P AC 10mA', 1, 10, 'C'],
@@ -56,35 +59,35 @@ class ReflexIC60RCBOSeeder extends Seeder
             CircuitBreaker::updateOrCreate(
                 ['model' => $modelName],
                 [
-                    'brand_id' => $schneider->id,
-                    'type_id' => $rcboType,
+                    'brand_id' => $brand->id,
+                    'type_id' => $rcboType?->id ?? 3, // id 3 RCBO
                     'series' => 'Acti9 Reflex iC60',
                     'type' => $tripCurve,
                     'poles' => $poles,
                     'modular_size' => $poles . 'D',
                     'nominal_current' => $ratedDiffCurrent / 10 * 10, // Для RCBO номинальный ток = диф. ток
-                    'nominal_current_unit_id' => $units['A'] ?? null,
+                    'nominal_current_unit_id' => $units['а'] ?? null,
                     'trip_curve' => $tripCurve,
                     'breaking_capacity' => 6,
-                    'breaking_capacity_unit_id' => $units['кА'] ?? null,
+                    'breaking_capacity_unit_id' => $units['ка'] ?? null,
                     'tripping_time' => $this->getTrippingTime($tripCurve),
                     'tripping_time_unit_id' => $units['мс'] ?? null,
                     'voltage' => $voltage,
-                    'voltage_unit_id' => $units['V'] ?? null,
+                    'voltage_unit_id' => $units['v'] ?? null,
                     'energy_class' => 'A-III',
                     'ip_rating' => 'IP20',
                     'terminal_type' => 'Винтовой с защёлкой',
                     'protection' => 'Перегрузка, КЗ, Дифференциальная защита',
                     'temperature_range_min' => -25,
-                    'temperature_range_min_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_min_unit_id' => $units['°c'] ?? null,
                     'temperature_range_max' => 70,
-                    'temperature_range_max_unit_id' => $units['°C'] ?? null,
+                    'temperature_range_max_unit_id' => $units['°c'] ?? null,
                     'pollution_degree' => 'Степень 2',
                     'housing_material' => 'Термопласт',
                     'standards' => 'IEC 60898, IEC 60947-2',
                     'combined_protection' => 'Дифференциальная защита',
                     'rated_diff_current' => $ratedDiffCurrent,
-                    'rated_diff_current_unit_id' => $units['мА'] ?? null,
+                    'rated_diff_current_unit_id' => $units['ма'] ?? null,
                 ]
             );
 

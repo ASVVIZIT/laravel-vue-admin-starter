@@ -7,12 +7,13 @@ use App\Models\ElectricalProtection\Accessory;
 use App\Models\ElectricalProtection\DeviceType;
 use App\Models\ElectricalProtection\MeasurementUnit;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class VigiNG125Seeder extends Seeder
 {
     public function run()
     {
-        $schneider = Brand::where('name', 'Schneider Electric')->first();
+        $brand = Brand::where('name', 'Schneider Electric')->first();
 
         // Получаем ID типа устройства "ACCESSORY" с проверкой
         $deviceType = DeviceType::where('code', 'ACCESSORY')->first();
@@ -25,25 +26,29 @@ class VigiNG125Seeder extends Seeder
         }
 
         // Получаем ID единицы "мА"
-        $units = MeasurementUnit::pluck('id', 'symbol');
-        $mAUnitId = $units['мА'] ?? null;
+        // Получаем единицы измерения с нормализацией символов
+        $units = MeasurementUnit::all()->mapWithKeys(function ($unit) {
+            return [Str::lower($unit->symbol) => $unit->id];
+        });
+
+        $mAUnitId = $units['ма'] ?? null;
 
         $accessories = [
-            ['Vigi NG125 10mA', 'Дифференциальный модуль', 10, 'мА', 'NG125'],
-            ['Vigi NG125 30mA', 'Дифференциальный модуль', 30, 'мА', 'NG125'],
-            ['Vigi NG125 100mA', 'Дифференциальный модуль', 100, 'мА', 'NG125'],
-            ['Vigi NG125 300mA', 'Дифференциальный модуль', 300, 'мА', 'NG125'],
-            ['Vigi NG125 500mA', 'Дифференциальный модуль', 500, 'мА', 'NG125'],
-            ['Vigi NG125 1000mA', 'Дифференциальный модуль', 1000, 'мА', 'NG125'],
+            ['Vigi NG125 10mA', 'Дифференциальный модуль', 10, 'ма', 'NG125'],
+            ['Vigi NG125 30mA', 'Дифференциальный модуль', 30, 'ма', 'NG125'],
+            ['Vigi NG125 100mA', 'Дифференциальный модуль', 100, 'ма', 'NG125'],
+            ['Vigi NG125 300mA', 'Дифференциальный модуль', 300, 'ма', 'NG125'],
+            ['Vigi NG125 500mA', 'Дифференциальный модуль', 500, 'ма', 'NG125'],
+            ['Vigi NG125 1000mA', 'Дифференциальный модуль', 1000, 'ма', 'NG125'],
         ];
 
         foreach ($accessories as $item) {
             Accessory::updateOrCreate(
                 ['model' => $item[0]],
                 [
-                    'brand_id' => $schneider->id,
+                    'brand_id' => $brand->id,
                     'type_id' => $deviceType->id,
-                    'series' => 'Vigi NG125',
+                    'series' => "Vigi {$item[4]}",
                     'name' => $item[1],
                     'description' => "Для автоматов {$item[4]}",
                     'rated_diff_current' => $item[2],

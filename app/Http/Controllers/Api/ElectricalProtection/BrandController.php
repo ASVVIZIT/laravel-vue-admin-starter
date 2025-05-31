@@ -18,7 +18,7 @@ class BrandController extends Controller
         }
 
         // Пагинация (20 элементов по умолчанию)
-        $brands = $query->paginate($request->per_page ?? 20);
+        $brands = $query->paginate($request->per_page ?? 50);
 
         return response()->json([
             'data' => $brands->map(function ($brand) {

@@ -6,7 +6,6 @@ class MeasurementUnitResource extends Resource {
         super('entities/ep_measurement_units');
     }
 
-    // Универсальный метод для получения данных с параметрами
     list(query = {}) {
         return request({
             url: `/${this.uri}`,
@@ -15,6 +14,36 @@ class MeasurementUnitResource extends Resource {
         });
     }
 
+    // Добавим остальные методы для полноты
+    show(id) {
+        return request({
+            url: `/${this.uri}/${id}`,
+            method: 'get'
+        });
+    }
+
+    store(data) {
+        return request({
+            url: `/${this.uri}`,
+            method: 'post',
+            data: data
+        });
+    }
+
+    update(id, data) {
+        return request({
+            url: `/${this.uri}/${id}`,
+            method: 'put',
+            data: data
+        });
+    }
+
+    destroy(id) {
+        return request({
+            url: `/${this.uri}/${id}`,
+            method: 'delete'
+        });
+    }
 }
 
 export default MeasurementUnitResource;
