@@ -976,7 +976,7 @@ onUnmounted(() => {
   overflow-y: auto;
   padding: 2px 2px 10px;
   margin: 0 -5px;
-  max-height: calc(100vh - 280px);
+  max-height: calc(100vh - 80px);
 }
 
 @media (max-width: 768px) {
