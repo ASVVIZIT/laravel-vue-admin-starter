@@ -6,11 +6,19 @@ class MeasurementUnitResource extends Resource {
         super('entities/ep_measurement_units');
     }
 
-    list(query = {}) {
+    listPaginated(query = {}) {
         return request({
             url: `/${this.uri}`,
             method: 'get',
             params: query
+        });
+    }
+
+    listForDropdown() {
+        return request({
+            url: `/${this.uri}`,
+            method: 'get',
+            params: { for_dropdown: true }
         });
     }
 

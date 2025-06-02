@@ -49,7 +49,7 @@ const entityRoutes = {
                     name: 'AccessoriesList',
                     component: () => import('@/views/Entities/AccessoriesView/AccessoriesView.vue'),
                     meta: {
-                        title: 'Аксессуар Электрики',
+                        title: 'Список аксессуаров',
                         bootstrapIcon: 'card-list',
                         permissions: ['manage entity'],
                         requiresAuth: true

@@ -5,7 +5,7 @@
           <h2>Список аксессуаров</h2>
           <el-button
               type="primary"
-              @click="$router.push({ name: 'AccessoryCreate' })"
+              @click="$router.push({ name: 'AccessoriesList' })"
               :size="store.size"
               class="compact-btn"
           >
@@ -133,7 +133,7 @@ const debouncedSearch = debounce(() => {
 
 // Загрузка данных
 const loadAccessories = async () => {
-  await accessoryStore.fetchAll({
+  await accessoryStore.fetchPaginated({
     search: searchQuery.value,
     page: accessoryStore.pagination.current_page,
     per_page: accessoryStore.pagination.per_page
@@ -197,7 +197,8 @@ function updateTableHeight() {
 
 // Инициализация
 onMounted(() => {
-  accessoryStore.pagination.per_page = 100; // По умолчанию 100 строк
+  // Установка начального размера пагинации
+  accessoryStore.pagination.per_page = 20; // По умолчанию 20 строк
   loadAccessories();
 
   updateTableHeight();

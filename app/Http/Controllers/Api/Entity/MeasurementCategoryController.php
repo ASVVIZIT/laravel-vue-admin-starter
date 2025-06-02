@@ -14,10 +14,33 @@ class MeasurementCategoryController extends Controller
         $this->middleware('auth:api');
     }
 
+    public function all(Request $request)
+    {
+
+        try {
+        $categories = MeasurementCategory::all();
+
+        // Режим для выпадающих списков (все записи)
+        if ($request->boolean('for_dropdown')) {
+            return response()->json([
+                'data' => $categories
+            ]);
+        }
+
+        } catch (\Exception $e) {
+            Log::error('MeasurementCategory all error: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Ошибка при загрузке категорий измерений для списков'
+            ], 500);
+        }
+    }
+
     public function index(Request $request)
     {
         try {
+
             $categories = MeasurementCategory::all();
+
             return response()->json([
                 'data' => $categories
             ]);

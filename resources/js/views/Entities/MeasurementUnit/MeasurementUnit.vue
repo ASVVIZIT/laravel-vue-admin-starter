@@ -190,7 +190,7 @@
                   style="width: 100%"
               >
                 <el-option
-                    v-for="category in categoryStore.categories"
+                    v-for="category in categoryStore.dropdownCategories"
                     :key="category.id"
                     :label="category.name"
                     :value="category.id"
@@ -285,7 +285,7 @@
               style="width: 100%"
           >
             <el-option
-                v-for="category in categoryStore.categories"
+                v-for="category in categoryStore.dropdownCategories"
                 :key="category.id"
                 :label="category.name"
                 :value="category.id"
@@ -357,7 +357,7 @@ const debouncedSearch = debounce(() => {
 
 // Загрузка данных с параметрами
 const loadMeasurementUnits = async () => {
-  await measurementUnitStore.fetchAll({
+  await measurementUnitStore.fetchPaginated({
     search: searchQuery.value,
     page: measurementUnitStore.pagination.current_page,
     per_page: measurementUnitStore.pagination.per_page
@@ -376,9 +376,10 @@ const handlePageChange = (page) => {
   loadMeasurementUnits();
 };
 
-// Получение названия категории по ID
+// Получение названия категории по ID из запроса где находятся все категории
 const getCategoryName = (categoryId) => {
-  const category = categoryStore.categories.find(cat => cat.id === categoryId);
+  const category = categoryStore.dropdownCategories.find(cat => cat.id === categoryId);
+  console.log('getCategoryName ', category)
   return category ? category.name : null;
 };
 
@@ -551,9 +552,11 @@ function updateTableHeight() {
 
 // Инициализация компонента
 onMounted(() => {
-  measurementUnitStore.pagination.per_page = 100;
-  categoryStore.fetchAll(); // Загрузка категорий через стор
+  // Установка начального размера пагинации
+  measurementUnitStore.pagination.per_page = 20; // По умолчанию 20 строк
+  categoryStore.fetchAllForDropdown(); // Загрузка всех категорий categoryStore
   loadMeasurementUnits();
+
   updateTableHeight();
   window.addEventListener('resize', updateTableHeight);
 });

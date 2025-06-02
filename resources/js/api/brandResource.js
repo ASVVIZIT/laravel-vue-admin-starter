@@ -8,7 +8,7 @@ class BrandResource extends Resource {
     }
 
     // Универсальный метод для получения данных с параметрами
-    list(query = {}) {
+    listPaginated(query = {}) {
         return request({
             url: `/${this.uri}`,
             method: 'get',
@@ -16,6 +16,13 @@ class BrandResource extends Resource {
         });
     }
 
+    listForDropdown() {
+        return request({
+            url: `/${this.uri}`,
+            method: 'get',
+            params: { for_dropdown: true }
+        });
+    }
     // Или методы, специфичные для бренда
     getBrandsByCountry(countryCode) {
         return request({

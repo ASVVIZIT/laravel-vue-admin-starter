@@ -335,7 +335,7 @@ const debouncedSearch = debounce(() => {
 
 // Загрузка данных с параметрами
 const loadBrands = async () => {
-  await brandStore.fetchAll({
+  await brandStore.fetchPaginated({
     search: searchQuery.value,
     page: brandStore.pagination.current_page,
     per_page: brandStore.pagination.per_page
@@ -514,7 +514,7 @@ function updateTableHeight() {
 // Инициализация компонента
 onMounted(() => {
   // Установка начального размера пагинации
-  brandStore.pagination.per_page = 100;
+  brandStore.pagination.per_page = 20; // По умолчанию 20 строк
   loadBrands();
 
   updateTableHeight();

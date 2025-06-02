@@ -1,22 +1,24 @@
+import MeasurementUnitResource from "@api/measurementUnitResource.js";
 import { defineStore } from 'pinia';
 import DeviceTypeResource from '@/api/deviceTypeResource';
 
 export const useDeviceTypeStore = defineStore('deviceType', {
     state: () => ({
         deviceTypes: [],
+        dropdownDeviceTypes: [],
         loading: false,
         pagination: {
             total: 0,
-            per_page: '',
+            per_page: 10,
             current_page: 1,
             last_page: 1
         }
     }),
     actions: {
-        async fetchAll(params = {}) {
+        async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new DeviceTypeResource().list({
+                const res = await new DeviceTypeResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
@@ -30,7 +32,22 @@ export const useDeviceTypeStore = defineStore('deviceType', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('DeviceType fetch error:', error);
+                console.error('DeviceType fetch Paginated error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Для выпадающих списков (все записи)
+        async fetchAllForDropdown() {
+            if (this.dropdownDeviceTypes.length > 0) return; // Уже загружены
+
+            this.loading = true;
+            try {
+                const res = await new DeviceTypeResource().listForDropdown();
+                this.dropdownDeviceTypes = res.data;
+            } catch (error) {
+                console.error('DeviceType fetch dropdown error:', error);
             } finally {
                 this.loading = false;
             }

@@ -3,20 +3,22 @@ import MeasurementUnitResource from '@/api/measurementUnitResource';
 
 export const useMeasurementUnitStore = defineStore('measurementUnit', {
     state: () => ({
-        measurementUnits: [],
+        measurementUnits: [],      // Для таблицы (с пагинацией)
+        dropdownUnits: [],         // Для выпадающих списков (все записи)
         loading: false,
         pagination: {
             total: 0,
-            per_page: '',
+            per_page: 10,
             current_page: 1,
             last_page: 1
         }
     }),
     actions: {
-        async fetchAll(params = {}) {
+        // Для таблицы (с пагинацией)
+        async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new MeasurementUnitResource().list({
+                const res = await new MeasurementUnitResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
@@ -30,7 +32,22 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('MeasurementUnit fetch error:', error);
+                console.error('MeasurementUnit fetch Paginated error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Для выпадающих списков (все записи)
+        async fetchAllForDropdown() {
+            if (this.dropdownUnits.length > 0) return; // Уже загружены
+
+            this.loading = true;
+            try {
+                const res = await new MeasurementUnitResource().listForDropdown();
+                this.dropdownUnits = res.data;
+            } catch (error) {
+                console.error('MeasurementUnit fetch dropdown error:', error);
             } finally {
                 this.loading = false;
             }

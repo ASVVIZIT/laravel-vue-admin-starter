@@ -13,8 +13,9 @@
         @row-click="toggleExpand"
         @sort-change="handleSortChange"
         @selection-change="handleSelectionChange"
-    >
-      <template v-for="(item, index) in tableColumn" :key="index">
+        empty-text="Нет данных"
+      >
+        <template v-for="(item, index) in tableColumn" :key="index">
         <el-table-column
             v-if="item.filters"
             :key="index+1"
@@ -55,7 +56,7 @@
           </template>
         </el-table-column>
       </template>
-      <el-table-column
+        <el-table-column
           v-if="tableOption.label"
           :fixed="tableOption.fixed"
           :align="tableOption.align ? tableOption.align : 'center'"
@@ -95,9 +96,13 @@
             </template>
           </template>
         </template>
+        <template #empty>
+          <div class="empty-data">
+            <el-empty description="Нет данных" />
+          </div>
+        </template>
       </el-table-column>
-    </el-table>
-
+      </el-table>
       <template v-if="paginate && pagination.meta.total>0">
         <section class="pagination-container">
           <el-pagination

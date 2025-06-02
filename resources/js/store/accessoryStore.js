@@ -1,23 +1,25 @@
+import BrandResource from "@api/brandResource.js";
 import { defineStore } from 'pinia';
 import AccessoryResource from '@/api/accessoryResource';
 
 export const useAccessoryStore = defineStore('accessory', {
     state: () => ({
         accessories: [],
+        dropdownAccessories: [],
         currentAccessory: null,
         loading: false,
         pagination: {
             total: 0,
-            per_page: '',
+            per_page: 10,
             current_page: 1,
             last_page: 1
         }
     }),
     actions: {
-        async fetchAll(params = {}) {
+        async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new AccessoryResource().list({
+                const res = await new AccessoryResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
@@ -31,7 +33,22 @@ export const useAccessoryStore = defineStore('accessory', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('Accessory fetch error:', error);
+                console.error('Accessory fetch Paginated error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Для выпадающих списков (все записи)
+        async fetchAllForDropdown() {
+            if (this.dropdownAccessories.length > 0) return; // Уже загружены
+
+            this.loading = true;
+            try {
+                const res = await new AccessoryResource().listForDropdown();
+                this.dropdownAccessories = res.data;
+            } catch (error) {
+                console.error('Accessory fetch dropdown error:', error);
             } finally {
                 this.loading = false;
             }

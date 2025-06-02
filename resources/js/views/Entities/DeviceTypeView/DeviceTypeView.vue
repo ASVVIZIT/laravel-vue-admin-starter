@@ -298,7 +298,7 @@ const debouncedSearch = debounce(() => {
 
 // Загрузка данных с параметрами
 const loadDeviceTypes = async () => {
-  await deviceTypeStore.fetchAll({
+  await deviceTypeStore.fetchPaginated({
     search: searchQuery.value,
     page: deviceTypeStore.pagination.current_page,
     per_page: deviceTypeStore.pagination.per_page
@@ -477,7 +477,7 @@ function updateTableHeight() {
 // Инициализация компонента
 onMounted(() => {
   // Установка начального размера пагинации
-  deviceTypeStore.pagination.per_page = 100;
+  deviceTypeStore.pagination.per_page = 20; // По умолчанию 20 строк
   loadDeviceTypes();
 
   updateTableHeight();

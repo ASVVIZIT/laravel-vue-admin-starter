@@ -6,6 +6,14 @@ class RoleResource extends Resource {
     super('roles');
   }
 
+  list(query) {
+    return request({
+      url: '/' + this.uri,
+      method: 'get',
+      params: query,
+    });
+  }
+
   permissions(id) {
     return request({
       url: '/' + this.uri + '/' + id + '/permissions',

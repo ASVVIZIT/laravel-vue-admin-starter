@@ -1,3 +1,5 @@
+// store/user.js
+
 import {login, logout, getInfo} from '@/api/auth'
 import {isLogged, setToken, removeToken} from '@/utils/auth'
 import router, {resetRouter} from '../router'

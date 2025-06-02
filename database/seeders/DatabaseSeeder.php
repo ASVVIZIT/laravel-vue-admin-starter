@@ -51,9 +51,9 @@ class DatabaseSeeder extends Seeder
     {
 
         $mailStat = config('content.mail_stat');
-        $mailStatPass = config('content.mailStatPass');
+        $mailStatPass = config('content.mail_stat_pass');
 
-        $user = User::query()->firstOrCreate([
+        $userSuper = User::query()->firstOrCreate([
             'name' => config('content.admin_name'),
         ], [
             'email' => config('content.admin_email'),
@@ -66,15 +66,15 @@ class DatabaseSeeder extends Seeder
             'updated_at' => Carbon::now()
         ]);
 
-        $role = Role::findByName(Acl::ROLE_SUPER_ADMIN);
-        $user->syncRoles($role);
+        $adminSuper = Role::findByName(\App\Models\Acl::ROLE_SUPER_ADMIN);
+        $userSuper->syncRoles($adminSuper);
 
-        $admin = User::create([
+        $admin2 = User::create([
             'name' => 'Admin2',
             'email' => 'admin2' . $mailStat,
             'password' => Hash::make($mailStatPass),
         ]);
-        $admin2 = User::create([
+        $admin3 = User::create([
             'name' => 'Admin3',
             'email' => 'admin3' . $mailStat,
             'password' => Hash::make($mailStatPass),
@@ -105,8 +105,8 @@ class DatabaseSeeder extends Seeder
         $editorRole = Role::findByName(\App\Models\Acl::ROLE_EDITOR);
         $userRole = Role::findByName(\App\Models\Acl::ROLE_USER);
         $visitorRole = Role::findByName(\App\Models\Acl::ROLE_VISITOR);
-        $admin->syncRoles($adminRole);
         $admin2->syncRoles($adminRole);
+        $admin3->syncRoles($adminRole);
         $manager->syncRoles($managerRole);
         $editor->syncRoles($editorRole);
         $user->syncRoles($userRole);

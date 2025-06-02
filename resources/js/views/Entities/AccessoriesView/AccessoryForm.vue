@@ -3,14 +3,23 @@
     <!-- Шапка с кнопками действий -->
     <div class="form-header">
       <div class="header-left">
-        <el-button
-            type="text"
-            @click="$router.go(-1)"
-            :size="store.size"
-            class="back-button"
-        >
-          <el-icon><ArrowLeft /></el-icon> Назад
-        </el-button>
+        <el-button-group>
+          <el-button
+              @click="$router.go(-1)"
+              :size="store.size"
+              class="back-button"
+          >
+            <el-icon><ArrowLeft /></el-icon> Назад
+          </el-button>
+
+          <el-button
+              @click="$router.push({ name: 'AccessoriesList' })"
+              :size="store.size"
+              class="back-button"
+          >
+            <el-icon><List /></el-icon> Список
+          </el-button>
+        </el-button-group>
         <h2>{{ formTitle }}</h2>
       </div>
 
@@ -587,7 +596,7 @@
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, Setting } from '@element-plus/icons-vue';
+import { ArrowLeft, Setting, List } from '@element-plus/icons-vue';
 import { appStore } from "@/store/app";
 import { useAccessoryStore } from '@/store/accessoryStore';
 import { useBrandStore } from '@/store/brandStore';
@@ -846,17 +855,16 @@ const getUnitsForCategory = (categoryName) => {
 const loadRequiredData = async () => {
   try {
     await Promise.all([
-      brandStore.fetchAll(),
-      deviceTypeStore.fetchAll(),
-      measurementUnitStore.fetchAll(),
-      measurementCategoryStore.fetchAll()
+      brandStore.fetchAllForDropdown(),
+      deviceTypeStore.fetchAllForDropdown(),
+      measurementUnitStore.fetchAllForDropdown(),
+      measurementCategoryStore.fetchAllForDropdown()
     ]);
 
-    brands.value = brandStore.brands;
-    deviceTypes.value = deviceTypeStore.deviceTypes;
-    console.log('deviceTypes.value ', deviceTypes.value);
-    measurementUnits.value = measurementUnitStore.measurementUnits;
-    measurementCategories.value = measurementCategoryStore.categories;
+    brands.value = brandStore.dropdownBrands;
+    deviceTypes.value = deviceTypeStore.dropdownDeviceTypes;
+    measurementUnits.value = measurementUnitStore.dropdownUnits;
+    measurementCategories.value = measurementCategoryStore.dropdownCategories;
 
     // Создаем карту категорий по имени
     categoryMap.value = {};
@@ -963,7 +971,11 @@ onUnmounted(() => {
 
 .back-button {
   padding: 6px 10px;
-  height: auto;
+  flex-shrink: 0;
+}
+
+.list-button {
+  padding: 6px 10px;
   flex-shrink: 0;
 }
 

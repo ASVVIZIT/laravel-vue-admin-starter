@@ -1,9 +1,11 @@
+import DeviceTypeResource from "@api/deviceTypeResource.js";
 import { defineStore } from 'pinia';
 import BrandResource from '@/api/brandResource';
 
 export const useBrandStore = defineStore('brand', {
     state: () => ({
         brands: [],
+        dropdownBrands: [],
         loading: false,
         pagination: {
             total: 0,
@@ -13,10 +15,10 @@ export const useBrandStore = defineStore('brand', {
         }
     }),
     actions: {
-        async fetchAll(params = {}) {
+        async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new BrandResource().list({
+                const res = await new BrandResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
@@ -30,7 +32,22 @@ export const useBrandStore = defineStore('brand', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('Brand fetch error:', error);
+                console.error('Brand fetch Paginated error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Для выпадающих списков (все записи)
+        async fetchAllForDropdown() {
+            if (this.dropdownBrands.length > 0) return; // Уже загружены
+
+            this.loading = true;
+            try {
+                const res = await new BrandResource().listForDropdown();
+                this.dropdownBrands = res.data;
+            } catch (error) {
+                console.error('Brand fetch dropdown error:', error);
             } finally {
                 this.loading = false;
             }

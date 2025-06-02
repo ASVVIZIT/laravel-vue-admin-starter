@@ -7,11 +7,19 @@ class AccessoryResource extends Resource {
     }
 
     // Универсальный метод для получения данных с параметрами
-    list(query = {}) {
+    listPaginated(query = {}) {
         return request({
             url: `/${this.uri}`,
             method: 'get',
             params: query
+        });
+    }
+
+    listForDropdown() {
+        return request({
+            url: `/${this.uri}`,
+            method: 'get',
+            params: { for_dropdown: true }
         });
     }
 

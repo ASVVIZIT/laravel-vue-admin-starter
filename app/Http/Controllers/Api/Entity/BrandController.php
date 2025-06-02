@@ -32,6 +32,14 @@ class BrandController extends Controller
                 });
             }
 
+            // Режим для выпадающих списков (все записи)
+            if ($request->boolean('for_dropdown')) {
+                return response()->json([
+                    'data' => $query->get()
+                ]);
+            }
+
+
             $perPage = $request->per_page ?? 10;
             $brands = $query->paginate($perPage);
 

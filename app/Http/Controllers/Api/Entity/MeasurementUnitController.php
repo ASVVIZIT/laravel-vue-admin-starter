@@ -21,6 +21,7 @@ class MeasurementUnitController extends Controller
         try {
             $query = MeasurementUnit::with('category');
 
+            // Поиск
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function($q) use ($search) {
@@ -35,7 +36,15 @@ class MeasurementUnitController extends Controller
                 });
             }
 
-            $perPage = $request->per_page ?? 100;
+            // Режим для выпадающих списков (все записи)
+            if ($request->boolean('for_dropdown')) {
+                return response()->json([
+                    'data' => $query->get()
+                ]);
+            }
+
+            // Стандартный режим с пагинацией
+            $perPage = $request->per_page ?? 10;
             $units = $query->paginate($perPage);
 
             return response()->json([

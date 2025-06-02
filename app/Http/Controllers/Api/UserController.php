@@ -206,27 +206,28 @@ class UserController extends BaseController
      * @param User $user
      * @return UserResource|\Illuminate\Http\JsonResponse
      */
-    public function updatePermissions(Request $request, User $user): UserResource
+    public function updatePermissions(Request $request, User $user)
     {
         if (empty($user)) {
-            return responseFailed('User not found', Response::HTTP_NOT_FOUND);
+            return responseFailed('User not found', 404);
         }
 
         if ($user->isAdmin()) {
-            return responseFailed('Admin can not be modified', Response::HTTP_BAD_REQUEST);
+            return responseFailed('Admin cannot be modified', 400);
         }
 
         $permissionIds = $request->get('permissions', []);
-        $rolePermissionIds = array_map(
+
+/*        $rolePermissionIds = array_map(
             function ($permission) {
                 return $permission['id'];
             },
 
             $user->getPermissionsViaRoles()->toArray()
         );
-
         $newPermissionIds = array_diff($permissionIds, $rolePermissionIds);
-        $permissions = Permission::allowed()->whereIn('id', $newPermissionIds)->get();
+        $permissions = Permission::allowed()->whereIn('id', $newPermissionIds)->get();*/
+        $permissions = Permission::allowed()->whereIn('id', $permissionIds)->get();
         $user->syncPermissions($permissions);
         return new UserResource($user);
     }
@@ -244,11 +245,6 @@ class UserController extends BaseController
 
         try {
             $currentUser = Auth::user();
-    /*        dd([
-                '$currentUser' => $currentUser->getAuthIdentifier(),
-                '$user' => $user->getAuthIdentifier(),
-            ]);*/
-
             if ($currentUser->getAuthIdentifier() === $user->getAuthIdentifier()) {
                 return responseFailed('Can not delete - Its ure', Response::HTTP_NOT_MODIFIED);
             } else {

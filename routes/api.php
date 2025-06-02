@@ -42,8 +42,8 @@ Route::namespace('Api')->group(function() {
             Route::apiResource('ep_brands', \App\Http\Controllers\Api\Entity\BrandController::class);
             Route::apiResource('ep_device_types', \App\Http\Controllers\Api\Entity\DeviceTypeController::class);
 
-            Route::apiResource('ep_measurement_categories', \App\Http\Controllers\Api\Entity\MeasurementCategoryController::class)
-                ->only(['index']);
+            Route::get('ep_measurement_categories/all', [\App\Http\Controllers\Api\Entity\MeasurementCategoryController::class, 'all'])->name('ep_measurement_categories.all');
+            Route::apiResource('ep_measurement_categories', \App\Http\Controllers\Api\Entity\MeasurementCategoryController::class)->only(['index']);
             Route::apiResource('ep_measurement_units', \App\Http\Controllers\Api\Entity\MeasurementUnitController::class);
             Route::apiResource('ep_accessories', \App\Http\Controllers\Api\Entity\AccessoryController::class);
         })->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);

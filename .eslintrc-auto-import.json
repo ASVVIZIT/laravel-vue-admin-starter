@@ -88,6 +88,7 @@
     "setMapStoreSuffix": true,
     "storeToRefs": true,
     "ElSvgIcon": true,
-    "ElMessage": true
+    "ElMessage": true,
+    "ElSvgItem": true
   }
 }

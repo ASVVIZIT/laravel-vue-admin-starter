@@ -30,7 +30,14 @@ class DeviceTypeController extends Controller
                 });
             }
 
-            $perPage = $request->per_page ?? 100;
+            // Режим для выпадающих списков (все записи)
+            if ($request->boolean('for_dropdown')) {
+                return response()->json([
+                    'data' => $query->get()
+                ]);
+            }
+
+            $perPage = $request->per_page ?? 10;
             $deviceTypes = $query->paginate($perPage);
 
             return response()->json([
