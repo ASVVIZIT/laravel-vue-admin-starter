@@ -20,6 +20,6 @@ class Role extends \Spatie\Permission\Models\Role
      */
     public function isAdmin(): bool
     {
-        return $this->name === \App\Models\Acl::ROLE_ADMIN;
+        return $this->name === \App\Models\Acl::ROLE_ADMIN || \App\Models\Acl::ROLE_SUPER_ADMIN;
     }
 }
