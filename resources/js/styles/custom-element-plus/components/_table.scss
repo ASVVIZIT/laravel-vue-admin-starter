@@ -7,11 +7,10 @@
   .main-container {
 
     .el-table tr {
-      max-height: 40px;
+      max-height: 30px;
     }
     .el-table .el-table__cell {
-      padding: 1px 0px;
-      min-width: 0;
+      padding: 2px 2px;
       box-sizing: border-box;
       text-overflow: ellipsis;
       vertical-align: middle;

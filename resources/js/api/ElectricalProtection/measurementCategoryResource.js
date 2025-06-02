@@ -1,5 +1,6 @@
-import Resource from '@/api/resource';
-import request from "@utils/request.js";
+// /resources/js/api/measurementCategoryResource.js
+import Resource from '@api/resource.js';
+import request from '@utils/request.js';
 
 class MeasurementCategoryResource extends Resource {
     constructor() {

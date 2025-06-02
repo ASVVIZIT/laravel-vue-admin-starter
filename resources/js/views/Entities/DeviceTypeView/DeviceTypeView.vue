@@ -244,7 +244,7 @@ import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
-import { useDeviceTypeStore } from '@/store/deviceTypeStore';
+import { useDeviceTypeStore } from '@store/ElectricalProtection/deviceTypeStore.js';
 
 // Инициализация хранилищ
 const store = appStore();

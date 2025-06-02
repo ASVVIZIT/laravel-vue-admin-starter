@@ -1,0 +1,15 @@
+@use "sass:map";
+@use "../../custom-element-plus/proxy" as *;
+@use "../../core/variables" as *;
+.el-tabs__content {
+   background-color:  map.get($menu, 'backgroundColor') !important;
+}
+
+.el-tabs--border-card > .el-tabs__header .el-tabs__item.is-active {
+   color: #e8e0e0 !important;
+   background-color:  map.get($menu, 'backgroundColor') !important;
+}
+.el-tabs--border-card > .el-tabs__header .el-tabs__item:hover {
+   color: #e8e0e0 !important;
+   background-color:  map.get($menu, 'hoverBackgroundColor') !important;
+}

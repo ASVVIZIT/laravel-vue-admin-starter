@@ -1,6 +1,6 @@
-// src/api/brandResource.js
-import Resource from '@/api/resource';
-import request from '@/utils/request';
+// /resources/js/api/brandResource.js
+import Resource from '@api/resource.js';
+import request from '@utils/request.js';
 
 class BrandResource extends Resource {
     constructor() {

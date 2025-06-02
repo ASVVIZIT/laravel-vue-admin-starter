@@ -1,5 +1,6 @@
+// resources/js/store/ElectricalProtection/measurementUnitStore.js
 import { defineStore } from 'pinia';
-import MeasurementUnitResource from '@/api/measurementUnitResource';
+import MeasurementUnitResource from '@api/ElectricalProtection/measurementUnitResource.js';
 
 export const useMeasurementUnitStore = defineStore('measurementUnit', {
     state: () => ({
@@ -59,7 +60,6 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('MeasurementUnit delete error:', error);
@@ -73,7 +73,6 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('MeasurementUnit create error:', error);
@@ -87,7 +86,6 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('MeasurementUnit update error:', error);

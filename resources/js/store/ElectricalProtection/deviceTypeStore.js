@@ -1,11 +1,11 @@
-import MeasurementUnitResource from "@api/measurementUnitResource.js";
+// resources/js/store/ElectricalProtection/deviceTypeStore.js
 import { defineStore } from 'pinia';
-import DeviceTypeResource from '@/api/deviceTypeResource';
+import DeviceTypeResource from '@api/ElectricalProtection/deviceTypeResource.js';
 
 export const useDeviceTypeStore = defineStore('deviceType', {
     state: () => ({
-        deviceTypes: [],
-        dropdownDeviceTypes: [],
+        deviceTypes: [],         // Для таблицы (с пагинацией)
+        dropdownDeviceTypes: [], // Для выпадающих списков (все записи)
         loading: false,
         pagination: {
             total: 0,
@@ -56,10 +56,10 @@ export const useDeviceTypeStore = defineStore('deviceType', {
         async delete(id) {
             try {
                 await new DeviceTypeResource().destroy(id);
+                // Перезагружаем данные с сохранением параметров
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('DeviceType delete error:', error);
@@ -70,10 +70,10 @@ export const useDeviceTypeStore = defineStore('deviceType', {
         async create(data) {
             try {
                 await new DeviceTypeResource().store(data);
+                // Перезагружаем данные с сохранением параметров
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('DeviceType create error:', error);
@@ -84,10 +84,10 @@ export const useDeviceTypeStore = defineStore('deviceType', {
         async update(id, data) {
             try {
                 await new DeviceTypeResource().update(id, data);
+                // Перезагружаем данные с сохранением параметров
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('DeviceType update error:', error);

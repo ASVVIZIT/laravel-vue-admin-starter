@@ -280,7 +280,7 @@ import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
-import { useBrandStore } from '@/store/brandStore';
+import { useBrandStore } from '@store/ElectricalProtection/brandStore.js';
 
 // Инициализация хранилищ
 const store = appStore();

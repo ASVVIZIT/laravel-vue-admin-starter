@@ -1,11 +1,11 @@
-import BrandResource from "@api/brandResource.js";
+// resources/js/store/ElectricalProtection/accessoryStore.js
 import { defineStore } from 'pinia';
-import AccessoryResource from '@/api/accessoryResource';
+import AccessoryResource from '@api/ElectricalProtection/accessoryResource.js';
 
 export const useAccessoryStore = defineStore('accessory', {
     state: () => ({
-        accessories: [],
-        dropdownAccessories: [],
+        accessories: [],         // Для таблицы (с пагинацией)
+        dropdownAccessories: [], // Для выпадающих списков (все записи)
         currentAccessory: null,
         loading: false,
         pagination: {
@@ -71,6 +71,7 @@ export const useAccessoryStore = defineStore('accessory', {
         async delete(id) {
             try {
                 await new AccessoryResource().destroy(id);
+                // Перезагружаем данные с сохранением параметров
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page
@@ -83,8 +84,12 @@ export const useAccessoryStore = defineStore('accessory', {
 
         async create(data) {
             try {
-                const res = await new AccessoryResource().store(data);
-                return res;
+                await new AccessoryResource().store(data);
+                // Перезагружаем данные с сохранением параметров
+                await this.fetchPaginated({
+                    page: this.pagination.current_page,
+                    per_page: this.pagination.per_page,
+                });
             } catch (error) {
                 console.error('Accessory create error:', error);
                 throw error;
@@ -93,8 +98,12 @@ export const useAccessoryStore = defineStore('accessory', {
 
         async update(id, data) {
             try {
-                const res = await new AccessoryResource().update(id, data);
-                return res;
+                await new AccessoryResource().update(id, data);
+                // Перезагружаем данные с сохранением параметров
+                await this.fetchPaginated({
+                    page: this.pagination.current_page,
+                    per_page: this.pagination.per_page,
+                });
             } catch (error) {
                 console.error('Accessory update error:', error);
                 throw error;

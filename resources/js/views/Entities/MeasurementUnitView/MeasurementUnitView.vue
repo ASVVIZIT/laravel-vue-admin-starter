@@ -321,8 +321,8 @@ import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
-import { useMeasurementUnitStore } from '@/store/measurementUnitStore';
-import { useMeasurementCategoryStore } from '@/store/measurementCategoryStore';
+import { useMeasurementUnitStore } from '@store/ElectricalProtection/measurementUnitStore.js';
+import { useMeasurementCategoryStore } from '@store/ElectricalProtection/measurementCategoryStore.js';
 
 // Инициализация хранилищ
 const store = appStore();

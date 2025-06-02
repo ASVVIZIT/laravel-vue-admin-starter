@@ -75,6 +75,7 @@
       </template>
       <template #table_options="scope">
         <div v-if="!isAdmin(scope.row.roles)">
+          <el-button-group :size="store.size">
           <el-button v-for="(action, index) in tableOption.item_actions"
                      :key="index"
                      :type="action.type || 'primary'"
@@ -84,6 +85,7 @@
           >
             <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
           </el-button>
+          </el-button-group>
         </div>
         <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
       </template>
@@ -388,7 +390,7 @@ const per_pages = ref([5, 10, 30, 50, 100, 150, 200])
 const tableOption = computed(() => {
   if (!checkPermission(['manage user'])) return {}
   const actions = [
-    { name: 'edit-item', type: 'primary', icon: 'EditPen', size: 'small', round: false },
+    { name: 'edit-item', type: 'primary', icon: 'EditPen', size: 'small', round: true },
     { name: 'delete-item', type: 'danger', icon: 'Delete', size: 'small', round: false },
   ]
   if (checkPermission(['manage permission'])) {
@@ -396,9 +398,10 @@ const tableOption = computed(() => {
       name: 'edit-permission-item',
       type: 'warning',
       icon: 'Finished',
+      width: 100,
       label: t('permission.actions.editPermission'),
       size: 'small',
-      round: false
+      round: true
     })
   }
   return {

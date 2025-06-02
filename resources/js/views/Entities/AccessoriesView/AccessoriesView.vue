@@ -5,7 +5,7 @@
           <h2>Список аксессуаров</h2>
           <el-button
               type="primary"
-              @click="$router.push({ name: 'AccessoriesList' })"
+              @click="$router.push({ name: 'AccessoryCreate' })"
               :size="store.size"
               class="compact-btn"
           >
@@ -39,7 +39,7 @@
           class="accessories-table"
           :height="tableHeight"
       >
-        <el-table-column prop="id" label="ID" width="50" />
+        <el-table-column prop="id" label="ID" sortable width="50" />
         <el-table-column prop="name" label="Название" />
         <el-table-column prop="model" label="Модель" width="150"/>
         <el-table-column label="Бренд" width="110">
@@ -117,7 +117,7 @@ import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
-import { useAccessoryStore } from '@/store/accessoryStore';
+import { useAccessoryStore } from '@store/ElectricalProtection/accessoryStore.js';
 
 const store = appStore();
 const accessoryStore = useAccessoryStore();

@@ -28,7 +28,7 @@ const entityRoutes = {
         },
         {
             path: '/measurementUnit',
-            component: () => import('@/views/Entities/MeasurementUnit/MeasurementUnit.vue'),
+            component: () => import('@/views/Entities/MeasurementUnitView/MeasurementUnitView.vue'),
             name: 'MeasurementUnit',
             meta: {title: 'Единицы измерений', bootstrapIcon: 'speedometer2', permissions: ['manage entity']},
         },

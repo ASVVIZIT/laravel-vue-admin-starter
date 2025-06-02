@@ -16,8 +16,7 @@
               @click="$router.push({ name: 'AccessoriesList' })"
               :size="store.size"
               class="back-button"
-          >
-            <el-icon><List /></el-icon> Список
+          ><el-icon><Grid /></el-icon>Таблица
           </el-button>
         </el-button-group>
         <h2>{{ formTitle }}</h2>
@@ -596,13 +595,13 @@
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { ArrowLeft, Setting, List } from '@element-plus/icons-vue';
+import { ArrowLeft, Setting, Grid } from '@element-plus/icons-vue';
 import { appStore } from "@/store/app";
-import { useAccessoryStore } from '@/store/accessoryStore';
-import { useBrandStore } from '@/store/brandStore';
-import { useDeviceTypeStore } from '@/store/deviceTypeStore';
-import { useMeasurementUnitStore } from '@/store/measurementUnitStore';
-import { useMeasurementCategoryStore } from '@/store/measurementCategoryStore';
+import { useAccessoryStore } from '@store/ElectricalProtection/accessoryStore.js';
+import { useBrandStore } from '@store/ElectricalProtection/brandStore.js';
+import { useDeviceTypeStore } from '@store/ElectricalProtection/deviceTypeStore.js';
+import { useMeasurementUnitStore } from '@store/ElectricalProtection/measurementUnitStore.js';
+import { useMeasurementCategoryStore } from '@store/ElectricalProtection/measurementCategoryStore.js';
 
 // Компонент ProgressStars вынесен в отдельный файл
 import ProgressStars from '@/components/ProgressStars/ProgressStars.vue';

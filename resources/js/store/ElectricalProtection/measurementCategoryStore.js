@@ -1,11 +1,11 @@
-import MeasurementUnitResource from "@api/measurementUnitResource.js";
+// resources/js/store/ElectricalProtection/measurementCategoryStore.js
 import { defineStore } from 'pinia';
-import MeasurementCategoryResource from '@/api/measurementCategoryResource';
+import MeasurementCategoryResource from '@api/ElectricalProtection/measurementCategoryResource.js';
 
 export const useMeasurementCategoryStore = defineStore('measurementCategory', {
     state: () => ({
-        categories: [],
-        dropdownCategories: [],
+        categories: [],         // Для таблицы (с пагинацией)
+        dropdownCategories: [], // Для выпадающих списков (все записи)
         loading: false,
     }),
     actions: {

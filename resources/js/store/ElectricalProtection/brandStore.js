@@ -1,11 +1,11 @@
-import DeviceTypeResource from "@api/deviceTypeResource.js";
+// resources/js/store/ElectricalProtection/brandStore.js
 import { defineStore } from 'pinia';
-import BrandResource from '@/api/brandResource';
+import BrandResource from '@api/ElectricalProtection/brandResource.js';
 
 export const useBrandStore = defineStore('brand', {
     state: () => ({
-        brands: [],
-        dropdownBrands: [],
+        brands: [],         // Для таблицы (с пагинацией)
+        dropdownBrands: [], // Для выпадающих списков (все записи)
         loading: false,
         pagination: {
             total: 0,
@@ -60,7 +60,6 @@ export const useBrandStore = defineStore('brand', {
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('Brand delete error:', error);
@@ -75,7 +74,6 @@ export const useBrandStore = defineStore('brand', {
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('Brand create error:', error);
@@ -90,7 +88,6 @@ export const useBrandStore = defineStore('brand', {
                 await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: params.search || ''
                 });
             } catch (error) {
                 console.error('Brand update error:', error);
