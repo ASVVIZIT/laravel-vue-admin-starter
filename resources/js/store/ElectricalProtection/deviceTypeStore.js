@@ -1,11 +1,11 @@
-import DeviceTypeResource from "@api/deviceTypeResource.js";
+import MeasurementUnitResource from "@api/measurementUnitResource.js";
 import { defineStore } from 'pinia';
-import BrandResource from '@/api/brandResource';
+import DeviceTypeResource from '@/api/deviceTypeResource';
 
-export const useBrandStore = defineStore('brand', {
+export const useDeviceTypeStore = defineStore('deviceType', {
     state: () => ({
-        brands: [],
-        dropdownBrands: [],
+        deviceTypes: [],
+        dropdownDeviceTypes: [],
         loading: false,
         pagination: {
             total: 0,
@@ -18,13 +18,13 @@ export const useBrandStore = defineStore('brand', {
         async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new BrandResource().listPaginated({
+                const res = await new DeviceTypeResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
                 });
 
-                this.brands = res.data;
+                this.deviceTypes = res.data;
                 this.pagination = {
                     total: res.meta.total,
                     per_page: res.meta.per_page,
@@ -32,7 +32,7 @@ export const useBrandStore = defineStore('brand', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('Brand fetch Paginated error:', error);
+                console.error('DeviceType fetch Paginated error:', error);
             } finally {
                 this.loading = false;
             }
@@ -40,14 +40,14 @@ export const useBrandStore = defineStore('brand', {
 
         // Для выпадающих списков (все записи)
         async fetchAllForDropdown() {
-            if (this.dropdownBrands.length > 0) return; // Уже загружены
+            if (this.dropdownDeviceTypes.length > 0) return; // Уже загружены
 
             this.loading = true;
             try {
-                const res = await new BrandResource().listForDropdown();
-                this.dropdownBrands = res.data;
+                const res = await new DeviceTypeResource().listForDropdown();
+                this.dropdownDeviceTypes = res.data;
             } catch (error) {
-                console.error('Brand fetch dropdown error:', error);
+                console.error('DeviceType fetch dropdown error:', error);
             } finally {
                 this.loading = false;
             }
@@ -55,45 +55,42 @@ export const useBrandStore = defineStore('brand', {
 
         async delete(id) {
             try {
-                await new BrandResource().destroy(id);
-                // Перезагружаем данные с сохранением параметров
-                await this.fetchAll({
+                await new DeviceTypeResource().destroy(id);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: this.searchQuery
+                    search: params.search || ''
                 });
             } catch (error) {
-                console.error('Brand delete error:', error);
+                console.error('DeviceType delete error:', error);
                 throw error;
             }
         },
 
         async create(data) {
             try {
-                await new BrandResource().store(data);
-                // Перезагружаем данные с сохранением параметров
-                await this.fetchAll({
+                await new DeviceTypeResource().store(data);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: this.searchQuery
+                    search: params.search || ''
                 });
             } catch (error) {
-                console.error('Brand create error:', error);
+                console.error('DeviceType create error:', error);
                 throw error;
             }
         },
 
         async update(id, data) {
             try {
-                await new BrandResource().update(id, data);
-                // Перезагружаем данные с сохранением параметров
-                await this.fetchAll({
+                await new DeviceTypeResource().update(id, data);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page,
-                    search: this.searchQuery
+                    search: params.search || ''
                 });
             } catch (error) {
-                console.error('Brand update error:', error);
+                console.error('DeviceType update error:', error);
                 throw error;
             }
         }

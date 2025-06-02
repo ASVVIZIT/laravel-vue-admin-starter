@@ -1,11 +1,10 @@
-import MeasurementUnitResource from "@api/measurementUnitResource.js";
 import { defineStore } from 'pinia';
-import DeviceTypeResource from '@/api/deviceTypeResource';
+import MeasurementUnitResource from '@/api/measurementUnitResource';
 
-export const useDeviceTypeStore = defineStore('deviceType', {
+export const useMeasurementUnitStore = defineStore('measurementUnit', {
     state: () => ({
-        deviceTypes: [],
-        dropdownDeviceTypes: [],
+        measurementUnits: [],      // Для таблицы (с пагинацией)
+        dropdownUnits: [],         // Для выпадающих списков (все записи)
         loading: false,
         pagination: {
             total: 0,
@@ -15,16 +14,17 @@ export const useDeviceTypeStore = defineStore('deviceType', {
         }
     }),
     actions: {
+        // Для таблицы (с пагинацией)
         async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new DeviceTypeResource().listPaginated({
+                const res = await new MeasurementUnitResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
                 });
 
-                this.deviceTypes = res.data;
+                this.measurementUnits = res.data;
                 this.pagination = {
                     total: res.meta.total,
                     per_page: res.meta.per_page,
@@ -32,7 +32,7 @@ export const useDeviceTypeStore = defineStore('deviceType', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('DeviceType fetch Paginated error:', error);
+                console.error('MeasurementUnit fetch Paginated error:', error);
             } finally {
                 this.loading = false;
             }
@@ -40,14 +40,14 @@ export const useDeviceTypeStore = defineStore('deviceType', {
 
         // Для выпадающих списков (все записи)
         async fetchAllForDropdown() {
-            if (this.dropdownDeviceTypes.length > 0) return; // Уже загружены
+            if (this.dropdownUnits.length > 0) return; // Уже загружены
 
             this.loading = true;
             try {
-                const res = await new DeviceTypeResource().listForDropdown();
-                this.dropdownDeviceTypes = res.data;
+                const res = await new MeasurementUnitResource().listForDropdown();
+                this.dropdownUnits = res.data;
             } catch (error) {
-                console.error('DeviceType fetch dropdown error:', error);
+                console.error('MeasurementUnit fetch dropdown error:', error);
             } finally {
                 this.loading = false;
             }
@@ -55,39 +55,42 @@ export const useDeviceTypeStore = defineStore('deviceType', {
 
         async delete(id) {
             try {
-                await new DeviceTypeResource().destroy(id);
-                await this.fetchAll({
+                await new MeasurementUnitResource().destroy(id);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
-                    per_page: this.pagination.per_page
+                    per_page: this.pagination.per_page,
+                    search: params.search || ''
                 });
             } catch (error) {
-                console.error('DeviceType delete error:', error);
+                console.error('MeasurementUnit delete error:', error);
                 throw error;
             }
         },
 
         async create(data) {
             try {
-                await new DeviceTypeResource().store(data);
-                await this.fetchAll({
+                await new MeasurementUnitResource().store(data);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
-                    per_page: this.pagination.per_page
+                    per_page: this.pagination.per_page,
+                    search: params.search || ''
                 });
             } catch (error) {
-                console.error('DeviceType create error:', error);
+                console.error('MeasurementUnit create error:', error);
                 throw error;
             }
         },
 
         async update(id, data) {
             try {
-                await new DeviceTypeResource().update(id, data);
-                await this.fetchAll({
+                await new MeasurementUnitResource().update(id, data);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
-                    per_page: this.pagination.per_page
+                    per_page: this.pagination.per_page,
+                    search: params.search || ''
                 });
             } catch (error) {
-                console.error('DeviceType update error:', error);
+                console.error('MeasurementUnit update error:', error);
                 throw error;
             }
         }

@@ -1,10 +1,12 @@
+import BrandResource from "@api/brandResource.js";
 import { defineStore } from 'pinia';
-import MeasurementUnitResource from '@/api/measurementUnitResource';
+import AccessoryResource from '@/api/accessoryResource';
 
-export const useMeasurementUnitStore = defineStore('measurementUnit', {
+export const useAccessoryStore = defineStore('accessory', {
     state: () => ({
-        measurementUnits: [],      // Для таблицы (с пагинацией)
-        dropdownUnits: [],         // Для выпадающих списков (все записи)
+        accessories: [],
+        dropdownAccessories: [],
+        currentAccessory: null,
         loading: false,
         pagination: {
             total: 0,
@@ -14,17 +16,16 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
         }
     }),
     actions: {
-        // Для таблицы (с пагинацией)
         async fetchPaginated(params = {}) {
             this.loading = true;
             try {
-                const res = await new MeasurementUnitResource().listPaginated({
+                const res = await new AccessoryResource().listPaginated({
                     page: params.page || this.pagination.current_page,
                     per_page: params.per_page || this.pagination.per_page,
                     search: params.search || ''
                 });
 
-                this.measurementUnits = res.data;
+                this.accessories = res.data;
                 this.pagination = {
                     total: res.meta.total,
                     per_page: res.meta.per_page,
@@ -32,7 +33,7 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
                     last_page: res.meta.last_page
                 };
             } catch (error) {
-                console.error('MeasurementUnit fetch Paginated error:', error);
+                console.error('Accessory fetch Paginated error:', error);
             } finally {
                 this.loading = false;
             }
@@ -40,14 +41,28 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
 
         // Для выпадающих списков (все записи)
         async fetchAllForDropdown() {
-            if (this.dropdownUnits.length > 0) return; // Уже загружены
+            if (this.dropdownAccessories.length > 0) return; // Уже загружены
 
             this.loading = true;
             try {
-                const res = await new MeasurementUnitResource().listForDropdown();
-                this.dropdownUnits = res.data;
+                const res = await new AccessoryResource().listForDropdown();
+                this.dropdownAccessories = res.data;
             } catch (error) {
-                console.error('MeasurementUnit fetch dropdown error:', error);
+                console.error('Accessory fetch dropdown error:', error);
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchById(id) {
+            this.loading = true;
+            try {
+                const res = await new AccessoryResource().get(id);
+                this.currentAccessory = res;
+                return res;
+            } catch (error) {
+                console.error('Accessory fetch by ID error:', error);
+                throw error;
             } finally {
                 this.loading = false;
             }
@@ -55,39 +70,33 @@ export const useMeasurementUnitStore = defineStore('measurementUnit', {
 
         async delete(id) {
             try {
-                await new MeasurementUnitResource().destroy(id);
-                await this.fetchAll({
+                await new AccessoryResource().destroy(id);
+                await this.fetchPaginated({
                     page: this.pagination.current_page,
                     per_page: this.pagination.per_page
                 });
             } catch (error) {
-                console.error('MeasurementUnit delete error:', error);
+                console.error('Accessory delete error:', error);
                 throw error;
             }
         },
 
         async create(data) {
             try {
-                await new MeasurementUnitResource().store(data);
-                await this.fetchAll({
-                    page: this.pagination.current_page,
-                    per_page: this.pagination.per_page
-                });
+                const res = await new AccessoryResource().store(data);
+                return res;
             } catch (error) {
-                console.error('MeasurementUnit create error:', error);
+                console.error('Accessory create error:', error);
                 throw error;
             }
         },
 
         async update(id, data) {
             try {
-                await new MeasurementUnitResource().update(id, data);
-                await this.fetchAll({
-                    page: this.pagination.current_page,
-                    per_page: this.pagination.per_page
-                });
+                const res = await new AccessoryResource().update(id, data);
+                return res;
             } catch (error) {
-                console.error('MeasurementUnit update error:', error);
+                console.error('Accessory update error:', error);
                 throw error;
             }
         }
