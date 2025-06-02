@@ -218,7 +218,7 @@ class UserController extends BaseController
 
         $permissionIds = $request->get('permissions', []);
 
-/*        $rolePermissionIds = array_map(
+        $rolePermissionIds = array_map(
             function ($permission) {
                 return $permission['id'];
             },
@@ -226,8 +226,8 @@ class UserController extends BaseController
             $user->getPermissionsViaRoles()->toArray()
         );
         $newPermissionIds = array_diff($permissionIds, $rolePermissionIds);
-        $permissions = Permission::allowed()->whereIn('id', $newPermissionIds)->get();*/
-        $permissions = Permission::allowed()->whereIn('id', $permissionIds)->get();
+        $permissions = Permission::allowed()->whereIn('id', $newPermissionIds)->get();
+        /*$permissions = Permission::allowed()->whereIn('id', $permissionIds)->get();*/
         $user->syncPermissions($permissions);
         return new UserResource($user);
     }
@@ -285,7 +285,7 @@ class UserController extends BaseController
             'email' => $isNew ? 'required|email|unique:users' : '',
             'role' => $isNew ? [
                 'required',
-                Rule::notIn([Acl::ROLE_ADMIN])
+                Rule::notIn([Acl::ROLE_SUPER_ADMIN])
             ] : '',
             'sex' => [
                 'required',
