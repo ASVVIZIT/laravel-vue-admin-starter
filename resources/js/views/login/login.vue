@@ -24,8 +24,14 @@
             <span class="svg-container">
               <icon class-name="person-fill"/>
             </span>
-            <el-input v-model="loginForm.email" name="email" type="text" auto-complete="on"
-                      :placeholder="$t('login.email')"/>
+            <el-input
+                v-model="loginForm.email"
+                name="email"
+                type="text"
+                auto-complete="on"
+                clearable
+                :placeholder="$t('login.email')"
+            />
           </el-form-item>
           <el-form-item prop="password">
             <span class="svg-container">
@@ -35,7 +41,8 @@
                 v-model="loginForm.password"
                 name="password"
                 auto-complete="on"
-                placeholder="password"
+                clearable
+                :placeholder="$t('validation.rules.password.placeholder')"
                 :type="pwdType"
                 @keyup.enter.native="handleLogin(ruleFormRef)"
             />
@@ -77,14 +84,14 @@ export default {
     const router = useRouter()
     const validateEmail = (rule, value, callback) => {
       if (!validEmail(value)) {
-        callback(new Error('Please enter the correct email'))
+        callback(new Error(t('validation.rules.email.type')))
       } else {
         callback()
       }
     }
     const validatePass = (rule, value, callback) => {
       if (value.length < 6) {
-        callback(new Error('Password cannot be less than 6 digits'))
+        callback(new Error(t('validation.rules.password.minLength')))
       } else {
         callback()
       }
@@ -114,7 +121,7 @@ export default {
     }
 
     const useUserStore = userStore()
-    const {t} = useI18n()
+    const { t } = useI18n({ useScope: 'global' })
     const handleLogin = (formEl) => {
       if (!formEl) {
         return
@@ -174,7 +181,6 @@ $light_gray: #eee;
     display: contents;
     height: 47px;
     width: 85%;
-
     .el-input__wrapper {
       background: #283443;
       box-shadow: none;
@@ -186,12 +192,12 @@ $light_gray: #eee;
       -webkit-appearance: none;
       border-radius: 0px;
       padding: 12px 5px 12px 15px;
-      color: $light_gray;
+      color: $light_gray !important;
       height: 47px;
 
       &:-webkit-autofill {
         -webkit-box-shadow: 0 0 0px 1000px $bg inset !important;
-        -webkit-text-colorfill-color: rgb(8, 7, 7) !important;
+        -webkit-text-colorfill-color: rgb(192, 188, 188) !important;
       }
     }
   }
@@ -209,7 +215,7 @@ $light_gray: #eee;
 
 $bg: #1d1b28;
 $dark_gray: #889aa4;
-$light_gray: rgb(7, 6, 6);
+$light_gray: rgb(211, 203, 203);
 $bgColor: #054b5d;
 $brown: #B27C66;
 $textColor: #eee;
@@ -245,7 +251,7 @@ $textColor: #eee;
       justify-content: flex-end;
       overflow: hidden;
       background-color: #303c4b;
-      background-image: url('https://cdn.laravel-vue-admin.eu.org/static/images/laravel-vue-admin/background.jpg');
+      background-image: url('/resources/js/assets/login/background.jpg');
       background-position: 50%;
       background-size: cover;
       opacity: 1;

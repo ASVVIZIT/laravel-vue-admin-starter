@@ -75,7 +75,11 @@ export default {
                 required: 'Требуется электронная почта (Email)',
                 type: 'Введите правильный Email'
             },
-            password: { required: 'Требуется ввести пароль' },
+            password: {
+                placeholder: 'Введите пароль',
+                required: 'Требуется ввести пароль',
+                minLength: 'Пароль не может содержать менее 6 цифр'
+            },
             confirmPassword: {
                 required: 'Требуется ввести пароль',
                 mismatched: 'Пароль не совпадает!'

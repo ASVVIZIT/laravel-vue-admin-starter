@@ -68,7 +68,11 @@ export default {
         required: 'Email is required',
         type: 'Enter a valid email'
       },
-      password: { required: 'Password is required' },
+      password: {
+        placeholder: 'Enter the password',
+        required: 'Password is required',
+        minLength: 'Password cannot be less than 6 digits'
+      },
       confirmPassword: {
         required: 'Confirm password',
         mismatched: 'Passwords do not match!'

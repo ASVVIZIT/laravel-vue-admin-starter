@@ -65,10 +65,14 @@ export default {
       name: { required: '需要名称' },
       sex: { required: '需要性别' },
       email: {
+        placeholder: '输入密码',
         required: '需要邮箱',
         type: '请输入有效的邮箱'
       },
-      password: { required: '需要密码' },
+      password: {
+        required: '需要密码',
+        minLength: '密码不能包含少于6位数字。'
+      },
       confirmPassword: {
         required: '确认密码',
         mismatched: '密码不匹配！'
