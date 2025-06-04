@@ -1,17 +1,17 @@
 <template>
   <el-card class="measurement-unit-table-container">
-    <h2>Список единиц измерений</h2>
+    <h2>{{ $t('measurementUnit.table.title') }}</h2>
 
     <!-- Панель поиска и добавления -->
     <el-row :gutter="12" class="toolbar">
       <el-col :span="12" style="text-align: left">
         <el-input
-            v-model="searchQuery"
-            placeholder="Поиск по названию, символу, величине или категории..."
-            clearable
-            @input="debouncedSearch"
-            @clear="debouncedSearch"
-            :size="store.size"
+          v-model="searchQuery"
+          :placeholder="$t('measurementUnit.table.search_placeholder')"
+          clearable
+          @input="debouncedSearch"
+          @clear="debouncedSearch"
+          :size="store.size"
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -20,55 +20,77 @@
       </el-col>
       <el-col :span="12" style="text-align: right">
         <el-button
-            type="primary"
-            @click="dialogVisibleAdd = true"
-            :size="store.size"
+          type="primary"
+          @click="dialogVisibleAdd = true"
+          :size="store.size"
         >
-          <el-icon><Plus /></el-icon> Добавить единицу
+          <el-icon><Plus /></el-icon> {{ $t('measurementUnit.table.add_button') }}
         </el-button>
       </el-col>
     </el-row>
 
     <!-- Таблица единиц измерений -->
     <el-table
-        border
-        style="width: 100%"
-        :data="measurementUnitStore.measurementUnits"
-        v-loading="measurementUnitStore.loading"
-        empty-text="Нет данных"
-        :size="store.size"
-        :height="tableHeight"
-    >
-      <el-table-column prop="id" label="ID" width="50" />
-      <el-table-column prop="name" label="Название" />
-      <el-table-column prop="display_symbol" label="Символ" width="100" />
-      <el-table-column prop="physical_quantity" label="Физическая величина" width="120" />
-      <el-table-column label="Категория">
+      border
+      style="width: 100%"
+      :data="measurementUnitStore.measurementUnits"
+      v-loading="measurementUnitStore.loading"
+      :empty-text="$t('measurementUnit.table.empty_text')"
+      :size="store.size"
+      :height="tableHeight"
+  >
+      <el-table-column
+        prop="id"
+        sortable
+        :label="$t('measurementUnit.table.columns.id')"
+        width="60"
+      />
+      <el-table-column
+        prop="name"
+        :label="$t('measurementUnit.table.columns.name')"
+        sortable
+      />
+      <el-table-column
+        prop="display_symbol"
+        :label="$t('measurementUnit.table.columns.display_symbol')"
+        width="100"
+        sortable
+      />
+      <el-table-column
+        prop="physical_quantity"
+        :label="$t('measurementUnit.table.columns.physical_quantity')"
+        width="150"
+        sortable
+      />
+      <el-table-column
+        :label="$t('measurementUnit.table.columns.category')"
+        sortable
+      >
         <template #default="scope">
           {{ getCategoryName(scope.row.measurement_category_id) || '-' }}
         </template>
       </el-table-column>
 
       <el-table-column
-          label="Действия"
-          fixed="right"
-          width="100"
+        :label="$t('measurementUnit.table.actions')"
+        fixed="right"
+        width="100"
       >
         <template #default="scope">
           <el-button-group :size="store.size">
             <el-button
-                type="primary"
-                :icon="Edit"
-                title="Редактировать"
-                @click="editMeasurementUnit(scope.row)"
-                circle
+              type="primary"
+              :icon="Edit"
+              :title="$t('measurementUnit.table.item_actions.edit')"
+              @click="editMeasurementUnit(scope.row)"
+              circle
             />
             <el-button
-                type="danger"
-                :icon="Delete"
-                title="Удалить"
-                @click="deleteMeasurementUnit(scope.row.id)"
-                circle
+              type="danger"
+              :icon="Delete"
+              :title="$t('measurementUnit.table.item_actions.delete')"
+              @click="deleteMeasurementUnit(scope.row.id)"
+              circle
             />
           </el-button-group>
         </template>
@@ -79,42 +101,43 @@
     <div class="pagination-container">
       <div class="pagination-controls">
         <div class="per-page-selector">
-          <span>Записей на странице:</span>
+          <span>{{ $t('measurementUnit.table.per_page_selector') }}</span>
           <el-select
-              v-model="measurementUnitStore.pagination.per_page"
-              @change="handlePerPageChange"
-              :size="store.size"
-              style="width: 100px"
+            v-model="measurementUnitStore.pagination.per_page"
+            @change="handlePerPageChange"
+            :size="store.size"
+            style="width: 100px"
+            clearable
           >
             <el-option
-                v-for="item in per_pages"
-                :key="item"
-                :label="item"
-                :value="item"
-                :size="store.size"
+              v-for="item in per_pages"
+              :key="item"
+              :label="item"
+              :value="item"
+              :size="store.size"
             />
           </el-select>
         </div>
 
         <el-pagination
-            background
-            layout="prev, pager, next, jumper"
-            :total="measurementUnitStore.pagination.total"
-            :page-size="measurementUnitStore.pagination.per_page"
-            :current-page="measurementUnitStore.pagination.current_page"
-            @current-change="handlePageChange"
-            :size="store.size"
+          background
+          layout="sizes, prev, pager, next, jumper"
+          :total="measurementUnitStore.pagination.total"
+          :page-size="measurementUnitStore.pagination.per_page"
+          :current-page="measurementUnitStore.pagination.current_page"
+          @current-change="handlePageChange"
+          :size="store.size"
         />
       </div>
       <div class="total-items">
-        Всего записей: {{ measurementUnitStore.pagination.total }}
+        {{ $t('measurementUnit.table.total_items') }} {{ measurementUnitStore.pagination.total }}
       </div>
     </div>
 
     <!-- Диалог добавления -->
     <el-dialog
         v-model="dialogVisibleAdd"
-        title="Добавить единицу измерения"
+        :title="$t('measurementUnit.form.add_title')"
         width="40%"
     >
       <el-form
@@ -127,76 +150,78 @@
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item
-                label="Название"
-                prop="name"
-                :rules="[{ required: true, message: 'Название обязательно' }]"
+              :label="$t('measurementUnit.form.fields.name.label')"
+              prop="name"
+              :rules="[{ required: true, message: $t('measurementUnit.form.rules.name_required') }]"
             >
               <el-input
-                  v-model="newMeasurementUnit.name"
-                  placeholder="Например: Ампер"
-                  :size="store.size"
+                v-model="newMeasurementUnit.name"
+                :placeholder="$t('measurementUnit.form.fields.name.placeholder')"
+                :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Символ (хранится)"
-                prop="symbol"
-                :rules="[{ required: true, message: 'Символ обязателен' }]"
+              :label="$t('measurementUnit.form.fields.symbol.label')"
+              prop="symbol"
+              :rules="[{ required: true, message: $t('measurementUnit.form.rules.symbol_required') }]"
             >
               <el-input
-                  v-model="newMeasurementUnit.symbol"
-                  placeholder="Например: a (в нижнем регистре)"
-                  :size="store.size"
+                v-model="newMeasurementUnit.symbol"
+                :placeholder="$t('measurementUnit.form.fields.symbol.placeholder')"
+                :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Отображаемый символ"
-                prop="display_symbol"
-                :rules="[{ required: true, message: 'Отображаемый символ обязателен' }]"
+              :label="$t('measurementUnit.form.fields.display_symbol.label')"
+              prop="display_symbol"
+              :rules="[{ required: true, message: $t('measurementUnit.form.rules.display_symbol_required') }]"
             >
               <el-input
-                  v-model="newMeasurementUnit.display_symbol"
-                  placeholder="Например: A"
-                  :size="store.size"
+                v-model="newMeasurementUnit.display_symbol"
+                :placeholder="$t('measurementUnit.form.fields.display_symbol.placeholder')"
+                :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Физическая величина"
-                prop="physical_quantity"
-                :rules="[{ required: true, message: 'Физическая величина обязательна' }]"
+              :label="$t('measurementUnit.form.fields.physical_quantity.label')"
+              prop="physical_quantity"
+              :rules="[{ required: true, message: $t('measurementUnit.form.rules.physical_quantity_required') }]"
             >
               <el-input
-                  v-model="newMeasurementUnit.physical_quantity"
-                  placeholder="Например: ток"
-                  :size="store.size"
+                v-model="newMeasurementUnit.physical_quantity"
+                :placeholder="$t('measurementUnit.form.fields.physical_quantity.placeholder')"
+                :size="store.size"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Категория"
-                prop="measurement_category_id"
-                :rules="[{ required: true, message: 'Категория обязательна' }]"
+              :label="$t('measurementUnit.form.fields.measurement_category_id.label')"
+              prop="measurement_category_id"
+              :rules="[{ required: true, message: $t('measurementUnit.form.rules.category_required') }]"
             >
               <el-select
-                  v-model="newMeasurementUnit.measurement_category_id"
-                  placeholder="Выберите категорию"
-                  :size="store.size"
-                  style="width: 100%"
+                v-model="newMeasurementUnit.measurement_category_id"
+                :placeholder="$t('measurementUnit.form.fields.measurement_category_id.placeholder')"
+                :size="store.size"
+                style="width: 100%"
+                filterable
+                clearable
               >
                 <el-option
-                    v-for="category in categoryStore.dropdownCategories"
-                    :key="category.id"
-                    :label="category.name"
-                    :value="category.id"
+                  v-for="category in categoryStore.dropdownCategories"
+                  :key="category.id"
+                  :label="category.name"
+                  :value="category.id"
                 >
                   <span>{{ category.name }}</span>
-                  <el-tag size="small" style="margin-left: 10px">{{ category.description }}</el-tag>
+                  <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
                 </el-option>
               </el-select>
             </el-form-item>
@@ -205,90 +230,92 @@
       </el-form>
       <template #footer>
         <el-button
-            @click="dialogVisibleAdd = false"
-            :size="store.size"
+          @click="dialogVisibleAdd = false"
+          :size="store.size"
         >
-          Отмена
+          {{ $t('measurementUnit.form.buttons.cancel') }}
         </el-button>
         <el-button
-            type="primary"
-            @click="validateAddForm"
-            :size="store.size"
+          type="primary"
+          @click="validateAddForm"
+          :size="store.size"
         >
-          Добавить
+          {{ $t('measurementUnit.form.buttons.add') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- Диалог редактирования -->
     <el-dialog
-        v-model="dialogVisible"
-        :title="`Редактирование: ${editingMeasurementUnit?.name}`"
-        width="40%"
+      v-model="dialogVisible"
+      :title="$t('measurementUnit.form.edit_title', { name: editingMeasurementUnit?.name })"
+      width="40%"
     >
       <el-form
-          :model="editingMeasurementUnit"
-          label-width="140px"
-          ref="editForm"
-          label-position="top"
-          :size="store.size"
+        :model="editingMeasurementUnit"
+        label-width="140px"
+        ref="editForm"
+        label-position="top"
+        :size="store.size"
       >
         <el-form-item
-            label="Название"
-            prop="name"
-            :rules="[{ required: true, message: 'Название обязательно' }]"
+          :label="$t('measurementUnit.form.fields.name.label')"
+          prop="name"
+          :rules="[{ required: true, message: $t('measurementUnit.form.rules.name_required') }]"
         >
           <el-input
-              v-model="editingMeasurementUnit.name"
-              :size="store.size"
+            v-model="editingMeasurementUnit.name"
+            :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Символ (хранится)"
-            prop="symbol"
-            :rules="[{ required: true, message: 'Символ обязателен' }]"
+          :label="$t('measurementUnit.form.fields.symbol.label')"
+          prop="symbol"
+          :rules="[{ required: true, message: $t('measurementUnit.form.rules.symbol_required') }]"
         >
           <el-input
-              v-model="editingMeasurementUnit.symbol"
-              :size="store.size"
+            v-model="editingMeasurementUnit.symbol"
+            :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Отображаемый символ"
-            prop="display_symbol"
-            :rules="[{ required: true, message: 'Отображаемый символ обязателен' }]"
+          :label="$t('measurementUnit.form.fields.display_symbol.label')"
+          prop="display_symbol"
+          :rules="[{ required: true, message: $t('measurementUnit.form.rules.display_symbol_required') }]"
         >
           <el-input
-              v-model="editingMeasurementUnit.display_symbol"
-              :size="store.size"
+            v-model="editingMeasurementUnit.display_symbol"
+            :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Физическая величина"
-            prop="physical_quantity"
-            :rules="[{ required: true, message: 'Физическая величина обязательна' }]"
+          :label="$t('measurementUnit.form.fields.physical_quantity.label')"
+          prop="physical_quantity"
+          :rules="[{ required: true, message: $t('measurementUnit.form.rules.physical_quantity_required') }]"
         >
           <el-input
-              v-model="editingMeasurementUnit.physical_quantity"
-              :size="store.size"
+            v-model="editingMeasurementUnit.physical_quantity"
+            :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Категория"
-            prop="measurement_category_id"
-            :rules="[{ required: true, message: 'Категория обязательна' }]"
+          :label="$t('measurementUnit.form.fields.measurement_category_id.label')"
+          prop="measurement_category_id"
+          :rules="[{ required: true, message: $t('measurementUnit.form.rules.category_required') }]"
         >
           <el-select
-              v-model="editingMeasurementUnit.measurement_category_id"
-              placeholder="Выберите категорию"
-              :size="store.size"
-              style="width: 100%"
+            v-model="editingMeasurementUnit.measurement_category_id"
+            :placeholder="$t('measurementUnit.form.fields.measurement_category_id.placeholder')"
+            :size="store.size"
+            style="width: 100%"
+            filterable
+            clearable
           >
             <el-option
-                v-for="category in categoryStore.dropdownCategories"
-                :key="category.id"
-                :label="category.name"
-                :value="category.id"
+              v-for="category in categoryStore.dropdownCategories"
+              :key="category.id"
+              :label="category.name"
+              :value="category.id"
             >
               <span style="min-width: 40px; max-width: 80px;">{{ category.name }}</span>
               <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
@@ -298,17 +325,17 @@
       </el-form>
       <template #footer>
         <el-button
-            @click="dialogVisible = false"
-            :size="store.size"
+          @click="dialogVisible = false"
+          :size="store.size"
         >
-          Отмена
+          {{ $t('measurementUnit.form.buttons.cancel') }}
         </el-button>
         <el-button
-            type="primary"
-            @click="validateEditForm"
-            :size="store.size"
+          type="primary"
+          @click="validateEditForm"
+          :size="store.size"
         >
-          Сохранить
+          {{ $t('measurementUnit.form.buttons.save') }}
         </el-button>
       </template>
     </el-dialog>
@@ -317,12 +344,15 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
 import { useMeasurementUnitStore } from '@store/ElectricalProtection/measurementUnitStore.js';
 import { useMeasurementCategoryStore } from '@store/ElectricalProtection/measurementCategoryStore.js';
+
+const { t } = useI18n();
 
 // Инициализация хранилищ
 const store = appStore();
@@ -334,7 +364,7 @@ const addForm = ref(null);
 const editForm = ref(null);
 
 // Опции для пагинации
-const per_pages = ref([5, 10, 20, 30, 50, 100]);
+const per_pages = ref([5, 10, 20, 30, 50, 100, 200]);
 
 // Данные форм
 const newMeasurementUnit = ref({
@@ -409,7 +439,7 @@ const addMeasurementUnit = async () => {
     await measurementUnitStore.create(newMeasurementUnit.value);
 
     ElMessage.success({
-      message: 'Единица измерения успешно добавлена',
+      message: t('measurementUnit.messages.add_success'),
       duration: 3000
     });
 
@@ -422,18 +452,17 @@ const addMeasurementUnit = async () => {
       measurement_category_id: null
     };
   } catch (error) {
-    let errorMessage = 'Ошибка при добавлении единицы измерения';
+    let errorMessage = t('measurementUnit.messages.error', { error: '' });
 
-    if (error.response && error.response.data) {
-      if (error.response.data.errors) {
-        errorMessage = Object.values(error.response.data.errors)
-            .flat()
-            .join('; ');
-      } else if (error.response.data.error) {
-        errorMessage = error.response.data.error;
-      }
-    } else {
-      errorMessage = error.message || errorMessage;
+    // Обработка ошибок валидации
+    if (error.errors) {
+      errorMessage = Object.values(error.errors)
+          .flat()
+          .join('; ');
+    }
+    // Обработка стандартных ошибок
+    else if (error.details) {
+      errorMessage = `${t('measurementUnit.messages.error', { error: '' })}: ${error.details}`;
     }
 
     ElMessage.error({
@@ -464,13 +493,13 @@ const saveEdit = async () => {
     );
 
     ElMessage.success({
-      message: 'Изменения сохранены',
+      message: t('measurementUnit.messages.update_success'),
       duration: 3000
     });
 
     dialogVisible.value = false;
   } catch (error) {
-    let errorMessage = 'Ошибка сохранения изменений';
+    let errorMessage = t('measurementUnit.messages.error', { error: '' });
 
     if (error.response && error.response.data) {
       if (error.response.data.errors) {
@@ -495,11 +524,11 @@ const saveEdit = async () => {
 const deleteMeasurementUnit = async (id) => {
   try {
     await ElMessageBox.confirm(
-        'Вы уверены, что хотите удалить единицу измерения? Это действие нельзя отменить.',
-        'Подтверждение удаления',
+        t('measurementUnit.messages.delete_confirm'),
+        t('measurementUnit.messages.delete_confirm_title'),
         {
-          confirmButtonText: 'Удалить',
-          cancelButtonText: 'Отмена',
+          confirmButtonText: t('table.general.delete'),
+          cancelButtonText: t('table.general.cancel'),
           type: 'warning',
           confirmButtonClass: 'el-button--danger',
           buttonSize: store.size
@@ -509,7 +538,7 @@ const deleteMeasurementUnit = async (id) => {
     await measurementUnitStore.delete(id);
 
     ElMessage.success({
-      message: 'Единица измерения успешно удалена',
+      message: t('measurementUnit.messages.delete_success'),
       duration: 3000
     });
 
@@ -520,14 +549,14 @@ const deleteMeasurementUnit = async (id) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      let errorMessage = 'Ошибка удаления единицы измерения';
+      let errorMessage = t('measurementUnit.messages.error', { error: '' });
 
       if (error.response && error.response.data) {
         if (error.response.data.error) {
           errorMessage = error.response.data.error;
         }
-      } else {
-        errorMessage = error.message || errorMessage;
+      } else if (error.details) {
+        errorMessage = `${t('measurementUnit.messages.error', { error: '' })}: ${error.details}`;
       }
 
       ElMessage.error({

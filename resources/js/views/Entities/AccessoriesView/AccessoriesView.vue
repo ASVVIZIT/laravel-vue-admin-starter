@@ -2,26 +2,26 @@
     <el-card class="accessories-container">
       <div class="header-section">
         <div class="header-with-button">
-          <h2>Список аксессуаров</h2>
+          <h2>{{ $t('accessory.table.title') }}</h2>
           <el-button
               type="primary"
               @click="$router.push({ name: 'AccessoryCreate' })"
               :size="store.size"
               class="compact-btn"
           >
-            <el-icon><Plus /></el-icon> Добавить аксессуар
+            <el-icon><Plus /></el-icon> {{ $t('accessory.table.add_button') }}
           </el-button>
         </div>
 
         <!-- Панель поиска -->
         <el-input
-            v-model="searchQuery"
-            placeholder="Поиск по модели, названию или бренду..."
-            clearable
-            @input="debouncedSearch"
-            @clear="debouncedSearch"
-            :size="store.size"
-            class="search-input compact-input"
+          v-model="searchQuery"
+          :placeholder="$t('accessory.table.search_placeholder')"
+          @input="debouncedSearch"
+          @clear="debouncedSearch"
+          :size="store.size"
+          class="search-input compact-input"
+          clearable
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -31,33 +31,58 @@
 
       <!-- Таблица аксессуаров - ОСНОВНЫЕ ИЗМЕНЕНИЯ ЗДЕСЬ -->
       <el-table
-          border
-          :data="accessoryStore.accessories"
-          v-loading="accessoryStore.loading"
-          empty-text="Нет данных"
-          :size="store.size"
-          class="accessories-table"
-          :height="tableHeight"
+        border
+        :data="accessoryStore.accessories"
+        v-loading="accessoryStore.loading"
+        :empty-text="$t('accessory.table.empty_text')"
+        :size="store.size"
+        class="accessories-table"
+        :height="tableHeight"
       >
-        <el-table-column prop="id" label="ID" sortable width="50" />
-        <el-table-column prop="name" label="Название" />
-        <el-table-column prop="model" label="Модель" width="150"/>
-        <el-table-column label="Бренд" width="110">
+        <el-table-column
+          prop="id"
+          :label="$t('accessory.table.columns.id')"
+          width="60"
+          sortable
+        />
+        <el-table-column
+          prop="name"
+          :label="$t('accessory.table.columns.name')"
+          sortable
+        />
+        <el-table-column
+          prop="model"
+          :label="$t('accessory.table.columns.model')"
+          width="150"
+          sortable
+        />
+        <el-table-column
+          :label="$t('accessory.table.columns.brand')"
+          width="110"
+          sortable
+        >
           <template #default="{ row }">
             {{ row.brand?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="Тип" width="130">
+        <el-table-column
+          :label="$t('accessory.table.columns.type')"
+          width="130"
+          sortable
+        >
           <template #default="{ row }">
             {{ row.type?.name || '-' }}
           </template>
         </el-table-column>
-        <el-table-column label="Совместимые модели">
+        <el-table-column
+          :label="$t('accessory.table.columns.compatible_models')"
+          sortable
+        >
           <template #default="{ row }">
             <el-tooltip
-                v-if="row.compatible_models"
-                :content="row.compatible_models"
-                placement="top"
+              v-if="row.compatible_models"
+              :content="row.compatible_models"
+              placement="top"
             >
               <span class="truncate-text">{{ row.compatible_models }}</span>
             </el-tooltip>
@@ -65,24 +90,28 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Действия" fixed="right" width="100">
+        <el-table-column
+          :label="$t('accessory.table.actions')"
+          fixed="right"
+          width="100"
+        >
           <template #default="{ row }">
             <el-button-group :size="store.size">
               <el-button
-                  type="primary"
-                  :icon="Edit"
-                  title="Редактировать"
-                  @click="editAccessory(row.id)"
-                  circle
-                  class="action-btn"
+                type="primary"
+                :icon="Edit"
+                :title="$t('accessory.table.columns.edit')"
+                @click="editAccessory(row.id)"
+                circle
+                class="action-btn"
               />
               <el-button
-                  type="danger"
-                  :icon="Delete"
-                  title="Удалить"
-                  @click="deleteAccessory(row.id)"
-                  circle
-                  class="action-btn"
+                type="danger"
+                :icon="Delete"
+                :title="$t('accessory.table.columns.delete')"
+                @click="deleteAccessory(row.id)"
+                circle
+                class="action-btn"
               />
             </el-button-group>
           </template>
@@ -92,19 +121,20 @@
       <!-- Пагинация с выбором количества строк -->
       <div class="pagination-container">
         <el-pagination
-            background
-            layout="sizes, prev, pager, next, jumper"
-            :total="accessoryStore.pagination.total"
-            :page-size="accessoryStore.pagination.per_page"
-            :page-sizes="[5, 10, 20, 50, 100, 200, 300]"
-            :current-page="accessoryStore.pagination.current_page"
-            @current-change="handlePageChange"
-            @size-change="handleSizeChange"
-            :size="store.size"
-            class="compact-pagination"
+          background
+          layout="sizes, prev, pager, next, jumper"
+          :total="accessoryStore.pagination.total"
+          :page-size="accessoryStore.pagination.per_page"
+          :page-sizes="[5, 10, 20, 50, 100, 200, 300]"
+          :current-page="accessoryStore.pagination.current_page"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+          :size="store.size"
+          class="compact-pagination"
+          sortable
         />
         <div class="total-items">
-          Всего записей: {{ accessoryStore.pagination.total }}
+          {{ $t('accessory.table.total_items') }} {{ accessoryStore.pagination.total }}
         </div>
       </div>
   </el-card>
@@ -112,12 +142,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRouter } from 'vue-router';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
 import { useAccessoryStore } from '@store/ElectricalProtection/accessoryStore.js';
+
+const { t } = useI18n();
 
 const store = appStore();
 const accessoryStore = useAccessoryStore();
@@ -162,23 +195,36 @@ const editAccessory = (id) => {
 const deleteAccessory = async (id) => {
   try {
     await ElMessageBox.confirm(
-        'Вы уверены, что хотите удалить аксессуар? Это действие нельзя отменить.',
-        'Подтверждение удаления',
-        {
-          confirmButtonText: 'Удалить',
-          cancelButtonText: 'Отмена',
-          type: 'warning',
-          confirmButtonClass: 'el-button--danger',
-          buttonSize: store.size
-        }
+      t('accessory.messages.delete_confirm'),
+      t('accessory.messages.delete_confirm_title'),
+      {
+        confirmButtonText: t('table.general.delete'),
+        cancelButtonText: t('table.general.cancel'),
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+        buttonSize: store.size
+      }
     );
 
     await accessoryStore.delete(id);
-    ElMessage.success('Аксессуар успешно удален');
+    ElMessage.success(t('accessory.messages.delete_success'));
 
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('Ошибка при удалении аксессуара: ' + (error.message || error));
+      let errorMessage = error.message || t('accessory.messages.error', { error: '' });
+
+      if (error.response && error.response.data) {
+        if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.details) {
+        errorMessage = `${t('deviceType.messages.error', { error: '' })}: ${error.details}`;
+      }
+
+      ElMessage.error({
+        message: errorMessage,
+        duration: 5000
+      });
     }
   }
 };
@@ -288,7 +334,6 @@ onUnmounted(() => {
   padding: 0 5px;
   max-height: 40px;
   line-height: 1.5;
- /* font-size: 13px;*/
 }
 
 .compact-btn {

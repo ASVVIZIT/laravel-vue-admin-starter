@@ -1,17 +1,17 @@
 <template>
   <el-card class="brand-table-container">
-    <h2>Список брендов</h2>
+    <h2>{{ $t('brand.table.title') }}</h2>
 
     <!-- Панель поиска и добавления -->
     <el-row :gutter="12" class="toolbar">
       <el-col :span="12" style="text-align: left">
         <el-input
             v-model="searchQuery"
-            placeholder="Поиск по названию, стране или сайту..."
-            clearable
+            :placeholder="$t('brand.table.search_placeholder')"
             @input="debouncedSearch"
             @clear="debouncedSearch"
             :size="store.size"
+            clearable
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -24,7 +24,7 @@
             @click="dialogVisibleAdd = true"
             :size="store.size"
         >
-          <el-icon><Plus /></el-icon> Добавить бренд
+          <el-icon><Plus /></el-icon> {{ $t('brand.table.add_button') }}
         </el-button>
       </el-col>
     </el-row>
@@ -35,14 +35,33 @@
         style="width: 100%"
         :data="brandStore.brands"
         v-loading="brandStore.loading"
-        empty-text="Нет данных"
+        :empty-text="$t('brand.table.empty_text')"
         :size="store.size"
         :height="tableHeight"
     >
-      <el-table-column prop="id" label="ID" width="50" />
-      <el-table-column prop="name" label="Название" />
-      <el-table-column prop="country" label="Страна" width="110" />
-      <el-table-column prop="website" label="Веб-сайт">
+      <el-table-column
+          prop="id"
+          :label="$t('brand.table.columns.id')"
+          width="60"
+          sortable
+      />
+      <el-table-column
+          prop="name"
+          :label="$t('brand.table.columns.name')"
+          sortable
+      />
+      <el-table-column
+          prop="country"
+          :label="$t('brand.table.columns.country')"
+          width="110"
+          sortable
+      />
+      <el-table-column
+          prop="website"
+          :label="$t('brand.table.columns.website')"
+          fixed="right"
+          sortable
+      >
         <template #default="{row}">
           <el-link :href="row.website" target="_blank" type="primary" :size="store.size">
             {{ row.website }}
@@ -51,21 +70,21 @@
       </el-table-column>
 
       <el-table-column
-          label="Действия"
-          fixed="right"
-          width="100"
+        :label="$t('brand.table.actions')"
+        fixed="right"
+        width="100"
       >
         <template #default="scope">
           <el-button-group :size="store.size">
             <el-button
-                v-for="(action, index) in tableOption.item_actions"
-                :key="index"
-                :type="action.type || 'primary'"
-                :icon="action.icon"
-                :title="action.label"
-                @click="tableActions(action.name, scope.row)"
-                circle
-                :size="store.size"
+              v-for="(action, index) in tableOption.item_actions"
+              :key="index"
+              :type="action.type || 'primary'"
+              :icon="action.icon"
+              :title="action.label"
+              @click="tableActions(action.name, scope.row)"
+              circle
+              :size="store.size"
             />
           </el-button-group>
         </template>
@@ -76,12 +95,13 @@
     <div class="pagination-container">
       <div class="pagination-controls">
         <div class="per-page-selector">
-          <span>Записей на странице:</span>
+          <span>{{ $t('brand.table.per_page_selector') }}</span>
           <el-select
               v-model="brandStore.pagination.per_page"
               @change="handlePerPageChange"
               :size="store.size"
               style="width: 100px"
+              clearable
           >
             <el-option
                 v-for="item in per_pages"
@@ -95,7 +115,7 @@
 
         <el-pagination
             background
-            layout="prev, pager, next, jumper"
+            layout="sizes, prev, pager, next, jumper"
             :total="brandStore.pagination.total"
             :page-size="brandStore.pagination.per_page"
             :current-page="brandStore.pagination.current_page"
@@ -104,14 +124,14 @@
         />
       </div>
       <div class="total-items">
-        Всего записей: {{ brandStore.pagination.total }}
+        {{ $t('brand.table.total_items') }} {{ brandStore.pagination.total }}
       </div>
     </div>
 
     <!-- Диалог добавления -->
     <el-dialog
         v-model="dialogVisibleAdd"
-        title="Добавить бренд"
+        :title="$t('brand.form.add_title')"
         width="40%"
     >
       <el-form
@@ -124,42 +144,45 @@
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item
-                label="Название бренда"
+                :label="$t('brand.form.fields.name.label')"
                 prop="name"
-                :rules="[{ required: true, message: 'Название обязательно' }]"
+                :rules="[{ required: true, message: $t('brand.form.rules.name_required') }]"
             >
               <el-input
                   v-model="newBrand.name"
-                  placeholder="Например: Schneider Electric"
+                  :placeholder="$t('brand.form.fields.name.placeholder')"
                   :size="store.size"
+                  clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Страна производитель"
+                :label="$t('brand.form.fields.country.label')"
                 prop="country"
             >
               <el-input
                   v-model="newBrand.country"
-                  placeholder="Например: Франция"
+                  :placeholder="$t('brand.form.fields.country.placeholder')"
                   :size="store.size"
+                  clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Веб-сайт"
+                :label="$t('brand.form.fields.website.label')"
                 prop="website"
                 :rules="[
-                  { required: true, message: 'Сайт обязателен' },
-                  { type: 'url', message: 'Введите корректный URL' }
+                  { required: true, message: $t('brand.form.rules.website_required') },
+                  { type: 'url', message: $t('brand.form.rules.website_url') }
                 ]"
             >
               <el-input
                   v-model="newBrand.website"
-                  placeholder="https://example.com"
+                  :placeholder="$t('brand.form.fields.website.placeholder')"
                   :size="store.size"
+                  clearable
               >
                 <template #prepend>http://</template>
               </el-input>
@@ -167,15 +190,16 @@
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Описание"
+                :label="$t('brand.form.fields.description.label')"
                 prop="description"
             >
               <el-input
                   v-model="newBrand.description"
                   type="textarea"
-                  placeholder="Краткое описание бренда"
+                  :placeholder="$t('brand.form.fields.description.placeholder')"
                   :rows="3"
                   :size="store.size"
+                  clearable
               />
             </el-form-item>
           </el-col>
@@ -186,14 +210,14 @@
             @click="dialogVisibleAdd = false"
             :size="store.size"
         >
-          Отмена
+          {{ $t('brand.form.buttons.cancel') }}
         </el-button>
         <el-button
             type="primary"
             @click="validateAddForm"
             :size="store.size"
         >
-          Добавить
+          {{ $t('brand.form.buttons.add') }}
         </el-button>
       </template>
     </el-dialog>
@@ -201,7 +225,7 @@
     <!-- Диалог редактирования -->
     <el-dialog
         v-model="dialogVisible"
-        :title="`Редактирование: ${editingBrand?.name}`"
+        :title="$t('brand.form.edit_title', { name: editingBrand?.name })"
         width="40%"
     >
       <el-form
@@ -212,39 +236,42 @@
           :size="store.size"
       >
         <el-form-item
-            label="Название бренда"
+            :label="$t('brand.form.fields.name.label')"
             prop="name"
-            :rules="[{ required: true, message: 'Название обязательно' }]"
+            :rules="[{ required: true, message: $t('brand.form.rules.name_required') }]"
         >
           <el-input
               v-model="editingBrand.name"
               :size="store.size"
+              clearable
           />
         </el-form-item>
         <el-form-item
-            label="Страна производитель"
+            :label="$t('brand.form.fields.country.label')"
             prop="country"
         >
           <el-input
               v-model="editingBrand.country"
               :size="store.size"
+              clearable
           />
         </el-form-item>
         <el-form-item
-            label="Веб-сайт"
+            :label="$t('brand.form.fields.website.label')"
             prop="website"
             :rules="[
-              { required: true, message: 'Сайт обязателен' },
-              { type: 'url', message: 'Введите корректный URL' }
+              { required: true, message: $t('brand.form.rules.website_required') },
+              { type: 'url', message: $t('brand.form.rules.website_url') }
             ]"
         >
           <el-input
               v-model="editingBrand.website"
               :size="store.size"
+              clearable
           />
         </el-form-item>
         <el-form-item
-            label="Описание"
+            :label="$t('brand.form.fields.description.label')"
             prop="description"
         >
           <el-input
@@ -252,6 +279,7 @@
               type="textarea"
               :rows="3"
               :size="store.size"
+              clearable
           />
         </el-form-item>
       </el-form>
@@ -260,14 +288,14 @@
             @click="dialogVisible = false"
             :size="store.size"
         >
-          Отмена
+          {{ $t('brand.form.buttons.cancel') }}
         </el-button>
         <el-button
             type="primary"
             @click="validateEditForm"
             :size="store.size"
         >
-          Сохранить
+          {{ $t('brand.form.buttons.save') }}
         </el-button>
       </template>
     </el-dialog>
@@ -276,11 +304,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
 import { useBrandStore } from '@store/ElectricalProtection/brandStore.js';
+
+const { t } = useI18n();
 
 // Инициализация хранилищ
 const store = appStore();
@@ -291,7 +322,7 @@ const addForm = ref(null);
 const editForm = ref(null);
 
 // Опции для пагинации
-const per_pages = ref([5, 10, 20, 30, 50, 100]);
+const per_pages = ref([5, 10, 20, 30, 50, 100, 200]);
 
 // Данные форм
 const newBrand = ref({
@@ -309,20 +340,20 @@ const searchQuery = ref('');
 const tableOption = ref({
   slot: true,
   width: '180',
-  label: 'Действия',
+  label: t('brand.table.actions'),
   fixed: 'right',
   item_actions: [
     {
       name: 'edit',
       type: 'primary',
       icon: Edit,
-      label: 'Редактировать',
+      label: t('brand.table.item_actions.edit'),
     },
     {
       name: 'delete',
       type: 'danger',
       icon: Delete,
-      label: 'Удалить',
+      label: t('brand.table.item_actions.delete'),
     },
   ]
 });
@@ -380,14 +411,14 @@ const addBrand = async () => {
     await brandStore.create(newBrand.value);
 
     ElMessage.success({
-      message: 'Бренд успешно добавлен',
+      message: t('brand.messages.add_success'),
       duration: 3000
     });
 
     dialogVisibleAdd.value = false;
     newBrand.value = { name: '', country: '', website: '', description: '' };
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка при добавлении бренда';
+    let errorMessage = error.message || t('brand.messages.error', { error: '' });
 
     // Обработка ошибок валидации
     if (error.errors) {
@@ -397,7 +428,7 @@ const addBrand = async () => {
     }
     // Обработка стандартных ошибок
     else if (error.details) {
-      errorMessage = `${error.message}: ${error.details}`;
+      errorMessage = `${t('brand.messages.error', { error: '' })}: ${error.details}`;
     }
 
     ElMessage.error({
@@ -419,13 +450,13 @@ const saveEdit = async () => {
     await brandStore.update(editingBrand.value.id, editingBrand.value);
 
     ElMessage.success({
-      message: 'Изменения сохранены',
+      message: t('brand.messages.update_success'),
       duration: 3000
     });
 
     dialogVisible.value = false;
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка сохранения изменений';
+    let errorMessage = error.message || t('brand.messages.error', { error: '' });
 
     if (error.errors) {
       errorMessage = Object.values(error.errors)
@@ -433,7 +464,7 @@ const saveEdit = async () => {
           .join('; ');
     }
     else if (error.details) {
-      errorMessage = `${error.message}: ${error.details}`;
+      errorMessage = `${t('brand.messages.error', { error: '' })}: ${error.details}`;
     }
 
     ElMessage.error({
@@ -447,11 +478,11 @@ const saveEdit = async () => {
 const deleteBrand = async (id) => {
   try {
     await ElMessageBox.confirm(
-        'Вы уверены, что хотите удалить бренд? Это действие нельзя отменить.',
-        'Подтверждение удаления',
+        t('brand.messages.delete_confirm'),
+        t('brand.messages.delete_confirm_title'),
         {
-          confirmButtonText: 'Удалить',
-          cancelButtonText: 'Отмена',
+          confirmButtonText: t('table.general.delete'),
+          cancelButtonText: t('table.general.cancel'),
           type: 'warning',
           confirmButtonClass: 'el-button--danger',
           buttonSize: store.size
@@ -461,7 +492,7 @@ const deleteBrand = async (id) => {
     await brandStore.delete(id);
 
     ElMessage.success({
-      message: 'Бренд успешно удален',
+      message: t('brand.messages.delete_success'),
       duration: 3000
     });
 
@@ -471,10 +502,14 @@ const deleteBrand = async (id) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      let errorMessage = error.message || 'Ошибка удаления бренда';
+      let errorMessage = error.message || t('brand.messages.error', { error: '' });
 
-      if (error.details) {
-        errorMessage = `${error.message}: ${error.details}`;
+      if (error.response && error.response.data) {
+        if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.details) {
+        errorMessage = `${t('brand.messages.error', { error: '' })}: ${error.details}`;
       }
 
       ElMessage.error({

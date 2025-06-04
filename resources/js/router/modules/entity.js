@@ -18,19 +18,19 @@ const entityRoutes = {
             path: '/brands',
             component: () => import('@/views/Entities/BrandsView/BrandsView.vue'),
             name: 'brands',
-            meta: {title: 'Бренды', bootstrapIcon: 'award', permissions: ['manage entity']},
+            meta: {title: 'brands', bootstrapIcon: 'award', permissions: ['manage entity']},
         },
         {
             path: '/deviceType',
             component: () => import('@/views/Entities/DeviceTypeView/DeviceTypeView.vue'),
             name: 'DeviceType',
-            meta: {title: 'Типы устройства', bootstrapIcon: 'cpu', permissions: ['manage entity']},
+            meta: {title: 'DeviceType', bootstrapIcon: 'cpu', permissions: ['manage entity']},
         },
         {
             path: '/measurementUnit',
             component: () => import('@/views/Entities/MeasurementUnitView/MeasurementUnitView.vue'),
             name: 'MeasurementUnit',
-            meta: {title: 'Единицы измерений', bootstrapIcon: 'speedometer2', permissions: ['manage entity']},
+            meta: {title: 'MeasurementUnit', bootstrapIcon: 'speedometer2', permissions: ['manage entity']},
         },
 
         {
@@ -38,7 +38,7 @@ const entityRoutes = {
             redirect: '/accessories/list',
             name: 'Accessories',
             meta: {
-                title: 'Аксессуар Электрики',
+                title: 'Accessories',
                 bootstrapIcon: 'tools',
                 permissions: ['manage entity'],
                 requiresAuth: true
@@ -49,7 +49,7 @@ const entityRoutes = {
                     name: 'AccessoriesList',
                     component: () => import('@/views/Entities/AccessoriesView/AccessoriesView.vue'),
                     meta: {
-                        title: 'Список аксессуаров',
+                        title: 'AccessoriesList',
                         bootstrapIcon: 'card-list',
                         permissions: ['manage entity'],
                         requiresAuth: true
@@ -60,7 +60,7 @@ const entityRoutes = {
                     name: 'AccessoryCreate',
                     component: () => import('@/views/entities/AccessoriesView/AccessoryForm.vue'),
                     meta: {
-                        title: 'Создание Аксессуара Электрики',
+                        title: 'AccessoryCreate',
                         bootstrapIcon: 'card-text',
                         permissions: ['manage entity'],
                         requiresAuth: true
@@ -72,9 +72,10 @@ const entityRoutes = {
                     name: 'AccessoryEdit',
                     component: () => import('@/views/entities/AccessoriesView/AccessoryForm.vue'),
                     meta: {
-                        title: 'Редактирование Аксессуара Электрики',
+                        title: 'AccessoryEdit',
                         bootstrapIcon: 'unit',
-                        permissions: ['manage entity']
+                        permissions: ['manage entity'],
+                        requiresAuth: true
                     }
                 }
             ]

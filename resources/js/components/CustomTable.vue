@@ -3,7 +3,6 @@
       <el-table
         ref="tableRef"
         v-loading="loading"
-        highlight-current-row
         :tooltip-effect="tooltipEffect"
         :row-key="getRowKey"
         :stripe="stripe"

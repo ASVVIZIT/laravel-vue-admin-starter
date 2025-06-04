@@ -1,17 +1,17 @@
 <template>
   <el-card class="device-type-table-container">
-    <h2>Список типов устройств</h2>
+    <h2>{{ $t('deviceType.table.title') }}</h2>
 
     <!-- Панель поиска и добавления -->
     <el-row :gutter="12" class="toolbar">
       <el-col :span="12" style="text-align: left">
         <el-input
-            v-model="searchQuery"
-            placeholder="Поиск по названию, коду или описанию..."
-            clearable
-            @input="debouncedSearch"
-            @clear="debouncedSearch"
-            :size="store.size"
+          v-model="searchQuery"
+          :placeholder="$t('deviceType.table.search_placeholder')"
+          clearable
+          @input="debouncedSearch"
+          @clear="debouncedSearch"
+          :size="store.size"
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -20,45 +20,63 @@
       </el-col>
       <el-col :span="12" style="text-align: right">
         <el-button
-            type="primary"
-            @click="dialogVisibleAdd = true"
-            :size="store.size"
+          type="primary"
+          @click="dialogVisibleAdd = true"
+          :size="store.size"
         >
-          <el-icon><Plus /></el-icon> Добавить тип
+          <el-icon><Plus /></el-icon> {{ $t('deviceType.table.add_button') }}
         </el-button>
       </el-col>
     </el-row>
 
     <!-- Таблица типов устройств -->
     <el-table
-        border
-        style="width: 100%"
-        :data="deviceTypeStore.deviceTypes"
-        v-loading="deviceTypeStore.loading"
-        empty-text="Нет данных"
-        :size="store.size"
-        :height="tableHeight"
+      border
+      style="width: 100%"
+      :data="deviceTypeStore.deviceTypes"
+      v-loading="deviceTypeStore.loading"
+      :empty-text="$t('deviceType.table.empty_text')"
+      :size="store.size"
+      :height="tableHeight"
     >
-      <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="Название" />
-      <el-table-column prop="code" label="Код" width="120" />
-      <el-table-column prop="description" label="Описание" />
       <el-table-column
-        label="Действия"
+        prop="id"
+        :label="$t('deviceType.table.columns.id')"
+        width="60"
+        sortable
+      />
+      <el-table-column
+        prop="name"
+        :label="$t('deviceType.table.columns.name')"
+        sortable
+      />
+      <el-table-column
+        prop="code"
+        :label="$t('deviceType.table.columns.code')"
+        width="120"
+        sortable
+      />
+      <el-table-column
+        prop="description"
+        :label="$t('deviceType.table.columns.description')"
+        sortable
+      />
+      <el-table-column
+        :label="$t('deviceType.table.actions')"
         fixed="right"
         width="100"
       >
         <template #default="scope">
           <el-button-group :size="store.size">
             <el-button
-                v-for="(action, index) in tableOption.item_actions"
-                :key="index"
-                :type="action.type || 'primary'"
-                :icon="action.icon"
-                :title="action.label"
-                @click="tableActions(action.name, scope.row)"
-                circle
-                :size="store.size"
+              v-for="(action, index) in tableOption.item_actions"
+              :key="index"
+              :type="action.type || 'primary'"
+              :icon="action.icon"
+              :title="action.label"
+              @click="tableActions(action.name, scope.row)"
+              circle
+              :size="store.size"
             />
           </el-button-group>
         </template>
@@ -69,89 +87,93 @@
     <div class="pagination-container">
       <div class="pagination-controls">
         <div class="per-page-selector">
-          <span>Записей на странице:</span>
+          <span>{{ $t('deviceType.table.per_page_selector') }}</span>
           <el-select
-              v-model="deviceTypeStore.pagination.per_page"
-              @change="handlePerPageChange"
-              :size="store.size"
-              style="width: 100px"
+            v-model="deviceTypeStore.pagination.per_page"
+            @change="handlePerPageChange"
+            :size="store.size"
+            style="width: 100px"
+            clearable
           >
             <el-option
-                v-for="item in per_pages"
-                :key="item"
-                :label="item"
-                :value="item"
-                :size="store.size"
+              v-for="item in per_pages"
+              :key="item"
+              :label="item"
+              :value="item"
+              :size="store.size"
             />
           </el-select>
         </div>
 
         <el-pagination
-            background
-            layout="prev, pager, next, jumper"
-            :total="deviceTypeStore.pagination.total"
-            :page-size="deviceTypeStore.pagination.per_page"
-            :current-page="deviceTypeStore.pagination.current_page"
-            @current-change="handlePageChange"
-            :size="store.size"
+          background
+          layout="sizes, prev, pager, next, jumper"
+          :total="deviceTypeStore.pagination.total"
+          :page-size="deviceTypeStore.pagination.per_page"
+          :current-page="deviceTypeStore.pagination.current_page"
+          @current-change="handlePageChange"
+          :size="store.size"
         />
       </div>
       <div class="total-items">
-        Всего записей: {{ deviceTypeStore.pagination.total }}
+        {{ $t('deviceType.table.total_items') }} {{ deviceTypeStore.pagination.total }}
       </div>
     </div>
 
     <!-- Диалог добавления -->
     <el-dialog
-        v-model="dialogVisibleAdd"
-        title="Добавить тип устройства"
-        width="40%"
+      v-model="dialogVisibleAdd"
+      :title="$t('deviceType.form.add_title')"
+      width="40%"
     >
       <el-form
-          :model="newDeviceType"
-          label-width="140px"
-          ref="addForm"
-          label-position="top"
-          :size="store.size"
+        :model="newDeviceType"
+        label-width="140px"
+        ref="addForm"
+        label-position="top"
+        :size="store.size"
       >
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item
-                label="Название типа"
-                prop="name"
-                :rules="[{ required: true, message: 'Название обязательно' }]"
+              :label="$t('deviceType.form.fields.name.label')"
+              prop="name"
+              :rules="[{ required: true, message: 'Название обязательно' }]"
             >
               <el-input
-                  v-model="newDeviceType.name"
-                  placeholder="Например: Автоматический выключатель"
-                  :size="store.size"
+                v-model="newDeviceType.name"
+                :placeholder="$t('deviceType.form.fields.name.placeholder')"
+                :size="store.size"
+                clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Код типа"
-                prop="code"
-                :rules="[{ required: true, message: 'Код обязателен' }]"
+              :label="$t('deviceType.form.fields.code.label')"
+              prop="code"
+              :rules="[{ required: true, message: $t('deviceType.form.rules.code_required') }]"
             >
               <el-input
-                  v-model="newDeviceType.code"
-                  placeholder="Например: CB"
-                  :size="store.size"
+                v-model="newDeviceType.code"
+                :placeholder="$t('deviceType.form.fields.code.placeholder')"
+                :size="store.size"
+                clearable
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-                label="Описание"
-                prop="description"
+              :label="$t('deviceType.form.fields.description.label')"
+              prop="description"
             >
               <el-input
-                  v-model="newDeviceType.description"
-                  type="textarea"
-                  placeholder="Краткое описание типа устройства"
-                  :rows="3"
-                  :size="store.size"
+                v-model="newDeviceType.description"
+                type="textarea"
+                :placeholder="$t('deviceType.form.fields.description.placeholder')"
+                :rows="3"
+                :size="store.size"
+                clearable
               />
             </el-form-item>
           </el-col>
@@ -159,79 +181,79 @@
       </el-form>
       <template #footer>
         <el-button
-            @click="dialogVisibleAdd = false"
-            :size="store.size"
+          @click="dialogVisibleAdd = false"
+          :size="store.size"
         >
-          Отмена
+          {{ $t('deviceType.form.buttons.cancel') }}
         </el-button>
         <el-button
-            type="primary"
-            @click="validateAddForm"
-            :size="store.size"
+          type="primary"
+          @click="validateAddForm"
+          :size="store.size"
         >
-          Добавить
+          {{ $t('deviceType.form.buttons.add') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- Диалог редактирования -->
     <el-dialog
-        v-model="dialogVisible"
-        :title="`Редактирование: ${editingDeviceType?.name}`"
-        width="40%"
+      v-model="dialogVisible"
+      :title="$t('deviceType.form.edit_title', { name: editingDeviceType?.name })"
+      width="40%"
     >
       <el-form
-          :model="editingDeviceType"
-          label-width="140px"
-          ref="editForm"
-          label-position="top"
-          :size="store.size"
+        :model="editingDeviceType"
+        label-width="140px"
+        ref="editForm"
+        label-position="top"
+        :size="store.size"
       >
         <el-form-item
-            label="Название типа"
-            prop="name"
-            :rules="[{ required: true, message: 'Название обязательно' }]"
+          :label="$t('deviceType.form.fields.name.label')"
+          prop="name"
+          :rules="[{ required: true, message: $t('deviceType.form.rules.name_required') }]"
         >
           <el-input
-              v-model="editingDeviceType.name"
-              :size="store.size"
+            v-model="editingDeviceType.name"
+            :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Код типа"
-            prop="code"
-            :rules="[{ required: true, message: 'Код обязателен' }]"
+          :label="$t('deviceType.form.fields.code.label')"
+          prop="code"
+          :rules="[{ required: true, message: $t('deviceType.form.rules.code_required') }]"
         >
           <el-input
-              v-model="editingDeviceType.code"
-              :size="store.size"
+            v-model="editingDeviceType.code"
+            :size="store.size"
           />
         </el-form-item>
         <el-form-item
-            label="Описание"
-            prop="description"
+          :label="$t('deviceType.form.fields.description.label')"
+          prop="description"
         >
           <el-input
-              v-model="editingDeviceType.description"
-              type="textarea"
-              :rows="3"
-              :size="store.size"
+            v-model="editingDeviceType.description"
+            type="textarea"
+            :rows="3"
+            :size="store.size"
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <el-button
-            @click="dialogVisible = false"
-            :size="store.size"
+          @click="dialogVisible = false"
+          :size="store.size"
         >
-          Отмена
+          {{ $t('deviceType.form.buttons.cancel') }}
         </el-button>
         <el-button
-            type="primary"
-            @click="validateEditForm"
-            :size="store.size"
+          type="primary"
+          @click="validateEditForm"
+          :size="store.size"
         >
-          Сохранить
+          {{ $t('deviceType.form.buttons.save') }}
         </el-button>
       </template>
     </el-dialog>
@@ -240,11 +262,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { appStore } from "@/store/app";
 import { useDeviceTypeStore } from '@store/ElectricalProtection/deviceTypeStore.js';
+
+const { t } = useI18n();
 
 // Инициализация хранилищ
 const store = appStore();
@@ -255,7 +280,7 @@ const addForm = ref(null);
 const editForm = ref(null);
 
 // Опции для пагинации
-const per_pages = ref([5, 10, 20, 30, 50, 100]);
+const per_pages = ref([5, 10, 20, 30, 50, 100, 200]);
 
 // Данные форм
 const newDeviceType = ref({
@@ -272,20 +297,20 @@ const searchQuery = ref('');
 const tableOption = ref({
   slot: true,
   width: '180',
-  label: 'Действия',
+  label: t('deviceType.table.actions'),
   fixed: 'right',
   item_actions: [
     {
       name: 'edit',
       type: 'primary',
       icon: Edit,
-      label: 'Редактировать',
+      label: t('deviceType.table.item_actions.edit'),
     },
     {
       name: 'delete',
       type: 'danger',
       icon: Delete,
-      label: 'Удалить',
+      label: t('deviceType.table.item_actions.delete'),
     },
   ]
 });
@@ -343,24 +368,24 @@ const addDeviceType = async () => {
     await deviceTypeStore.create(newDeviceType.value);
 
     ElMessage.success({
-      message: 'Тип устройства успешно добавлен',
+      message: t('deviceType.messages.add_success'),
       duration: 3000
     });
 
     dialogVisibleAdd.value = false;
     newDeviceType.value = { name: '', code: '', description: '' };
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка при добавлении типа устройства';
+    let errorMessage = error.message || t('deviceType.messages.error', { error: '' });
 
     // Обработка ошибок валидации
     if (error.errors) {
       errorMessage = Object.values(error.errors)
-          .flat()
-          .join('; ');
-    }
+        .flat()
+        .join('; ');
+  }
     // Обработка стандартных ошибок
     else if (error.details) {
-      errorMessage = `${error.message}: ${error.details}`;
+      errorMessage = `${t('deviceType.messages.error', { error: '' })}: ${error.details}`;
     }
 
     ElMessage.error({
@@ -382,21 +407,21 @@ const saveEdit = async () => {
     await deviceTypeStore.update(editingDeviceType.value.id, editingDeviceType.value);
 
     ElMessage.success({
-      message: 'Изменения сохранены',
+      message: t('deviceType.messages.update_success'),
       duration: 3000
     });
 
     dialogVisible.value = false;
   } catch (error) {
-    let errorMessage = error.message || 'Ошибка сохранения изменений';
+    let errorMessage = error.message || t('deviceType.messages.error', { error: '' });
 
     if (error.errors) {
       errorMessage = Object.values(error.errors)
-          .flat()
-          .join('; ');
+        .flat()
+        .join('; ');
     }
     else if (error.details) {
-      errorMessage = `${error.message}: ${error.details}`;
+      errorMessage = `${t('deviceType.messages.error', { error: '' })}: ${error.details}`;
     }
 
     ElMessage.error({
@@ -410,21 +435,21 @@ const saveEdit = async () => {
 const deleteDeviceType = async (id) => {
   try {
     await ElMessageBox.confirm(
-        'Вы уверены, что хотите удалить тип устройства? Это действие нельзя отменить.',
-        'Подтверждение удаления',
-        {
-          confirmButtonText: 'Удалить',
-          cancelButtonText: 'Отмена',
-          type: 'warning',
-          confirmButtonClass: 'el-button--danger',
-          buttonSize: store.size
-        }
+      t('deviceType.messages.delete_confirm'),
+      t('deviceType.messages.delete_confirm_title'),
+      {
+        confirmButtonText: t('table.general.delete'),
+        cancelButtonText: t('table.general.cancel'),
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+        buttonSize: store.size
+      }
     );
 
     await deviceTypeStore.delete(id);
 
     ElMessage.success({
-      message: 'Тип устройства успешно удален',
+      message: t('deviceType.messages.delete_success'),
       duration: 3000
     });
 
@@ -434,10 +459,14 @@ const deleteDeviceType = async (id) => {
     }
   } catch (error) {
     if (error !== 'cancel') {
-      let errorMessage = error.message || 'Ошибка удаления типа устройства';
+      let errorMessage = error.message || t('deviceType.messages.error', { error: '' });
 
-      if (error.details) {
-        errorMessage = `${error.message}: ${error.details}`;
+      if (error.response && error.response.data) {
+        if (error.response.data.error) {
+          errorMessage = error.response.data.error;
+        }
+      } else if (error.details) {
+        errorMessage = `${t('deviceType.messages.error', { error: '' })}: ${error.details}`;
       }
 
       ElMessage.error({

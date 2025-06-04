@@ -3,29 +3,30 @@
     <h2>Список пользователей</h2>
     <div class="filter-container">
       <el-input
-          v-model="filters.search"
-          :size="store.size"
-          :placeholder="$t('table.user.form.fields.name.title') + '/' + $t('table.user.form.fields.email.title')"
-          clearable
-          class="filter-item search-filter-item"
-          @keyup.enter="handleSearchInput"/>
-      <el-select
+        v-model="filters.search"
+        :size="store.size"
+        :placeholder="$t('table.user.form.fields.name.title') + '/' + $t('table.user.form.fields.email.title')"
+        clearable
+        class="filter-item search-filter-item"
+        @keyup.enter="handleSearchInput"/>
+        <el-select
           v-model="filters.singleRole"
-          filterable
           :size="store.size"
           :placeholder="$t('table.user.form.fields.role.title')"
-          clearable
           class="filter-item select-role-filter-item"
           :loading="loading"
-          @change="handleSingleRoleSelect">
-        <el-option
+          @change="handleSingleRoleSelect"
+          filterable
+          clearable
+        >
+          <el-option
             v-for="item in roles"
             :key="item"
             :label="uppercaseFirst(item)"
             :value="item"
             :disabled="disabledRoles.includes(item)"
-        />
-      </el-select>
+          />
+        </el-select>
       <el-button :size="store.size" class="filter-item" type="primary" :icon="Search" @click="handleFilter">
         {{ t('table.general.search') }}
       </el-button>
@@ -97,65 +98,84 @@
     >
       <div v-loading="userCreating" class="form-container">
         <el-form
-            ref="refUserForm"
-            status-icon
-            :rules="rules"
-            :model="newUser"
-            label-position="right"
-            label-width="170px"
-            style="max-width: 600px;"
+          ref="refUserForm"
+          status-icon
+          :rules="rules"
+          :model="newUser"
+          label-position="right"
+          label-width="170px"
+          style="max-width: 600px;"
         >
           <el-form-item :label="$t('table.user.form.fields.role.title')" prop="role">
-            <el-select v-if="isAdmin(roles)" :size="store.size" v-model="newUser.role" class="filter-item" :placeholder="$t('table.user.form.fields.role.placeholder')">
+            <el-select
+              v-if="isAdmin(roles)"
+              :size="store.size"
+              v-model="newUser.role"
+              class="filter-item"
+              :placeholder="$t('table.user.form.fields.role.placeholder')"
+              filterable
+              clearable
+            >
               <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
             </el-select>
-            <el-select v-else-if="!isAdmin(roles)" :size="store.size" v-model="newUser.role" class="filter-item" :placeholder="$t('table.form.fields.role.placeholder')">
+            <el-select
+              v-else-if="!isAdmin(roles)"
+              :size="store.size"
+              v-model="newUser.role"
+              class="filter-item" :placeholder="$t('table.form.fields.role.placeholder')"
+              filterable
+              clearable
+            >
               <el-option v-for="item in nonAdminRoles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
             </el-select>
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.name.title')" prop="name">
             <el-input
-                v-model="newUser.name"
-                :size="store.size"
-                type="text"
-                :placeholder="$t('table.user.form.fields.name.placeholder')"
+              v-model="newUser.name"
+              :size="store.size"
+              type="text"
+              :placeholder="$t('table.user.form.fields.name.placeholder')"
+              clearable
             />
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.email.title')" prop="email">
             <el-input
-                v-model="newUser.email"
-                :size="store.size"
-                type="email"
-                :placeholder="$t('table.user.form.fields.email.placeholder')"
+              v-model="newUser.email"
+              :size="store.size"
+              type="email"
+              :placeholder="$t('table.user.form.fields.email.placeholder')"
+              clearable
             />
           </el-form-item>
           <el-form-item
-              :label="$t('table.user.form.fields.password.title')"
-              prop="password"
-              :validate-status="validationStatus"
-              :error="errorMessage"
+            :label="$t('table.user.form.fields.password.title')"
+            prop="password"
+            :validate-status="validationStatus"
+            :error="errorMessage"
           >
             <el-input
-                v-model="newUser.password"
-                :size="store.size"
-                type="password"
-                show-password
-                :placeholder="$t('table.user.form.fields.password.placeholder')"
+              v-model="newUser.password"
+              :size="store.size"
+              type="password"
+              show-password
+              :placeholder="$t('table.user.form.fields.password.placeholder')"
+              clearable
             />
           </el-form-item>
           <el-form-item
-              :label="$t('table.user.form.fields.confirmPassword.title')"
-              prop="confirmPassword"
-              :validate-status="validationStatus"
-              :error="errorMessage"
+            :label="$t('table.user.form.fields.confirmPassword.title')"
+            prop="confirmPassword"
+            :validate-status="validationStatus"
+            :error="errorMessage"
           >
             <el-input
-                v-model="newUser.confirmPassword"
-                :size="store.size"
-                type="password"
-                show-password
-                @change="checkPasswordMatch"
-                :placeholder="$t('table.user.form.fields.confirmPassword.placeholder')"
+              v-model="newUser.confirmPassword"
+              :size="store.size"
+              type="password"
+              show-password
+              @change="checkPasswordMatch"
+              :placeholder="$t('table.user.form.fields.confirmPassword.placeholder')"
+              clearable
             />
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.sex.title')">
@@ -166,21 +186,23 @@
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.birthday.title')">
             <el-date-picker
-                v-model="newUser.birthday_model"
-                :size="store.size"
-                type="datetime"
-                :placeholder="$t('table.user.form.fields.birthday.placeholder')"
-                value-format="YYYY-MM-DD HH:mm:ss"
+              v-model="newUser.birthday_model"
+              :size="store.size"
+              type="datetime"
+              :placeholder="$t('table.user.form.fields.birthday.placeholder')"
+              value-format="YYYY-MM-DD HH:mm:ss"
+              clearable
             />
           </el-form-item>
           <el-form-item :label="$t('table.user.form.fields.description.title')">
             <el-input
-                v-model="newUser.description"
-                :size="store.size"
-                maxlength="255"
-                :placeholder="$t('table.user.form.fields.description.placeholder')"
-                show-word-limit
-                type="textarea"
+              v-model="newUser.description"
+              :size="store.size"
+              maxlength="255"
+              :placeholder="$t('table.user.form.fields.description.placeholder')"
+              show-word-limit
+              type="textarea"
+              clearable
             />
           </el-form-item>
         </el-form>
@@ -201,13 +223,13 @@
             <el-form :model="currentUser" label-width="80px" label-position="top">
               <el-form-item :label="$t('permission.table.userPermissions.name.menu')">
                 <el-tree
-                    ref="refMenuPermissions"
-                    :data="normalizedMenuPermissions"
-                    :default-checked-keys="permissionKeys(userMenuPermissions)"
-                    :props="permissionProps"
-                    show-checkbox
-                    node-key="id"
-                    class="permission-tree"
+                  ref="refMenuPermissions"
+                  :data="normalizedMenuPermissions"
+                  :default-checked-keys="permissionKeys(userMenuPermissions)"
+                  :props="permissionProps"
+                  show-checkbox
+                  node-key="id"
+                  class="permission-tree"
                 />
               </el-form-item>
             </el-form>
@@ -216,13 +238,13 @@
             <el-form :model="currentUser" label-width="80px" label-position="top">
               <el-form-item :label="$t('permission.table.userPermissions.name.permissions')">
                 <el-tree
-                    ref="refOtherPermissions"
-                    :data="normalizedOtherPermissions"
-                    :default-checked-keys="permissionKeys(userOtherPermissions)"
-                    :props="permissionProps"
-                    show-checkbox
-                    node-key="id"
-                    class="permission-tree"/>
+                  ref="refOtherPermissions"
+                  :data="normalizedOtherPermissions"
+                  :default-checked-keys="permissionKeys(userOtherPermissions)"
+                  :props="permissionProps"
+                  show-checkbox
+                  node-key="id"
+                  class="permission-tree"/>
               </el-form-item>
             </el-form>
           </div>

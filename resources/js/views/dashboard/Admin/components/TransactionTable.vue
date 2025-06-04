@@ -10,7 +10,7 @@
     </el-table-column>
     <el-table-column label="Status" width="100" align="center">
       <template #default="{ row }">
-        <el-tag :type="statusFilter(row.status)">
+        <el-tag :size="store.size" :type="statusFilter(row.status)">
           {{ row.status }}
         </el-tag>
       </template>
@@ -21,6 +21,10 @@
 <script setup>
 import {fetchList} from '@/api/order'
 import {toRefs, reactive, onBeforeMount} from 'vue'
+import { appStore } from "@/store/app";
+
+// Инициализация хранилищ
+const store = appStore();
 
 const resData = reactive({
   list: [],

@@ -5,18 +5,18 @@
       <div class="header-left">
         <el-button-group>
           <el-button
-              @click="$router.go(-1)"
-              :size="store.size"
-              class="back-button"
+            @click="$router.go(-1)"
+            :size="store.size"
+            class="back-button"
           >
-            <el-icon><ArrowLeft /></el-icon> Назад
+            <el-icon><ArrowLeft /></el-icon><span>{{$t('accessory.buttons.back')}}</span>
           </el-button>
 
           <el-button
-              @click="$router.push({ name: 'AccessoriesList' })"
-              :size="store.size"
-              class="back-button"
-          ><el-icon><Grid /></el-icon>Таблица
+            @click="$router.push({ name: 'AccessoriesList' })"
+            :size="store.size"
+            class="back-button"
+          ><el-icon><Grid /></el-icon> <span>{{$t('accessory.buttons.table')}}</span>
           </el-button>
         </el-button-group>
         <h2>{{ formTitle }}</h2>
@@ -25,24 +25,19 @@
       <div class="header-actions">
         <el-button-group>
           <el-button
-              type="primary"
-              @click="submitForm"
-              :loading="submitting"
-              :size="store.size"
+            type="primary"
+            :size="store.size"
+            @click="submitForm"
+            :loading="submitting"
           >
-            {{ isEditMode ? 'Сохранить' : 'Создать' }}
+            {{ isEditMode ? $t('accessory.buttons.save') : $t('accessory.buttons.create') }}
           </el-button>
+          <el-button @click="$router.go(-1)" :size="store.size">{{ $t('accessory.buttons.cancel') }}</el-button>
           <el-button
-              @click="$router.go(-1)"
-              :size="store.size"
-          >
-            Отмена
-          </el-button>
-          <el-button
-              type="info"
-              :size="store.size"
-              @click="openSettings"
-              class="settings-button"
+            type="info"
+            :size="store.size"
+            @click="openSettings"
+            class="settings-button"
           >
             <el-icon><Setting /></el-icon>
           </el-button>
@@ -52,90 +47,92 @@
 
     <!-- Вкладки с индикаторами прогресса -->
     <el-tabs
-        v-model="activeTab"
-        :tab-position="tabPosition"
-        type="border-card"
-        class="tabs-style"
-        @tab-change="handleTabChange"
+      v-model="activeTab"
+      :tab-position="tabPosition"
+      type="border-card"
+      class="tabs-style"
+      @tab-change="handleTabChange"
     >
       <!-- Вкладка: Основная информация -->
       <el-tab-pane name="main">
         <template #label>
           <span class="tab-label">
-            <b>Основная информация</b>
+            <b>{{$t('accessory.tabs.main.title')}}</b>
             <ProgressStars
-                :total="mainTabFields.total"
-                :filled="mainTabFields.filled"
-                :required="mainTabFields.required"
-                :filled-required="mainTabFields.filledRequired"
+              :total="mainTabFields.total"
+              :filled="mainTabFields.filled"
+              :required="mainTabFields.required"
+              :filled-required="mainTabFields.filledRequired"
             />
           </span>
         </template>
         <div class="scrollable-form">
           <el-form
-              ref="formRef"
-              :model="form"
-              label-width="140px"
-              label-position="top"
-              :size="store.size"
-              v-loading="loading"
+            ref="formRef"
+            :model="form"
+            label-width="140px"
+            label-position="top"
+            :size="store.size"
+            v-loading="loading"
           >
             <el-collapse v-model="activeCollapseItems">
               <!-- Критически важные поля -->
               <el-collapse-item name="critical" class="collapse-card">
                 <template #title>
                   <div class="collapse-header">
-                    <b>Критически важные поля</b>
+                    <b>{{$t('accessory.tabs.main.group.critical')}}</b>
                     <ProgressStars
-                        :total="criticalFields.total"
-                        :filled="criticalFields.filled"
-                        :required="criticalFields.required"
-                        :filled-required="criticalFields.filledRequired"
+                      :total="criticalFields.total"
+                      :filled="criticalFields.filled"
+                      :required="criticalFields.required"
+                      :filled-required="criticalFields.filledRequired"
                     />
                   </div>
                 </template>
                 <div class="fields-container">
                   <el-form-item
-                      label="Название"
-                      prop="name"
-                      :rules="[{ required: true, message: 'Название обязательно' }]"
-                      :class="{'highlight-field': !form.name}"
+                    :label="$t('accessory.fields.name')"
+                    prop="name"
+                    :rules="[{ required: true, message: $t('validation.rules.accessory.fields.name.required') }]"
+                    :class="{'highlight-field': !form.name}"
                   >
                     <el-input
-                        v-model="form.name"
-                        placeholder="Модуль дистанционного управления"
-                        :size="store.size"
+                      v-model="form.name"
+                      :placeholder="$t('accessory.placeholders.name')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Модель"
-                      prop="model"
-                      :rules="[{ required: true, message: 'Модель обязательна' }]"
-                      :class="{'highlight-field': !form.model}"
+                    :label="$t('accessory.fields.model')"
+                    prop="model"
+                    :rules="[{ required: true, message: $t('validation.rules.accessory.fields.model.required') }]"
+                    :class="{'highlight-field': !form.model}"
                   >
                     <el-input
-                        v-model="form.model"
-                        placeholder="ARA iC60"
-                        :size="store.size"
+                      v-model="form.model"
+                      :placeholder="$t('accessory.placeholders.model')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Тип устройства"
-                      prop="type_id"
-                      :rules="[{ required: true, message: 'Выберите тип' }]"
-                      :class="{'highlight-field': !form.type_id}"
+                    :label="$t('accessory.fields.type_id')"
+                    prop="type_id"
+                    :rules="[{ required: true, message: $t('validation.rules.accessory.fields.type_id.required') }]"
+                    :class="{'highlight-field': !form.type_id}"
                   >
                     <el-select
-                        v-model="form.type_id"
-                        filterable
-                        clearable
-                        :size="store.size"
+                      v-model="form.type_id"
+                      :size="store.size"
+                      filterable
+                      clearable
                     >
                       <el-option
-                          v-for="type in deviceTypes"
-                          :key="type.id"
-                          :label="type.name"
-                          :value="type.id"
+                        v-for="type in deviceTypes"
+                        :key="type.id"
+                        :label="type.name"
+                        :value="type.id"
                       />
                     </el-select>
                   </el-form-item>
@@ -146,28 +143,28 @@
               <el-collapse-item name="basicTech" class="collapse-card">
                 <template #title>
                   <div class="collapse-header">
-                    <b>Основные технические данные</b>
+                    <b>{{$t('accessory.tabs.main.group.basicTech')}}</b>
                     <ProgressStars
-                        :total="basicTechFields.total"
-                        :filled="basicTechFields.filled"
-                        :required="basicTechFields.required"
-                        :filled-required="basicTechFields.filledRequired"
+                      :total="basicTechFields.total"
+                      :filled="basicTechFields.filled"
+                      :required="basicTechFields.required"
+                      :filled-required="basicTechFields.filledRequired"
                     />
                   </div>
                 </template>
                 <div class="fields-container">
                   <el-form-item
-                      label="Бренд"
-                      prop="brand_id"
-                      :rules="[{ required: true, message: 'Выберите бренд' }]"
-                      :class="{'highlight-field': !form.brand_id}"
+                    :label="$t('accessory.fields.brand_id')"
+                    prop="brand_id"
+                    :rules="[{ required: true, message: $t('validation.rules.accessory.fields.brand_id.required') }]"
+                    :class="{'highlight-field': !form.brand_id}"
                   >
                     <el-select
                         v-model="form.brand_id"
-                        filterable
-                        clearable
                         @change="autoFillBrandInfo"
                         :size="store.size"
+                        filterable
+                        clearable
                     >
                       <el-option
                           v-for="brand in brands"
@@ -178,22 +175,24 @@
                     </el-select>
                   </el-form-item>
                   <el-form-item
-                      label="Серия"
+                      :label="$t('accessory.fields.series')"
                   >
                     <el-input
                         v-model="form.series"
-                        placeholder="Acti9"
+                        :placeholder="$t('accessory.placeholders.series')"
                         :size="store.size"
+                        clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Описание"
+                      :label="$t('accessory.fields.description')"
                   >
                     <el-input
                         v-model="form.description"
                         type="textarea"
+                        clearable
                         :autosize="{ minRows: 2, maxRows: 5 }"
-                        placeholder="Подробное описание аксессуара"
+                        :placeholder="$t('accessory.placeholders.description')"
                         :size="store.size"
                     />
                   </el-form-item>
@@ -208,7 +207,7 @@
       <el-tab-pane name="technical">
         <template #label>
           <span class="tab-label">
-            <b>Технические характеристики</b>
+            <b>{{$t('accessory.tabs.technical.title')}}</b>
             <ProgressStars
                 :total="technicalTabFields.total"
                 :filled="technicalTabFields.filled"
@@ -219,51 +218,53 @@
         </template>
         <div class="scrollable-form">
           <el-form
-              ref="formRef"
-              :model="form"
-              label-width="140px"
-              label-position="top"
-              :size="store.size"
-              v-loading="loading"
+            ref="formRef"
+            :model="form"
+            label-width="140px"
+            label-position="top"
+            :size="store.size"
+            v-loading="loading"
           >
             <el-collapse v-model="activeCollapseItems">
               <!-- Электрические параметры -->
               <el-collapse-item name="electrical" class="collapse-card">
                 <template #title>
                   <div class="collapse-header">
-                    <b>Электрические параметры</b>
+                    <b>{{$t('accessory.tabs.technical.group.electrical')}}</b>
                     <ProgressStars
-                        :total="electricalFields.total"
-                        :filled="electricalFields.filled"
-                        :required="electricalFields.required"
-                        :filled-required="electricalFields.filledRequired"
+                      :total="electricalFields.total"
+                      :filled="electricalFields.filled"
+                      :required="electricalFields.required"
+                      :filled-required="electricalFields.filledRequired"
                     />
                   </div>
                 </template>
                 <div class="fields-container">
                   <!-- Номинальный ток с единицей -->
                   <el-form-item
-                      label="Номинальный ток"
+                    :label="$t('accessory.fields.nominal_current')"
                   >
                     <div class="input-with-unit">
                       <el-input-number
-                          v-model="form.current_rating"
-                          :min="0"
-                          controls-position="right"
-                          :size="store.size"
-                          class="field-data"
+                        v-model="form.current_rating"
+                        :min="0"
+                        controls-position="right"
+                        :size="store.size"
+                        class="field-data"
                       />
                       <el-select
-                          v-model="form.current_rating_unit_id"
-                          placeholder="A"
-                          :size="store.size"
-                          class="field-unit"
+                        v-model="form.current_rating_unit_id"
+                        :placeholder="$t('common.units.A')"
+                        :size="store.size"
+                        class="field-unit"
+                        filterable
+                        clearable
                       >
                         <el-option
-                            v-for="unit in getUnitsForCategory('current')"
-                            :key="unit.id"
-                            :label="unit.display_symbol"
-                            :value="unit.id"
+                          v-for="unit in getUnitsForCategory('current')"
+                          :key="unit.id"
+                          :label="unit.display_symbol"
+                          :value="unit.id"
                         />
                       </el-select>
                     </div>
@@ -271,28 +272,29 @@
 
                   <!-- Напряжение с единицей -->
                   <el-form-item
-                      label="Напряжение"
+                    :label="$t('accessory.fields.voltage')"
                   >
                     <div class="input-with-unit">
                       <el-input
-                          v-model="form.voltage"
-                          clearable
-                          placeholder="230/400"
-                          :size="store.size"
-                          class="field-data"
+                        v-model="form.voltage"
+                        :placeholder="$t('accessory.placeholders.voltage')"
+                        :size="store.size"
+                        class="field-data"
+                        clearable
                       />
                       <el-select
-                          v-model="form.voltage_unit_id"
-                          clearable
-                          placeholder="V"
-                          :size="store.size"
-                          class="field-unit"
+                        v-model="form.voltage_unit_id"
+                        :placeholder="$t('common.units.V')"
+                        :size="store.size"
+                        class="field-unit"
+                        filterable
+                        clearable
                       >
                         <el-option
-                            v-for="unit in getUnitsForCategory('voltage')"
-                            :key="unit.id"
-                            :label="unit.display_symbol"
-                            :value="unit.id"
+                          v-for="unit in getUnitsForCategory('voltage')"
+                          :key="unit.id"
+                          :label="unit.display_symbol"
+                          :value="unit.id"
                         />
                       </el-select>
                     </div>
@@ -304,40 +306,41 @@
               <el-collapse-item name="construction" class="collapse-card">
                 <template #title>
                   <div class="collapse-header">
-                    <b>Конструктивные характеристики</b>
+                    <b>{{$t('accessory.tabs.technical.group.construction')}}</b>
                     <ProgressStars
-                        :total="constructionFields.total"
-                        :filled="constructionFields.filled"
-                        :required="constructionFields.required"
-                        :filled-required="constructionFields.filledRequired"
+                      :total="constructionFields.total"
+                      :filled="constructionFields.filled"
+                      :required="constructionFields.required"
+                      :filled-required="constructionFields.filledRequired"
                     />
                   </div>
                 </template>
                 <div class="fields-container">
                   <!-- Сечение кабеля с единицей -->
                   <el-form-item
-                      label="Сечение кабеля"
+                    :label="$t('accessory.fields.cross_section')"
                   >
                     <div class="input-with-unit">
                       <el-input-number
-                          v-model="form.cross_section"
-                          :min="0"
-                          controls-position="right"
-                          :size="store.size"
-                          class="field-data"
+                        v-model="form.cross_section"
+                        :min="0"
+                        controls-position="right"
+                        :size="store.size"
+                        class="field-data"
                       />
                       <el-select
-                          v-model="form.cross_section_unit_id"
-                          clearable
-                          placeholder="мм²"
-                          :size="store.size"
-                          class="field-unit"
+                        v-model="form.cross_section_unit_id"
+                        :placeholder="$t('common.units.mm²')"
+                        :size="store.size"
+                        class="field-unit"
+                        filterable
+                        clearable
                       >
                         <el-option
-                            v-for="unit in getUnitsForCategory('area')"
-                            :key="unit.id"
-                            :label="unit.display_symbol"
-                            :value="unit.id"
+                          v-for="unit in getUnitsForCategory('area')"
+                          :key="unit.id"
+                          :label="unit.display_symbol"
+                          :value="unit.id"
                         />
                       </el-select>
                     </div>
@@ -345,29 +348,30 @@
 
                   <!-- Толщина с единицей -->
                   <el-form-item
-                      label="Толщина"
+                    :label="$t('accessory.fields.thickness')"
                   >
                     <div class="input-with-unit">
                       <el-input-number
-                          v-model="form.thickness"
-                          :min="0"
-                          controls-position="right"
-                          :size="store.size"
-                          class="field-data"
+                        v-model="form.thickness"
+                        :min="0"
+                        controls-position="right"
+                        :size="store.size"
+                        class="field-data"
                       />
                       <el-select
-                          v-model="form.thickness_unit_id"
-                          clearable
-                          placeholder="мм"
-                          :size="store.size"
-                          class="field-unit"
+                        v-model="form.thickness_unit_id"
+                        :placeholder="$t('common.units.mm')"
+                        :size="store.size"
+                        class="field-unit"
+                        filterable
+                        clearable
                       >
                         <el-option
-                            v-for="unit in getUnitsForCategory('length')"
-                            clearable
-                            :key="unit.id"
-                            :label="unit.display_symbol"
-                            :value="unit.id"
+                          v-for="unit in getUnitsForCategory('length')"
+                          clearable
+                          :key="unit.id"
+                          :label="unit.display_symbol"
+                          :value="unit.id"
                         />
                       </el-select>
                     </div>
@@ -375,27 +379,29 @@
 
                   <!-- Дифференциальный ток с единицей -->
                   <el-form-item
-                      label="Дифференциальный ток"
+                    :label="$t('accessory.fields.rated_diff_current')"
                   >
                     <div class="input-with-unit">
                       <el-input-number
-                          v-model="form.rated_diff_current"
-                          :min="0"
-                          controls-position="right"
-                          :size="store.size"
-                          class="field-data"
+                        v-model="form.rated_diff_current"
+                        :min="0"
+                        controls-position="right"
+                        :size="store.size"
+                        class="field-data"
                       />
                       <el-select
-                          v-model="form.rated_diff_current_unit_id"
-                          placeholder="мА"
-                          :size="store.size"
-                          class="field-unit"
+                        v-model="form.rated_diff_current_unit_id"
+                        :placeholder="$t('common.units.mA')"
+                        :size="store.size"
+                        class="field-unit"
+                        filterable
+                        clearable
                       >
                         <el-option
-                            v-for="unit in getUnitsForCategory('current')"
-                            :key="unit.id"
-                            :label="unit.display_symbol"
-                            :value="unit.id"
+                          v-for="unit in getUnitsForCategory('current')"
+                          :key="unit.id"
+                          :label="unit.display_symbol"
+                          :value="unit.id"
                         />
                       </el-select>
                     </div>
@@ -403,27 +409,29 @@
 
                   <!-- Количество в упаковке с единицей -->
                   <el-form-item
-                      label="Количество в упаковке"
+                    :label="$t('accessory.fields.quantity_per_pack')"
                   >
                     <div class="input-with-unit">
                       <el-input-number
-                          v-model="form.quantity_per_pack"
-                          :min="1"
-                          controls-position="right"
-                          :size="store.size"
-                          class="field-data"
+                        v-model="form.quantity_per_pack"
+                        :min="1"
+                        controls-position="right"
+                        :size="store.size"
+                        class="field-data"
                       />
                       <el-select
-                          v-model="form.quantity_per_pack_unit_id"
-                          placeholder="шт."
-                          :size="store.size"
-                          class="field-unit"
+                        v-model="form.quantity_per_pack_unit_id"
+                        :placeholder="$t('common.units.шт')"
+                        :size="store.size"
+                        class="field-unit"
+                        filterable
+                        clearable
                       >
                         <el-option
-                            v-for="unit in getUnitsForCategory('quantity')"
-                            :key="unit.id"
-                            :label="unit.display_symbol"
-                            :value="unit.id"
+                          v-for="unit in getUnitsForCategory('quantity')"
+                          :key="unit.id"
+                          :label="unit.display_symbol"
+                          :value="unit.id"
                         />
                       </el-select>
                     </div>
@@ -439,73 +447,77 @@
       <el-tab-pane name="operational">
         <template #label>
           <span class="tab-label">
-            <b>Эксплуатационные параметры</b>
+            <b>{{$t('accessory.tabs.operational.title')}}</b>
             <ProgressStars
-                :total="operationalTabFields.total"
-                :filled="operationalTabFields.filled"
-                :required="operationalTabFields.required"
-                :filled-required="operationalTabFields.filledRequired"
+              :total="operationalTabFields.total"
+              :filled="operationalTabFields.filled"
+              :required="operationalTabFields.required"
+              :filled-required="operationalTabFields.filledRequired"
             />
           </span>
         </template>
         <div class="scrollable-form">
           <el-form
-              ref="formRef"
-              :model="form"
-              label-width="140px"
-              label-position="top"
-              :size="store.size"
-              v-loading="loading"
+            ref="formRef"
+            :model="form"
+            label-width="140px"
+            label-position="top"
+            :size="store.size"
+            v-loading="loading"
           >
             <el-collapse v-model="activeCollapseItems">
               <!-- Безопасность и условия эксплуатации -->
               <el-collapse-item name="safety" class="collapse-card">
                 <template #title>
                   <div class="collapse-header">
-                    <b>Безопасность и условия эксплуатации</b>
+                    <b>{{$t('accessory.tabs.operational.group.safety')}}</b>
                     <ProgressStars
-                        :total="safetyFields.total"
-                        :filled="safetyFields.filled"
-                        :required="safetyFields.required"
-                        :filled-required="safetyFields.filledRequired"
+                      :total="safetyFields.total"
+                      :filled="safetyFields.filled"
+                      :required="safetyFields.required"
+                      :filled-required="safetyFields.filledRequired"
                     />
                   </div>
                 </template>
                 <div class="fields-container">
                   <el-form-item
-                      label="Класс защиты IP"
+                    :label="$t('accessory.fields.ip_rating')"
                   >
                     <el-input
-                        v-model="form.ip_rating"
-                        placeholder="IP40"
-                        :size="store.size"
+                      v-model="form.ip_rating"
+                      :placeholder="$t('accessory.placeholders.ip_rating')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Тип монтажа"
+                    :label="$t('accessory.fields.mounting_type')"
                   >
                     <el-input
-                        v-model="form.mounting_type"
-                        placeholder="Модульный"
-                        :size="store.size"
+                      v-model="form.mounting_type"
+                      :placeholder="$t('accessory.placeholders.mounting_type')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Стандарты"
+                    :label="$t('accessory.fields.standards')"
                   >
                     <el-input
-                        v-model="form.standards"
-                        placeholder="IEC 60947"
-                        :size="store.size"
+                      v-model="form.standards"
+                      :placeholder="$t('accessory.placeholders.standards')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Материал"
+                    :label="$t('accessory.fields.material')"
                   >
                     <el-input
-                        v-model="form.material"
-                        placeholder="Термопласт"
-                        :size="store.size"
+                      v-model="form.material"
+                      :placeholder="$t('accessory.placeholders.material')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                 </div>
@@ -519,66 +531,69 @@
       <el-tab-pane name="additional">
         <template #label>
           <span class="tab-label">
-            <b>Дополнительное оборудование</b>
+            <b>{{$t('accessory.tabs.additional.title')}}</b>
             <ProgressStars
-                :total="additionalTabFields.total"
-                :filled="additionalTabFields.filled"
-                :required="additionalTabFields.required"
-                :filled-required="additionalTabFields.filledRequired"
+              :total="additionalTabFields.total"
+              :filled="additionalTabFields.filled"
+              :required="additionalTabFields.required"
+              :filled-required="additionalTabFields.filledRequired"
             />
           </span>
         </template>
         <div class="scrollable-form">
           <el-form
-              ref="formRef"
-              :model="form"
-              label-width="140px"
-              label-position="top"
-              :size="store.size"
-              v-loading="loading"
+            ref="formRef"
+            :model="form"
+            label-width="140px"
+            label-position="top"
+            :size="store.size"
+            v-loading="loading"
           >
             <el-collapse v-model="activeCollapseItems">
               <!-- Совместимость и управление -->
               <el-collapse-item name="compatibility" class="collapse-card">
                 <template #title>
                   <div class="collapse-header">
-                    <b>Совместимость и управление</b>
+                    <b>{{$t('accessory.tabs.additional.group.compatibility')}}</b>
                     <ProgressStars
-                        :total="compatibilityFields.total"
-                        :filled="compatibilityFields.filled"
-                        :required="compatibilityFields.required"
-                        :filled-required="compatibilityFields.filledRequired"
+                      :total="compatibilityFields.total"
+                      :filled="compatibilityFields.filled"
+                      :required="compatibilityFields.required"
+                      :filled-required="compatibilityFields.filledRequired"
                     />
                   </div>
                 </template>
                 <div class="fields-container">
                   <el-form-item
-                      label="Совместимые модели"
+                    :label="$t('accessory.fields.compatible_models')"
                   >
                     <el-input
-                        v-model="form.compatible_models"
-                        placeholder="iC60, NG125"
-                        :size="store.size"
+                      v-model="form.compatible_models"
+                      :placeholder="$t('accessory.placeholders.compatible_models')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Протокол связи"
+                    :label="$t('accessory.fields.communication_protocol')"
                   >
                     <el-input
-                        v-model="form.communication_protocol"
-                        placeholder="Ti24"
-                        :size="store.size"
+                      v-model="form.communication_protocol"
+                      :placeholder="$t('accessory.placeholders.communication_protocol')"
+                      :size="store.size"
+                      clearable
                     />
                   </el-form-item>
                   <el-form-item
-                      label="Поддержка дистанционного управления"
+                    :label="$t('accessory.fields.remote_control')"
                   >
                     <div class="remote-control-container">
                       <el-switch
-                          v-model="form.remote_control"
-                          :size="store.size"
+                        v-model="form.remote_control"
+                        :size="store.size"
                       />
-                      <span>{{ form.remote_control ? 'есть' : 'нет' }}</span>
+                      <span>{{ $t(`accessory.remote_control_status.${form.remote_control}`) }}
+                      </span>
                     </div>
                   </el-form-item>
                 </div>
@@ -593,6 +608,7 @@
 
 <script setup>
 import { ref, computed, onMounted, nextTick, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Setting, Grid } from '@element-plus/icons-vue';
@@ -602,9 +618,9 @@ import { useBrandStore } from '@store/ElectricalProtection/brandStore.js';
 import { useDeviceTypeStore } from '@store/ElectricalProtection/deviceTypeStore.js';
 import { useMeasurementUnitStore } from '@store/ElectricalProtection/measurementUnitStore.js';
 import { useMeasurementCategoryStore } from '@store/ElectricalProtection/measurementCategoryStore.js';
-
-// Компонент ProgressStars вынесен в отдельный файл
 import ProgressStars from '@/components/ProgressStars/ProgressStars.vue';
+
+const { t } = useI18n();
 
 const store = appStore();
 const accessoryStore = useAccessoryStore();
@@ -659,7 +675,7 @@ const categoryMap = ref({});
 
 const isEditMode = computed(() => route.name === 'AccessoryEdit');
 const formTitle = computed(() =>
-    isEditMode.value ? 'Редактирование аксессуара' : 'Создание аксессуара'
+    isEditMode.value ? t('accessory.form_title_edit') : t('accessory.form_title_create')
 );
 
 const tabPosition = computed(() => {
@@ -894,6 +910,7 @@ const submitForm = async () => {
       await accessoryStore.create(form.value);
       ElMessage.success('Аксессуар создан');
     }
+    ElMessage.success('Данные сохранены');
     router.push({ name: 'Accessories' });
   } catch (error) {
     let errorMessage = error.message || 'Ошибка при сохранении';
@@ -1025,7 +1042,7 @@ onUnmounted(() => {
 
 @media (min-width: 992px) {
   .tabs-style :deep(.el-tabs__header) {
-    width: 220px;
+    width: 280px;
   }
 
   .tabs-style :deep(.el-tabs__content) {
@@ -1034,7 +1051,7 @@ onUnmounted(() => {
   }
 
   .tabs-style :deep(.el-tab-pane) {
-    padding: 0 15px;
+    padding: 0 5px;
   }
 
   .tabs-style :deep(.el-tabs__item) {
@@ -1043,22 +1060,24 @@ onUnmounted(() => {
 }
 
 .fields-container {
-  display: flex;
+  display: inline-flex;
+ /* position: relative;*/
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 4px;
   padding: 10px 0;
 }
 
 .field-item {
-  min-width: 240px;
   flex: 1 1 0;
-  max-width: 400px;
+  min-width: 200px;
+  max-width: 200px;
 }
 
 :deep(.el-form-item) {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   flex: 1 0 auto;
-  min-width: 240px;
+  min-width: 200px;
+  max-width: 200px;
 }
 
 :deep(.el-form-item__label) {
@@ -1106,51 +1125,27 @@ onUnmounted(() => {
 
 .tab-label {
   display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.progress-stars {
-  display: inline-flex;
+  margin-right: 20px;
   align-items: center;
   gap: 4px;
-  margin-left: 6px;
-}
-
-.required-stars {
-  display: inline-flex;
-  align-items: center;
-}
-
-.progress-stars .el-icon {
-  font-size: 0.9em;
-}
-
-.progress-indicator {
-  font-size: 0.8em;
-  background: #f0f0f0;
-  border-radius: 4px;
-  padding: 0 4px;
-  color: #666;
 }
 
 /* Контейнер для переключателя и текста */
 .remote-control-container {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
 /* Контейнер для объединения поля ввода и единицы измерения */
 .input-with-unit {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   /*width: 100%;*/
 
   .field-data {
     flex: 1;
     margin-right: 8px;
-    /*min-width: 120px;*/
   }
 
   .field-unit {
@@ -1168,9 +1163,11 @@ onUnmounted(() => {
 
 .collapse-header {
   display: flex;
+  position: relative;
   align-items: center;
   justify-content: space-between;
   width: 100%;
+  margin-left: 25px;
   padding: 0 8px;
   font-weight: bold;
 }

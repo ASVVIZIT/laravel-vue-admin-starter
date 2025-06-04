@@ -20,7 +20,7 @@
             简体中文
           </el-radio>
         </el-radio-group>
-        <el-tag style="margin-top:15px;display:block;" type="info">
+        <el-tag :size="store.size" style="margin-top:15px;display:block;" type="info">
           {{ $t('i18nView.note') }}
         </el-tag>
       </div>
@@ -63,7 +63,7 @@
         </div>
       </el-col>
       <el-col :span="12" :xs="24">
-        <el-table :data="tableData" fit highlight-current-row border style="width: 100%">
+        <el-table :data="tableData" style="width: 100%">
           <el-table-column :label="$t('i18nView.tableName')" prop="name" width="100" align="center"/>
           <el-table-column :label="$t('i18nView.tableDate')" prop="date" width="120" align="center"/>
           <el-table-column :label="$t('i18nView.tableAddress')" prop="address"/>
@@ -75,6 +75,10 @@
 
 <script>
 import local from './local';
+import { appStore } from "@/store/app";
+
+// Инициализация хранилищ
+const store = appStore();
 
 const viewName = 'i18nView';
 

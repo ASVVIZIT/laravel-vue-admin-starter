@@ -26,7 +26,7 @@ const adminRoutes = {
       path: 'users',
       component: () => import('@/views/users/List.vue'),
       name: 'UserList',
-      meta: {title: 'users', bootstrapIcon: 'people', showInGuide: true, permissions: ['manage user']},
+      meta: {title: 'UserList', bootstrapIcon: 'people', showInGuide: true, permissions: ['manage user']},
     },
     /** Role and permission */
     {
