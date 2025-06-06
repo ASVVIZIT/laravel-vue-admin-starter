@@ -276,7 +276,7 @@ export default {
         "warning": "警告",
         "continue": "继续？",
         "confirm1": {
-          "message": "这将永久删除用户。<br><strong>{name}</strong>"
+          "message@j": "这将永久删除用户。<br><strong>{name}</strong>"
         }
       },
       "elMessage": {

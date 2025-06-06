@@ -18,8 +18,41 @@ class Role extends \Spatie\Permission\Models\Role
      * Check whether current role is admin
      * @return bool
      */
+/*    public function isAdmin(): bool
+    {
+        return $this->name === \App\Models\Acl::ROLE_ADMIN;
+    }*/
+
+    /**
+     * Check whether current role is an admin (either super admin or admin)
+     * @return bool
+     */
     public function isAdmin(): bool
     {
-        return $this->name === \App\Models\Acl::ROLE_ADMIN || \App\Models\Acl::ROLE_SUPER_ADMIN;
+        return in_array($this->name, [\App\Models\Acl::ROLE_SUPER_ADMIN, \App\Models\Acl::ROLE_ADMIN]);
+    }
+
+    /**
+     * Check the role type
+     * @return string|null
+     */
+    public function getRoleType(): ?string
+    {
+        switch ($this->name) {
+            case \App\Models\Acl::ROLE_SUPER_ADMIN:
+                return 'super_admin';
+            case \App\Models\Acl::ROLE_ADMIN:
+                return 'admin';
+            case \App\Models\Acl::ROLE_MANAGER:
+                return 'manager';
+            case \App\Models\Acl::ROLE_EDITOR:
+                return 'editor';
+            case \App\Models\Acl::ROLE_USER:
+                return 'user';
+            case \App\Models\Acl::ROLE_VISITOR:
+                return 'visitor';
+            default:
+                return null;
+        }
     }
 }

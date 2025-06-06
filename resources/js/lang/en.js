@@ -276,7 +276,7 @@ export default {
         "warning": "Warning",
         "continue": "Continue?",
         "confirm1": {
-          "message": "This will permanently delete the user.<br><strong>{name}</strong>"
+          "message@j": "This will permanently delete the user.<br><strong>{name}</strong>"
         }
       },
       "elMessage": {

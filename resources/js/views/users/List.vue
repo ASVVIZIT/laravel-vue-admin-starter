@@ -46,6 +46,8 @@
         :paginate="true"
         :page-sizes="per_pages"
         :loading="loading"
+        :highlightCurrentRow="true"
+        :highlightHoverRow="true"
         @filter-change="handleTableFilter"
         @table-action="tableActions"
         @size-change="handleSizeChange"
@@ -77,15 +79,15 @@
       <template #table_options="scope">
         <div v-if="!isAdmin(scope.row.roles)">
           <el-button-group :size="store.size">
-          <el-button v-for="(action, index) in tableOption.item_actions"
-                     :key="index"
-                     :type="action.type || 'primary'"
-                     :round="action.round || false"
-                     @click="tableActions(action.name, scope.row)"
-                     :size="store.size"
-          >
-            <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
-          </el-button>
+            <el-button v-for="(action, index) in tableOption.item_actions"
+                       :key="index"
+                       :type="action.type || 'primary'"
+                       :round="action.round || false"
+                       @click="tableActions(action.name, scope.row)"
+                       :size="store.size"
+            >
+              <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
+            </el-button>
           </el-button-group>
         </div>
         <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
@@ -216,8 +218,8 @@
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="dialogPermissionVisible" :title="$t('permission.table.edit.user') + ' - ' + currentUserName">
-      <div v-if="currentUserName" v-loading="dialogPermissionLoading" class="form-container">
+    <el-dialog v-model="dialogPermissionVisible" :title="$t('permission.table.edit.user') + ' - ' + currentUser.name">
+      <div v-if="currentUser.name" v-loading="dialogPermissionLoading" class="form-container">
         <div class="permissions-container">
           <div class="block">
             <el-form :model="currentUser" label-width="80px" label-position="top">
@@ -244,7 +246,8 @@
                   :props="permissionProps"
                   show-checkbox
                   node-key="id"
-                  class="permission-tree"/>
+                  class="permission-tree"
+                />
               </el-form-item>
             </el-form>
           </div>
@@ -293,6 +296,14 @@ const tableData = ref([])
 const dialogFormVisible = ref(false)
 const dialogPermissionVisible = ref(false)
 const dialogPermissionLoading = ref(false)
+const currentUser = ref({
+  id: 0,
+  name: '',
+  permissions: {
+    role: [],
+    user: []
+  }
+})
 const userCreating = ref(false)
 const validationStatus = ref('')
 const errorMessage = ref('')
@@ -336,15 +347,6 @@ const checkPasswordMatch = (value) => {
     errorMessage.value = t('validation.general.minLength')
   }
 }
-
-const currentUser = ref({
-  id: 0,
-  name: '',
-  permissions: {
-    role: [],
-    user: []
-  }
-})
 
 // Инициализируем валидаторы с доступом к форме
 const v = createValidators(newUser)
@@ -409,29 +411,39 @@ const nonAdminRoles = computed(() => roleConfig.value.nonAdmin)
 const roleColors = computed(() => roleConfig.value.colors)
 const per_pages = ref([5, 10, 30, 50, 100, 150, 200])
 
-const tableOption = computed(() => {
+const tableOption = computed((user) => {
   if (!checkPermission(['manage user'])) return {}
-  const actions = [
-    { name: 'edit-item', type: 'primary', icon: 'EditPen', size: 'small', round: true },
-    { name: 'delete-item', type: 'danger', icon: 'Delete', size: 'small', round: false },
-  ]
-  if (checkPermission(['manage permission'])) {
+  const actions = [];
+  if (checkPermission(['manage user edit'])) {
     actions.push({
+      name: 'edit-item', type: 'primary', icon: 'EditPen', size: store.size, round: true
+    })
+  }
+  if (checkPermission(['manage user delete'])) {
+    actions.push({
+      name: 'delete-item', type: 'danger', icon: 'Delete', size: store.size, round: false, disabled: !checkPermission(['manage user delete'])
+    })
+  }
+
+  const actions_down = [];
+  if (checkPermission(['manage permission'])) {
+    actions_down.push({
       name: 'edit-permission-item',
       type: 'warning',
       icon: 'Finished',
       width: 100,
       label: t('permission.actions.editPermission'),
-      size: 'small',
+      size: store.size,
       round: true
     })
   }
   return {
     slot: true,
-    width: '250',
+    width: '200',
     label: t('table.general.actions'),
     fixed: 'right',
-    item_actions: actions
+    item_actions: actions,
+    item_actions_down: actions_down
   }
 })
 
@@ -714,41 +726,29 @@ const handleDeleteUser = async (user) => {
 
 // Полный код обработки прав
 const handleEditPermissions = async (user) => {
-  try {
-    console.log('Starting handleEditPermissions for user:', user)
-    let { data } = await userResource.permissions(user.id)
-    console.log('Fetched user permissions:', data)
-    if (!data || typeof data !== 'object') {
-      console.error('handleEditPermissions: data is not an object:', data)
-      data = { user: [], role: [] }
-    }
+  if (isAdmin(user.roles)) {
+    ElMessage.warning(t('permission.errors.cantEditAdmin'));
+    return;
+  }
 
+  try {
+    const { data } = await userResource.permissions(user.id);
     currentUser.value = {
       ...user,
       permissions: data
-    }
-    currentUserId.value = user.id
-    currentUserName.value = user.name
-    currentUserRole.value = user.roles
-    dialogPermissionLoading.value = true
-    dialogPermissionVisible.value = true
-    console.log('Setting currentUser:', currentUser.value)
-    dialogPermissionVisible.value = true
-    nextTick(() => {
-      console.log('userMenuPermissions:', userMenuPermissions.value)
-      console.log('userOtherPermissions:', userOtherPermissions.value)
-      console.log('permissionKeys(userMenuPermissions):', permissionKeys(userMenuPermissions.value))
-      console.log('permissionKeys(userOtherPermissions):', permissionKeys(userOtherPermissions.value))
-      refMenuPermissions.value?.setCheckedKeys(permissionKeys(userMenuPermissions.value))
-      refOtherPermissions.value?.setCheckedKeys(permissionKeys(userOtherPermissions.value))
-    })
+    };
+    dialogPermissionLoading.value = true;
+    dialogPermissionVisible.value = true;
+    await nextTick();
+    refMenuPermissions.value?.setCheckedKeys(permissionKeys(userMenuPermissions.value));
+    refOtherPermissions.value?.setCheckedKeys(permissionKeys(userOtherPermissions.value));
   } catch (error) {
-    console.error('Error in handleEditPermissions:', error)
-    ElMessage.error(t('error.loadPermissions'))
+    console.error('Error in handleEditPermissions:', error);
+    ElMessage.error(t('error.loadPermissions'));
   } finally {
-    dialogPermissionLoading.value = false
+    dialogPermissionLoading.value = false;
   }
-}
+};
 
 const permissionProps = reactive({
   children: 'children',
@@ -756,75 +756,102 @@ const permissionProps = reactive({
   disabled: 'disabled'
 })
 
-/*const userMenuPermissions = computed(() => {
-  if (!currentUser.value || !currentUser.value.permissions?.role) return []
-  return classifyPermissions(currentUser.value.permissions.role).menu
-})
-
-const userOtherPermissions = computed(() => {
-  if (!currentUser.value || !currentUser.value.permissions?.role) return []
-  return classifyPermissions(currentUser.value.permissions.role).other
-})*/
-
 const userMenuPermissions = computed(() => {
-  if (!currentUser.value?.permissions?.role) return []
-  let tmp = currentUser.value.permissions.role.map(permission => ({
+  if (!currentUser.value?.permissions) return [];
+  const rolePermissions = currentUser.value.permissions.role?.map(permission => ({
     ...permission,
     disabled: true
-  }))
-  console.log('userMenuPermissions tmp ', tmp)
-  return tmp
-})
+  })) || [];
+  const userPermissions = currentUser.value.permissions.user?.map(permission => ({
+    ...permission,
+    disabled: false
+  })) || [];
+  return [...rolePermissions, ...userPermissions];
+});
 
 const userOtherPermissions = computed(() => {
-  if (!currentUser.value?.permissions?.role) return []
-  let tmp = currentUser.value.permissions.role.map(permission => ({
+  if (!currentUser.value?.permissions) return [];
+  const rolePermissions = currentUser.value.permissions.role?.map(permission => ({
     ...permission,
     disabled: true
-  }))
-  console.log('userMenuPermissions tmp ', tmp)
-  return tmp
-})
+  })) || [];
+  const userPermissions = currentUser.value.permissions.user?.map(permission => ({
+    ...permission,
+    disabled: false
+  })) || [];
+  return [...rolePermissions, ...userPermissions];
+});
 
-const normalizedMenuPermissions = computed(() => {
-  let tmp = []
-  const rolePermissions = {
+// Функция для создания объекта разрешений роли
+const createRolePermissions = (permissions, permissionType) => {
+  // Используем функцию classifyPermissions для получения разрешений определенного типа
+  const classifiedPermissions = classifyPermissions(permissions)[permissionType] || [];
+
+  // Возвращаем объект с разрешениями роли, которые нельзя изменить
+  return {
     id: -1,
     name: t('permission.table.rolePermissions.name'),
     disabled: true,
-    children: classifyPermissions(userMenuPermissions.value).menu,
-  }
-  tmp = menuPermissions.value.filter(permission => !currentUser.value.permissions.user.find(p => p.id === permission.id))
-  console.log('normalizedMenuPermissions tmp ', tmp)
-  const userPermissions = {
-    id: 0,
-    name: t('permission.table.userPermissions.name.menu'),
-    children: tmp,
-    disabled: tmp.length === 0,
-  }
-  console.log('normalizedMenuPermissions:', [rolePermissions, userPermissions])
-  return [rolePermissions, userPermissions]
-})
+    children: classifiedPermissions.map(p => ({ ...p, disabled: true })),
+  };
+};
+
+// Функция для фильтрации и форматирования разрешений пользователя
+const createUserPermissions = (allPermissions, rolePermissions) => {
+  // Фильтруем разрешения, чтобы исключить те, которые унаследованы от роли
+  return allPermissions
+      .filter(permission => !rolePermissions.some(p => p.id === permission.id))
+      .map(p => ({ ...p, disabled: false })); // Разрешения пользователя можно изменять
+};
+
+// Функция для нормализации разрешений меню
+const normalizeMenuPermissions = (currentUser, menuPermissions) => {
+  // Получаем разрешения роли для текущего пользователя
+  const rolePermissions = createRolePermissions(currentUser.value.permissions.role, 'menu');
+
+  // Получаем разрешения пользователя, которые не унаследованы от роли
+  const userPermissions = createUserPermissions(menuPermissions.value, currentUser.value.permissions.role);
+
+  // Возвращаем нормализованные разрешения для меню
+  return [
+    rolePermissions,
+    {
+      id: 0,
+      name: t('permission.table.userPermissions.name.menu'),
+      children: userPermissions,
+      disabled: userPermissions.length === 0,
+    }
+  ];
+};
+
+// Функция для нормализации других разрешений
+const normalizeOtherPermissions = (currentUser, otherPermissions) => {
+  // Получаем разрешения роли для текущего пользователя
+  const rolePermissions = createRolePermissions(currentUser.value.permissions.role, 'other');
+
+  // Получаем разрешения пользователя, которые не унаследованы от роли
+  const userPermissions = createUserPermissions(otherPermissions.value, currentUser.value.permissions.role);
+
+  // Возвращаем нормализованные другие разрешения
+  return [
+    rolePermissions,
+    {
+      id: 0,
+      name: t('permission.table.userPermissions.name.permissions'),
+      children: userPermissions,
+      disabled: userPermissions.length === 0,
+    }
+  ];
+};
+
+// Использование функций в вычисляемых свойствах
+const normalizedMenuPermissions = computed(() => {
+  return normalizeMenuPermissions(currentUser, menuPermissions);
+});
 
 const normalizedOtherPermissions = computed(() => {
-  let tmp = []
-  const rolePermissions = {
-    id: -1,
-    name: t('permission.table.rolePermissions.name'),
-    disabled: true,
-    children: classifyPermissions(userOtherPermissions.value).other
-  }
-  tmp = otherPermissions.value.filter(permission => !currentUser.value.permissions.user.find(p => p.id === permission.id))
-  console.log('normalizedOtherPermissions tmp ', tmp)
-  const userPermissions = {
-    id: 0,
-    name: t('permission.table.userPermissions.name.permissions'),
-    children: tmp,
-    disabled: tmp.length === 0,
-  }
-  console.log('normalizedOtherPermissions:', [rolePermissions, userPermissions])
-  return [rolePermissions, userPermissions]
-})
+  return normalizeOtherPermissions(currentUser, otherPermissions);
+});
 
 const createUser = async (formEl) => {
   if (!await formEl.validate()) return
@@ -849,29 +876,29 @@ const createUser = async (formEl) => {
 }
 
 const confirmPermission = async () => {
+  dialogPermissionLoading.value = true;
   try {
-    const checkedMenu = refMenuPermissions.value.getCheckedKeys()
-    const checkedOther = refOtherPermissions.value.getCheckedKeys()
+    const checkedMenu = refMenuPermissions.value.getCheckedKeys();
+    const checkedOther = refOtherPermissions.value.getCheckedKeys();
     const selectedPermissions = [...checkedMenu, ...checkedOther];
 
-    dialogPermissionLoading.value = true
-    console.log('Checked menu permissions:', checkedMenu)
-    console.log('Checked other permissions:', checkedOther)
-    console.log('currentUser.value.id:', currentUser.value.id)
+    const rolePermissionIds = currentUser.value.permissions.role.map(p => p.id);
+    const permissionsToUpdate = selectedPermissions.filter(id => !rolePermissionIds.includes(id));
+
     await userResource.updatePermission(currentUser.value.id, {
-      permissions: selectedPermissions
+      permissions: permissionsToUpdate
     });
-    ElMessage.success(t('success.permissionsUpdated'))
-    dialogPermissionLoading.value = false
-    await getList()
+
+    ElMessage.success(t('success.permissionsUpdated'));
+    dialogPermissionVisible.value = false;
+    await getList();
   } catch (error) {
-    console.error('Error in confirmPermission:', error)
-    ElMessage.error(error.response?.data?.message || t('error.updatePermissions'))
+    console.error('Error in confirmPermission:', error);
+    ElMessage.error(error.response?.data?.message || t('error.updatePermissions'));
   } finally {
-    dialogPermissionVisible.value = false
-    dialogPermissionLoading.value = false
+    dialogPermissionLoading.value = false;
   }
-}
+};
 
 // Получение ID разрешений
 const permissionKeys = (permissions) =>
@@ -894,8 +921,10 @@ onMounted(async () => {
   updateTableHeight()
   window.addEventListener('resize', updateTableHeight)
   await getList()
-  // Убрали проверку блокировки manage permission
-  await getPermissions()
+  // Проверка блокировки manage permission
+  if (checkPermission(['manage permission'])) {
+    await getPermissions()
+  }
 })
 
 onUnmounted(() => {

@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -160,7 +160,7 @@ class UserController extends BaseController
      * @param User $user
      * @return UserResource|\Illuminate\Http\JsonResponse
      */
-    public function show(User $user): UserResource
+    public function show(User $user)
     {
         return new UserResource($user);
     }
@@ -172,7 +172,7 @@ class UserController extends BaseController
      * @param User $user
      * @return UserResource|\Illuminate\Http\JsonResponse
      */
-    public function update(Request $request, User $user): UserResource
+    public function update(Request $request, User $user)
     {
         if ($user === null) {
             return response()->json(['error' => 'User not found'], Response::HTTP_NOT_FOUND);
@@ -188,7 +188,7 @@ class UserController extends BaseController
 
         $validator = Validator::make($request->all(), $this->getValidationRules(false));
         if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 403);
+            return response()->json(['errors' => $validator->errors()], Response::HTTP_FORBIDDEN);
         }
 
         $user->name = $request->input('name');
@@ -204,31 +204,30 @@ class UserController extends BaseController
      *
      * @param Request $request
      * @param User $user
-     * @return UserResource|\Illuminate\Http\JsonResponse
+     * @return UserResource|JsonResponse
      */
     public function updatePermissions(Request $request, User $user)
     {
         if (empty($user)) {
-            return responseFailed('User not found', 404);
+            return responseFailed('Пользователь не найден', Response::HTTP_NOT_FOUND);
         }
 
         if ($user->isAdmin()) {
-            return responseFailed('Admin cannot be modified', 400);
+            return responseFailed('Admin can not be modified', Response::HTTP_BAD_REQUEST);
         }
 
         $permissionIds = $request->get('permissions', []);
 
-        $rolePermissionIds = array_map(
-            function ($permission) {
-                return $permission['id'];
-            },
+        // Получаем разрешения, которые у пользователя унаследованы от ролей
+        $rolePermissionIds = $user->getPermissionsViaRoles()->pluck('id')->toArray();
 
-            $user->getPermissionsViaRoles()->toArray()
-        );
+        // Находим новые разрешения, которые не унаследованы
         $newPermissionIds = array_diff($permissionIds, $rolePermissionIds);
-        $permissions = Permission::allowed()->whereIn('id', $newPermissionIds)->get();
-        /*$permissions = Permission::allowed()->whereIn('id', $permissionIds)->get();*/
+
+        // Получаем и синхронизируем новые разрешения
+        $permissions = Permission::whereIn('id', $newPermissionIds)->get();
         $user->syncPermissions($permissions);
+
         return new UserResource($user);
     }
 
@@ -246,7 +245,7 @@ class UserController extends BaseController
         try {
             $currentUser = Auth::user();
             if ($currentUser->getAuthIdentifier() === $user->getAuthIdentifier()) {
-                return responseFailed('Can not delete - Its ure', Response::HTTP_NOT_MODIFIED);
+                return responseFailed('Cannot delete yourself', Response::HTTP_NOT_MODIFIED);
             } else {
                 $user->delete();
             }
@@ -278,14 +277,14 @@ class UserController extends BaseController
      * @param bool $isNew
      * @return array
      */
-    private function getValidationRules(bool $isNew = true): array
+    private function getValidationRules(bool $isNew = true)
     {
         return [
             'name' => $isNew ? 'required|unique:users' : '',
             'email' => $isNew ? 'required|email|unique:users' : '',
             'role' => $isNew ? [
                 'required',
-                Rule::notIn([Acl::ROLE_SUPER_ADMIN])
+                Rule::notIn([Acl::ROLE_ADMIN, Acl::ROLE_SUPER_ADMIN])
             ] : '',
             'sex' => [
                 'required',

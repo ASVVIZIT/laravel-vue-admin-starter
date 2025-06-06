@@ -37,7 +37,6 @@ Route::namespace('Api')->group(function() {
         Route::get('roles/{role}/permissions', 'RoleController@permissions')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
         Route::get('requests', 'RequestController@index');
 
-
         Route::prefix('entities')->group(function () {
             Route::apiResource('ep_brands', \App\Http\Controllers\Api\Entity\BrandController::class);
             Route::apiResource('ep_device_types', \App\Http\Controllers\Api\Entity\DeviceTypeController::class);
@@ -50,13 +49,10 @@ Route::namespace('Api')->group(function() {
     });
 });
 
-
 Route::prefix('table')->group(function () {
     Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);
     Route::get('rows', [App\Http\Controllers\Api\TableRowController::class, 'index']);
 });
-
-
 
 /*// Роуты для брендов
 Route::get('api/ep/brands', [BrandController::class, 'index'])->name('brands.index');
@@ -78,8 +74,6 @@ Route::group(['prefix' => 'api/ep/circuit-breakers/{circuit_breaker}'], function
     Route::delete('/', [CircuitBreakerController::class, 'destroy'])->name('circuit-breakers.destroy');
 });*/
 
-
-
 /*Route::apiResources([
     'brands' => App\Http\Controllers\Api\BrandController::class,
     'circuit-breakers' => App\Http\Controllers\Api\CircuitBreakerController::class,
@@ -96,9 +90,7 @@ Route::get('/orders', function () {
             'price' => mt_rand(10000, 999999),
             'status' => randomInArray(['success', 'pending']),
         ];
-
         $data[] = $row;
     }
-
     return responseSuccess(['items' => $data]);
 });

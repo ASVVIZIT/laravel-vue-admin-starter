@@ -122,6 +122,9 @@ export default {
             "switchRoles": "Поменяйтесь ролями",
             "tips": "В некоторых случаях он не подходит для использования v-role/v-permission, например, элемент Tab component или el-table-column и другие случаи асинхронного рендеринга dom, которые могут быть достигнуты только путем ручной настройки v-if с checkRole или/и checkPermission."
         },
+        "errors": {
+            "cantEditAdmin": "Невозможно изменить разрешения для пользователей с правами администратора"
+        },
         "table": {
             "edit": {
                 "user": "Права доступа к редактированию"
@@ -196,6 +199,9 @@ export default {
             "readings": "Readings",
             "status": "Статус",
             "actions": "Действия",
+            "buttons": {
+                "actions": "Список действий",
+            },
             "edit": "Изменить",
             "publish": "Опубликовать",
             "draft": "Взять",
@@ -276,7 +282,7 @@ export default {
                 "warning": "Предупреждение",
                 "continue": "Продолжать?",
                 "confirm1": {
-                    "message": "Это приведет к необратимому удалению пользователя<br><strong>{name}</strong>"
+                    "message@j": "Это приведет к необратимому удалению пользователя<br><strong>{name}</strong>"
                 }
             },
             "elMessage": {

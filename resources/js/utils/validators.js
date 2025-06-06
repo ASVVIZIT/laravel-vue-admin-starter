@@ -99,7 +99,7 @@ export default (form) => {
         /**
          * Проверка неравенства полей
          * @param {string} fieldPath - Путь к сравниваемому полю
-         * @param {string} [msgKey='validation.notMatch'] - Ключ перевода
+         * @param {string} [msgKey='validation.general.notMatch'] - Ключ перевода
          */
         notMatch(fieldPath, msgKey = 'validation.general.notMatch') {
             return {

@@ -17,8 +17,8 @@ const entityRoutes = {
         {
             path: '/brands',
             component: () => import('@/views/Entities/BrandsView/BrandsView.vue'),
-            name: 'brands',
-            meta: {title: 'brands', bootstrapIcon: 'award', permissions: ['manage entity']},
+            name: 'Brands',
+            meta: {title: 'Brands', bootstrapIcon: 'award', permissions: ['manage entity']},
         },
         {
             path: '/deviceType',
@@ -32,7 +32,6 @@ const entityRoutes = {
             name: 'MeasurementUnit',
             meta: {title: 'MeasurementUnit', bootstrapIcon: 'speedometer2', permissions: ['manage entity']},
         },
-
         {
             path: '/accessories',
             redirect: '/accessories/list',
@@ -79,9 +78,7 @@ const entityRoutes = {
                     }
                 }
             ]
-
         },
-
     ],
 }
 

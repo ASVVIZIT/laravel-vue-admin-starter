@@ -33,7 +33,9 @@ export default {
     const {proxy} = getCurrentInstance()
     const getUser = async (id) => {
       const { data } = await userResource.get(id)
+      console.log('userResource data ', data)
       resData.user = data
+      console.log('userResource data ', resData.user)
     }
     onMounted(() => {
       const id = proxy.$route.params && proxy.$route.params.id

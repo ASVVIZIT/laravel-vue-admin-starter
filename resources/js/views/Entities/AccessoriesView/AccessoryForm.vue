@@ -1027,6 +1027,11 @@ onUnmounted(() => {
   .scrollable-form {
     max-height: calc(100vh - 280px);
   }
+
+  .tabs-style :deep(.el-tabs__content) {
+    overflow-y: auto;
+    height: calc(100vh - 200px);
+  }
 }
 
 .tabs-style :deep(.el-tabs__header) {
@@ -1040,14 +1045,20 @@ onUnmounted(() => {
   background: #fff;
 }
 
+.tabs-style :deep(.el-tabs__content) {
+  overflow-y: auto;
+  height: calc(100vh - 200px);
+}
+
 @media (min-width: 992px) {
   .tabs-style :deep(.el-tabs__header) {
-    width: 280px;
+    min-width: 200px;
+    max-width: 260px;
   }
 
   .tabs-style :deep(.el-tabs__content) {
     overflow-y: auto;
-    height: calc(100vh - 150px);
+    height: calc(100vh - 200px);
   }
 
   .tabs-style :deep(.el-tab-pane) {
@@ -1069,15 +1080,15 @@ onUnmounted(() => {
 
 .field-item {
   flex: 1 1 0;
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 210px;
+  max-width: 220px;
 }
 
 :deep(.el-form-item) {
   margin-bottom: 6px;
   flex: 1 0 auto;
-  min-width: 200px;
-  max-width: 200px;
+  min-width: 210px;
+  max-width: 220px;
 }
 
 :deep(.el-form-item__label) {

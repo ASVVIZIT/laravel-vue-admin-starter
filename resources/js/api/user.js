@@ -22,18 +22,26 @@ class UserResource extends Resource {
   }
 
   updatePermission(id, permissions) {
-    console.log('Updating permissions for user ID:', id, 'with permissions:', permissions);
+    console.log('Updating permissions for user ID:', id, 'with permissions:', permissions)
     return request({
       url: '/' + this.uri + '/' + id + '/permissions',
       method: 'put',
-      data: permissions,
+      data: permissions, // Исправлено: передаем объект с permissions
     }).then(response => {
-      console.log('Permissions updated successfully:', response);
-      return response;
+      console.log('Permissions updated successfully:', response)
+      return response
     }).catch(error => {
-      console.error('Failed to update permissions:', error);
-      throw error;
-    });
+      console.error('Failed to update permissions:', error)
+
+      // Добавленная обработка ошибки с сервера
+      if (error.response?.data?.message) {
+        ElMessage.error(error.response.data.message)
+      } else {
+        ElMessage.error('Failed to update permissions')
+      }
+
+      throw error
+    })
   }
 
   logs(id, params) {

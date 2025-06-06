@@ -32,16 +32,45 @@ class SetupRolePermissions extends Migration
         }
 
         // Setup basic permission
-        $superAdminRole->givePermissionTo(Acl::permissions());
-        $adminRole->givePermissionTo(Acl::permissions());
-        $managerRole->givePermissionTo(Acl::permissions([Acl::PERMISSION_PERMISSION_MANAGE]));
-        $editorRole->givePermissionTo(Acl::menuPermissions());
+        $superAdminRole->givePermissionTo([
+            Acl::menuPermissions(),
+            Acl::permissions(),
+            Acl::PERMISSION_PERMISSION_MANAGE,
+            Acl::PERMISSION_ENTITY_MANAGE,
+            Acl::PERMISSION_USER_MANAGE,
+            Acl::PERMISSION_USER_EDIT_MANAGE,
+            Acl::PERMISSION_USER_DELETE_MANAGE
+        ]);
+        $adminRole->givePermissionTo([
+            Acl::menuPermissions(),
+            Acl::permissions(),
+            Acl::PERMISSION_PERMISSION_MANAGE,
+            Acl::PERMISSION_ENTITY_MANAGE,
+            Acl::PERMISSION_USER_MANAGE,
+            Acl::PERMISSION_USER_EDIT_MANAGE,
+            Acl::PERMISSION_USER_DELETE_MANAGE
+        ]);
+        $managerRole->givePermissionTo([
+            Acl::menuPermissions(),
+            Acl::PERMISSION_PERMISSION_MANAGE,
+            Acl::PERMISSION_ENTITY_MANAGE,
+            Acl::PERMISSION_USER_MANAGE,
+            Acl::PERMISSION_USER_EDIT_MANAGE,
+            Acl::PERMISSION_USER_DELETE_MANAGE
+        ]);
+        $editorRole->givePermissionTo([
+            Acl::menuPermissions(),
+            Acl::PERMISSION_USER_MANAGE,
+            Acl::PERMISSION_USER_EDIT_MANAGE
+        ]);
         $userRole->givePermissionTo([
-            Acl::PERMISSION_VIEW_MENU_PERMISSION,
+            Acl::PERMISSION_VIEW_MENU_GUIDE,
+            Acl::PERMISSION_VIEW_MENU_CHARTS,
             Acl::PERMISSION_VIEW_MENU_ENTITY,
         ]);
         $visitorRole->givePermissionTo([
-            Acl::PERMISSION_VIEW_MENU_PERMISSION,
+            Acl::PERMISSION_VIEW_MENU_GUIDE,
+            Acl::PERMISSION_VIEW_MENU_CHARTS,
         ]);
 
 

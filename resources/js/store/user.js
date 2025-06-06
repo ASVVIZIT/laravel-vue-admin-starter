@@ -12,6 +12,7 @@ export const userStore = defineStore('user', {
       id: null,
       token: null,
       name: '',
+      email: '',
       avatar: '',
       roles: [],
       permissions: [],
@@ -44,7 +45,7 @@ export const userStore = defineStore('user', {
               reject('Verification failed, please Login again.')
             }
 
-            const {roles, name, avatar, introduction, permissions, id} = data
+            const {roles, name, email, avatar, introduction, permissions, id} = data
             // roles must be a non-empty array
             if (!roles || roles.length <= 0) {
               reject('getInfo: roles must be a non-null array!')
@@ -54,6 +55,7 @@ export const userStore = defineStore('user', {
               state.id = id
               state.introduction = introduction
               state.name = name
+              state.email = email
               state.roles = roles
               state.permissions = permissions
               state.avatar = avatar
