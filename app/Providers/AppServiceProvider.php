@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Policies\UserTabPolicy;
+use App\Models\UserTab;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
         //
     }
 
+    protected $policies = [
+        UserTab::class => UserTabPolicy::class,
+    ];
+
     /**
      * Bootstrap any application services.
      *
@@ -28,7 +34,7 @@ class AppServiceProvider extends ServiceProvider
     {
         if (config('app.env') !== 'production') {
             DB::listen(function (QueryExecuted $query) {
-                Log::info('sql: ' . $query->sql . ' ' . implode(', ', $query->bindings));
+                Log::info('SQL Query: ' . $query->sql . ' | Bindings: ' . implode(', ', $query->bindings));
             });
         }
     }

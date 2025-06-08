@@ -85,6 +85,14 @@ class User extends Authenticatable
     ];
 
     /**
+     * Определение отношения "один ко многим" с моделью UserTab.
+     */
+    public function userTabs()
+    {
+        return $this->hasMany(UserTab::class);
+    }
+
+    /**
      * Get the avatar and return the default avatar if the avatar is null.
      *
      * @param string $value

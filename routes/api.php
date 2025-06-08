@@ -22,6 +22,12 @@ Route::namespace('Api')->group(function() {
 
         Route::get('/user', 'AuthController@user');
 
+        Route::get('/user-tabs', [\App\Http\Controllers\Api\UserTabController::class, 'index']);
+        Route::post('/user-tabs', [\App\Http\Controllers\Api\UserTabController::class, 'store']);
+        Route::put('/user-tabs/{userTab}', [\App\Http\Controllers\Api\UserTabController::class, 'update']);
+        Route::delete('/user-tabs/{userTab}', [\App\Http\Controllers\Api\UserTabController::class, 'destroy']);
+
+        
         // Api resource routes
         Route::apiResource('roles', 'RoleController')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
         Route::apiResource('users', 'UserController')->middleware('permission:' . Acl::PERMISSION_USER_MANAGE);

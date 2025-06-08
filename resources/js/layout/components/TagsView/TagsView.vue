@@ -1,11 +1,7 @@
 <template>
   <div id="tags-view-container" class="tags-view-container">
-    <scroll-pane
-        ref="scrollPane"
-        class="tags-view-wrapper"
-        @scroll="handleScroll"
-    >
-      <template v-for="tag in filteredTags" :key="tag">
+    <scroll-pane ref="scrollPane" class="tags-view-wrapper" @scroll="handleScroll">
+      <template v-for="tag in filteredTags" :key="tag.path">
         <router-link
             :ref="(el) => setTagRef(el, tag)"
             :class="['tags-view-item', { active: isActive(tag) }]"
@@ -19,11 +15,12 @@
               {{ generateTitle(tag.title || 'Untitled') }}
             </span>
             <div class="tag-actions">
-              <el-icon v-if="isAffix(tag)" class="lock-icon">
-                <Lock />
+              <el-icon class="lock-icon" @click.prevent.stop="togglePinTag(tag)">
+                <Lock v-if="isAffix(tag)" />
+                <Unlock v-else />
               </el-icon>
               <el-icon
-                  v-else
+                  v-if="!isAffix(tag)"
                   class="close-icon"
                   @click.prevent.stop="closeSelectedTag(tag, $event)"
               >
@@ -34,23 +31,21 @@
         </router-link>
       </template>
     </scroll-pane>
-    <div>
-      <ul
-          v-show="state.visible"
-          :style="{ left: state.left + 'px', top: state.top + 'px' }"
-          class="context-menu"
+    <ul
+        v-show="state.visible"
+        :style="{ left: state.left + 'px', top: state.top + 'px' }"
+        class="context-menu"
+    >
+      <li @click="refreshSelectedTag(state.selectedTag)">Обновить</li>
+      <li
+          v-if="state.selectedTag && !isAffix(state.selectedTag)"
+          @click="closeSelectedTag(state.selectedTag, $event)"
       >
-        <li @click="refreshSelectedTag(state.selectedTag)">{{ t('tagsView.refresh') }}</li>
-        <li
-            v-if="state.selectedTag && !isAffix(state.selectedTag)"
-            @click="closeSelectedTag(state.selectedTag, $event)"
-        >
-          {{ t('tagsView.close') }}
-        </li>
-        <li @click="closeOthersTags">{{ t('tagsView.closeOthers') }}</li>
-        <li @click="closeAllTags(state.selectedTag)">{{ t('tagsView.closeAll') }}</li>
-      </ul>
-    </div>
+        Закрыть
+      </li>
+      <li @click="closeOthersTags">Закрыть другие</li>
+      <li @click="closeAllTags(state.selectedTag)">Закрыть все</li>
+    </ul>
   </div>
 </template>
 
@@ -58,7 +53,7 @@
 import ScrollPane from './ScrollPane.vue'
 import { useI18n } from "vue-i18n"
 import path from 'path'
-import { Close, Lock } from '@element-plus/icons-vue'
+import { Close, Lock, Unlock } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { getCurrentInstance, watch, ref, reactive, onMounted, nextTick, computed } from 'vue'
@@ -108,8 +103,17 @@ watch(visitedViews, (newVal) => {
   })
 }, { deep: true })
 
-onMounted(() => {
+const loadVisitedViewsFromServer = async () => {
+  try {
+    await tagsView.loadVisitedViewsFromServer()
+  } catch (error) {
+    console.error('Failed to load tabs from server:', error)
+  }
+}
+
+onMounted(async () => {
   initAffixTags()
+  await loadVisitedViewsFromServer()
   addCurrentTag()
 })
 
@@ -135,50 +139,38 @@ watch(
 const isActive = (tag) => tag?.path === $route?.path
 const isAffix = (tag) => !!tag?.meta?.affix
 
+const togglePinTag = async (tag) => {
+  await tagsView.togglePinTag(tag);
+};
 
 const scrollToActiveTag = () => {
   const currentRoute = $route
-  const currentPath = decodeURIComponent(currentRoute.path) // Декодируем URI
+  const currentPath = decodeURIComponent(currentRoute.path)
       .split('#')[0]
       .split('?')[0]
-      .toLowerCase() // Приводим к нижнему регистру
-
-  console.log('[DEBUG] Ищем тег для пути:', currentPath)
+      .toLowerCase()
 
   const activeTag = Object.values(refTags.value)?.find(tag => {
     if (!tag?.$el) return false
 
     const href = tag.$el.getAttribute('href')
-    const tagPath = decodeURIComponent(href) // Декодируем URI
+    const tagPath = decodeURIComponent(href)
         .split('#')[0]
         .split('?')[0]
-        .toLowerCase() // Приводим к нижнему регистру
-
-    console.log('[DEBUG] Сравниваем:', {
-      currentPath,
-      tagPath,
-      href
-    })
+        .toLowerCase()
 
     return tagPath === currentPath
   })
 
   if (activeTag && scrollPane.value?.moveToTarget) {
-    console.log('[DEBUG] Найден активный тег:', activeTag)
     nextTick(() => scrollPane.value.moveToTarget(activeTag))
-  } else {
-    console.error('[TagsView] Активный тег не найден. Доступные теги:',
-        Object.values(refTags.value).map(t => ({
-          text: t?.$el?.innerText,
-          path: t?.$el?.getAttribute('href')
-        }))
-    )
   }
 }
 
 const initAffixTags = () => {
   const filterAffix = (routes, basePath = '/') => {
     return routes?.flatMap(route => {
+      console.log('initAffixTags filterAffix route: ', route)
       const children = route?.children ? filterAffix(route.children, route.path) : []
       if (route?.meta?.affix) {
         return [{
@@ -196,10 +188,33 @@ const initAffixTags = () => {
 }
 
 const addCurrentTag = () => {
-  if ($route?.name && !visitedViews.value.some(v => v.path === $route.path)) {
-    tagsView.addView($route)
+  if (!$route?.name || !$route.path) {
+    console.error('Ошибка: маршрут не имеет path', $route); // Лог ошибки
+    return;
   }
-}
+
+  if (!visitedViews.value.some(v => v.path === $route.path)) {
+    const view = {
+      ...$route,
+      path: $route.path,
+      fullPath: $route.fullPath || $route.path,
+      meta: { ...$route.meta, affix: $route.meta?.affix || false }, // Указываем affix
+    };
+    tagsView.addView(view);
+  }
+};
+
+// Добавлено логирование ошибок
+const saveVisitedViewToServer = async (view) => {
+  try {
+    await tagsView.saveVisitedViewToServer(view);
+
+    console.error('tagsView path', tagsView); // Лог ошибки
+  } catch (error) {
+    ElMessage.error('Ошибка сохранения вкладки');
+    console.error('Ошибка сохранения:', error);
+  }
+};
 
 const openMenu = (tag, e) => {
   if (!tag || !proxy?.$el || !e) return
@@ -211,23 +226,10 @@ const openMenu = (tag, e) => {
   state.selectedTag = tag
 }
 
-/*const refreshSelectedTag = (view) => {
+const refreshSelectedTag = (view) => {
   if (!view?.fullPath) return
   $router.replace({ path: '/redirect' + view.fullPath }).catch(() => {})
-}*/
-
-const refreshSelectedTag = (view) => {
-  if (!view?.fullPath) return;
-
-  // Убираем начальный слеш из view.fullPath (если есть)
-  const cleanPath = view.fullPath.replace(/^\//, '');
-    console.log('view.fullPath ', view.fullPath)
-    console.log('cleanPath ', cleanPath)
-  $router.replace({
-    path: `/redirect/${cleanPath}`,
-    query: { ...view.query } // Сохраняем query-параметры
-  }).catch(() => {});
-};
+}
 
 const closeSelectedTag = async (view, e) => {
   if (!view?.path || !e) return
@@ -261,6 +263,7 @@ const toLastView = () => {
 const handleScroll = () => state.visible = false
 </script>
 
+
 <style lang="scss" scoped>
 .tags-view-container {
   height: 40px;
@@ -273,7 +276,7 @@ const handleScroll = () => state.visible = false
     height: 100%;
 
     :deep(.el-scrollbar__view) {
-      overflow-x: auto !important; // Включить горизонтальную прокрутку
+      overflow-x: auto !important;
       flex-wrap: nowrap;
       display: flex;
       align-items: center;
@@ -285,29 +288,28 @@ const handleScroll = () => state.visible = false
   .tags-view-item {
     display: inline-flex;
     align-items: center;
-    height: 24px;
-    padding: 0 5px 0px 9px;
+    height: 22px;
+    padding: 0 4px 0px 8px;
     margin-right: 2px;
-    font-size: 12px;
+    font-size: 11px;
     color: #606266;
     background: #f0f2f5;
-    border-radius: 3px;
-    transition: all 0.2s cubic-bezier(0.5, 0, 0.2, 1);
+    border-radius: 4px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     cursor: pointer;
 
     &:hover {
       background: #e4e7ed;
       transform: translateY(-2px);
-      transition: all 0.2s cubic-bezier(0.5, 0, 0.2, 1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       box-shadow: 0 2px 8px rgba(100, 118, 161, 0.89);
     }
 
     &.active {
-      height: 27px;
-      background: #4b88cc;
-      color: #e8e8e8;
-      box-shadow: 0px 0px 7px 3px rgba(72, 142, 216, 0.35);
+      background: #409eff;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(32, 160, 255, 0.3);
 
       .lock-icon {
         color: #f56c6c;
@@ -355,8 +357,6 @@ const handleScroll = () => state.visible = false
       }
 
       .lock-icon:hover {
-        cursor: not-allowed;
-        pointer-events: all !important;
         color: #f56c6c;
       }
     }
