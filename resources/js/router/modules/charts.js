@@ -7,7 +7,7 @@ const chartsRoutes = {
   redirect: 'noRedirect',
   name: 'Charts',
   meta: {
-    title: 'charts',
+    title: 'Charts',
     showInGuide: true,
     description: 'Визуализация данных и аналитика',
     bootstrapIcon: 'bar-chart-fill',
@@ -18,19 +18,19 @@ const chartsRoutes = {
       path: 'keyboard',
       component: () => import('@/views/charts/Keyboard.vue'),
       name: 'KeyboardChart',
-      meta: {title: 'keyboardChart', bootstrapIcon:  'bar-chart-steps', showInGuide: true, noCache: true},
+      meta: {title: 'KeyboardChart', bootstrapIcon:  'bar-chart-steps', showInGuide: true, noCache: true},
     },
     {
       path: 'line',
       component: () => import('@/views/charts/Line.vue'),
       name: 'LineChart',
-      meta: {title: 'lineChart', bootstrapIcon: 'pie-chart-fill', noCache: true},
+      meta: {title: 'LineChart', bootstrapIcon: 'pie-chart-fill', noCache: true},
     },
     {
       path: 'mixchart',
       component: () => import('@/views/charts/MixChart.vue'),
       name: 'MixChart',
-      meta: {title: 'mixChart', bootstrapIcon: 'file-earmark-bar-graph-fill', noCache: true},
+      meta: {title: 'MixChart', bootstrapIcon: 'file-earmark-bar-graph-fill', noCache: true},
     },
   ],
 }

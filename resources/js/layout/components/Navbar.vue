@@ -31,7 +31,7 @@
             <router-link to="/profile/edit">
               <el-dropdown-item>{{ t('navbar.profile')}}</el-dropdown-item>
             </router-link>
-            <a target="_blank" href="https://github.com/asvvizit/laravel-vue-admin-starter">
+            <a target="_blank" :href="linkGithub">
               <el-dropdown-item>{{ t('navbar.github')}}</el-dropdown-item>
             </a>
             <el-dropdown-item divided @click="loginOut">{{ t('navbar.logout')}}</el-dropdown-item>
@@ -47,6 +47,7 @@ import {reactive, toRef} from "vue"
 import {useI18n} from "vue-i18n"
 
 import Timer from './Timer/Timer.vue'
+const linkGithub = `https://github.com/asvvizit/laravel-vue-admin-starter`
 const {t} = useI18n({useScope: 'global'})
 import { Unlock, Lock } from '@element-plus/icons-vue'
 import HeaderSearch from '@/components/HeaderSearch/HeaderSearch.vue'

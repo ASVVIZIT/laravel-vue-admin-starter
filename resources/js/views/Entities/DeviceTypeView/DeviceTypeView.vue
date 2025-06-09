@@ -14,7 +14,7 @@
           :size="store.size"
         >
           <template #prefix>
-            <el-icon><Search /></el-icon>
+            <el-icon :size="store.size"><Search /></el-icon>
           </template>
         </el-input>
       </el-col>
@@ -124,7 +124,8 @@
     <el-dialog
       v-model="dialogVisibleAdd"
       :title="$t('deviceType.form.add_title')"
-      width="40%"
+      :size="store.size"
+      width="50%"
     >
       <el-form
         :model="newDeviceType"
@@ -200,7 +201,8 @@
     <el-dialog
       v-model="dialogVisible"
       :title="$t('deviceType.form.edit_title', { name: editingDeviceType?.name })"
-      width="40%"
+      :size="store.size"
+      width="50%"
     >
       <el-form
         :model="editingDeviceType"

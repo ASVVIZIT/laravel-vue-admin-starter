@@ -131,6 +131,13 @@ if (!function_exists('vite_assets')) {
         $isDocker = config('app.env') === 'docker';
         $viteBase = config('vite.base', '/build/');
 
+        // Список локалей для Element Plus
+/*        $elementLocales = [
+            'element-plus/dist/locale/ru.mjs',
+            'element-plus/dist/locale/en.mjs',
+            'element-plus/dist/locale/zh-cn.mjs'
+        ];*/
+
         // ==================== PRODUCTION MODE ====================
         if ($isProduction) {
             $manifestPath = public_path('build/manifest.json');
@@ -145,18 +152,27 @@ if (!function_exists('vite_assets')) {
             $entry = $manifest['resources/js/app.js'] ?? throw new \RuntimeException('Entry point not found');
 
             // Основные теги
-            $tags = sprintf(
-                '<script type="module" src="%s%s"></script>',
-                $viteBase,
-                htmlspecialchars($entry['file'], ENT_QUOTES)
+            $tags = '';
+
+            // Предзагрузка локалей Element Plus
+/*            foreach ($elementLocales as $localePath) {
+                $tags .= sprintf(
+                    '<link rel="modulepreload" href="%s" as="script" crossorigin="anonymous">',
+                    asset($viteBase . $localePath)
+                );
+            }*/
+
+            // Скрипт приложения
+            $tags .= sprintf(
+                '<script type="module" src="%s"></script>',
+                asset($viteBase . $entry['file'])
             );
 
             // CSS файлы
             foreach ($entry['css'] ?? [] as $css) {
                 $tags .= sprintf(
-                    '<link rel="stylesheet" href="%s%s">',
-                    $viteBase,
-                    htmlspecialchars($css, ENT_QUOTES)
+                    '<link rel="stylesheet" href="%s">',
+                    asset($viteBase . $css)
                 );
             }
 
@@ -165,9 +181,8 @@ if (!function_exists('vite_assets')) {
                 $ext = pathinfo($asset, PATHINFO_EXTENSION);
                 if (in_array($ext, ['woff', 'woff2', 'ttf', 'eot', 'otf'])) {
                     $tags .= sprintf(
-                        '<link rel="preload" href="%s%s" as="font" type="font/%s" crossorigin>',
-                        $viteBase,
-                        htmlspecialchars($asset, ENT_QUOTES),
+                        '<link rel="preload" href="%s" as="font" type="font/%s" crossorigin>',
+                        asset($viteBase . $asset),
                         $ext
                     );
                 }
@@ -181,11 +196,18 @@ if (!function_exists('vite_assets')) {
             ? rtrim(env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173'), '/')
             : rtrim(env('VITE_DEV_SERVER_URL', 'http://localhost:5173'), '/');
 
-        return new HtmlString(<<<HTML
+        $tags = <<<HTML
             <script type="module" src="$devServer/@vite/client"></script>
             <script type="module" src="$devServer/resources/js/app.js"></script>
-            <link rel="icon" type="image/x-icon" href="$devServer/resources/images/favicon.ico">
-        HTML);
+        HTML;
+
+        // В dev-режиме добавляем favicon
+        $tags .= sprintf(
+            '<link rel="icon" type="image/x-icon" href="%s">',
+            $devServer . '/resources/images/favicon.ico'
+        );
+
+        return new HtmlString($tags);
     }
 }
 

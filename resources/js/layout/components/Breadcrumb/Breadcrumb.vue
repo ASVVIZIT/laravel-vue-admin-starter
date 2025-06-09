@@ -117,8 +117,8 @@ const getBreadcrumb = () => {
     ) {
       hierarchy.unshift({
         path: '/dashboard',
-        name: 'dashboard',
-        meta: { title: generateTitle('dashboard') },
+        name: 'Dashboard',
+        meta: { title: generateTitle('Dashboard') },
         redirect: 'noRedirect'
       })
     }

@@ -1,5 +1,5 @@
 <template>
-  <el-card class="measurement-unit-table-container">
+  <el-card class="measurement-unit-table-container" :size="store.size">
     <h2>{{ $t('measurementUnit.table.title') }}</h2>
 
     <!-- Панель поиска и добавления -->
@@ -83,12 +83,14 @@
               :icon="Edit"
               :title="$t('measurementUnit.table.item_actions.edit')"
               @click="editMeasurementUnit(scope.row)"
+              :size="store.size"
               circle
             />
             <el-button
               type="danger"
               :icon="Delete"
               :title="$t('measurementUnit.table.item_actions.delete')"
+              :size="store.size"
               @click="deleteMeasurementUnit(scope.row.id)"
               circle
             />
@@ -138,7 +140,8 @@
     <el-dialog
         v-model="dialogVisibleAdd"
         :title="$t('measurementUnit.form.add_title')"
-        width="40%"
+        :size="store.size"
+        width="50%"
     >
       <el-form
           :model="newMeasurementUnit"
@@ -217,10 +220,10 @@
                 <el-option
                   v-for="category in categoryStore.dropdownCategories"
                   :key="category.id"
-                  :label="category.name"
+                  :label="category.name + ' (' + category.description + ')'"
                   :value="category.id"
                 >
-                  <span>{{ category.name }}</span>
+                  <span style="min-width: 80px; max-width: 80px;">{{ category.name }}</span>
                   <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
                 </el-option>
               </el-select>
@@ -249,7 +252,8 @@
     <el-dialog
       v-model="dialogVisible"
       :title="$t('measurementUnit.form.edit_title', { name: editingMeasurementUnit?.name })"
-      width="40%"
+      :size="store.size"
+      width="50%"
     >
       <el-form
         :model="editingMeasurementUnit"
@@ -314,10 +318,10 @@
             <el-option
               v-for="category in categoryStore.dropdownCategories"
               :key="category.id"
-              :label="category.name"
+              :label="category.name + ' (' + category.description + ')'"
               :value="category.id"
             >
-              <span style="min-width: 40px; max-width: 80px;">{{ category.name }}</span>
+              <span style="min-width: 80px; max-width: 80px;">{{ category.name }}</span>
               <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
             </el-option>
           </el-select>

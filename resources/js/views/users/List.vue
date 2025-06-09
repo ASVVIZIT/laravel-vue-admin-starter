@@ -97,6 +97,7 @@
         v-model="dialogFormVisible"
         :title="$t('table.user.form.title.create')"
         :width="store.size === 'small' ? '40%' : '60%'"
+        :size="store.size"
     >
       <div v-loading="userCreating" class="form-container">
         <el-form
@@ -192,7 +193,7 @@
               :size="store.size"
               type="datetime"
               :placeholder="$t('table.user.form.fields.birthday.placeholder')"
-              value-format="YYYY-MM-DD HH:mm:ss"
+              :value-format="FormatDateTimeRef"
               clearable
             />
           </el-form-item>
@@ -218,14 +219,15 @@
         </div>
       </div>
     </el-dialog>
-    <el-dialog v-model="dialogPermissionVisible" :title="$t('permission.table.edit.user') + ' - ' + currentUser.name">
+    <el-dialog :size="store.size" v-model="dialogPermissionVisible" :title="$t('permission.table.edit.user') + ' - ' + currentUser.name">
       <div v-if="currentUser.name" v-loading="dialogPermissionLoading" class="form-container">
         <div class="permissions-container">
           <div class="block">
-            <el-form :model="currentUser" label-width="80px" label-position="top">
+            <el-form :size="store.size" :model="currentUser" label-width="80px" label-position="top">
               <el-form-item :label="$t('permission.table.userPermissions.name.menu')">
                 <el-tree
                   ref="refMenuPermissions"
+                  :size="store.size"
                   :data="normalizedMenuPermissions"
                   :default-checked-keys="permissionKeys(userMenuPermissions)"
                   :props="permissionProps"
@@ -237,10 +239,11 @@
             </el-form>
           </div>
           <div class="block">
-            <el-form :model="currentUser" label-width="80px" label-position="top">
+            <el-form :size="store.size" :model="currentUser" label-width="80px" label-position="top">
               <el-form-item :label="$t('permission.table.userPermissions.name.permissions')">
                 <el-tree
                   ref="refOtherPermissions"
+                  :size="store.size"
                   :data="normalizedOtherPermissions"
                   :default-checked-keys="permissionKeys(userOtherPermissions)"
                   :props="permissionProps"
@@ -283,6 +286,9 @@ import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { debounce } from 'lodash-es'
 
+
+const FormatDateTime = 'YYYY-MM-DD HH:mm:ss';
+const FormatDateTimeRef = ref(FormatDateTime);
 const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
 const userResource = new UserResource()
@@ -861,7 +867,7 @@ const createUser = async (formEl) => {
       ...newUser,
       roles: [newUser.role],
       birthday: newUser.birthday_model
-          ? dayjs(newUser.birthday_model).format('YYYY-MM-DD HH:mm:ss')
+          ? dayjs(newUser.birthday_model).format(FormatDateTime)
           : null
     }
     await userResource.store(userData)
@@ -889,12 +895,12 @@ const confirmPermission = async () => {
       permissions: permissionsToUpdate
     });
 
-    ElMessage.success(t('success.permissionsUpdated'));
+    ElMessage.success(t('permission.table.elMessage.update.success.message'));
     dialogPermissionVisible.value = false;
     await getList();
   } catch (error) {
     console.error('Error in confirmPermission:', error);
-    ElMessage.error(error.response?.data?.message || t('error.updatePermissions'));
+    ElMessage.error(error.response?.data?.message || t('permission.table.elMessage.update.error.message'));
   } finally {
     dialogPermissionLoading.value = false;
   }

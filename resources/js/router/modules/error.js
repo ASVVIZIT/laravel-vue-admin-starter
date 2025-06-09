@@ -7,7 +7,7 @@ const errorRoutes = {
   redirect: 'noredirect',
   name: 'ErrorPages',
   meta: {
-    title: 'errorPages',
+    title: 'ErrorPages',
     icon: '404',
   },
   hidden: true,
@@ -16,13 +16,13 @@ const errorRoutes = {
       path: '401',
       component: () => import('@/views/error-page/401.vue'),
       name: 'Page401',
-      meta: { title: 'page401', noCache: true },
+      meta: { title: 'Page401', noCache: true },
     },
     {
       path: '404',
       component: () => import('@/views/error-page/404.vue'),
       name: 'Page404',
-      meta: { title: 'page404', noCache: true },
+      meta: { title: 'Page404', noCache: true },
     },
   ],
 }

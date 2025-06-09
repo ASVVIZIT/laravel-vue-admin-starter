@@ -1102,7 +1102,7 @@ onUnmounted(() => {
 :deep(.el-textarea__inner),
 :deep(.el-select .el-input__inner) {
   height: 24px;
-  padding: 0 8px;
+  // padding: 0 8px;
   line-height: 30px;
   font-size: 13px;
 }

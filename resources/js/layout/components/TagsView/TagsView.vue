@@ -170,7 +170,7 @@ const scrollToActiveTag = () => {
 const initAffixTags = () => {
   const filterAffix = (routes, basePath = '/') => {
     return routes?.flatMap(route => {
-      console.log('initAffixTags filterAffix route: ', route)
+      // console.log('initAffixTags filterAffix route: ', route)
       const children = route?.children ? filterAffix(route.children, route.path) : []
       if (route?.meta?.affix) {
         return [{

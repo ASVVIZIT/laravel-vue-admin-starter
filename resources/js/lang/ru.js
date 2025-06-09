@@ -1,25 +1,26 @@
 export default {
     "route": {
-        "dashboard": "Главная панель управления",
-        "permission": "Разрешение (Permission)",
-        "pagePermission": "Разрешение для страниц (Page Permission)",
-        "rolePermission": "Разрешение для роли (Role Permission)",
-        "directivePermission": "Директивы",
-        "charts": "Графики",
-        "keyboardChart": "Диаграмма (Keyboard Chart)",
-        "lineChart": "Линейные Диаграммы (Line Chart)",
-        "mixChart": "Mix Chart",
-        "table": "Таблица (Table)",
-        "form": "Форма",
-        "errorPages": "Страницы с ошибками (Error Pages)",
-        "page401": "401",
-        "page404": "404",
-        "administrator": "Администратор",
+        "Dashboard": "Главная панель управления",
+        "Permission": "Разрешение (Permission)",
+        "PagePermission": "Разрешение для страниц (Page Permission)",
+        "RolePermission": "Разрешение для роли (Role Permission)",
+        "DirectivePermission": "Директивы",
+        "Charts": "Графики",
+        "KeyboardChart": "Диаграмма (Keyboard Chart)",
+        "LineChart": "Линейные Диаграммы (Line Chart)",
+        "MixChart": "Mix Chart",
+        "Table": "Таблица (Table)",
+        "Form": "Форма",
+        "ErrorPages": "Страницы с ошибками (Error Pages)",
+        "Page401": "401",
+        "Page404": "404",
+        "Administrator": "Администратор",
         "UserList": "Пользователи",
-        "userProfile": "Профиль пользователя",
-        "guide": "Путеводитель по сайту",
-        "entity": "Справочники и компоненты",
-        "brands": "Бренды",
+        "UserProfile": "Профиль пользователя",
+        "DynamicTable": "Динамическая таблица",
+        "Guide": "Путеводитель по сайту",
+        "Entity": "Справочники и компоненты",
+        "Brands": "Бренды",
         "DeviceType": "Типы устройства",
         "MeasurementUnit": "Единицы измерений",
         "Accessories": "Аксессуар Электрики",
@@ -144,21 +145,24 @@ export default {
                 "warning": "Предупреждение",
                 "continue": "Продолжать?",
                 "confirm1": {
-                    "message": "Это приведет к необратимому удалению пользователя"
+                    "message": "Это приведет к необратимому удалению пользователя."
                 }
             },
             "elMessage": {
                 "update": {
                     "success": {
-                        "message": "Обновление разрешений прошло успешно"
-                    }
+                        "message": "Обновление разрешений прошло успешно."
+                    },
+                    "error": {
+                        "message": "При обновлении разрешений произошла ошибка."
+                    },
                 },
                 "delete": {
                     "success": {
-                        "message": "Удаление завершено"
+                        "message": "Удаление завершено."
                     },
                     "canceled": {
-                        "message": "Удаление отменено"
+                        "message": "Удаление отменено."
                     }
                 },
                 "newUser": {
@@ -171,7 +175,7 @@ export default {
                 },
                 "confirmPermission": {
                     "success": {
-                        "message": "Разрешения были успешно обновлены"
+                        "message": "Разрешения были успешно обновлены."
                     }
                 }
             }
@@ -732,6 +736,31 @@ export default {
     "common": {
         "submitting": "Сохранение...",
         "required": "Обязательное поле",
+        "view404": {
+            "buttons": {
+                "back": "Назад",
+                "backHome": "Назад Домой",
+            },
+            "OOPS": `Ууупс!`,
+            "Message": `Охрана сервиса сказала, что вы не можете зайти на эту страницу...`,
+            "Info": `Пожалуйста, проверьте правильность введенного вами URL-адреса. Нажмите на кнопку ниже, чтобы вернуться на главную страницу.`,
+            "CopyrightBy":`Copyright by`,
+            "ProjectInGithub":`Project in github`,
+        },
+        "view401": {
+            "buttons": {
+                "back": "Назад",
+                "backHome": "Назад Домой",
+            },
+            "CanGo": `Или ты можешь перейти:`,
+            "OOPS": `Ууупс!`,
+            "Permission": `У вас нет разрешения на переход на эту страницу.`,
+            "MessageAdmin": `Если вы не удовлетворены, пожалуйста, свяжитесь с администратором.`,
+            "JustLookingAroundHref": `https://www.google.com/`,
+            "JustLookingAround": `Поиск в интернете`,
+            "ShowPicture": `Показать заставку`,
+            "CasualLook": `Доступ запрещён`,
+        },
         "units": {
             "A": "А",
             "V": "В",

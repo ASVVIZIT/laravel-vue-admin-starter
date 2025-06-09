@@ -332,7 +332,9 @@
     "micromatch": "^4.0.8",
     "mime-db": "^1.52.0",
     "moment-timezone": "^0.5.48",
-    "path-browserify": "^1.0.1"
+    "path-browserify": "^1.0.1",
+    "vite-plugin-pwa": "^1.0.0",
+    "workbox-window": "^7.3.0"
   },
   "browserslist": [
     ">1%",

@@ -5,10 +5,10 @@ const entityRoutes = {
     path: '/entity',
     component: Layout,
     redirect: '/entity/brands',
-    name: 'entity',
+    name: 'Entity',
     alwaysShow: true,
     meta: {
-        title: 'Справочники и компоненты',
+        title: 'Entity',
         description: 'Справочники и компоненты (Управление сущностями)',
         bootstrapIcon: 'diagram-3',
         permissions: ['view menu entity'],

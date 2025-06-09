@@ -79,6 +79,7 @@ import compress from 'vite-plugin-compression'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import { createHtmlPlugin } from 'vite-plugin-html'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { VitePWA } from 'vite-plugin-pwa'
 import * as sass from 'sass'
 
 // Получение ESM-совместимого __dirname
@@ -96,6 +97,13 @@ const BUNDLE_ANALYZER = {
     projectRoot: '/',
     sourcemap: true
 }
+
+// Список локалей для Element Plus
+const ELEMENT_LOCALES = [
+    'element-plus/dist/locale/ru.mjs',
+    'element-plus/dist/locale/en.mjs',
+    'element-plus/dist/locale/zh-cn.mjs'
+]
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, process.cwd(), ['VITE_', 'APP_'])
@@ -140,7 +148,40 @@ export default defineConfig(({ mode }) => {
                 }
             }),
             vueDevTools(),
-            createHtmlPlugin({}),
+            createHtmlPlugin({
+                minify: isProduction,
+                inject: {
+                    data: {
+                        // Добавляем предзагрузку только для локалей
+                        preloadLinks: isProduction ?
+                            ELEMENT_LOCALES.map(path =>
+                                `<link rel="modulepreload" href="/${path}" as="script" crossorigin="anonymous">`
+                            ).join('') : ''
+                    }
+                }
+            }),
+            VitePWA({
+                // Конфиг для кэширования локалей
+                registerType: 'autoUpdate',
+                workbox: {
+                    maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+                    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                    runtimeCaching: [
+                        {
+                            urlPattern: ({ url }) =>
+                                ELEMENT_LOCALES.some(locale => url.pathname.includes(locale)),
+                            handler: 'CacheFirst',
+                            options: {
+                                cacheName: 'element-locales',
+                                expiration: {
+                                    maxEntries: 10,
+                                    maxAgeSeconds: 60 * 60 * 24 * 30 // 30 дней
+                                }
+                            }
+                        }
+                    ]
+                }
+            }),
             VueJsx(),
             VueSetupExtend(),
             ElementPlus({
@@ -175,6 +216,7 @@ export default defineConfig(({ mode }) => {
                 autoInstall: true,
             }),
             compress({
+                threshold: 10240,
                 algorithm: 'brotliCompress',
                 ext: '.br'
             })
@@ -229,7 +271,8 @@ export default defineConfig(({ mode }) => {
             include: [
                 'vue',
                 'element-plus',
-                'element-plus/dist/locale/ru.mjs'
+                //'element-plus/dist/locale/ru.mjs',
+                ...ELEMENT_LOCALES
             ],
             exclude: ['vue-demi']
         }
@@ -242,9 +285,9 @@ export default defineConfig(({ mode }) => {
             host: '0.0.0.0',
             port: 5173,
             hmr: {
-                host: 'host.docker.internal',
+                host: env.VITE_DOCKER_SERVER_URL ? new URL(env.VITE_DOCKER_SERVER_URL).hostname : 'localhost',
                 protocol: 'ws',
-                clientPort: 5173
+                clientPort: 80
             }
         },
         build: { sourcemap: false },
@@ -254,6 +297,14 @@ export default defineConfig(({ mode }) => {
     // ==================== Production-режим ====================
     const productionConfig = {
         base: '/build',
+        server: {
+            host: 'localhost',
+            port: 5173,
+            proxy: {
+                '/api': 'http://FenixLaravel.loc',
+                '/sanctum': 'http://FenixLaravel.loc'
+            }
+        },
         build: {
             sourcemap: true,
             manifest: 'manifest.json',
@@ -268,12 +319,22 @@ export default defineConfig(({ mode }) => {
                     visualizer({
                         ...BUNDLE_ANALYZER,
                         title: `Анализ сборки (${mode.toUpperCase()})`
-                    })
+                    }),
                 ],
                 output: {
                     entryFileNames: 'assets/js/[name]-[hash].js',
                     chunkFileNames: 'assets/js/[name]-[hash].js',
-                    assetFileNames: ({ name }) => assetNamingStrategy(name)
+                    assetFileNames: ({ name }) => assetNamingStrategy(name),
+                    // Оптимизация для локалей
+                    manualChunks: (id) => {
+                        if (id.includes('element-plus/dist/locale')) {
+                            return 'element-locales'
+                        }
+
+                        if (id.includes('node_modules')) {
+                            return 'vendor'
+                        }
+                    }
                 }
             },
             terserOptions: {

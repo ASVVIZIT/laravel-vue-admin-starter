@@ -8,7 +8,7 @@ const adminRoutes = {
   name: 'Administrator',
   alwaysShow: true,
   meta: {
-    title: 'administrator',
+    title: 'Administrator',
     description: 'Управление пользователями и правами доступа',
     bootstrapIcon: 'person-workspace',
     permissions: ['view menu administrator'],
@@ -19,7 +19,7 @@ const adminRoutes = {
       path: 'users/edit/:id(\\d+)',
       component: () => import('@/views/users/UserProfile.vue'),
       name: 'UserProfile',
-      meta: { title: 'userProfile', noCache: true, permissions: ['manage user'] },
+      meta: { title: 'UserProfile', noCache: true, permissions: ['manage user'] },
       hidden: true,
     },
     {
@@ -33,7 +33,7 @@ const adminRoutes = {
       path: 'roles',
       component: () => import('@/views/role-permission/List.vue'),
       name: 'RoleList',
-      meta: {title: 'rolePermission', bootstrapIcon: 'person-lines-fill', permissions: ['manage permission']},
+      meta: {title: 'RolePermission', bootstrapIcon: 'person-lines-fill', permissions: ['manage permission']},
     },
   ],
 }

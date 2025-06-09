@@ -11,46 +11,35 @@
             :command="item.value"
             :disabled="language === item.value"
         >
-          <h3 class="font-langPx12">{{ item.label }}</h3>
+          <h3 class="pt-1 pb-1 font-langPx14">{{ item.label }}</h3>
         </el-dropdown-item>
       </el-dropdown-menu>
     </template>
   </el-dropdown>
 </template>
 
-<script>
-import {computed, getCurrentInstance, reactive, toRefs} from "vue"
-import {appStore} from "@/store/app"
-import {useI18n} from "vue-i18n";
+<script setup>
+import { computed } from 'vue';
+import { appStore } from '@/store/app';
+import { useI18n } from 'vue-i18n';
+import { ElMessage } from 'element-plus';
 
-export default {
-  setup() {
-    const {proxy} = getCurrentInstance()
-    const useAppStore = appStore()
-    const {t} = useI18n()
-    const handleSetLanguage = (lang) => {
-      proxy.$i18n.locale = lang;
-      useAppStore.setLanguage(lang)
-      proxy.$message({
-        message: t('switchLang.localName'),
-        type: 'success',
-      });
-    }
+const useAppStore = appStore();
+const { t, locale } = useI18n();
 
-    const resData = reactive({
-      language: computed(() => {
-        return useAppStore.language
-      }),
-      langOptions: [
-        { label: 'Русский', value: 'ru' },
-        { label: 'English', value: 'en' },
-      ]
-    })
-    return {
-      ...toRefs(resData),
-      handleSetLanguage
-    }
-  },
+// Реактивные данные
+const language = computed(() => useAppStore.language);
+const langOptions = [
+  { label: 'Русский', value: 'ru' },
+  { label: 'English', value: 'en' },
+  { label: '中文', value: 'zh-cn' },
+];
+
+// Обработчик смены языка
+const handleSetLanguage = (lang) => {
+  locale.value = lang;
+  useAppStore.setLanguage(lang);
+  ElMessage.success(t('switchLang.localName'));
 };
 </script>
 

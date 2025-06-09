@@ -41,7 +41,7 @@ export const constantRoutes = [
         path: '/dashboard',
         component: () => import('@/views/dashboard/dashboard.vue'),
         name: 'Dashboard',
-        meta: { title: 'dashboard', bootstrapIcon: 'house-fill', showInGuide: true, affix: true, noCache: false },
+        meta: { title: 'Dashboard', bootstrapIcon: 'house-fill', showInGuide: true, affix: true, noCache: false },
       },
     ],
   },
@@ -68,7 +68,7 @@ export const constantRoutes = [
         path: 'edit',
         component: () => import('@/views/users/SelfProfile.vue'),
         name: 'SelfProfile',
-        meta: {title: 'userProfile', bootstrapIcon: 'person-circle', noCache: true},
+        meta: {title: 'UserProfile', bootstrapIcon: 'person-circle', noCache: true},
       },
     ],
   },
@@ -81,7 +81,7 @@ export const constantRoutes = [
             path: 'index',
             component: () => import('@/views/guide/guide.vue'),
             name: 'Guide',
-            meta: {title: 'guide', bootstrapIcon: 'bi bi-megaphone-fill', noCache: true}
+            meta: {title: 'Guide', bootstrapIcon: 'bi bi-megaphone-fill', noCache: true}
         }
     ]
   }
