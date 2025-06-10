@@ -1,6 +1,6 @@
 import '@/bootstrap';
 import { ElMessage } from 'element-plus';
-import { isLogged, getToken, setToken } from '@/utils/auth'; // Убедитесь, что setToken импортирован
+import { isLogged, getToken, setToken } from '@/utils/auth';
 
 const service = window.axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,

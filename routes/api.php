@@ -27,7 +27,7 @@ Route::namespace('Api')->group(function() {
         Route::put('/user-tabs/{userTab}', [\App\Http\Controllers\Api\UserTabController::class, 'update']);
         Route::delete('/user-tabs/{userTab}', [\App\Http\Controllers\Api\UserTabController::class, 'destroy']);
 
-        
+
         // Api resource routes
         Route::apiResource('roles', 'RoleController')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
         Route::apiResource('users', 'UserController')->middleware('permission:' . Acl::PERMISSION_USER_MANAGE);
@@ -52,6 +52,11 @@ Route::namespace('Api')->group(function() {
             Route::apiResource('ep_measurement_units', \App\Http\Controllers\Api\Entity\MeasurementUnitController::class);
             Route::apiResource('ep_accessories', \App\Http\Controllers\Api\Entity\AccessoryController::class);
         })->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
+
+
+        Route::get('/messages', [\App\Http\Controllers\Api\GlobalChat\MessageController::class, 'index']);
+        Route::post('/messages', [\App\Http\Controllers\Api\GlobalChat\MessageController::class, 'store']);
+
     });
 });
 

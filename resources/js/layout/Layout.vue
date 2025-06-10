@@ -6,7 +6,11 @@
       <TagsView v-if="settings.showTagsView" />
       <AppMain />
       <RightPanel v-if="settings.showSettings">
-        <div class="text-center">настройки интерфейса сайта</div>
+        <div class="text-center">
+          <el-card>
+            <h3>Настройки интерфейса сайта</h3>
+          </el-card>
+        </div>
       </RightPanel>
     </div>
   </div>

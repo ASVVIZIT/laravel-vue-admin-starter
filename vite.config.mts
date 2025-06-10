@@ -117,7 +117,12 @@ export default defineConfig(({ mode }) => {
             __VUE_PROD_DEVTOOLS__: true,
             'process.platform': null,
             'process.version': null,
-            'import.meta.env': {}
+            'import.meta.env': {
+                ...env,
+                VITE_REVERB_APP_KEY: env.VITE_REVERB_APP_KEY,
+                VITE_REVERB_HOST: env.VITE_REVERB_HOST,
+                VITE_REVERB_PORT: env.VITE_REVERB_PORT,
+            },
         },
         plugins: [
             laravel({
@@ -148,7 +153,7 @@ export default defineConfig(({ mode }) => {
                 }
             }),
             vueDevTools(),
-            createHtmlPlugin({
+/*            createHtmlPlugin({
                 minify: isProduction,
                 inject: {
                     data: {
@@ -159,13 +164,13 @@ export default defineConfig(({ mode }) => {
                             ).join('') : ''
                     }
                 }
-            }),
-            VitePWA({
+            }),*/
+            /*VitePWA({
                 // Конфиг для кэширования локалей
                 registerType: 'autoUpdate',
                 workbox: {
                     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
-                    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                    globPatterns: ['**!/!*.{js,css,html,ico,png,svg,woff2}'],
                     runtimeCaching: [
                         {
                             urlPattern: ({ url }) =>
@@ -181,7 +186,7 @@ export default defineConfig(({ mode }) => {
                         }
                     ]
                 }
-            }),
+            }),*/
             VueJsx(),
             VueSetupExtend(),
             ElementPlus({
@@ -260,7 +265,14 @@ export default defineConfig(({ mode }) => {
             watch: {
                 usePolling: true,
                 interval: 1000
-            }
+            },
+            proxy: {
+                '/api/broadcasting': {
+                    target: 'http://localhost:8000',
+                    ws: true,
+                    changeOrigin: true,
+                },
+            },
         },
         build: {
             sourcemap: 'inline',
@@ -298,11 +310,16 @@ export default defineConfig(({ mode }) => {
     const productionConfig = {
         base: '/build',
         server: {
-            host: 'localhost',
+            host: 'fenixlaravel.loc',
             port: 5173,
             proxy: {
-                '/api': 'http://FenixLaravel.loc',
-                '/sanctum': 'http://FenixLaravel.loc'
+                '/api': 'http://fenixlaravel.loc',
+                '/sanctum': 'http://fenixlaravel.loc',
+                '/api/broadcasting': {
+                    target: 'http://fenixlaravel.loc',
+                    ws: true,
+                    changeOrigin: true,
+                },
             }
         },
         build: {
@@ -316,10 +333,10 @@ export default defineConfig(({ mode }) => {
             rollupOptions: {
                 input: 'resources/js/app.js',
                 plugins: [
-                    visualizer({
+/*                    visualizer({
                         ...BUNDLE_ANALYZER,
                         title: `Анализ сборки (${mode.toUpperCase()})`
-                    }),
+                    }),*/
                 ],
                 output: {
                     entryFileNames: 'assets/js/[name]-[hash].js',
@@ -342,7 +359,7 @@ export default defineConfig(({ mode }) => {
                     drop_console: false,
                     pure_funcs: ['console.log', 'console.info'],
                     drop_debugger: false,
-                    passes: 3
+                    passes: 1
                 }
             }
         }

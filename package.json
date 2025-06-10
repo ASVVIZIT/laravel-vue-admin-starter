@@ -22,7 +22,11 @@
     "build": "cross-env APP_ENV=production vite build --mode production",
     "watch": "cross-env APP_ENV=production vite build --watch --mode production",
     "lint": "eslint --ext .js,.vue resources/js",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "reverb": "php artisan reverb:start --debug",
+    "dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run reverb\"",
+    "docker-dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run docker-dev\" \"npm run reverb\"",
+    "start": "npm run dev-with-reverb"
   },
   "repository": {
     "type": "git",
@@ -58,6 +62,7 @@
     "autoprefixer": "^10.4.21",
     "axios": "^1.6.0",
     "bootstrap-icons": "^1.11.1",
+    "concurrently": "^9.1.2",
     "core-js": "^3.26.0",
     "cross-env": "^7.0.3",
     "dayjs": "^1.11.10",
@@ -158,6 +163,7 @@
     "data-view-buffer": "^1.0.2",
     "data-view-byte-length": "^1.0.2",
     "data-view-byte-offset": "^1.0.1",
+    "date-fns": "^4.1.0",
     "debug": "^4.4.0",
     "decode-uri-component": "^0.2.2",
     "deep-is": "^0.1.4",
@@ -311,6 +317,7 @@
     "json5": "^2.2.3",
     "keyv": "^4.5.4",
     "kind-of": "^5.1.0",
+    "laravel-echo": "^2.1.5",
     "levn": "^0.4.1",
     "loader-runner": "^4.3.0",
     "loader-utils": "^1.4.2",
@@ -333,6 +340,7 @@
     "mime-db": "^1.52.0",
     "moment-timezone": "^0.5.48",
     "path-browserify": "^1.0.1",
+    "pusher-js": "^8.4.0",
     "vite-plugin-pwa": "^1.0.0",
     "workbox-window": "^7.3.0"
   },

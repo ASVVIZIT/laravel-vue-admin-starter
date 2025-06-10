@@ -9,6 +9,7 @@ import adminRoutes from './modules/admin'
 import nestedRoutes from './modules/nested'
 import errorRoutes from './modules/error'
 import entityRoutes from './modules/entity'
+import servicesRoutes from './modules/services.js'
 
 export const constantRoutes = [
   {
@@ -93,6 +94,7 @@ export const asyncRoutes = [
     redirect: to => ({ path: `/${to.params.path || ''}` }), // Перенаправляет на исходный путь
     hidden: true
   },
+  servicesRoutes,
   entityRoutes,
   chartsRoutes,
   adminRoutes,

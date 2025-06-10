@@ -9,8 +9,13 @@ import 'bootstrap-icons/font/bootstrap-icons.scss'
 // SUBSECTION 2.1: Базовые утилиты
 // ----------------------------
 import Cookies from 'js-cookie'
+
 import { createApp, watch } from 'vue'
 const app = createApp(App)
+
+// Подключаем Echo
+import echo from '@/echo';
+app.config.globalProperties.$echo = echo;
 
 // Подключение Pinia
 import { createPinia } from 'pinia'
