@@ -14,8 +14,14 @@ import { createApp, watch } from 'vue'
 const app = createApp(App)
 
 // Подключаем Echo
-import echo from '@/echo';
-app.config.globalProperties.$echo = echo;
+//import echo from '@/echo';
+// app.config.globalProperties.$echo = echo;
+
+import { getToken } from '@/utils/auth';
+
+if (getToken()) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${getToken()}`;
+}
 
 // Подключение Pinia
 import { createPinia } from 'pinia'

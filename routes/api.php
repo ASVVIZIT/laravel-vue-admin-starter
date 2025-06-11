@@ -3,6 +3,7 @@
 use App\Models\Acl;
 use Illuminate\Contracts\Routing\Registrar as RouteContract;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,10 +55,13 @@ Route::namespace('Api')->group(function() {
         })->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
 
 
-        Route::get('/messages', [\App\Http\Controllers\Api\GlobalChat\MessageController::class, 'index']);
-        Route::post('/messages', [\App\Http\Controllers\Api\GlobalChat\MessageController::class, 'store']);
+        // Тестовый эндпоинт для проверки WebSockets
+        Route::middleware('auth:sanctum')->prefix('talkstream')->group(function () {
+            Route::get('/contacts', [App\Http\Controllers\Api\TalkStream\TalkStreamController::class, 'contacts']);
+        });
 
     });
+
 });
 
 Route::prefix('table')->group(function () {

@@ -7,7 +7,7 @@ import Layout from '@/layout/Layout.vue'
 const servicesRoutes = {
     path: '/services',
     component: Layout,
-    redirect: '/services/globalchat',
+    redirect: '/services/chat',
     name: 'Services',
     alwaysShow: true,
     meta: {
@@ -18,8 +18,8 @@ const servicesRoutes = {
     },
     children: [
         {
-            path: '/services/globalchat',
-            component: () => import('@/views/Services/GlobalChat/GlobalChat.vue'),
+            path: '/services/chat',
+            component: () => import('@/components/TalkStream/ChatLayout.vue'),
             name: 'GlobalChat',
             meta: {title: 'GlobalChat', bootstrapIcon: 'chat', permissions: ['manage entity']},
         },
