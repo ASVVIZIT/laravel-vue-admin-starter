@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
 /*
@@ -12,6 +13,6 @@ use Illuminate\Support\Facades\Broadcast;
 | used to check if an authenticated user can listen to the channel.
 |
 */
-Broadcast::channel('chat.{userId}', function ($user, $userId) {
+Broadcast::channel('talkstream.{userId}', function (User $user, $userId) {
     return (int) $user->id === (int) $userId;
 });
