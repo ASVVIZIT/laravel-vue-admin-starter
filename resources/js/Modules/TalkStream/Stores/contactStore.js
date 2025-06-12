@@ -10,9 +10,13 @@ export const useContactStore = defineStore('contact', {
     }),
     actions: {
         async loadContacts() {
-            const res = await this.talkService.getContacts({}, 'contacts')
-            console.log('res loadContacts', res.data)
-            this.contacts = res.data
+            try {
+                const res = await this.talkService.getContacts({}, 'contacts')
+                console.log('res loadContacts', res.data)
+                this.contacts = res.data
+            } catch (e) {
+                console.error('[contactStore] Ошибка загрузки контактов:', e)
+            }
         },
 
         async getContact(id) {

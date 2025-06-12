@@ -153,18 +153,18 @@ export default defineConfig(({ mode }) => {
                 }
             }),
             vueDevTools(),
-/*            createHtmlPlugin({
-                minify: isProduction,
-                inject: {
-                    data: {
-                        // Добавляем предзагрузку только для локалей
-                        preloadLinks: isProduction ?
-                            ELEMENT_LOCALES.map(path =>
-                                `<link rel="modulepreload" href="/${path}" as="script" crossorigin="anonymous">`
-                            ).join('') : ''
-                    }
-                }
-            }),*/
+            /*            createHtmlPlugin({
+                            minify: isProduction,
+                            inject: {
+                                data: {
+                                    // Добавляем предзагрузку только для локалей
+                                    preloadLinks: isProduction ?
+                                        ELEMENT_LOCALES.map(path =>
+                                            `<link rel="modulepreload" href="/${path}" as="script" crossorigin="anonymous">`
+                                        ).join('') : ''
+                                }
+                            }
+                        }),*/
             /*VitePWA({
                 // Конфиг для кэширования локалей
                 registerType: 'autoUpdate',
@@ -208,7 +208,7 @@ export default defineConfig(({ mode }) => {
                     globalsPropValue: true
                 }
             }),
-             Components({
+            Components({
                 dirs: ['resources/js/components/!**!/!*.vue'],
                 extensions: ['vue','js', 'jsx'],
                 resolvers: [
@@ -353,10 +353,10 @@ export default defineConfig(({ mode }) => {
             rollupOptions: {
                 input: 'resources/js/app.js',
                 plugins: [
-/*                    visualizer({
-                        ...BUNDLE_ANALYZER,
-                        title: `Анализ сборки (${mode.toUpperCase()})`
-                    }),*/
+                    /*                    visualizer({
+                                            ...BUNDLE_ANALYZER,
+                                            title: `Анализ сборки (${mode.toUpperCase()})`
+                                        }),*/
                 ],
                 output: {
                     entryFileNames: 'assets/js/[name]-[hash].js',

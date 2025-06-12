@@ -22,6 +22,10 @@ export default class TalkService extends Resource {
         return this.get(userId, path)
     }
 
+    getCallHistory(userId) {
+        return this.get(`call/history/${userId}`)
+    }
+
     sendMessage(content, to_id) {
         return this.store({ content, to_id }, 'send')
     }
