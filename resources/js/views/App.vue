@@ -6,9 +6,11 @@
 
 <script setup>
 import { ElConfigProvider } from 'element-plus'
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import { useChatStore } from '@/Modules/TalkStream/Stores/chatStore'
 import { useI18n } from 'vue-i18n'
 
+const chat = useChatStore()
 const { locale } = useI18n()
 const configProviderKey = ref(0)
 const elementLocale = ref(null)

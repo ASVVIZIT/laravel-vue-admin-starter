@@ -267,12 +267,23 @@ export default defineConfig(({ mode }) => {
                 interval: 1000
             },
             proxy: {
-                '/api/broadcasting': {
-                    target: 'http://localhost:8000',
+                '/api/broadcasting/auth': {
+                    target: 'http://fenixlaravel.loc',
                     ws: true,
                     changeOrigin: true,
+                    rewrite: path => path.replace(/^\/api/, '')
                 },
-            },
+                '/api': {
+                    target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false
+                },
+                '/sanctum': {
+                    target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false
+                }
+            }
         },
         build: {
             sourcemap: 'inline',
@@ -313,13 +324,22 @@ export default defineConfig(({ mode }) => {
             host: 'fenixlaravel.loc',
             port: 5173,
             proxy: {
-                '/api': 'http://fenixlaravel.loc',
-                '/sanctum': 'http://fenixlaravel.loc',
-                '/api/broadcasting': {
+                '/api/broadcasting/auth': {
                     target: 'http://fenixlaravel.loc',
                     ws: true,
                     changeOrigin: true,
+                    rewrite: path => path.replace(/^\/api/, '')
                 },
+                '/api': {
+                    target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false
+                },
+                '/sanctum': {
+                    target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false
+                }
             }
         },
         build: {
@@ -390,6 +410,8 @@ function createAliases() {
         '@components': `${root}/components`,
         '@store': `${root}/store`,
         '@views': `${root}/views`,
+        '@plugins': `${root}/plugins`,
+        '@modules': `${root}/modules`,
         'element-plus': path.resolve(__dirname, 'node_modules/element-plus'),
         'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js'
     }

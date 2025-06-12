@@ -1,13 +1,10 @@
-//resources/js/views/Services/GlobalChat/GlobalChat.vue
-
-
-/** When your routing table is too long, you can split it into small modules**/
 import Layout from '@/layout/Layout.vue'
+import chatRoutes from '@/modules/TalkStream/Routes.js'
 
 const servicesRoutes = {
     path: '/services',
     component: Layout,
-    redirect: '/services/chat',
+    redirect: '/services/talkstream',
     name: 'Services',
     alwaysShow: true,
     meta: {
@@ -16,25 +13,7 @@ const servicesRoutes = {
         bootstrapIcon: 'person',
         permissions: ['view menu entity'],
     },
-    children: [
-        {
-            path: '/services/chat',
-            component: () => import('@/components/TalkStream/ChatLayout.vue'),
-            name: 'GlobalChat',
-            meta: {title: 'GlobalChat', bootstrapIcon: 'chat', permissions: ['manage entity']},
-        },
-/*        {
-            path: '/accessories',
-            redirect: '/accessories/list',
-            name: 'Accessories',
-            meta: {
-                title: 'Accessories',
-                bootstrapIcon: 'tools',
-                permissions: ['manage entity'],
-                requiresAuth: true
-            },
-        },*/
-    ],
+    children: chatRoutes
 }
 
 export default servicesRoutes

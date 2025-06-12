@@ -37,6 +37,9 @@
       "@components/*": ["./resources/js/components/*"],
       "@store/*": ["./resources/js/store/*"],
       "@views/*": ["./resources/js/views/*"],
+      "@plugins/*": ["./resources/js/plugins/*"],
+      "@modules/*": ["./resources/js/modules/*"],
+      "@themes/*": ["./resources/js/styles/themes/*"],
       "element-plus/*": ["./node_modules/element-plus/*"],
       "moment/*": ["./node_modules/moment/*"]
     },

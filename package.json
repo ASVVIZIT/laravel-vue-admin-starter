@@ -341,6 +341,7 @@
     "moment-timezone": "^0.5.48",
     "path-browserify": "^1.0.1",
     "pusher-js": "^8.4.0",
+    "simple-peer": "^9.11.1",
     "vite-plugin-pwa": "^1.0.0",
     "workbox-window": "^7.3.0"
   },

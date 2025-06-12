@@ -13,6 +13,28 @@ use Illuminate\Support\Facades\Broadcast;
 | used to check if an authenticated user can listen to the channel.
 |
 */
-Broadcast::channel('talkstream.{userId}', function (User $user, $userId) {
-    return (int) $user->id === (int) $userId;
+
+// Чат
+Broadcast::channel('chat.{userId}', function ($user, $userId) {
+    return (int)$user->id === (int)$userId;
+});
+
+// Звонки
+Broadcast::channel('call.{userId}', function ($user, $userId) {
+    return (int)$user->id === (int)$userId;
+});
+
+// Друзья
+Broadcast::channel('friends.{userId}', function ($user, $userId) {
+    return (int)$user->id === (int)$userId;
+});
+
+// Присутствие
+Broadcast::channel('presence-chat', function ($user) {
+    return ['id' => $user->id, 'name' => $user->name];
+});
+
+// Для WebRTC сигналинга
+Broadcast::channel('signal.{userId}', function ($user, $userId) {
+    return (int)$user->id === (int)$userId;
 });

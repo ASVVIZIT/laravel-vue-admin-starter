@@ -1,3 +1,5 @@
+// resources/js/App.js
+
 // ==============================================
 // SECTION 1: Импорт глобальных стилей и иконок
 // ==============================================
@@ -9,24 +11,12 @@ import 'bootstrap-icons/font/bootstrap-icons.scss'
 // SUBSECTION 2.1: Базовые утилиты
 // ----------------------------
 import Cookies from 'js-cookie'
-
 import { createApp, watch } from 'vue'
-const app = createApp(App)
-
-// Подключаем Echo
-//import echo from '@/echo';
-// app.config.globalProperties.$echo = echo;
-
-import { getToken } from '@/utils/auth';
-
-if (getToken()) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${getToken()}`;
-}
+import axios from 'axios' // Добавляем для заголовков
 
 // Подключение Pinia
 import { createPinia } from 'pinia'
 const pinia = createPinia()
-app.use(pinia)
 
 // ----------------------------
 // SUBSECTION 2.2: UI-библиотека ElementPlus
@@ -39,9 +29,6 @@ import { dayjs } from 'element-plus'
 // SUBSECTION 2.3: Работа с датами/временем
 // ----------------------------
 import moment from 'moment-timezone'
-/*import 'dayjs/locale/ru'
-import 'dayjs/locale/en'
-import 'dayjs/locale/zh'*/
 
 // ==============================================
 // SECTION 3: Импорт компонентов приложения
@@ -69,42 +56,56 @@ moment.locale('ru-ru')
 moment.tz(timeZone)
 
 // Глобальные настройки
-app.config.devtools = true;
+const app = createApp(App)
+app.config.devtools = true
 app.config.globalProperties.moment = moment
 
 // Установка начальной локали dayjs
-const initialLanguage = getLanguage();
-dayjs.locale(initialLanguage);
+const initialLanguage = getLanguage()
+dayjs.locale(initialLanguage)
 
 // ==============================================
-// SECTION 8: Подключение плагинов
+// SECTION 7: Подключение плагинов
 // ==============================================
-
-// Подключаем ElementPlus без передачи локали
+app.use(pinia)
 app.use(ElementPlus, {
-  size: 'small',
-  //i18n: (key, value) => i18n.t(key, value), // Интеграция с системой i18n
+    size: 'small',
 })
+app.use(i18n)
+app.use(router)
 
 // ==============================================
-// SECTION 9: Глобальная регистрация компонентов
+// SECTION 8: Глобальная регистрация компонентов
 // ==============================================
 app.component('SvgIcon', SvgIcon)
 app.component('Icon', Icon)
 
 // ==============================================
-// SECTION 10: Запуск приложения
+// SECTION 9: Инициализация Laravel Echo (WebSocket)
 // ==============================================
-app
-    .use(i18n)
-    .use(router)
+import { createEcho } from '@/Modules/TalkStream/echoTalkStream' // Импортируем функцию из echo.js
 
+// Ждём монтирования приложения перед инициализацией Echo
+app.mount('#app')
+
+// Проверяем наличие токена и инициализируем Echo
+import {getToken, isLogged} from '@/utils/auth'
+const token = getToken()
+if (isLogged) {
+    console.log('[App.js] Есть вход в систему. Echo будет запущен.')
+    if (token) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        createEcho() // Теперь создаём Echo после монтирования Vue
+    } else {
+        console.warn('[App.js] Токен отсутствует. Echo не будет запущен.')
+    }
+} else {
+    console.warn('[App.js] Отсутствует вход в систему. Echo не будет запущен.')
+}
 // Следим за изменением языка только для dayjs
 watch(
     () => i18n.global.locale.value,
     (newLang) => {
-      dayjs.locale(newLang);
+        dayjs.locale(newLang)
     }
-);
-
-app.mount('#app')
+)
