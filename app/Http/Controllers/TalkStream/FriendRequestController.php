@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class FriendRequestController extends Controller
 {
+    // Отправка запроса в друзья
     public function send(Request $request)
     {
         $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . Auth::id()]);
@@ -28,6 +29,7 @@ class FriendRequestController extends Controller
         return response()->json(['message' => 'Запрос отправлен', 'data' => $req], 201);
     }
 
+    // Принятие запроса
     public function accept(Request $request, $id)
     {
         $req = FriendRequest::findOrFail($id);
@@ -40,17 +42,22 @@ class FriendRequestController extends Controller
         return response()->json(['message' => 'Запрос принят', 'data' => $req]);
     }
 
+    // Входящие запросы
     public function incoming()
     {
         return response()->json(FriendRequest::where('friend_id', Auth::id())
-                ->where('accepted', false)
-            .where('declined', false)
-            .with('user')
-            .get());
+            ->where('accepted', false)
+            ->where('declined', false)
+            ->with('user')
+            ->get());
     }
 
+    // Список друзей
     public function friends()
     {
-        return response()->json(FriendRequest::where('user_id', Auth::id())->where('accepted', true)->with('friend')->get());
+        return response()->json(['data' => FriendRequest::where('user_id', Auth::id())
+            ->where('accepted', true)
+            ->with('friend')
+            ->get()]);
     }
 }

@@ -3,12 +3,13 @@
 namespace App\Events\TalkStream;
 
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
 
 class FriendRequestAccepted implements ShouldBroadcast
 {
-    use Dispatchable;
+    use Dispatchable, InteractsWithSockets;
 
     public function __construct(public array $request) {}
 

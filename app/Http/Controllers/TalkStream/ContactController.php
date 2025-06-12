@@ -11,9 +11,20 @@ class ContactController extends Controller
     {
         $user = Auth::user();
 
-        // Получаем всех пользователей кроме текущего, то есть самого себя
+        if (!$user) {
+            return response()->json(['error' => 'Пользователь не авторизован'], 401);
+        }
+
         $contacts = User::where('id', '!=', $user->id)->get();
 
-        return response()->json($contacts);
+        return response()->json(['data' => $contacts]);
     }
+
+    // Получить одного пользователя
+    public function show($id)
+    {
+        $contact = User::findOrFail($id);
+        return response()->json(['data' => $contact]);
+    }
+
 }

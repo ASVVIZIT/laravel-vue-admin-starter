@@ -78,6 +78,9 @@ Route::namespace('Api')->group(function() {
             // Контакты
             Route::get('/contacts', [ContactController::class, 'index']);
 
+            // Получить конкретного пользователя
+            Route::get('/contacts/{id}', [ContactController::class, 'show']);
+
             // Чат
             Route::post('/send', [ChatController::class, 'sendMessage']);
             Route::get('/history/{userId}', [ChatController::class, 'getHistory']);

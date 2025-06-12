@@ -1,15 +1,11 @@
 <template>
   <div class="chat">
-    <h2>Чат с {{ selectedContact?.name }}</h2>
+    <h3>Чат с {{ selectedContact?.name }}</h3>
 
-    <div class="messages">
-      <div v-for="(msg, index) in chat.messages" :key="index" class="message">
-        {{ msg.content }}
-      </div>
-    </div>
+    <MessageList :messages="messages" />
 
     <form @submit.prevent="send" class="chat-form">
-      <input v-model="message" placeholder="Напишите сообщение..." />
+      <input v-model="newMessage" placeholder="Напишите сообщение..." />
       <button type="submit">Отправить</button>
     </form>
   </div>
@@ -19,52 +15,67 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import MessageList from '@/modules/TalkStream/Components/MessageList.vue'
 
-const route = useRoute()
 const router = useRouter()
-const chat = useChatStore()
-const message = ref('')
+const route = useRoute()
+const chatStore = useChatStore()
+const contactStore = useContactStore()
+
+const newMessage = ref('')
+const messages = ref([])
 const selectedContact = ref(null)
 
-const contactId = route.query.to
+const contactId = Number(route.query.to)
 
-if (contactId) {
-  selectedContact.value = contactId
-  chat.loadHistory(contactId)
-}
+onMounted(async () => {
 
-onMounted(() => {
-  if (!window.Echo) return
+  if (isNaN(contactId)) {
+    console.warn('[Chat] to_id не указан или неверный')
+    await router.push({name: 'contacts.list'})
+  }
 
-  window.Echo.private(`chat.${contactId}`)
-      .listen('.NewMessage', (e) => {
-        chat.addMessage(e.message)
-      })
+  if (!contactId) return
+
+  if (!contactStore.contacts.length) await contactStore.loadContacts()
+
+  // Получаем собеседника
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
+
+  if (!selectedContact.value && !isNaN(contactId)) {
+    try {
+      selectedContact.value = await contactStore.getContact(contactId)
+    } catch (e) {
+      console.error('[Chat] Не удалось загрузить контакт:', e)
+    }
+  }
+
+  // Загружаем историю
+  messages.value = await chatStore.loadHistory(contactId)
+
+  // Подписка на новые сообщения
+  if (window.echoTalkStream && contactId) {
+    window.echoTalkStream.private(`chat.${contactId}`)
+        .listen('.NewMessage', (e) => {
+          messages.value.push(e.message)
+        })
+  }
 })
 
 function send() {
-  if (!message.value.trim()) return
-  chat.sendMessage(message.value, contactId)
-  message.value = ''
+  if (!newMessage.value.trim()) return
+
+  chatStore.sendMessage(newMessage.value, contactId)
+  newMessage.value = ''
 }
 </script>
 
 <style scoped>
 .chat {
   padding: 1rem;
-}
-
-.messages {
-  max-height: 500px;
-  overflow-y: auto;
-  border: 1px solid #eee;
-  padding: 10px;
-  height: 400px;
-  margin-bottom: 10px;
-}
-
-.message {
-  margin-bottom: 10px;
+  max-width: 500px;
+  margin: auto;
 }
 
 .chat-form input {

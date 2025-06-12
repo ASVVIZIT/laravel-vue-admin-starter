@@ -1,12 +1,11 @@
 import { defineStore } from 'pinia'
-import TalkService from '../Services/talkService'
+import TalkService from '@/modules/TalkStream/Services/talkService'
 
 export const useCallStore = defineStore('call', {
     state: () => ({
         activeCall: null,
         localStream: null,
         remoteStream: null,
-        isCalling: false,
         talkService: new TalkService()
     }),
     actions: {
@@ -14,13 +13,10 @@ export const useCallStore = defineStore('call', {
             await this.talkService.startCall(to_id, type)
             this.activeCall = { to_id, type, status: 'calling' }
         },
-
         async acceptCall(caller) {
             this.activeCall = { ...caller, status: 'active' }
-            this.isCalling = true
-            await this.setupLocalStream()
+            this.localStream = await this.setupLocalStream()
         },
-
         endCall() {
             if (this.localStream) {
                 this.localStream.getTracks().forEach(track => track.stop())
@@ -28,13 +24,11 @@ export const useCallStore = defineStore('call', {
 
             this.talkService.endCall()
             this.activeCall = null
-            this.isCalling = false
             this.remoteStream = null
         },
-
-        async setupLocalStream() {
+        async setupLocalStream(options = { video: true, audio: true }) {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                const stream = await navigator.mediaDevices.getUserMedia(options)
                 this.localStream = stream
                 return stream
             } catch (err) {

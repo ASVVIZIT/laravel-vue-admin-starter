@@ -1,6 +1,6 @@
 <template>
   <div class="contacts-container">
-    <!-- Динамическое меню -->
+    <!-- Меню режимов -->
     <div class="mode-switcher">
       <button
           v-for="mode in ['chat', 'call']"
@@ -14,16 +14,13 @@
 
     <!-- Список контактов -->
     <ul class="contact-list">
-      <li
+      <ContactItem
           v-for="contact in contacts"
           :key="contact.id"
-          class="contact-item"
-          :class="{ online: contactStore.isOnline(contact.id) }"
-          @click="selectContact(contact)"
-      >
-        {{ contact.name }}
-        <span class="status">{{ contactStore.isOnline(contact.id) ? '🟢 Онлайн' : '⚪ Офлайн' }}</span>
-      </li>
+          :contact="contact"
+          :is-online="contactStore.isOnline(contact.id)"
+          @select="selectContact"
+      />
     </ul>
   </div>
 </template>
@@ -32,6 +29,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -41,12 +39,14 @@ const contacts = ref([])
 const currentMode = ref(route.params.mode || 'chat')
 
 onMounted(async () => {
-  await contactStore.loadContacts()
-  contacts.value = contactStore.contacts
+  if (!contactStore.contacts.length) {
+    await contactStore.loadContacts()
+    contacts.value = contactStore.contacts
+  }
 
   // Подписка на онлайн-статус
-  if (window.Echo) {
-    window.Echo.join('presence-chat')
+  if (window.echoTalkStream) {
+    window.echoTalkStream.join('presence-chat')
         .here((users) => users.forEach(user => contactStore.setOnline(user.id)))
         .joining((user) => contactStore.setOnline(user.id))
         .leaving((user) => contactStore.setOffline(user.id))
@@ -80,7 +80,6 @@ function selectContact(contact) {
 
 .mode-button {
   padding: 8px 16px;
-  margin-right: 8px;
   background-color: #f0f0f0;
   border: 1px solid #ccc;
   border-radius: 4px;
@@ -96,27 +95,5 @@ function selectContact(contact) {
 .contact-list {
   list-style: none;
   padding: 0;
-}
-
-.contact-item {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.contact-item:hover {
-  background-color: #f0f0f0;
-}
-
-.contact-item.online {
-  color: green;
-}
-
-.status {
-  font-size: 0.8em;
-  color: gray;
 }
 </style>

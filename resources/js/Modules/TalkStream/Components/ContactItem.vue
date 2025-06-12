@@ -1,8 +1,10 @@
 <template>
-  <div class="contact-item" :class="{ online: isOnline }" @click="select">
+  <li class="contact-item" :class="{ online: isOnline }" @click="select">
     {{ contact.name }}
-    <span class="status">{{ isOnline ? '🟢 Онлайн' : '⚪ Офлайн' }}</span>
-  </div>
+    <button v-if="isFriend">Друг</button>
+    <button v-else-if="hasIncoming">Принять</button>
+    <button v-else>Добавить</button>
+  </li>
 </template>
 
 <script setup>
@@ -10,7 +12,9 @@ import { defineProps, defineEmits } from 'vue'
 
 const props = defineProps({
   contact: Object,
-  isOnline: Boolean
+  isOnline: Boolean,
+  isFriend: Boolean,
+  hasIncoming: Boolean
 })
 
 const emit = defineEmits(['select'])

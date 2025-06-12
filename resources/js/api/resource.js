@@ -9,18 +9,20 @@ class Resource {
   constructor(uri) {
     this.uri = uri;
   }
-  list(query) {
+  list(query, path = '') {
+    const url = path ? `/${this.uri}/${path}/` : `/${this.uri}`
     return request({
-      url: '/' + this.uri,
+      url: url,
       method: 'get',
       params: query,
     });
   }
-  get(id) {
+  get(id, path = '') {
+    const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
     return request({
-      url: '/' + this.uri + '/' + id,
-      method: 'get',
-    });
+      url,
+      method: 'get'
+    })
   }
   store(resource) {
     return request({

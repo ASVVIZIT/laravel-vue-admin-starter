@@ -83,19 +83,23 @@ app.component('Icon', Icon)
 // ==============================================
 // SECTION 9: Инициализация Laravel Echo (WebSocket)
 // ==============================================
-import { createEcho } from '@/Modules/TalkStream/echoTalkStream' // Импортируем функцию из echo.js
+// Проверяем наличие токена и инициализируем Echo
+import { getToken, isLogged } from '@/utils/auth'
+import { createEcho } from '@/modules/TalkStream/echoTalkStream' // Импортируем функцию из echo.js
 
 // Ждём монтирования приложения перед инициализацией Echo
 app.mount('#app')
 
-// Проверяем наличие токена и инициализируем Echo
-import {getToken, isLogged} from '@/utils/auth'
-const token = getToken()
+
 if (isLogged) {
     console.log('[App.js] Есть вход в систему. Echo будет запущен.')
-    if (token) {
+    const token = getToken()
+    //const userData = await store.fetchInfo()
+    if (!window.Echo) {
+
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         createEcho() // Теперь создаём Echo после монтирования Vue
+        console.log('createEcho: ', window.Echo)
     } else {
         console.warn('[App.js] Токен отсутствует. Echo не будет запущен.')
     }

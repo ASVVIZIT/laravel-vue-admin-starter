@@ -6,7 +6,7 @@ import { getToken } from '@utils/auth.js'
 
 window.Pusher = Pusher
 
-let echoInstance = null
+let echo = null
 
 export function createEcho() {
     const token = getToken()
@@ -18,15 +18,15 @@ export function createEcho() {
     // Установим глобальный заголовок для Axios
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
-    if (echoInstance) {
+    if (echo) {
         console.log('[Echo] Используем существующий экземпляр')
-        return echoInstance
+        return echo
     }
 
     console.log('[Echo] Создаём новый экземпляр с токеном:', token ? 'да' : 'нет')
-    if (window.echoTalkStream) return window.echoTalkStream
+    if (window.Echo) return window.Echo
     try {
-        echoInstance = new Echo({
+        echo = new Echo({
             broadcaster: 'reverb',
             key: import.meta.env.VITE_REVERB_APP_KEY,
             wsHost: import.meta.env.VITE_REVERB_HOST,
@@ -48,9 +48,9 @@ export function createEcho() {
             }
         })
 
-        window.echoTalkStream = echoInstance
-
-        return echoInstance
+        window.echoTalkStream = echo
+        window.Echo = echo
+        return echo
     } catch (e) {
         console.error('[Echo] Ошибка при инициализации:', e)
         return null

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class FriendRequest extends Model
 {
+    protected $table = 'friend_requests';
+
     protected $fillable = ['user_id', 'friend_id', 'accepted', 'declined'];
 
     public static function areFriends(int $userId, int $friendId): bool

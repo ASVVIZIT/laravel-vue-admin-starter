@@ -35,6 +35,30 @@ export const userStore = defineStore('user', {
           })
       })
     },
+
+    async fetchInfo() {
+      try {
+        const res = await api.getInfo()
+        const data = res.data
+
+        this.$patch({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          roles: data.roles,
+          permissions: data.permissions
+        })
+
+        return data
+      } catch (e) {
+        console.error('[userStore] Ошибка загрузки информации о пользователе:', e)
+        this.reset()
+      }
+    },
+    reset() {
+      this.$reset()
+    },
+
     // get user info
     getInfo() {
       return new Promise((resolve, reject) => {

@@ -267,19 +267,19 @@ export default defineConfig(({ mode }) => {
                 interval: 1000
             },
             proxy: {
-                '/api/broadcasting/auth': {
-                    target: 'http://fenixlaravel.loc',
-                    ws: true,
-                    changeOrigin: true,
-                    rewrite: path => path.replace(/^\/api/, '')
-                },
                 '/api': {
                     target: 'http://fenixlaravel.loc',
                     changeOrigin: true,
                     secure: false
                 },
-                '/sanctum': {
+                '/api/sanctum/csrf-cookie': {
                     target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false
+                },
+                '/api/broadcasting/auth': {
+                    target: 'http://fenixlaravel.loc',
+                    ws: true,
                     changeOrigin: true,
                     secure: false
                 }
@@ -324,19 +324,19 @@ export default defineConfig(({ mode }) => {
             host: 'fenixlaravel.loc',
             port: 5173,
             proxy: {
-                '/api/broadcasting/auth': {
-                    target: 'http://fenixlaravel.loc',
-                    ws: true,
-                    changeOrigin: true,
-                    rewrite: path => path.replace(/^\/api/, '')
-                },
                 '/api': {
                     target: 'http://fenixlaravel.loc',
                     changeOrigin: true,
                     secure: false
                 },
-                '/sanctum': {
+                '/api/sanctum/csrf-cookie': {
                     target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false
+                },
+                '/api/broadcasting/auth': {
+                    target: 'http://fenixlaravel.loc',
+                    ws: true,
                     changeOrigin: true,
                     secure: false
                 }

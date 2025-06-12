@@ -2,13 +2,14 @@
 
 namespace App\Events\TalkStream;
 
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Broadcasting\Channel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\InteractsWithSockets;
 
 class NewMessage implements ShouldBroadcast
 {
-    use Dispatchable;
+    use Dispatchable, InteractsWithSockets;
 
     public function __construct(public array $message) {}
 
