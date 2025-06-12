@@ -1,10 +1,23 @@
 <?php
 
 use App\Models\Acl;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Http\Request;
 use Illuminate\Contracts\Routing\Registrar as RouteContract;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Http\Request;
 
+use App\Http\Controllers\Api\UserTabController;
+
+use App\Http\Controllers\Api\Entity\BrandController;
+use App\Http\Controllers\Api\Entity\DeviceTypeController;
+use App\Http\Controllers\Api\Entity\MeasurementCategoryController;
+use App\Http\Controllers\Api\Entity\MeasurementUnitController;
+use App\Http\Controllers\Api\Entity\AccessoryController;
+
+use App\Http\Controllers\TalkStream\ContactController;
+use App\Http\Controllers\TalkStream\ChatController;
+use App\Http\Controllers\TalkStream\CallController;
+use App\Http\Controllers\TalkStream\FriendRequestController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -23,10 +36,10 @@ Route::namespace('Api')->group(function() {
 
         Route::get('/user', 'AuthController@user');
 
-        Route::get('/user-tabs', [\App\Http\Controllers\Api\UserTabController::class, 'index']);
-        Route::post('/user-tabs', [\App\Http\Controllers\Api\UserTabController::class, 'store']);
-        Route::put('/user-tabs/{userTab}', [\App\Http\Controllers\Api\UserTabController::class, 'update']);
-        Route::delete('/user-tabs/{userTab}', [\App\Http\Controllers\Api\UserTabController::class, 'destroy']);
+        Route::get('/user-tabs', [UserTabController::class, 'index']);
+        Route::post('/user-tabs', [UserTabController::class, 'store']);
+        Route::put('/user-tabs/{userTab}', [UserTabController::class, 'update']);
+        Route::delete('/user-tabs/{userTab}', [UserTabController::class, 'destroy']);
 
 
         // Api resource routes
@@ -45,23 +58,46 @@ Route::namespace('Api')->group(function() {
         Route::get('requests', 'RequestController@index');
 
         Route::prefix('entities')->group(function () {
-            Route::apiResource('ep_brands', \App\Http\Controllers\Api\Entity\BrandController::class);
-            Route::apiResource('ep_device_types', \App\Http\Controllers\Api\Entity\DeviceTypeController::class);
+            Route::apiResource('ep_brands', BrandController::class);
+            Route::apiResource('ep_device_types', DeviceTypeController::class);
 
-            Route::get('ep_measurement_categories/all', [\App\Http\Controllers\Api\Entity\MeasurementCategoryController::class, 'all'])->name('ep_measurement_categories.all');
-            Route::apiResource('ep_measurement_categories', \App\Http\Controllers\Api\Entity\MeasurementCategoryController::class)->only(['index']);
-            Route::apiResource('ep_measurement_units', \App\Http\Controllers\Api\Entity\MeasurementUnitController::class);
-            Route::apiResource('ep_accessories', \App\Http\Controllers\Api\Entity\AccessoryController::class);
+            Route::get('ep_measurement_categories/all', [MeasurementCategoryController::class, 'all'])->name('ep_measurement_categories.all');
+            Route::apiResource('ep_measurement_categories', MeasurementCategoryController::class)->only(['index']);
+            Route::apiResource('ep_measurement_units', MeasurementUnitController::class);
+            Route::apiResource('ep_accessories', AccessoryController::class);
         })->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE);
-
-
-        // Тестовый эндпоинт для проверки WebSockets
-        Route::middleware('auth:sanctum')->prefix('talkstream')->group(function () {
-            Route::get('/contacts', [App\Http\Controllers\Api\TalkStream\TalkStreamController::class, 'contacts']);
-        });
 
     });
 
+});
+
+Route::namespace('Api')->group(function() {
+    Route::middleware('auth:sanctum')->group(function () {
+        // Все токеновые роуты модуля TalkStream
+        Route::prefix('talkstream')->group(function () {
+            // Контакты
+            Route::get('/contacts', [ContactController::class, 'index']);
+
+            // Чат
+            Route::post('/send', [ChatController::class, 'sendMessage']);
+            Route::get('/history/{userId}', [ChatController::class, 'getHistory']);
+
+            // Звонки
+            Route::post('/start', [CallController::class, 'startCall']);
+            Route::post('/end', [CallController::class, 'endCall']);
+
+            // Друзья
+            Route::post('/friends/send', [FriendRequestController::class, 'send']);
+            Route::post('/friends/accept/{id}', [FriendRequestController::class, 'accept']);
+            Route::get('/friends/incoming', [FriendRequestController::class, 'incoming']);
+            Route::get('/friends', [FriendRequestController::class, 'friends']);
+        });
+
+        // Роут для Laravel Echo / WebSockets
+        Route::post('/broadcasting/auth', function (Request $request) {
+            return Broadcast::auth($request);
+        })->name('broadcast.auth');
+    });
 });
 
 Route::prefix('table')->group(function () {

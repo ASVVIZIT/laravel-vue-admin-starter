@@ -5,7 +5,6 @@ import {isLogged, setToken, removeToken} from '@/utils/auth'
 import router, {resetRouter} from '../router'
 import {defineStore} from "pinia"
 import {permissionStore} from "@/store/permission"
-import { talkStreamStore } from '@/store/talkStreamStore/talkStreamStore'
 
 export const userStore = defineStore('user', {
   state: () => {
@@ -27,10 +26,6 @@ export const userStore = defineStore('user', {
         login({email: email.trim(), password: password})
           .then(response => {
             setToken(response.data.token)
-
-            // Инициализируем WebSocket после входа
-            const talkStream = talkStreamStore();
-            talkStream.init();
 
             resolve()
           })
@@ -67,12 +62,6 @@ export const userStore = defineStore('user', {
               state.avatar = avatar
             })
 
-            // После получения информации о пользователе
-            const talkStream = talkStreamStore();
-            if (talkStream.isConnected) {
-              talkStream.subscribeToUserChannel(id);
-            }
-
             resolve(data)
           })
           .catch(error => {
@@ -86,9 +75,6 @@ export const userStore = defineStore('user', {
       return new Promise((resolve, reject) => {
         logout()
           .then(() => {
-            // Отключаем WebSocket при выходе
-            const talkStream = talkStreamStore();
-            talkStream.disconnect();
 
             this.$patch((state) => {
               state.token = ''

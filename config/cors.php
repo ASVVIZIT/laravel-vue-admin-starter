@@ -17,7 +17,6 @@ return [
 
     'paths' => [
         'api/*',
-        'reverb/*',
         'broadcasting/auth',
         'sanctum/csrf-cookie',
         'login',
@@ -28,7 +27,7 @@ return [
     'allowed_origins' => explode(',', env('ALLOWED_ORIGINS', '*')),
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
-    'exposed_headers' => [],
+    'exposed_headers' => ['X-Socket-ID'],
     'max_age' => 0,
     'supports_credentials' => true,
 
