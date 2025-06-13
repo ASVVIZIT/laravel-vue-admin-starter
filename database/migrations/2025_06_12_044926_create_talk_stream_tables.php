@@ -47,6 +47,7 @@ class CreateTalkStreamTables extends Migration
             $table->foreign('friend_id')->references('id')->on('users')->onDelete('cascade');
 
             $table->unique(['user_id', 'friend_id']);
+            $table->timestamps();
         });
     }
 

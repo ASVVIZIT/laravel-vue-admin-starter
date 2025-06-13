@@ -12,7 +12,7 @@
 
     <!-- Информация о контакте -->
     <div class="contact-info">
-      {{ contact.name }}
+      {{ contact?.name || 'Без имени' }}
     </div>
   </li>
 </template>

@@ -9,6 +9,8 @@ class FriendRequest extends Model
 {
     protected $table = 'friend_requests';
 
+    public $timestamps = false;
+
     protected $fillable = ['user_id', 'friend_id', 'accepted', 'declined'];
 
     // Кто отправил запрос (пользователь)

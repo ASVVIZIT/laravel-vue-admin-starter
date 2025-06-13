@@ -88,12 +88,19 @@ class FriendRequestController extends Controller
     // для получения исходящих запросов
     public function sent()
     {
-        $requests = FriendRequestModel::where('user_id', Auth::id())
-            ->where(function ($query) {
-                $query->whereNull('accepted')->whereNull('declined');
-            })
-            ->with('friend:id,name,email')
-            ->get();
+        $userId = Auth::id();
+
+        $requests = FriendRequestModel::where('user_id', $userId)
+            ->whereNull('accepted')
+            ->whereNull('declined')
+            ->with(['friend' => function ($q) {
+                $q->select('id', 'name', 'email');
+            }])
+            ->get()
+            ->filter(function ($request) {
+                // Проверяем, что friend загружен
+                return !is_null($request->friend);
+            });
 
         return response()->json(['data' => $requests]);
     }
