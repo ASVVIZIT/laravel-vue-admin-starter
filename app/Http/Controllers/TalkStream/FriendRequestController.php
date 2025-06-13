@@ -8,17 +8,16 @@ use App\Http\Controllers\Controller;
 use App\Models\TalkStream\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class FriendRequestController extends Controller
 {
     // Отправка запроса в друзья
     public function send(Request $request)
     {
-        $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . Auth::id()]);
-
+        $userId = auth()->id();
+        $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . $userId]);
         $existing = FriendRequest::where([
-            ['user_id', Auth::id()],
+            ['user_id', $userId],
             ['friend_id', $data['friend_id']]
         ])->first();
 
@@ -27,12 +26,12 @@ class FriendRequestController extends Controller
         }
 
         $req = FriendRequest::create([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'friend_id' => $data['friend_id']
         ]);
 
         event(new FriendRequestSent([
-            'user_id' => Auth::id(),
+            'user_id' => $userId,
             'friend_id' => $data['friend_id']
         ]));
 
@@ -43,8 +42,9 @@ class FriendRequestController extends Controller
     public function accept(Request $request, $id)
     {
         $req = FriendRequest::findOrFail($id);
+        $userId = auth()->id();
 
-        if ($req->friend_id !== Auth::id()) {
+        if ($req->friend_id !== $userId) {
             return response()->json(['message' => 'Нельзя принять чужой запрос'], 403);
         }
 
@@ -115,10 +115,11 @@ class FriendRequestController extends Controller
         return response()->json(['data' => $requests]);
     }
 
-    public function isFriend(int $userId)
+    public function isFriend(int $friendId)
     {
+        $userId = auth()->id();
         return response()->json([
-            'isFriend' => self::areFriends(Auth::id(), $userId)
+            'isFriend' => self::areFriends($userId, $friendId)
         ]);
     }
 }

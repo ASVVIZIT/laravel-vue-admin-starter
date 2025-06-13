@@ -23,8 +23,12 @@
             :key="contact.id"
             :contact="contact"
             :is-online="contactStore.isOnline(contact.id)"
-            :is-friend="isFriend(contact.id)"
+            :is-friend="useFriendStore.isFriend(contact.id)"
+            :has-incoming="useFriendStore.hasIncoming(contact.id)"
+            :has-sent="useFriendStore.hasSent(contact.id)"
             @select="selectContact"
+            @add-friend="sendRequest"
+            @accept-request="acceptRequest"
         />
       </ul>
     </div>
@@ -38,7 +42,6 @@ import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
 import { userStore } from '@/store/user'
-
 
 const props = defineProps(['contacts'])
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])

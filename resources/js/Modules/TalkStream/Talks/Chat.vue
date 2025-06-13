@@ -1,10 +1,22 @@
 <template>
-  <div class="chat">
-    <h3>Чат с {{ selectedContact?.name }}</h3>
+  <div class="chat-container">
+    <!-- Заголовок -->
+    <div class="chat-header">
+      {{ selectedContact.name || 'Выберите контакт' }}
+    </div>
 
-    <MessageList :messages="messages" />
+    <!-- История -->
+    <div class="chat-messages" ref="messagesContainer">
+      <MessageItem
+          v-for="message in messages"
+          :key="message.id"
+          :message="message"
+          :contact="contactStore"
+      />
+    </div>
 
-    <form @submit.prevent="send" class="chat-form">
+    <!-- Форма отправки -->
+    <form class="chat-form" @submit.prevent="send">
       <input v-model="newMessage" placeholder="Напишите сообщение..." />
       <button type="submit">Отправить</button>
     </form>
@@ -13,78 +25,110 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-import MessageList from '@/modules/TalkStream/Components/MessageList.vue'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 
-const router = useRouter()
 const route = useRoute()
-const chatStore = useChatStore()
 const contactStore = useContactStore()
-
-const newMessage = ref('')
-const messages = ref([])
-const selectedContact = ref(null)
+const useFriendStore = friendStore()
 
 const contactId = Number(route.query.to)
+const messages = ref([])
+const newMessage = ref('')
+const messagesContainer = ref(null)
 
 onMounted(async () => {
-  if (!contactId || isNaN(contactId)) {
-    await router.push('/talkstream/contacts')
-    return
-  }
-
   if (!contactId) return
 
-  if (!contactStore.contacts.length) await contactStore.loadContacts()
-
-  // Получаем собеседника
-  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
-
-  if (!selectedContact.value && !isNaN(contactId)) {
-    try {
-      selectedContact.value = await contactStore.getContact(contactId)
-    } catch (e) {
-      console.error('[Chat] Не удалось загрузить контакт:', e)
-    }
-  }
-
-  // Загружаем историю
-  messages.value = await chatStore.loadHistory(contactId)
+  // Загрузка истории
+  messages.value = await contactStore.getHistory(contactId)
 
   // Подписка на новые сообщения
-  if (window.echoTalkStream && contactId) {
-    window.echoTalkStream.private(`chat.${contactId}`)
+  if (window.Echo && contactId) {
+    window.Echo.private(`chat.${contactId}`)
         .listen('.NewMessage', (e) => {
           messages.value.push(e.message)
+          scrollToBottom()
         })
+  }
+
+  // Получаем текущий контакт
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
+  if (!selectedContact.value) {
+    selectedContact.value = await contactStore.getContact(contactId)
   }
 })
 
-async function send() {
+function send() {
   if (!newMessage.value.trim()) return
-
-  const message = await chatStore.sendMessage(newMessage.value, contactId)
-  messages.value.push(message)
+  contactStore.sendMessage(newMessage.value, contactId)
   newMessage.value = ''
+  scrollToBottom()
+}
+
+function scrollToBottom() {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
 }
 </script>
 
-<style scoped>
-.chat {
+<style scoped lang="scss">
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
+.chat-header {
   padding: 1rem;
-  max-width: 500px;
-  margin: auto;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+  font-size: 1.1rem;
+  flex-shrink: 0;
 }
 
-.chat-form input {
-  width: 80%;
-  padding: 10px;
-  margin-right: 10px;
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: #f9f9f9;
+  min-height: 300px;
 }
 
-.chat-form button {
-  padding: 4px 8px;
+.chat-form {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+
+  input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  button {
+    margin-left: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #42b983;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #36a871;
+    }
+  }
 }
 </style>
