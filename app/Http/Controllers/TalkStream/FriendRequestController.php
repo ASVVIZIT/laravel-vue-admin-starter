@@ -15,13 +15,21 @@ class FriendRequestController extends Controller
     public function send(Request $request)
     {
         $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . Auth::id()]);
-        $existing = FriendRequestModel::where(['user_id' => Auth::id(), 'friend_id' => $data['friend_id']])->first();
+
+        $existing = FriendRequestModel::where([
+            ['user_id', Auth::id()],
+            ['friend_id', $data['friend_id']]
+        ])->first();
 
         if ($existing && !$existing->accepted && !$existing->declined) {
             return response()->json(['message' => 'Запрос уже отправлен'], 409);
         }
 
-        $req = FriendRequestModel::create(['user_id' => Auth::id(), 'friend_id' => $data['friend_id']]);
+        $req = FriendRequestModel::create([
+            'user_id' => Auth::id(),
+            'friend_id' => $data['friend_id']
+        ]);
+
         event(new FriendRequestSent([
             'user_id' => Auth::id(),
             'friend_id' => $data['friend_id']

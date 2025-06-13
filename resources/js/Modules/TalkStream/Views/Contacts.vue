@@ -53,24 +53,23 @@ onMounted(async () => {
     contacts.value = contactStore.contacts
   }
 
-/*  try {
-    if (!userStore.id) {
-      await userStore.getInfo()
+  try {
+    if (!useUserStore.id) {
+      await useUserStore.getInfo()
     }
   } catch (e) {
     console.warn('Пользователь не авторизован')
     router.push('/login')
-  }*/
+  }
 
   if (!useFriendStore.friends.length) {
-
-    console.log('useFriendStore ', useFriendStore)
     await useFriendStore.loadFriendsList()
+    console.log('useFriendStore ', useFriendStore.friends)
   }
 
   if (!useFriendStore.incomingRequests.length) {
-    console.log('useFriendStore ', useFriendStore)
     await useFriendStore.loadIncomingRequests()
+    console.log('useFriendStore ', useFriendStore.incomingRequests)
   }
 
   // Подписка на онлайн-пользователей
@@ -83,9 +82,11 @@ onMounted(async () => {
     window.echoTalkStream.private(`friends.${userStore.id}`)
         .listen('.FriendRequestSent', (e) => {
           useFriendStore.addIncoming(e.request.user_id)
+          console.log('Получено событие addIncoming:', e)
         })
         .listen('.FriendRequestAccepted', (e) => {
           useFriendStore.addFriend(e.request.friend_id)
+          console.log('Получено событие addFriend:', e)
         })
   }
 

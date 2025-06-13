@@ -24,12 +24,13 @@ class Resource {
       method: 'get'
     })
   }
-  store(resource) {
+  store(data, path = '') {
+    const url = path ? `${this.uri}/${path}` : this.uri
     return request({
-      url: '/' + this.uri,
+      url: '/' + url,
       method: 'post',
-      data: resource,
-    });
+      data
+    })
   }
   update(id, resource) {
     return request({
