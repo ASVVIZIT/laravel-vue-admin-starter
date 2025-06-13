@@ -4,10 +4,22 @@
     <div class="contact-actions">
       <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
 
-      <button v-if="isFriend" disabled class="btn btn-friend">✔ Друг</button>
-      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">✔ Принять</button>
-      <button v-else-if="hasSent" disabled class="btn btn-sent">⏳ Запрошено</button>
-      <button v-else @click.stop="add" class="btn btn-add">➕ Добавить</button>
+      <button v-if="isFriend" disabled class="btn btn-friend">
+        <span>✔</span>
+        <span>Друг</span>
+      </button>
+      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">
+        <span>✔</span>
+        <span>Принять</span>
+      </button>
+      <button v-else-if="hasSent" disabled class="btn btn-sent">
+        <span>⏳</span>
+        <span>Запрошено</span>
+      </button>
+      <button v-else @click.stop="add" class="btn btn-add">
+        <span>➕</span>
+        <span>Добавить</span>
+      </button>
     </div>
 
     <!-- Информация о контакте -->
@@ -101,9 +113,11 @@ function accept() {
 .btn {
   display: inline-flex;
   align-items: center;
+  min-width: 50px;
+  width: 100%;
   gap: 4px;
   font-size: 0.75rem;
-  padding: 2px 6px;
+  padding: 3px 8px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -145,7 +159,7 @@ function accept() {
 
   &.btn-friend {
     background-color: rgb(68, 134, 66);
-    color: rgba(85, 85, 85, 0.95);
+    color: rgba(243, 238, 238, 0.95);
     cursor: not-allowed;
   }
 }

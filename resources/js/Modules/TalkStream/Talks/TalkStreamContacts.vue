@@ -1,5 +1,5 @@
 <template>
-  <el-card class="contacts-container">
+  <div class="contacts-container">
     <!-- Меню режимов -->
     <div class="mode-switcher">
       <button
@@ -30,7 +30,7 @@
         />
       </ul>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -101,67 +101,20 @@ onUnmounted(() => {
     friendRequestsChannel.value.stopListening()
   }
 })
-
-function switchMode(mode) {
-  currentMode.value = mode
-  router.push(`/talkstream/${mode}`)
-}
-
-function selectContact(contact) {
-  const selectedMode = currentMode.value
-
-  if (selectedMode === 'chat') {
-    router.push({ name: 'chat', query: { to: contact.id } })
-  } else if (selectedMode === 'call') {
-    router.push({ name: 'call', query: { to: contact.id } })
-  }
-}
 </script>
 
 <style scoped lang="scss">
-.contacts-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+.talkstream-contacts {
+  width: 250px;
   padding: 1rem;
-}
-
-.mode-switcher {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
-}
-
-.mode-button {
-  padding: 4px 8px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: #e0e0e0;
-  }
-
-  &.active {
-    background-color: #42b983;
-    color: white;
-    border-color: #42b983;
-  }
-}
-
-.contacts-wrap {
-  flex-grow: 1;
+  border-right: 1px solid #eaeaea;
   overflow-y: auto;
-  max-height: calc(100vh - 220px);
+  height: 100vh;
 }
 
 .contact-list {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-width: fit-content;
-  width: 100%;
 }
 </style>
