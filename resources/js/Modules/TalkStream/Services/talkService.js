@@ -28,10 +28,11 @@ export default class TalkService extends Resource {
     sendFriendRequest(friend_id) {
         return this.store({ friend_id }, 'friends/send')
     }
-    async getSentRequests(friend_id) {
+    async getSentRequests() {
         try {
-            const res = await this.list({friend_id}, 'friends/sent')
-            return res.data.filter(r => r.friend)
+            const res = await this.list({}, 'friends/sent')
+            console.log('getSentRequests res ', res)
+            return res.data ? res.data.filter(r => r.friend) : [];
         } catch (e) {
             console.error('[TalkService] Не удалось получить исходящие запросы:', e)
             return []

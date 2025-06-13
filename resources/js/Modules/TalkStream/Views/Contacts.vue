@@ -1,5 +1,6 @@
 <template>
-  <div class="contacts-container">
+
+  <el-card class="contacts-container">
     <!-- Меню режимов -->
     <div class="mode-switcher">
       <button
@@ -11,10 +12,12 @@
         {{ mode === 'chat' ? 'Чат' : 'Звонок' }}
       </button>
     </div>
-
+    <div>
+      <h3>Общий список пользователей</h3>
+    </div>
     <!-- Обёртка для прокрутки -->
     <div class="contacts-wrap">
-      <!-- Список контактов -->
+      <!-- Список всех пользователей -->
       <ul class="contact-list">
         <ContactItem
             v-for="contact in contacts"
@@ -28,7 +31,7 @@
         />
       </ul>
     </div>
-  </div>
+  </el-card>
 </template>
 
 <script setup>

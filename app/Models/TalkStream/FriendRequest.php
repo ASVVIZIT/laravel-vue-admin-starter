@@ -29,7 +29,8 @@ class FriendRequest extends Model
         return self::where(function ($query) use ($userId, $friendId) {
             $query->where('user_id', $userId)
                 ->where('friend_id', $friendId)
-                ->where('accepted', true);
+                ->where('accepted', true)
+                ->orWhere('declined', true);
         })->orWhere(function ($query) use ($userId, $friendId) {
             $query->where('user_id', $friendId)
                 ->where('friend_id', $userId)

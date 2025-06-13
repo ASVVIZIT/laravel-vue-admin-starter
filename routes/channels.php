@@ -32,7 +32,7 @@ Broadcast::channel('presence-chat', function ($user) {
 
 // Друзья
 Broadcast::channel('friends.{userId}', function ($user, $userId) {
-    return (int)$user->id === (int)$userId;
+    return FriendRequest::areFriends($user->id, $userId);
 });
 
 // Для WebRTC сигналинга

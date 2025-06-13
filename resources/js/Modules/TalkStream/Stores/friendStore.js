@@ -25,7 +25,8 @@ export const friendStore = defineStore('friend', {
         },
         async loadSentRequests() {
             const res = await this.talkService.getSentRequests()
-            this.sentRequests = res.data.map(r => Number(r.friend_id))
+            console.log('loadSentRequests res ', res)
+            this.sentRequests = res.map(r => Number(r.friend_id))
         },
         async loadFriendsList() {
             const res = await this.talkService.getFriendsList()

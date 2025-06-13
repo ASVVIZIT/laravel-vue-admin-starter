@@ -5,7 +5,7 @@ namespace App\Http\Controllers\TalkStream;
 use App\Events\TalkStream\FriendRequestSent;
 use App\Events\TalkStream\FriendRequestAccepted;
 use App\Http\Controllers\Controller;
-use App\Models\TalkStream\FriendRequest as FriendRequestModel;
+use App\Models\TalkStream\FriendRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,7 +17,7 @@ class FriendRequestController extends Controller
     {
         $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . Auth::id()]);
 
-        $existing = FriendRequestModel::where([
+        $existing = FriendRequest::where([
             ['user_id', Auth::id()],
             ['friend_id', $data['friend_id']]
         ])->first();
@@ -26,7 +26,7 @@ class FriendRequestController extends Controller
             return response()->json(['message' => 'Запрос уже отправлен'], 409);
         }
 
-        $req = FriendRequestModel::create([
+        $req = FriendRequest::create([
             'user_id' => Auth::id(),
             'friend_id' => $data['friend_id']
         ]);
@@ -42,13 +42,16 @@ class FriendRequestController extends Controller
     // Принятие запроса
     public function accept(Request $request, $id)
     {
-        $req = FriendRequestModel::findOrFail($id);
+        $req = FriendRequest::findOrFail($id);
 
         if ($req->friend_id !== Auth::id()) {
             return response()->json(['message' => 'Нельзя принять чужой запрос'], 403);
         }
 
-        $req->update(['accepted' => true]);
+        $req->update([
+            'accepted' => true,
+            'declined' => null,
+        ]);
 
         event(new FriendRequestAccepted([
             'user_id' => $req->user_id,
@@ -61,23 +64,24 @@ class FriendRequestController extends Controller
     // Входящие запросы
     public function incoming()
     {
-        $requests = FriendRequestModel::where('friend_id', Auth::id())
-            ->where(function ($query) {
-                // Либо не принято и не отклонено (ожидает), либо уже друг
-                $query->where(function ($q) {
-                    $q->whereNull('accepted')->whereNull('declined');
-                })->orWhere('accepted', true);
-            })
-            ->with('user:id,name,email')
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $requests = FriendRequest::where('friend_id', $userId)
+            ->where('accepted', false)
+            ->where('declined', false)
+            ->with('user')
             ->get();
 
-        return response()->json(['data' => $requests]);
+        return response()->json(['data' =>$requests]);
     }
 
     // Список друзей
     public function friends()
     {
-        $userId = Auth::id();
+        $userId = auth()->id();
 
         $friends = User::where('id', '!=', $userId)
             ->where(function ($query) use ($userId) {
@@ -95,17 +99,16 @@ class FriendRequestController extends Controller
     // для получения исходящих запросов
     public function sent()
     {
-        $userId = Auth::id();
+        $userId = auth()->id();
 
-        $requests = FriendRequestModel::where('user_id', $userId)
+        $requests = FriendRequest::where('user_id', $userId)
             ->whereNull('accepted')
             ->whereNull('declined')
             ->with(['friend' => function ($q) {
-                $q->select('id', 'name', 'email');
+                $q->select('id');
             }])
             ->get()
             ->filter(function ($request) {
-                // Проверяем, что friend загружен
                 return !is_null($request->friend);
             });
 
