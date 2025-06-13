@@ -53,6 +53,8 @@ return [
                 'scheme' => env('REVERB_SCHEME', 'http'),
                 'useTLS' => env('REVERB_SCHEME') === 'https',
             ],
+            'enableCrypto' => false,
+            'authEndpoint' => '/api/broadcasting/auth',
         ],
 
         'ably' => [

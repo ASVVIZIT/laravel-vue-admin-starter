@@ -101,7 +101,7 @@ Route::namespace('Api')->group(function() {
         // Роут для Laravel Echo / WebSockets
         Route::post('/broadcasting/auth', function (Request $request) {
             return Broadcast::auth($request);
-        })->name('broadcast.auth');
+        })->middleware('auth:sanctum')->name('broadcast.auth');
     });
 });
 

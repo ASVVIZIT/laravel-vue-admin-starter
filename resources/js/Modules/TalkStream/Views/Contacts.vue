@@ -1,5 +1,4 @@
 <template>
-
   <el-card class="contacts-container">
     <!-- Меню режимов -->
     <div class="mode-switcher">
@@ -35,12 +34,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
 import { userStore } from '@/store/user'
+import { setupPresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
+import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
 
 const router = useRouter()
 const route = useRoute()
@@ -51,12 +52,18 @@ const useUserStore = userStore()
 const contacts = ref([])
 const currentMode = ref(route.params.mode || 'chat')
 
+// Хранение каналов для отписки
+const presenceChannel = ref(null)
+const friendRequestsChannel = ref(null)
+
 onMounted(async () => {
+  // Загрузка контактов
   if (!contactStore.contacts.length) {
     await contactStore.loadContacts()
     contacts.value = contactStore.contacts
   }
 
+  // Проверка авторизации
   try {
     if (!useUserStore.id) {
       await useUserStore.getInfo()
@@ -66,6 +73,7 @@ onMounted(async () => {
     router.push('/login')
   }
 
+  // Загрузка друзей и запросов
   if (!useFriendStore.friends.length) {
     await useFriendStore.loadFriendsList()
   }
@@ -78,34 +86,20 @@ onMounted(async () => {
     await useFriendStore.loadSentRequests()
   }
 
-  // Подписка на онлайн-пользователей
-  if (window.echoTalkStream) {
-    window.echoTalkStream.join('presence-chat')
-        .here((users) => users.forEach(user => contactStore.setOnline(user.id)))
-        .joining((user) => contactStore.setOnline(user.id))
-        .leaving((user) => contactStore.setOffline(user.id))
+  // Инициализация подписок
+  presenceChannel.value = setupPresenceChannel()
+  friendRequestsChannel.value = setupFriendRequestsChannel()
+})
 
-    window.echoTalkStream.private(`friends.${useUserStore.id}`)
-        .listen('.FriendRequestSent', (e) => {
-          useFriendStore.addIncoming(e.request.user_id)
-          console.log('Получено событие addIncoming:', e)
-        })
-        .listen('.FriendRequestAccepted', (e) => {
-          const { user_id, friend_id } = e.request
-          if (user_id === useUserStore.id) {
-            // Я — тот, кто принял запрос
-            useFriendStore.addFriend(friend_id)
-            useFriendStore.removeSent(friend_id)
-          } else {
-            // Я — тот, кто отправлял запрос, и его приняли
-            useFriendStore.addFriend(friend_id)
-            useFriendStore.removeIncoming(user_id)
-          }
-          console.log('Получено событие addFriend:', e)
-        })
+onUnmounted(() => {
+  // Отписка от каналов
+  if (presenceChannel.value) {
+    presenceChannel.value.leave()
   }
 
-  console.log('contactStore:', contactStore)
+  if (friendRequestsChannel.value) {
+    friendRequestsChannel.value.stopListening()
+  }
 })
 
 function switchMode(mode) {

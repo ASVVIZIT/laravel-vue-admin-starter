@@ -15,6 +15,12 @@ use Illuminate\Support\Facades\Broadcast;
 |
 */
 
+// Общий канал
+
+Broadcast::channel('presence-channel', function ($user) {
+    return ['id' => $user->id, 'name' => $user->name];
+});
+
 // Чат
 Broadcast::channel('chat.{userId}', function ($user, $userId) {
     return FriendRequest::areFriends($user->id, $userId);

@@ -1,4 +1,4 @@
-// resources/js/echo.js
+// resources/js/Modules/TalkStream/echoTalkStream.js
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 import axios from 'axios'
@@ -36,6 +36,7 @@ export function createEcho() {
             authEndpoint: '/api/broadcasting/auth',
             options: {
                 bearerToken: `${token}`,
+                Authorization: `Bearer ${token}`
             },
             auth: {
                 headers: {
@@ -50,9 +51,23 @@ export function createEcho() {
 
         window.echoTalkStream = echo
         window.Echo = echo
+
+        // Подписка на presence-канал
+        window.Echo.join('presence-channel')
+            .here(users => {
+                console.log('Пользователи в канале:', users);
+            })
+            .joining(user => {
+                console.log('Пользователь присоединился:', user);
+            })
+            .leaving(user => {
+                console.log('Пользователь покинул канал:', user);
+            });
+
         return echo
     } catch (e) {
         console.error('[Echo] Ошибка при инициализации:', e)
         return null
     }
 }
+

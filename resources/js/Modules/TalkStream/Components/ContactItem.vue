@@ -49,12 +49,6 @@ const router = useRouter()
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 const useFriendStore = friendStore()
 
-/*if (!useFriendStore.friends.length) {
-
-  console.log('useFriendStore ', useFriendStore)
-  await useFriendStore.loadFriendsList()
-}*/
-
 function select() {
   router.push({ name: 'chat', query: { to: props.contact.id } })
   emit('select', props.contact)
@@ -123,20 +117,20 @@ function accept() {
   }
 
   &.btn-add {
-    background-color: #42b983;
+    background-color: #5791c2;
     color: white;
 
     &:hover {
-      background-color: #36a871;
+      background-color: #3c759f;
     }
   }
 
   &.btn-accept {
-    background-color: #3490dc;
+    background-color: #34dc9c;
     color: white;
 
     &:hover {
-      background-color: #2779bf;
+      background-color: #35a179;
     }
   }
 
@@ -150,8 +144,8 @@ function accept() {
   }
 
   &.btn-friend {
-    background-color: #ccc;
-    color: #555;
+    background-color: rgb(68, 134, 66);
+    color: rgba(85, 85, 85, 0.95);
     cursor: not-allowed;
   }
 }
@@ -169,6 +163,6 @@ function accept() {
 
 .contact-info.friend {
   font-weight: bold;
-  color: #42b983;
+  color: rgb(68, 134, 66);
 }
 </style>

@@ -90,13 +90,10 @@ import { createEcho } from '@/modules/TalkStream/echoTalkStream' // Импорт
 // Ждём монтирования приложения перед инициализацией Echo
 app.mount('#app')
 
-
 if (isLogged) {
     console.log('[App.js] Есть вход в систему. Echo будет запущен.')
     const token = getToken()
-    //const userData = await store.fetchInfo()
     if (!window.Echo) {
-
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
         createEcho() // Теперь создаём Echo после монтирования Vue
         console.log('createEcho: ', window.Echo)

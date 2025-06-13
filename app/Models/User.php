@@ -155,4 +155,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(FriendRequest::class, 'friend_id');
     }
+
+
+    public function getAuthIdentifier()
+    {
+        return $this->getKey();
+    }
 }
