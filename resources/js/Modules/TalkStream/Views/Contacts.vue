@@ -23,6 +23,7 @@
             :is-online="contactStore.isOnline(contact.id)"
             :is-friend="useFriendStore.isFriend(contact.id)"
             :has-incoming="useFriendStore.hasIncoming(contact.id)"
+            :has-sent="useFriendStore.hasSent(contact.id)"
             @select="selectContact"
         />
       </ul>
@@ -64,12 +65,14 @@ onMounted(async () => {
 
   if (!useFriendStore.friends.length) {
     await useFriendStore.loadFriendsList()
-    console.log('useFriendStore ', useFriendStore.friends)
   }
 
   if (!useFriendStore.incomingRequests.length) {
     await useFriendStore.loadIncomingRequests()
-    console.log('useFriendStore ', useFriendStore.incomingRequests)
+  }
+
+  if (!useFriendStore.sentRequests.length) {
+    await useFriendStore.loadSentRequests()
   }
 
   // Подписка на онлайн-пользователей
@@ -79,13 +82,22 @@ onMounted(async () => {
         .joining((user) => contactStore.setOnline(user.id))
         .leaving((user) => contactStore.setOffline(user.id))
 
-    window.echoTalkStream.private(`friends.${userStore.id}`)
+    window.echoTalkStream.private(`friends.${useUserStore.id}`)
         .listen('.FriendRequestSent', (e) => {
           useFriendStore.addIncoming(e.request.user_id)
           console.log('Получено событие addIncoming:', e)
         })
         .listen('.FriendRequestAccepted', (e) => {
-          useFriendStore.addFriend(e.request.friend_id)
+          const { user_id, friend_id } = e.request
+          if (user_id === useUserStore.id) {
+            // Я — тот, кто принял запрос
+            useFriendStore.addFriend(friend_id)
+            useFriendStore.removeSent(friend_id)
+          } else {
+            // Я — тот, кто отправлял запрос, и его приняли
+            useFriendStore.addFriend(friend_id)
+            useFriendStore.removeIncoming(user_id)
+          }
           console.log('Получено событие addFriend:', e)
         })
   }

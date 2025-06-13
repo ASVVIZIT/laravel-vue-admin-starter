@@ -4,16 +4,15 @@
     <div class="contact-actions">
       <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
 
-      <button v-if="isFriend" disabled>Друг</button>
-      <button v-else-if="hasIncoming" @click.stop="accept">Принять</button>
-      <button v-else @click.stop="add">Добавить</button>
+      <button v-if="isFriend" disabled class="btn btn-friend">✔ Друг</button>
+      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">✔ Принять</button>
+      <button v-else-if="hasSent" disabled class="btn btn-sent">⏳ Запрошено</button>
+      <button v-else @click.stop="add" class="btn btn-add">➕ Добавить</button>
     </div>
 
-    <!-- Информация о пользователе -->
+    <!-- Информация о контакте -->
     <div class="contact-info">
-      <div class="contact-name">
-        {{ contact.name }}
-      </div>
+      {{ contact.name }}
     </div>
   </li>
 </template>
@@ -37,6 +36,10 @@ const props = defineProps({
     default: false
   },
   hasIncoming: {
+    type: Boolean,
+    default: false
+  },
+  hasSent: {
     type: Boolean,
     default: false
   }
@@ -68,17 +71,18 @@ function accept() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .contact-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.45rem 0.65rem;
+  padding: 0.5rem 0.75rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s ease;
   max-width: 100%;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .contact-item:hover {
@@ -88,9 +92,10 @@ function accept() {
 .contact-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  min-width: 100px;
-  justify-content: flex-start;
+  gap: 8px;
+  min-width: 120px;
+  white-space: nowrap;
+  font-size: 0.85rem;
 }
 
 .status-indicator {
@@ -99,40 +104,66 @@ function accept() {
   text-align: center;
 }
 
-.contact-actions button {
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 0.75rem;
-  padding: 2px 4px;
+  padding: 2px 6px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  background-color: #42b983;
-  color: white;
-  flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
 
-.contact-actions button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  &.btn-add {
+    background-color: #42b983;
+    color: white;
+
+    &:hover {
+      background-color: #36a871;
+    }
+  }
+
+  &.btn-accept {
+    background-color: #3490dc;
+    color: white;
+
+    &:hover {
+      background-color: #2779bf;
+    }
+  }
+
+  &.btn-sent {
+    background-color: #f0ad4e;
+    color: white;
+
+    &:hover {
+      background-color: #ec971f;
+    }
+  }
+
+  &.btn-friend {
+    background-color: #ccc;
+    color: #555;
+    cursor: not-allowed;
+  }
 }
 
 .contact-info {
   flex-grow: 1;
-  text-align: right;
-  min-width: 70px;
-  max-width: 110px;
+  margin-left: 12px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.contact-name {
   font-weight: 500;
   font-size: 0.9rem;
   color: #333;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 }
 </style>

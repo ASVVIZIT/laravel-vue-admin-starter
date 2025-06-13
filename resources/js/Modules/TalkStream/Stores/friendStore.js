@@ -7,6 +7,7 @@ export const friendStore = defineStore('friend', {
         friendRequests: [],
         friends: [],
         incomingRequests: [],
+        sentRequests: [],
         talkService: new TalkService()
     }),
     actions: {
@@ -22,6 +23,10 @@ export const friendStore = defineStore('friend', {
             const res = await this.talkService.getIncomingRequests()
             this.incomingRequests = res.data.map(r => Number(r.user_id))
         },
+        async loadSentRequests() {
+            const res = await this.talkService.getSentRequests()
+            this.sentRequests = res.data.map(r => Number(r.friend_id))
+        },
         async loadFriendsList() {
             const res = await this.talkService.getFriendsList()
             this.friends = res.data.map(f => Number(f.id))
@@ -36,15 +41,34 @@ export const friendStore = defineStore('friend', {
             if (isNaN(id)) return false
             return this.incomingRequests.includes(id)
         },
+        hasSent(userId) {
+            return this.sentRequests.includes(Number(userId))
+        },
         addFriend(userId) {
-            if (!this.friends.includes(Number(userId))) {
-                this.friends.push(Number(userId))
+            const id = Number(userId)
+            if (!this.isFriend(id)) {
+                this.friends.push(id)
             }
         },
         addIncoming(userId) {
             if (!this.incomingRequests.includes(Number(userId))) {
                 this.incomingRequests.push(Number(userId))
             }
+        },
+
+        removeSent(userId) {
+            const id = Number(userId)
+            this.sentRequests = this.sentRequests.filter(uid => uid !== id)
+        },
+
+        removeIncoming(userId) {
+            const id = Number(userId)
+            this.incomingRequests = this.incomingRequests.filter(uid => uid !== id)
+        },
+
+        isPending(userId) {
+            return this.sentRequests.includes(Number(userId))
         }
+
     }
 })

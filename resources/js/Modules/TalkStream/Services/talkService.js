@@ -24,6 +24,9 @@ export default class TalkService extends Resource {
     sendFriendRequest(friend_id) {
         return this.store({ friend_id }, 'friends/send')
     }
+    getSentRequests() {
+        return this.list({}, 'friends/sent')
+    }
 
     // Принять запрос в друзья
     acceptFriendRequest(id) {

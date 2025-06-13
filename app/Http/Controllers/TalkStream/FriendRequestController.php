@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\TalkStream;
 
 use App\Events\TalkStream\FriendRequestSent;
+use App\Events\TalkStream\FriendRequestAccepted;
 use App\Http\Controllers\Controller;
 use App\Models\TalkStream\FriendRequest as FriendRequestModel;
 use App\Models\User;
@@ -48,6 +49,12 @@ class FriendRequestController extends Controller
         }
 
         $req->update(['accepted' => true]);
+
+        event(new FriendRequestAccepted([
+            'user_id' => $req->user_id,
+            'friend_id' => $req->friend_id
+        ]));
+
         return response()->json(['message' => 'Запрос принят', 'data' => $req]);
     }
 
@@ -55,9 +62,13 @@ class FriendRequestController extends Controller
     public function incoming()
     {
         $requests = FriendRequestModel::where('friend_id', Auth::id())
-            ->where('accepted', false)
-            ->where('declined', false)
-            ->with('user')
+            ->where(function ($query) {
+                // Либо не принято и не отклонено (ожидает), либо уже друг
+                $query->where(function ($q) {
+                    $q->whereNull('accepted')->whereNull('declined');
+                })->orWhere('accepted', true);
+            })
+            ->with('user:id,name,email')
             ->get();
 
         return response()->json(['data' => $requests]);
@@ -73,5 +84,17 @@ class FriendRequestController extends Controller
         $friends = $users->filter(fn($user) => FriendRequestModel::areFriends($userId, $user->id));
 
         return response()->json(['data' => $friends]);
+    }
+    // для получения исходящих запросов
+    public function sent()
+    {
+        $requests = FriendRequestModel::where('user_id', Auth::id())
+            ->where(function ($query) {
+                $query->whereNull('accepted')->whereNull('declined');
+            })
+            ->with('friend:id,name,email')
+            ->get();
+
+        return response()->json(['data' => $requests]);
     }
 }

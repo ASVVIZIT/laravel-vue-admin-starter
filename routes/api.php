@@ -90,10 +90,11 @@ Route::namespace('Api')->group(function() {
             Route::post('/end', [CallController::class, 'endCall']);
 
             // Друзья
+            Route::get('/friends', [FriendRequestController::class, 'friends']);
+            Route::get('/friends/incoming', [FriendRequestController::class, 'incoming']);
+            Route::get('/friends/sent', [FriendRequestController::class, 'sent']);
             Route::post('/friends/send', [FriendRequestController::class, 'send']);
             Route::post('/friends/accept/{id}', [FriendRequestController::class, 'accept']);
-            Route::get('/friends/incoming', [FriendRequestController::class, 'incoming']);
-            Route::get('/friends', [FriendRequestController::class, 'friends']);
         });
 
         // Роут для Laravel Echo / WebSockets

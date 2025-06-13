@@ -38,13 +38,15 @@ class CreateTalkStreamTables extends Migration
             $table->id();
             $table->unsignedBigInteger('user_id');
             $table->unsignedBigInteger('friend_id');
-            $table->boolean('accepted')->default(false);
-            $table->boolean('declined')->default(false);
-            $table->timestamps();
 
-            $table->unique(['user_id', 'friend_id']);
+            // Nullable поля
+            $table->boolean('accepted')->nullable()->default(null);
+            $table->boolean('declined')->nullable()->default(null);
+
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
             $table->foreign('friend_id')->references('id')->on('users')->onDelete('cascade');
+
+            $table->unique(['user_id', 'friend_id']);
         });
     }
 
