@@ -3,6 +3,7 @@ namespace App\Http\Controllers\TalkStream;
 
 use App\Events\TalkStream\NewMessage;
 use App\Http\Controllers\Controller;
+use App\Models\TalkStream\FriendRequest;
 use App\Models\TalkStream\Message;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,25 +15,29 @@ class ChatController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'content' => 'required|string',
-            'to_id' => 'required|exists:users,id',
+            'to_id' => 'required|exists:users,id'
         ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $to_id = $request->input('to_id');
+
+        if (!FriendRequest::areFriends(Auth::id(), $to_id)) {
+            return response()->json(['error' => 'Вы можете писать только друзьям'], 403);
+        }
+
         $message = Message::create([
             'from_id' => Auth::id(),
-            'to_id' => $request->input('to_id'),
-            'content' => $request->input('content'),
+            'to_id' => $to_id,
+            'content' => $request->input('content')
         ]);
 
         event(new NewMessage([
-            'id' => $message->id,
             'from_id' => $message->from_id,
             'to_id' => $message->to_id,
-            'content' => $message->content,
-            'created_at' => $message->created_at,
+            'content' => $message->content
         ]));
 
         return response()->json(['status' => 'Message sent']);

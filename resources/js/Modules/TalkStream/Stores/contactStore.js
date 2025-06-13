@@ -1,6 +1,9 @@
 // resources/js/modules/TalkStream/Stores/contactStore.js
+
 import { defineStore } from 'pinia'
 import TalkService from '@/modules/TalkStream/Services/talkService'
+import {friendStore} from "@modules/TalkStream/Stores/friendStore.js";
+const useFriendStore = friendStore()
 
 export const useContactStore = defineStore('contact', {
     state: () => ({
@@ -24,6 +27,10 @@ export const useContactStore = defineStore('contact', {
             const res = await this.talkService.get(id, 'contacts')
             this.contacts.push(res.data)
             return res.data
+        },
+
+        getFriendsOnly() {
+            return this.contacts.filter(c => useFriendStore.isFriend(c.id))
         },
 
         async getIncomingRequests() {

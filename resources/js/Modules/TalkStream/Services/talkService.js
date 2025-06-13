@@ -19,6 +19,10 @@ export default class TalkService extends Resource {
         return this.list(query, path)
     }
 
+    isFriend(userId) {
+        return this.get(userId, 'friends/is-friend')
+    }
+
     // Добавь методы для работы с друзьями
     // Добавить в друзья
     sendFriendRequest(friend_id) {

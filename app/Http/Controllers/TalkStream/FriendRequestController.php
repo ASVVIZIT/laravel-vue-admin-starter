@@ -79,9 +79,16 @@ class FriendRequestController extends Controller
     {
         $userId = Auth::id();
 
-        $users = User::where('id', '!=', $userId)->get();
-
-        $friends = $users->filter(fn($user) => FriendRequestModel::areFriends($userId, $user->id));
+        $friends = User::where('id', '!=', $userId)
+            ->where(function ($query) use ($userId) {
+                $query->whereHas('friendRequestsSent', function ($q) use ($userId) {
+                    $q->where('friend_id', $userId)->where('accepted', true);
+                })
+                    ->orWhereHas('friendRequestsReceived', function ($q) use ($userId) {
+                        $q->where('user_id', $userId)->where('accepted', true);
+                    });
+            })
+            ->get();
 
         return response()->json(['data' => $friends]);
     }
@@ -103,5 +110,12 @@ class FriendRequestController extends Controller
             });
 
         return response()->json(['data' => $requests]);
+    }
+
+    public function isFriend(int $userId)
+    {
+        return response()->json([
+            'isFriend' => self::areFriends(Auth::id(), $userId)
+        ]);
     }
 }

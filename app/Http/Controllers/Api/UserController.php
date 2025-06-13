@@ -8,6 +8,7 @@ use App\Models\Acl;
 use App\Models\Log;
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\TalkStream\FriendRequest;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
@@ -293,5 +294,14 @@ class UserController extends BaseController
             'birthday' => 'date_format:Y-m-d H:i:s',
             'description' => 'max:255'
         ];
+    }
+
+    public function canTalk(Request $request, int $userId)
+    {
+        if (!FriendRequest::areFriends(Auth::id(), $userId)) {
+            return response()->json(['error' => 'Вы не друзья'], 403);
+        }
+
+        return response()->json(['status' => 'OK']);
     }
 }

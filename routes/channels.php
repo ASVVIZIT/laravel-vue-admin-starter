@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\TalkStream\FriendRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -16,7 +17,7 @@ use Illuminate\Support\Facades\Broadcast;
 
 // Чат
 Broadcast::channel('chat.{userId}', function ($user, $userId) {
-    return (int)$user->id === (int)$userId;
+    return FriendRequest::areFriends($user->id, $userId);
 });
 
 // Звонки

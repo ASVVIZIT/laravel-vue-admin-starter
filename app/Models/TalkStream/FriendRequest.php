@@ -4,13 +4,12 @@ namespace App\Models\TalkStream;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
 
 class FriendRequest extends Model
 {
     protected $table = 'friend_requests';
-
     public $timestamps = false;
-
     protected $fillable = ['user_id', 'friend_id', 'accepted', 'declined'];
 
     // Кто отправил запрос (пользователь)
@@ -25,17 +24,16 @@ class FriendRequest extends Model
         return $this->belongsTo(User::class, 'friend_id');
     }
 
-
     public static function areFriends(int $userId, int $friendId): bool
     {
-        return self::where([
-            ['user_id', $userId],
-            ['friend_id', $friendId],
-            ['accepted', true]
-        ])->orWhere([
-            ['user_id', $friendId],
-            ['friend_id', $userId],
-            ['accepted', true]
-        ])->exists();
+        return self::where(function ($query) use ($userId, $friendId) {
+            $query->where('user_id', $userId)
+                ->where('friend_id', $friendId)
+                ->where('accepted', true);
+        })->orWhere(function ($query) use ($userId, $friendId) {
+            $query->where('user_id', $friendId)
+                ->where('friend_id', $userId)
+                ->where('accepted', true);
+        })->exists();
     }
 }

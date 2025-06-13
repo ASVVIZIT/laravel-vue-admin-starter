@@ -31,6 +31,27 @@ export const friendStore = defineStore('friend', {
             const res = await this.talkService.getFriendsList()
             this.friends = res.data.map(f => Number(f.id))
         },
+
+        async isFriend(userId) {
+            const isCached = this.friends.includes(Number(userId))
+            if (isCached) return true
+
+            // Если не в кэше — запрос на сервер
+            const res = await this.talkService.isFriend(userId)
+            if (res.data.isFriend) {
+                this.friends.push(Number(userId))
+            }
+            return res.data.isFriend
+        },
+
+        async checkFriend(userId) {
+            const isFriend = await this.talkService.isFriend(userId)
+            if (isFriend.data.isFriend) {
+                this.friends.push(Number(userId))
+            }
+            return isFriend.data.isFriend
+        },
+
         isFriend(userId) {
             const id = Number(userId)
             if (isNaN(id)) return false

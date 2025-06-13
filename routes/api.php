@@ -91,6 +91,7 @@ Route::namespace('Api')->group(function() {
 
             // Друзья
             Route::get('/friends', [FriendRequestController::class, 'friends']);
+            Route::get('/friends/is-friend/{userId}', [FriendRequestController::class, 'isFriend']);
             Route::get('/friends/incoming', [FriendRequestController::class, 'incoming']);
             Route::get('/friends/sent', [FriendRequestController::class, 'sent']);
             Route::post('/friends/send', [FriendRequestController::class, 'send']);

@@ -11,7 +11,7 @@
     </div>
 
     <!-- Информация о контакте -->
-    <div class="contact-info">
+    <div class="contact-info" :class="{ friend: isFriend }">
       {{ contact?.name || 'Без имени' }}
     </div>
   </li>
@@ -165,5 +165,10 @@ function accept() {
   font-weight: 500;
   font-size: 0.9rem;
   color: #333;
+}
+
+.contact-info.friend {
+  font-weight: bold;
+  color: #42b983;
 }
 </style>
