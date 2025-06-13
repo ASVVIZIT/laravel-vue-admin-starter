@@ -21,8 +21,8 @@
             :key="contact.id"
             :contact="contact"
             :is-online="contactStore.isOnline(contact.id)"
-            :is-friend="friendStore.isFriend(contact.id)"
-            :has-incoming="friendStore.hasIncoming(contact.id)"
+            :is-friend="useFriendStore.isFriend(contact.id)"
+            :has-incoming="useFriendStore.hasIncoming(contact.id)"
             @select="selectContact"
         />
       </ul>

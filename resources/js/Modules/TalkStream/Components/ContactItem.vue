@@ -46,11 +46,11 @@ const router = useRouter()
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 const useFriendStore = friendStore()
 
-if (!useFriendStore.friends.length) {
+/*if (!useFriendStore.friends.length) {
 
   console.log('useFriendStore ', useFriendStore)
   await useFriendStore.loadFriendsList()
-}
+}*/
 
 function select() {
   router.push({ name: 'chat', query: { to: props.contact.id } })
