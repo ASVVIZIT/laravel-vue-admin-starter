@@ -20,7 +20,7 @@ export const useChatStore = defineStore('chat', {
         },
         async loadHistory(userId) {
             try {
-                const response = await this.talkService.getHistory(userId)
+                const response = await this.talkService.getHistory(userId, 'history')
                 this.messages = response.data
             } catch (e) {
                 console.error('[chatStore] Ошибка загрузки истории:', e)

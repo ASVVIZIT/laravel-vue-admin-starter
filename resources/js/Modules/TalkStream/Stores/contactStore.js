@@ -21,7 +21,8 @@ export const useContactStore = defineStore('contact', {
 
         async getContact(id) {
             // Используем существующий сервис
-            const res = await this.talkService.get(`contacts/${id}`)
+            const res = await this.talkService.get(id, 'contacts')
+            this.contacts.push(res.data)
             return res.data
         },
 
@@ -30,7 +31,7 @@ export const useContactStore = defineStore('contact', {
             return res.data
         },
         async getFriendsList() {
-            const res = await this.talkService.getFriends({}, 'friends')
+            const res = await this.talkService.getFriendsList()
             return res.data
         },
         setOnline(userId) {

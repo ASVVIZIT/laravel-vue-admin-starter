@@ -38,7 +38,7 @@ export const userStore = defineStore('user', {
 
     async fetchInfo() {
       try {
-        const res = await api.getInfo()
+        const res = await this.getInfo()
         const data = res.data
 
         this.$patch({

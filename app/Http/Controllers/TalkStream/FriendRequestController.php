@@ -4,7 +4,8 @@ namespace App\Http\Controllers\TalkStream;
 
 use App\Events\TalkStream\FriendRequestSent;
 use App\Http\Controllers\Controller;
-use App\Models\TalkStream\FriendRequest;
+use App\Models\TalkStream\FriendRequest as FriendRequestModel;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,13 +15,13 @@ class FriendRequestController extends Controller
     public function send(Request $request)
     {
         $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . Auth::id()]);
-        $existing = FriendRequest::where(['user_id' => Auth::id(), 'friend_id' => $data['friend_id']])->first();
+        $existing = FriendRequestModel::where(['user_id' => Auth::id(), 'friend_id' => $data['friend_id']])->first();
 
         if ($existing && !$existing->accepted && !$existing->declined) {
             return response()->json(['message' => 'Запрос уже отправлен'], 409);
         }
 
-        $req = FriendRequest::create(['user_id' => Auth::id(), 'friend_id' => $data['friend_id']]);
+        $req = FriendRequestModel::create(['user_id' => Auth::id(), 'friend_id' => $data['friend_id']]);
         event(new FriendRequestSent([
             'user_id' => Auth::id(),
             'friend_id' => $data['friend_id']
@@ -32,7 +33,7 @@ class FriendRequestController extends Controller
     // Принятие запроса
     public function accept(Request $request, $id)
     {
-        $req = FriendRequest::findOrFail($id);
+        $req = FriendRequestModel::findOrFail($id);
 
         if ($req->friend_id !== Auth::id()) {
             return response()->json(['message' => 'Нельзя принять чужой запрос'], 403);
@@ -45,19 +46,24 @@ class FriendRequestController extends Controller
     // Входящие запросы
     public function incoming()
     {
-        return response()->json(FriendRequest::where('friend_id', Auth::id())
+        $requests = FriendRequestModel::where('friend_id', Auth::id())
             ->where('accepted', false)
             ->where('declined', false)
             ->with('user')
-            ->get());
+            ->get();
+
+        return response()->json(['data' => $requests]);
     }
 
     // Список друзей
     public function friends()
     {
-        return response()->json(['data' => FriendRequest::where('user_id', Auth::id())
-            ->where('accepted', true)
-            ->with('friend')
-            ->get()]);
+        $userId = Auth::id();
+
+        $users = User::where('id', '!=', $userId)->get();
+
+        $friends = $users->filter(fn($user) => FriendRequestModel::areFriends($userId, $user->id));
+
+        return response()->json(['data' => $friends]);
     }
 }

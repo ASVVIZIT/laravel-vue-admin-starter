@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\TalkStream\FriendRequest;
 use Carbon\Carbon;
 use EloquentFilter\Filterable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -143,5 +144,15 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    public function friendRequestsSent()
+    {
+        return $this->hasMany(FriendRequest::class, 'user_id');
+    }
+
+    public function friendRequestsReceived()
+    {
+        return $this->hasMany(FriendRequest::class, 'friend_id');
     }
 }

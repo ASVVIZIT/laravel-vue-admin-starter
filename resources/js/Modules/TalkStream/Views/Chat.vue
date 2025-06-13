@@ -30,10 +30,9 @@ const selectedContact = ref(null)
 const contactId = Number(route.query.to)
 
 onMounted(async () => {
-
-  if (isNaN(contactId)) {
-    console.warn('[Chat] to_id не указан или неверный')
-    await router.push({name: 'contacts.list'})
+  if (!contactId || isNaN(contactId)) {
+    await router.push('/talkstream/contacts')
+    return
   }
 
   if (!contactId) return
@@ -63,10 +62,11 @@ onMounted(async () => {
   }
 })
 
-function send() {
+async function send() {
   if (!newMessage.value.trim()) return
 
-  chatStore.sendMessage(newMessage.value, contactId)
+  const message = await chatStore.sendMessage(newMessage.value, contactId)
+  messages.value.push(message)
   newMessage.value = ''
 }
 </script>
@@ -85,6 +85,6 @@ function send() {
 }
 
 .chat-form button {
-  padding: 10px 20px;
+  padding: 4px 8px;
 }
 </style>
