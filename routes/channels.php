@@ -33,7 +33,7 @@ Broadcast::channel('call.{userId}', function ($user, $userId) {
 
 // Присутствие
 Broadcast::channel('presence-chat', function ($user) {
-    return ['id' => $user->id, 'name' => $user->name];
+    return ['id' => $user->id, 'name' => $user->name, 'avatar' => $user->avatar];
 });
 
 // Друзья

@@ -1,46 +1,36 @@
 <template>
   <div class="talkstream-history">
-    <div v-for="message in messages" :key="message.id" class="message" :class="message.from_id === currentUser.id ? 'sent' : 'received'">
-      <div class="message-text">{{ message.content }}</div>
+    <div v-for="message in messages" :key="message.id">
+      <MessageItem :contact="props.contact" :message="message" />
     </div>
   </div>
 </template>
 
 <script setup>
 import { defineProps } from 'vue'
+import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
 
 const props = defineProps({
-  messages: {
-    type: Array,
+  contact: {
+    type: Object,
     required: true
   },
-  currentUser: {
-    type: Object,
+  messages: {
+    type: Array,
     required: true
   }
 })
 </script>
 
-<style scoped lang="scss">
+<style module lang="scss">
 .talkstream-history {
   flex: 1;
   padding: 1rem;
   overflow-y: auto;
-  height: calc(100vh - 120px);
-}
-
-.message {
-  max-width: 70%;
-  padding: 0.5rem 1rem;
+  min-height: calc(100vh - 100px);
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
-  margin-bottom: 1rem;
-  background-color: #e0e0e0;
-  color: #333;
-}
-
-.message.sent {
-  align-self: flex-end;
-  background-color: #d1e7dd;
-  margin-left: auto;
+  margin: 1rem;
 }
 </style>

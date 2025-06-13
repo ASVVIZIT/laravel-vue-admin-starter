@@ -1,5 +1,5 @@
 <template>
-  <div class="contacts-container">
+  <el-card class="contacts-container">
     <!-- Меню режимов -->
     <div class="mode-switcher">
       <button
@@ -23,93 +23,87 @@
             :key="contact.id"
             :contact="contact"
             :is-online="contactStore.isOnline(contact.id)"
-            :is-friend="useFriendStore.isFriend(contact.id)"
-            :has-incoming="useFriendStore.hasIncoming(contact.id)"
-            :has-sent="useFriendStore.hasSent(contact.id)"
+            :is-friend="isFriend(contact.id)"
             @select="selectContact"
         />
       </ul>
     </div>
-  </div>
+  </el-card>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
 import { userStore } from '@/store/user'
-import { setupPresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
-import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
+
+
+const props = defineProps(['contacts'])
+const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 
 const router = useRouter()
-const route = useRoute()
 const contactStore = useContactStore()
 const useFriendStore = friendStore()
+
+const route = useRoute()
 const useUserStore = userStore()
 
-const contacts = ref([])
+const contacts = computed(() => contactStore.contacts)
 const currentMode = ref(route.params.mode || 'chat')
 
-// Хранение каналов для отписки
-const presenceChannel = ref(null)
-const friendRequestsChannel = ref(null)
+const isFriend = (userId) => {
+  return useFriendStore.friends.some(f => f.id === userId)
+}
 
-onMounted(async () => {
-  // Загрузка контактов
-  if (!contactStore.contacts.length) {
-    await contactStore.loadContacts()
-    contacts.value = contactStore.contacts
-  }
+const hasIncomingRequest = (userId) => {
+  return useFriendStore.incomingRequests.some(r => r.user_id === userId)
+}
 
-  // Проверка авторизации
-  try {
-    if (!useUserStore.id) {
-      await useUserStore.getInfo()
-    }
-  } catch (e) {
-    console.warn('Пользователь не авторизован')
-    router.push('/login')
-  }
+const hasSentRequest = (userId) => {
+  return useFriendStore.sentRequests.some(r => r.friend_id === userId)
+}
 
-  // Загрузка друзей и запросов
-  if (!useFriendStore.friends.length) {
-    await useFriendStore.loadFriendsList()
-  }
+function selectContact(contact) {
+  //router.push({ name: 'chat', query: { to: contact.id }})
+   emit('select', contact)
+}
 
-  if (!useFriendStore.incomingRequests.length) {
-    await useFriendStore.loadIncomingRequests()
-  }
+function sendRequest(contact) {
+  useFriendStore.sendRequest(contact.id)
+  //emit('add-friend', contact)
+}
 
-  if (!useFriendStore.sentRequests.length) {
-    await useFriendStore.loadSentRequests()
-  }
+function acceptRequest(contact) {
+  useFriendStore.acceptRequest(contact.id)
+ /// emit('accept-request', contact)
+}
 
-  // Инициализация подписок
-  presenceChannel.value = setupPresenceChannel()
-  friendRequestsChannel.value = setupFriendRequestsChannel()
-})
-
-onUnmounted(() => {
-  // Отписка от каналов
-  if (presenceChannel.value) {
-    presenceChannel.value.leave()
-  }
-
-  if (friendRequestsChannel.value) {
-    friendRequestsChannel.value.stopListening()
-  }
-})
+function switchMode(mode) {
+  currentMode.value = mode
+ // router.push(`/talkstream/${mode}`)
+}
 </script>
 
 <style scoped lang="scss">
-.talkstream-contacts {
-  width: 250px;
+.contacts-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: 1rem;
-  border-right: 1px solid #eaeaea;
+}
+
+.mode-switcher {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.contacts-wrap {
+  flex-grow: 1;
   overflow-y: auto;
-  height: 100vh;
+  max-height: calc(100vh - 220px);
 }
 
 .contact-list {

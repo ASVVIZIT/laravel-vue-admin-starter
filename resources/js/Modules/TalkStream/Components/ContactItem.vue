@@ -4,27 +4,15 @@
     <div class="contact-actions">
       <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
 
-      <button v-if="isFriend" disabled class="btn btn-friend">
-        <span>✔</span>
-        <span>Друг</span>
-      </button>
-      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">
-        <span>✔</span>
-        <span>Принять</span>
-      </button>
-      <button v-else-if="hasSent" disabled class="btn btn-sent">
-        <span>⏳</span>
-        <span>Запрошено</span>
-      </button>
-      <button v-else @click.stop="add" class="btn btn-add">
-        <span>➕</span>
-        <span>Добавить</span>
-      </button>
+      <button v-if="isFriend" disabled class="btn btn-friend">✔ Друг</button>
+      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">✔ Принять</button>
+      <button v-else-if="hasSent" disabled class="btn btn-sent">⏳ Запрошено</button>
+      <button v-else @click.stop="add" class="btn btn-add">➕ Добавить</button>
     </div>
 
     <!-- Информация о контакте -->
     <div class="contact-info" :class="{ friend: isFriend }">
-      {{ contact?.name || 'Без имени' }}
+      {{ contact?.name || defaultName }}
     </div>
   </li>
 </template>
@@ -32,7 +20,6 @@
 <script setup>
 import { defineProps, defineEmits } from 'vue'
 import { useRouter } from 'vue-router'
-import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 
 const props = defineProps({
   contact: {
@@ -59,20 +46,21 @@ const props = defineProps({
 
 const router = useRouter()
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
-const useFriendStore = friendStore()
+
+// Заглушки по умолчанию
+const defaultId = 'Без ID'
+const defaultName = 'Без имени'
 
 function select() {
-  router.push({ name: 'chat', query: { to: props.contact.id } })
+  //router.push({ name: 'chat', query: { to: props.contact.id || defaultId }})
   emit('select', props.contact)
 }
 
 function add() {
-  useFriendStore.sendRequest(props.contact.id)
   emit('add-friend', props.contact)
 }
 
 function accept() {
-  useFriendStore.acceptRequest(props.contact.id)
   emit('accept-request', props.contact)
 }
 </script>
@@ -113,11 +101,9 @@ function accept() {
 .btn {
   display: inline-flex;
   align-items: center;
-  min-width: 50px;
-  width: 100%;
   gap: 4px;
   font-size: 0.75rem;
-  padding: 3px 8px;
+  padding: 2px 6px;
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -131,20 +117,20 @@ function accept() {
   }
 
   &.btn-add {
-    background-color: #5791c2;
+    background-color: #42b983;
     color: white;
 
     &:hover {
-      background-color: #3c759f;
+      background-color: #36a871;
     }
   }
 
   &.btn-accept {
-    background-color: #34dc9c;
+    background-color: #3490dc;
     color: white;
 
     &:hover {
-      background-color: #35a179;
+      background-color: #2779bf;
     }
   }
 
@@ -158,8 +144,8 @@ function accept() {
   }
 
   &.btn-friend {
-    background-color: rgb(68, 134, 66);
-    color: rgba(243, 238, 238, 0.95);
+    background-color: #ccc;
+    color: #555;
     cursor: not-allowed;
   }
 }
@@ -177,6 +163,6 @@ function accept() {
 
 .contact-info.friend {
   font-weight: bold;
-  color: rgb(68, 134, 66);
+  color: #42b983;
 }
 </style>

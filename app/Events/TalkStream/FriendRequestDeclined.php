@@ -7,7 +7,7 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Foundation\Events\Dispatchable;
 
-class FriendRequestAccepted implements ShouldBroadcast
+class FriendRequestDeclined implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets;
 
@@ -20,6 +20,6 @@ class FriendRequestAccepted implements ShouldBroadcast
 
     public function broadcastAs(): string
     {
-        return 'FriendRequestAccepted';
+        return 'FriendRequestDeclined';
     }
 }

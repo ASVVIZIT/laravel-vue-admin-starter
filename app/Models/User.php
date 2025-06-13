@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Storage;
 use App\Models\TalkStream\FriendRequest;
 use Carbon\Carbon;
 use EloquentFilter\Filterable;
@@ -12,101 +13,57 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
-
-/**
- * Class User
- *
- * @property string $name
- * @property string $email
- * @property string $password
- * @property Role[] $roles
- *
- * @method static User create(array $user)
- * @package App
- */
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles, Filterable;
 
-    /**
-     * Set permissions guard to API by default
-     * @var string
-     */
     protected $guard_name = 'api';
 
-    /**
-     * Sex map
-     * */
-    const sexMap = [
+    const SEX_MAP = [
         0 => 'Male',
         1 => 'Female'
     ];
 
-    /**
-     * The attributes that should be mutated to dates.
-     *
-     * @var array
-     */
     protected $dates = ['deleted_at', 'birthday'];
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
-        'name', 'email', 'password', 'status', 'sex', 'birthday', 'description'
+        'name', 'email', 'password', 'status', 'sex', 'birthday', 'description', 'avatar'
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     *
-     * @var array
-     */
     public $appends = ['age', 'sex_format'];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
         'password',
         'updated_at',
         'deleted_at'
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
 
-    /**
-     * Определение отношения "один ко многим" с моделью UserTab.
-     */
     public function userTabs()
     {
         return $this->hasMany(UserTab::class);
     }
 
-    /**
-     * Get the avatar and return the default avatar if the avatar is null.
-     *
-     * @param string $value
-     * @return string
-     */
     public function getAvatarAttribute($value)
     {
-        return !empty($value) ? $value : config('content.default_avatar');
+        // Если аватарка указана и существует
+        if (!empty($value) && Storage::disk('public')->exists($value)) {
+            return $value;
+        }
+
+        // Иначе — определяем дефолтную аватарку по полу
+        $defaultAvatar = self::SEX_MAP[$this->sex] === 'Male'
+            ? config('content.default_avatar_male')
+            : config('content.default_avatar_female');
+
+        return $defaultAvatar;
     }
 
     public function getSexFormatAttribute()
     {
-        return self::sexMap[$this->sex];
+        return self::SEX_MAP[$this->sex];
     }
 
     public function getAgeAttribute()
@@ -117,11 +74,6 @@ class User extends Authenticatable
         return Carbon::now()->diffInYears($this->birthday);
     }
 
-    /**
-     * Check if user has a permission
-     * @param String
-     * @return bool
-     */
     public function hasPermission($permission): bool
     {
         foreach ($this->roles as $role) {
@@ -132,9 +84,6 @@ class User extends Authenticatable
         return false;
     }
 
-    /**
-     * @return bool
-     */
     public function isAdmin(): bool
     {
         foreach ($this->roles as $role) {
@@ -142,7 +91,6 @@ class User extends Authenticatable
                 return true;
             }
         }
-
         return false;
     }
 
@@ -155,7 +103,6 @@ class User extends Authenticatable
     {
         return $this->hasMany(FriendRequest::class, 'friend_id');
     }
-
 
     public function getAuthIdentifier()
     {

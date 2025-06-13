@@ -1,9 +1,7 @@
 // src/modules/TalkStream/Subscriptions/userOnlinePresenceHandler.js
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 
 const contactStore = useContactStore()
-const useFriendStore = friendStore()
 
 export function setupPresenceChannel() {
     const ENABLE_LOGGING = true
