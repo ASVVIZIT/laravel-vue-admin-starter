@@ -3,15 +3,30 @@
 import { defineStore } from 'pinia'
 import TalkService from '@/modules/TalkStream/Services/talkService'
 import {friendStore} from "@modules/TalkStream/Stores/friendStore.js";
+import { userStore } from '@/store/user'
 const useFriendStore = friendStore()
-
+const useUserStore = userStore()
 export const useContactStore = defineStore('contact', {
     state: () => ({
         contacts: [],
         onlineUsers: [],
-        talkService: new TalkService()
+        talkService: new TalkService(),
+        userId: null,
+        userFrom: updateUserFrom(),
     }),
     actions: {
+
+        // Загрузка ID текущего пользователя
+        async loadUserId() {
+            try {
+                const res = await this.talkService.getUserId()
+                this.userId = res.data.id
+            } catch (e) {
+                console.error('[contactStore] Не удалось получить ID пользователя')
+                this.userId = null
+            }
+        },
+
         async loadContacts() {
             try {
                 const res = await this.talkService.getContacts({}, 'contacts')
@@ -49,6 +64,19 @@ export const useContactStore = defineStore('contact', {
         },
         isOnline(userId) {
             return this.onlineUsers.includes(userId)
+        },
+        async refreshUserFrom() {
+            await useUserStore.getInfo()
+            this.userFrom = updateUserFrom()
         }
-    }
+    },
 })
+function updateUserFrom() {
+    return {
+        id: useUserStore.id,
+        name: useUserStore.name,
+        avatar: useUserStore.avatar,
+        email: useUserStore.email,
+        roles: useUserStore.roles
+    }
+}

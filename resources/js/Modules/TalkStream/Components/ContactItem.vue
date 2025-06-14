@@ -1,18 +1,30 @@
 <template>
   <li class="contact-item" :class="{ online: isOnline, friend: isFriend }" @click="select">
-    <!-- Статус и действия -->
-    <div class="contact-actions">
+    <!-- Аватарка + статус онлайн -->
+    <div class="contact-avatar-wrapper">
+      <div class="contact-avatar" :style="{ backgroundImage: `url(${contact.avatar || '/images/default-avatar.png'})` }"></div>
       <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
-
-      <button v-if="isFriend" disabled class="btn btn-friend">✔ Друг</button>
-      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">✔ Принять</button>
-      <button v-else-if="hasSent" disabled class="btn btn-sent">⏳ Запрошено</button>
-      <button v-else @click.stop="add" class="btn btn-add">➕ Добавить</button>
     </div>
 
     <!-- Информация о контакте -->
     <div class="contact-info" :class="{ friend: isFriend }">
       {{ contact?.name || defaultName }}
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="contact-actions">
+      <button v-if="isFriend" disabled class="btn btn-friend">
+        {{statusText}}
+      </button>
+      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">
+        {{statusText}}
+      </button>
+      <button v-else-if="hasSent" disabled class="btn btn-sent">
+        {{statusText}}
+      </button>
+      <button v-else @click.stop="add" class="btn btn-add">
+        {{statusText}}
+      </button>
     </div>
   </li>
 </template>
@@ -48,8 +60,14 @@ const router = useRouter()
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 
 // Заглушки по умолчанию
-const defaultId = 'Без ID'
 const defaultName = 'Без имени'
+
+const statusText = computed(() => {
+  if (props.isFriend) return '✔ Друг'
+  if (props.hasIncoming) return '✔ Запрос в друзья'
+  if (props.hasSent) return '⏳ Запрос отправлен'
+  return '➕ Добавить'
+})
 
 function select() {
   //router.push({ name: 'chat', query: { to: props.contact.id || defaultId }})
@@ -70,46 +88,99 @@ function accept() {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.5rem 0.75rem;
+  padding: 0.35rem 0.45rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: background-color 0.2s ease;
   max-width: 100%;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
 }
 
 .contact-item:hover {
   background-color: #f9f9f9;
 }
 
-.contact-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 120px;
-  white-space: nowrap;
-  font-size: 0.85rem;
+/* ———————————————————————— */
+/* Аватарка и статус онлайн */
+/* ———————————————————————— */
+.contact-avatar-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-right: 0.8rem;
+}
+
+.contact-avatar {
+  width: 28px;
+  height: 28px;
+  border: 0.12rem solid #b8c4cc;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
 }
 
 .status-indicator {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  font-size: 0.40rem;
+  color: #42b983;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ———————————————————————— */
+/* Информация о контакте */
+/* ———————————————————————— */
+.contact-info {
+  flex-grow: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: 500;
   font-size: 0.8rem;
-  min-width: 20px;
-  text-align: center;
+  color: #333;
+}
+
+.contact-info.friend {
+  font-weight: bold;
+  color: #42b983;
+}
+
+/* ———————————————————————— */
+/* Кнопки действий */
+/* ———————————————————————— */
+.contact-actions {
+  min-width: 80px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
 }
 
 .btn {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 0.75rem;
-  padding: 2px 6px;
+  gap: 0.1rem;
+  width: 100%;
+  padding: 0.2rem 0.35rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 3px;
+  font-size: 0.60rem;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  transition: background-color 0.2s ease;
+  text-align: left;
 
   &:disabled {
     opacity: 0.7;
@@ -145,24 +216,12 @@ function accept() {
 
   &.btn-friend {
     background-color: #ccc;
-    color: #555;
+    color: #2c2a2a;
     cursor: not-allowed;
+
+    &:hover {
+      background-color: #919090;
+    }
   }
-}
-
-.contact-info {
-  flex-grow: 1;
-  margin-left: 12px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-weight: 500;
-  font-size: 0.9rem;
-  color: #333;
-}
-
-.contact-info.friend {
-  font-weight: bold;
-  color: #42b983;
 }
 </style>

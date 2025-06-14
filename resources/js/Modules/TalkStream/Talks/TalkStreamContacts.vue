@@ -1,5 +1,5 @@
 <template>
-  <el-card class="contacts-container">
+  <div class="contacts-container">
     <!-- Меню режимов -->
     <div class="mode-switcher">
       <button
@@ -32,7 +32,7 @@
         />
       </ul>
     </div>
-  </el-card>
+  </div>
 </template>
 
 <script setup>
@@ -94,7 +94,9 @@ function switchMode(mode) {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 1rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #eaeaea;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .mode-switcher {
@@ -106,7 +108,7 @@ function switchMode(mode) {
 .contacts-wrap {
   flex-grow: 1;
   overflow-y: auto;
-  max-height: calc(100vh - 220px);
+  max-height: calc(100vh - 160px);
 }
 
 .contact-list {

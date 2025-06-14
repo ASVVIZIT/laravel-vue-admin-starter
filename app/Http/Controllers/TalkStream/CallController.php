@@ -12,6 +12,9 @@ class CallController extends Controller
 {
     public function startCall(Request $request)
     {
+
+        $userId = auth()->id();
+
         $validator = Validator::make($request->all(), [
             'to_id' => 'required|exists:users,id',
             'type' => 'in:audio,video'
@@ -23,7 +26,7 @@ class CallController extends Controller
 
         $to_id = $request->input('to_id');
 
-        if (!FriendRequest::areFriends(Auth::id(), $to_id)) {
+        if (!FriendRequest::areFriends($userId, $to_id)) {
             return response()->json(['error' => 'Вы можете звонить только друзьям'], 403);
         }
 

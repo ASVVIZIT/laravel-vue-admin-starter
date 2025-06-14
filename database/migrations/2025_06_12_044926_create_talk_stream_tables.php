@@ -13,6 +13,7 @@ class CreateTalkStreamTables extends Migration
             $table->unsignedBigInteger('from_id');
             $table->unsignedBigInteger('to_id');
             $table->text('content');
+            $table->text('type');
             $table->timestamp('read_at')->nullable();
             $table->timestamps();
 

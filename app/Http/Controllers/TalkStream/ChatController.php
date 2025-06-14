@@ -1,6 +1,7 @@
 <?php
 namespace App\Http\Controllers\TalkStream;
 
+use App\Events\TalkStream\MessageRead;
 use App\Events\TalkStream\NewMessage;
 use App\Http\Controllers\Controller;
 use App\Models\TalkStream\FriendRequest;
@@ -13,6 +14,8 @@ class ChatController extends Controller
 {
     public function sendMessage(Request $request)
     {
+        $userId = auth()->id();
+
         $validator = Validator::make($request->all(), [
             'content' => 'required|string',
             'to_id' => 'required|exists:users,id'
@@ -24,12 +27,12 @@ class ChatController extends Controller
 
         $to_id = $request->input('to_id');
 
-        if (!FriendRequest::areFriends(Auth::id(), $to_id)) {
+        if (!FriendRequest::areFriends($userId, $to_id)) {
             return response()->json(['error' => 'Вы можете писать только друзьям'], 403);
         }
 
         $message = Message::create([
-            'from_id' => Auth::id(),
+            'from_id' => $userId,
             'to_id' => $to_id,
             'content' => $request->input('content')
         ]);
@@ -40,7 +43,7 @@ class ChatController extends Controller
             'content' => $message->content
         ]));
 
-        return response()->json(['status' => 'Message sent']);
+        return response()->json(['status' => 'Message sent','data' => $message]);
     }
 
     public function getHistory(Request $request, $userId)
@@ -51,6 +54,22 @@ class ChatController extends Controller
             $q->where('from_id', $userId)->where('to_id', $request->user()->id);
         })->orderBy('created_at', 'asc')->get();
 
-        return response()->json($messages);
+        return response()->json(['data' => $messages]);
+    }
+
+    public function markAsRead($userReadId)
+    {
+        $userId = auth()->id();
+        Message::where('to_id', $userId)
+            ->where('from_id', $userReadId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        event(new MessageRead([
+            'from_id' => $userReadId,
+            'to_id' => $userId
+        ]));
+
+        return response()->json(['status' => 'ok']);
     }
 }

@@ -6,6 +6,11 @@ export default class TalkService extends Resource {
         super('talkstream') // префикс для всех запросов: /api/talkstream/...
     }
 
+    // Получение данных текущего пользователя
+    getUserId(query = {}, path = 'user') {
+        return this.list(query, path) // GET /api/talkstream/user
+    }
+
     getContacts(query = {}, path = '') {
         return this.list(query, path)
     }
@@ -19,14 +24,14 @@ export default class TalkService extends Resource {
         return this.list(query, path)
     }
 
-    isFriend(userId) {
-        return this.get(userId, 'friends/is-friend')
+    isFriend(userId, path = 'friends/is-friend') {
+        return this.get(userId, path)
     }
 
     // Добавь методы для работы с друзьями
     // Добавить в друзья
-    sendFriendRequest(friend_id) {
-        return this.store({ friend_id }, 'friends/send')
+    sendFriendRequest(friend_id, path = 'friends/send') {
+        return this.store({ friend_id }, path)
     }
     async getSentRequests() {
         try {
@@ -40,8 +45,8 @@ export default class TalkService extends Resource {
     }
 
     // Принять запрос в друзья
-    acceptFriendRequest(id) {
-        return this.store({ id }, `friends/accept/${id}`)
+    acceptFriendRequest(id, path = `friends/accept/${id}`) {
+        return this.store({ id }, path)
     }
 
     getFriendsList() {
@@ -53,14 +58,21 @@ export default class TalkService extends Resource {
         return this.list({}, 'friends/incoming')
     }
 
+    // Загрузка истории
     getHistory(userId, path = 'history') {
         return this.get(userId, path)
+    }
+
+    // Отметка как прочитанное
+    async markAsRead(userId, path = `read/${userId}`) {
+        return await this.store({userId}, path)
     }
 
     getCallHistory(userId, path = 'call/history') {
         return this.get(userId, path)
     }
 
+    // Отправка сообщения
     sendMessage(content, to_id) {
         return this.store({ content, to_id }, 'send')
     }

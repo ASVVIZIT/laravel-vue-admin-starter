@@ -44,6 +44,7 @@ export const userStore = defineStore('user', {
         this.$patch({
           id: data.id,
           name: data.name,
+          avatar: data.avatar,
           email: data.email,
           roles: data.roles,
           permissions: data.permissions
