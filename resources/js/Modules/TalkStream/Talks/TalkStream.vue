@@ -1,13 +1,13 @@
 <template>
-  <div class="talkstream-container">
+  <div className="talkstream-container">
     <!-- Список контактов -->
-    <TalkStreamContacts @select="handleSelectContact" />
+    <TalkStreamContacts @select="handleSelectContact"/>
 
     <!-- Чат -->
-    <div class="talkstream-chat">
+    <div className="talkstream-chat">
       <TalkStreamHeader
           :contact="selectedContact"
-          :is-online="contactStore.isOnline(selectedContact.id)"
+          :is-online="contactStore.isOnline(selectedContact?.id)"
       />
       <TalkStreamHistory
           ref="history"
@@ -15,7 +15,6 @@
           :contact="selectedContact"
           :userFrom="contactStore.userFrom"
           :messages="messages"
-          :is-online="contactStore.isOnline(4)"
       />
       <TalkStreamSender
           v-if="selectedContact"
@@ -28,13 +27,14 @@
 
 <script setup>
 import {ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
-import { useRouter } from 'vue-router'
-import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
-import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
-import { userStore } from '@/store/user'
-import { setupPresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
-import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
+import {useRouter} from 'vue-router'
+import {useTalkStreamStore} from '@/modules/TalkStream/Stores/talkStreamStore.js'
+import {useContactStore} from '@/modules/TalkStream/Stores/contactStore'
+import {useChatStore} from '@/modules/TalkStream/Stores/chatStore'
+import {friendStore} from '@/modules/TalkStream/Stores/friendStore'
+import {userStore} from '@/store/user'
+
+// Компоненты
 import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
 import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
 import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
@@ -49,24 +49,26 @@ const useUserStore = userStore()
 // Состояние для хранения выбранного контакта
 const selectedContact = ref(null)
 const history = ref(null)
+
+// Сообщения из стора
 const messages = computed(() => chatStore.messages)
 
-// Обработчик выбора контакта
+/**
+ * Обработчик выбора контакта
+ */
 const handleSelectContact = (contact) => {
+  if (!contact) return
 
-  console.log('handleSelectContact ', contact)
   selectedContact.value = contact
   localStorage.setItem('last-selected-contact', contact.id)
-  // Загрузка истории
-  contactStore.selectedContact = contact.id
+  contactStore.selectContact(contact)
   chatStore.loadHistory(contact.id)
 }
 
-// Подписки
-const presenceChannel = ref(null)
-const friendRequestsChannel = ref(null)
-
-function handleSendMessage(data) {
+/**
+ * Обработчик отправки сообщения
+ */
+const handleSendMessage = (data) => {
   const tempMessage = {
     id: Date.now(),
     content: data.content,
@@ -90,6 +92,7 @@ function handleSendMessage(data) {
         console.error('Ошибка отправки:', err)
         chatStore.removeLocalMessage(tempMessage.id)
       })
+
   // Автоскролл
   if (history.value?.scrollToBottom) {
     history.value.scrollToBottom()
@@ -101,7 +104,6 @@ onMounted(async () => {
   if (!useUserStore.id) {
     try {
       await useUserStore.getInfo()
-
       contactStore.userId = useUserStore.id
       console.log('Пользователь Авторизован')
     } catch (e) {
@@ -112,18 +114,17 @@ onMounted(async () => {
     await contactStore.refreshUserFrom()
   }
 
-
   // Загрузка контактов
   if (!contactStore.contacts.length) {
     await contactStore.loadContacts()
   }
-
 
   if (selectedContact.value) {
     if (!chatStore.messages.length) {
       await chatStore.loadHistory()
     }
   }
+
   // Загрузка друзей и запросов
   if (!useFriendStore.friends.length) {
     await useFriendStore.loadFriendsList()
@@ -136,10 +137,11 @@ onMounted(async () => {
   if (!useFriendStore.sentRequests.length) {
     await useFriendStore.loadSentRequests()
   }
+
   nextTick(() => {
     // Мгновенная прокрутка без анимации при инициализации
     if (history.value) {
-      history.value.scrollTop = history.value.scrollHeight;
+      history.value.scrollTop = history.value.scrollHeight
     }
   });
 
@@ -150,47 +152,9 @@ onMounted(async () => {
   }
 
   // Подписка на события
-  if (window.Echo && contactStore.userId) {
-    window.Echo.private(`chat.${contactStore.userId}`)
-        .listen('.NewMessage', (e) => {
-          // ❌ Не добавляем свои же сообщения
-          if (e.message.from_id === contactStore.userId) return
-
-          chatStore.addLocalMessage(e.message)
-          if (history.value?.scrollToBottom) {
-            history.value.scrollToBottom()
-          }
-        })
-
-    window.Echo.private(`chat.read.${contactStore.userId}`)
-        .listen('.MessageRead', (e) => {
-          chatStore.markAsRead(e.message.from_id)
-        })
-  }
-
-  // Подписка на события
-  presenceChannel.value = setupPresenceChannel()
-  friendRequestsChannel.value = setupFriendRequestsChannel()
-
+  const talkStream = useTalkStreamStore()
+  talkStream.initWebSockets()
 })
-
-onUnmounted(() => {
-  // Отписка от каналов
-  if (presenceChannel.value) {
-    presenceChannel.value.leave()
-  }
-
-  if (friendRequestsChannel.value) {
-    friendRequestsChannel.value.stopListening()
-  }
-})
-
-function scrollToBottom() {
-  if (history.value) {
-    history.value.scrollToBottom();
-  }
-}
-
 </script>
 
 <style scoped lang="scss">

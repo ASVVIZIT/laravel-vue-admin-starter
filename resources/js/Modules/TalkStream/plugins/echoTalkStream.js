@@ -42,23 +42,25 @@ export function createEcho() {
         const configEcho = {
             broadcaster: 'reverb',
             key: import.meta.env.VITE_REVERB_APP_KEY,
-            wsHost: import.meta.env.VITE_REVERB_HOST,
-            wsPort: import.meta.env.VITE_REVERB_PORT,
-            wssPort: import.meta.env.VITE_REVERB_PORT,
+            wsHost: import.meta.env.VITE_REVERB_HOST,    // ✅ Здесь должно быть 94.41.87.10
+            wsPort: import.meta.env.VITE_REVERB_PORT,    // ✅ 8080
+            wssPort: import.meta.env.VITE_REVERB_PORT,   // ✅ http
             scheme: import.meta.env.VITE_REVERB_SCHEME,
+            authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/api/broadcasting/auth',
+            wsPath: import.meta.env.VITE_REVERB_PATH || '/ws',
             forceTLS: false,
             disableStats: true,
             enabledTransports: ['ws', 'wss'],
-            wsPath: import.meta.env.VITE_REVERB_PATH,
-            authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/api/broadcasting/auth',
+            withCredentials: true,
             auth: {
                 headers: {
                     'Accept': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-Socket-ID': () => echoInstance?.socketId() || '',
                     'X-CSRF-TOKEN': csrfToken,
-                }
+                    'X-Requested-With': 'XMLHttpRequest',
+                    //'X-Socket-ID': () => echoInstance?.socketId() || '',
+                },
+                withCredentials: true,
             }
         };
 

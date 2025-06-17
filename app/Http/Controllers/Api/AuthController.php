@@ -2,14 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\BaseController;
 use App\Http\Resources\UserResource;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
+use function csrf_token;
+use function logger;
+use function response;
+use function responseSuccess;
+use function session;
 
 /**
  * Class AuthController
@@ -18,12 +22,42 @@ use Illuminate\Support\Facades\Log;
  */
 class AuthController extends BaseController
 {
+    public function csrf(Request $request)
+    {
+        // Получаем или запускаем сессию
+        $session = $request->session();
+
+        if (!$session->isStarted()) {
+            $session->start();
+        }
+
+        // Генерируем токен
+        $token = csrf_token();
+
+        // Отправляем его как куку
+        return response()->json(['status' => 'CSRF cookie set'])
+            ->withCookie(Cookie::make('XSRF-TOKEN', $token, 1440, null, null, false, false))
+            ->withCookie(Cookie::make(
+                'laravel_vue_admin_fenix_session',
+                $session->getId(),
+                1440,
+                null,
+                null,
+                false,
+                false,
+                false,
+                null,
+                'None'
+            ));
+    }
+
     /**
      * @param Request $request
      * @return JsonResponse
      */
     public function login(Request $request)
     {
+
 
         // Временная отладка
         Log::debug('CSRF Token: ' . csrf_token());

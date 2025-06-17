@@ -3,13 +3,15 @@
     <div v-if="contact" class="talkstream-header-line">
       <div class="user-avatar-wrapper">
         <div class="user-avatar" :style="{ backgroundImage: `url(${contact.avatar || '/images/default-avatar.png' })`}"></div>
-        <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
+        <span class="status-indicator">{{ contactIsOnline ? '🟢' : '⚪' }}</span>
       </div>
+
       <div class="user-name">{{ contact.name || 'Без имени' }}</div>
-      <div class="user-id">{{ contact.id || 'Без id' }}</div>
+      <div class="user-id">ID: {{ contact.id || 'нет' }}</div>
     </div>
-    <div v-else-if="!contact">
-        Выберите контакт
+
+    <div v-else class="no-contact">
+      Выберите контакт
     </div>
   </div>
 </template>
@@ -18,14 +20,21 @@
 import { defineProps } from 'vue'
 
 const props = defineProps({
+  contact: {
+    type: Object,
+    required: false,
+    default: null
+  },
   isOnline: {
     type: Boolean,
     default: false
-  },
-  contact: {
-    type: Object,
-    required: true
   }
+})
+
+// Если контакт задан — проверяем по ID
+const contactIsOnline = computed(() => {
+  if (!props.contact) return false
+  return props.isOnline || false
 })
 </script>
 

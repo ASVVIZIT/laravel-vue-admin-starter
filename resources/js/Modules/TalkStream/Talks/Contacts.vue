@@ -40,7 +40,7 @@ import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
 import { userStore } from '@/store/user'
-import { setupPresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
+import { setupUserOnlinePresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
 import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
 
 const router = useRouter()
@@ -87,19 +87,19 @@ onMounted(async () => {
   }
 
   // Инициализация подписок
-  presenceChannel.value = setupPresenceChannel()
-  friendRequestsChannel.value = setupFriendRequestsChannel()
+  //presenceChannel.value = setupUserOnlinePresenceChannel()
+  //friendRequestsChannel.value = setupFriendRequestsChannel()
 })
 
 onUnmounted(() => {
   // Отписка от каналов
-  if (presenceChannel.value) {
+ /* if (presenceChannel.value) {
     presenceChannel.value.leave()
   }
 
   if (friendRequestsChannel.value) {
     friendRequestsChannel.value.stopListening()
-  }
+  }*/
 })
 
 function switchMode(mode) {

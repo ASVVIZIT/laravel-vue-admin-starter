@@ -6,9 +6,9 @@ const useFriendStore = friendStore()
 export function setupFriendRequestsChannel() {
     const ENABLE_LOGGING = true
 
-    if (!window.echoTalkStream) return null
+    if (!window.talkStreamStore.echo) return null
 
-    const channel = window.echoTalkStream.private(`friends.${useFriendStore.userId}`)
+    const channel = window.talkStreamStore.echo.private(`friends.${useFriendStore.userId}`)
 
     channel
         .listen('.FriendRequestSent', (e) => {

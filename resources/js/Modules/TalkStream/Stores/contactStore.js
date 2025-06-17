@@ -1,23 +1,32 @@
-// resources/js/modules/TalkStream/Stores/contactStore.js
-
 import { defineStore } from 'pinia'
 import TalkService from '@/modules/TalkStream/Services/talkService'
-import {friendStore} from "@modules/TalkStream/Stores/friendStore.js";
 import { userStore } from '@/store/user'
-const useFriendStore = friendStore()
-const useUserStore = userStore()
+
 export const useContactStore = defineStore('contact', {
     state: () => ({
         contacts: [],
-        onlineUsers: [],
+        onlineUsers: [], // Список ID пользователей онлайн
         talkService: new TalkService(),
         selectedContact: null,
-        userId: updateUserFrom().id,
-        userFrom: updateUserFrom(),
+        userId: null,
+        userFrom: {
+            id: null,
+            name: '',
+            avatar: '',
+            email: '',
+            roles: []
+        }
     }),
+    getters: {
+        isOnline: (state) => (userId) => {
+            return userId ? state.onlineUsers.includes(userId) : false
+        },
+        isUserOnline: (state) => (userId) => {
+            if (!userId) return false;
+            return state.onlineUsers.includes(userId);
+        }
+    },
     actions: {
-
-        // Загрузка ID текущего пользователя
         async loadUserId() {
             try {
                 const res = await this.talkService.getUserId()
@@ -38,46 +47,65 @@ export const useContactStore = defineStore('contact', {
             }
         },
 
+        selectContact(contact) {
+            this.selectedContact = contact
+            localStorage.setItem('last-selected-contact', contact.id)
+            console.log('[ContactStore] Выбран контакт:', contact.id)
+        },
+
         async getContact(id) {
-            // Используем существующий сервис
             const res = await this.talkService.get(id, 'contacts')
-            this.contacts.push(res.data)
-            return res.data
+            const contact = res.data
+            const index = this.contacts.findIndex(c => c.id === contact.id)
+
+            if (index >= 0) {
+                this.contacts[index] = contact
+            } else {
+                this.contacts.push(contact)
+            }
+
+            return contact
         },
 
         getFriendsOnly() {
-            return this.contacts.filter(c => useFriendStore.isFriend(c.id))
+            return this.contacts.filter(c => useFriendStore().isFriend(c.id))
         },
 
         async getIncomingRequests() {
             const res = await this.talkService.getIncomingFriends({}, 'friends/incoming')
             return res.data
         },
+
         async getFriendsList() {
             const res = await this.talkService.getFriendsList()
             return res.data
         },
+
         setOnline(userId) {
-            if (!this.onlineUsers.includes(userId)) this.onlineUsers.push(userId)
+            if (!this.onlineUsers.includes(userId)) {
+                this.onlineUsers.push(userId)
+            }
         },
+
         setOffline(userId) {
             this.onlineUsers = this.onlineUsers.filter(id => id !== userId)
         },
-        isOnline(userId) {
-            return this.onlineUsers.includes(userId)
-        },
+
+/*        isOnline(userId) {
+            return userId ? this.onlineUsers.includes(userId) : false
+        },*/
+
         async refreshUserFrom() {
+            const useUserStore = userStore()
             await useUserStore.getInfo()
-            this.userFrom = updateUserFrom()
+
+            this.userFrom = {
+                id: useUserStore.id,
+                name: useUserStore.name,
+                avatar: useUserStore.avatar,
+                email: useUserStore.email,
+                roles: useUserStore.roles
+            }
         }
-    },
-})
-function updateUserFrom() {
-    return {
-        id: useUserStore.id,
-        name: useUserStore.name,
-        avatar: useUserStore.avatar,
-        email: useUserStore.email,
-        roles: useUserStore.roles
     }
-}
+})

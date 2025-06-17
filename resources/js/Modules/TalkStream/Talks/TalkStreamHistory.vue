@@ -14,7 +14,6 @@
             :userFrom="userFrom"
             :contact="contact"
             :message="message"
-            :is-online="props.isOnline"
             :is-first-in-group="isFirstInGroup(index)"
             :is-last-in-group="isLastInGroup(index)"
             :is-group-start="isGroupStart(index)"

@@ -13,7 +13,7 @@ return [
         'reverb' => [
             'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
             'port' => env('REVERB_SERVER_PORT', 8080), // Используем порт
-            'path' => env('REVERB_SERVER_PATH', '/reverb'), // Добавляем путь /ws
+            'path' => env('REVERB_SERVER_PATH', '/ws'), // Добавляем путь /ws
             'hostname' => env('REVERB_HOST', '94.41.87.10'), // Ваш внешний IP
             'options' => [
                 'tls' => [],
@@ -48,7 +48,7 @@ return [
                 'app_id' => env('REVERB_APP_ID', 'talkstream_app'),
                 'options' => [
                     'host' => env('REVERB_HOST', '94.41.87.10'), // Ваш внешний IP
-                    'port' => env('REVERB_PORT', 8050), // Порт 8050
+                    'port' => env('REVERB_PORT', 8080),
                     'scheme' => env('REVERB_SCHEME', 'http'), // HTTP схема
                     'useTLS' => false, // Явно отключаем TLS
                 ],

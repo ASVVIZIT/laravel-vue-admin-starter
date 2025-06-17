@@ -1,9 +1,13 @@
 import { defineStore } from 'pinia'
 import { createEcho, disconnectEcho } from '../plugins/echoTalkStream'
+import { setupUserPresenceChannel } from '@/modules/TalkStream/Subscriptions/userPresenceHandler'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import { userStore } from '@/store/user'
 import { isLogged } from '@/utils/auth'
 
-// Расширенная система логирования с уровнями и поддержкой состояний
+// Расширенная система логирования с уровнями и цветами
 const createLogger = () => {
     const logLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR']
     const currentLevel = import.meta.env.VITE_LOG_LEVEL || 'INFO'
@@ -11,7 +15,7 @@ const createLogger = () => {
         return logLevels.indexOf(level) >= logLevels.indexOf(currentLevel)
     }
 
-    // Состояния и соответствующие им индикаторы
+    // Состояния соединения
     const stateLabels = {
         initialized: '🟢 Инициализировано',
         connecting: '🟡 Подключение...',
@@ -22,6 +26,19 @@ const createLogger = () => {
         unavailable: '🟠 Недоступно',
         failed: '❌ Неудача',
         reconnecting: '🔄 Переподключение...'
+    }
+
+    // Цвета для вывода
+    const colors = {
+        initialized: 'color: blue; font-weight: bold;',
+        connecting: 'color: orange; font-weight: bold;',
+        connected: 'color: green; font-weight: bold;',
+        disconnected: 'color: red; font-weight: bold;',
+        error: 'color: darkred; background: yellow; font-weight: bold;',
+        state_change: 'color: purple; font-weight: bold;',
+        unavailable: 'color: gray; font-style: italic;',
+        failed: 'color: white; background: red; font-weight: bold;',
+        reconnecting: 'color: gold; font-weight: bold;'
     }
 
     return {
@@ -37,28 +54,10 @@ const createLogger = () => {
         error: (...args) => {
             if (shouldLog('ERROR')) console.error('[TalkStream][ERROR]', ...args)
         },
-
-        /**
-         * Логирование состояния соединения с визуальными индикаторами
-         */
         logConnectionState: (state) => {
             if (!shouldLog('INFO')) return
 
             const label = stateLabels[state] || `❓ Неизвестное состояние: ${state}`
-
-            // Цветной вывод в консоль (если поддерживается)
-            const colors = {
-                initialized: 'color: blue; font-weight: bold;',
-                connecting: 'color: orange; font-weight: bold;',
-                connected: 'color: green; font-weight: bold;',
-                disconnected: 'color: red; font-weight: bold;',
-                error: 'color: darkred; font-weight: bold; background: yellow;',
-                state_change: 'color: purple; font-weight: bold;',
-                unavailable: 'color: gray; font-style: italic;',
-                failed: 'color: white; background: red; font-weight: bold;',
-                reconnecting: 'color: gold; font-weight: bold;'
-            }
-
             const colorStyle = colors[state] || 'color: black;'
 
             console.info(`%c[TalkStream] ${label}`, colorStyle)
@@ -78,7 +77,8 @@ export const useTalkStreamStore = defineStore('talkStream', {
         reconnectInterval: 3000,
         subscribedChannels: [],
         reconnectTimer: null,
-        isHandlersBound: false
+        isHandlersBound: false,
+        selectedContactId: null
     }),
 
     getters: {
@@ -100,8 +100,13 @@ export const useTalkStreamStore = defineStore('talkStream', {
                 return
             }
 
-            this.clearReconnectTimer()
+            const useUserStore = userStore()
+            if (!useUserStore.id) {
+                logger.warn('Не удалось получить ID пользователя')
+                return
+            }
 
+            this.clearReconnectTimer()
             if (this.isConnected) {
                 logger.info('Уже подключено к серверу')
                 return
@@ -123,9 +128,8 @@ export const useTalkStreamStore = defineStore('talkStream', {
                     return
                 }
 
-                // Настройка обработчиков соединения
+                // Установка обработчиков
                 this.setupConnectionHandlers()
-
                 // Инициируем подключение
                 this.echo.connect()
                 logger.info('Инициировано подключение к серверу')
@@ -181,16 +185,16 @@ export const useTalkStreamStore = defineStore('talkStream', {
                 this.subscribeToChannels()
             })
 
-            pusher.connection.bind('error', (error) => {
-                logger.error('Ошибка соединения:', error)
-                this.handleConnectionError(error)
-            })
-
             pusher.connection.bind('disconnected', () => {
                 logger.logConnectionState('disconnected')
                 this.isConnected = false
                 this.isHandlersBound = false
                 this.scheduleReconnect()
+            })
+
+            pusher.connection.bind('error', (error) => {
+                logger.error('Ошибка соединения Pusher:', error)
+                this.handleConnectionError(error)
             })
 
             pusher.connection.bind('state_change', (states) => {
@@ -226,9 +230,8 @@ export const useTalkStreamStore = defineStore('talkStream', {
         },
 
         calculateReconnectDelay() {
-            // Экспоненциальная задержка с ограничением
             const baseDelay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
-            return baseDelay + Math.floor(Math.random() * 1000) // Добавляем случайность
+            return baseDelay + Math.floor(Math.random() * 1000)
         },
 
         clearReconnectTimer() {
@@ -257,26 +260,59 @@ export const useTalkStreamStore = defineStore('talkStream', {
                 return
             }
 
-            // Отписываемся от всех предыдущих каналов
+            // Отписываемся от предыдущих каналов
             this.unsubscribeFromAllChannels()
 
             try {
-                // Основной канал пользователя
-                const channelName = `private-user.${user.id}`
-                logger.info(`Подписка на канал: ${channelName}`)
-                const userChannel = this.echo.private(channelName)
+                // Приватный канал пользователя
+                const privateChannelName = `private-user.${user.id}`
+                logger.info(`Подписка на приватный канал: ${privateChannelName}`)
+
+                const userChannel = this.echo.private(privateChannelName)
                 userChannel
-                    .listen('.UserEvent', this.handleUserEvent)
-                    .listen('.CallEvent', this.handleCallEvent)
+                    .listen('.UserEvent', (e) => {
+                        const chatStore = useChatStore()
+                        const contactStore = useContactStore()
+
+                        if (e.message.from_id === contactStore.userId) return
+
+                        logger.info('Новое сообщение от пользователя:', e.message)
+                        chatStore.addLocalMessage(e.message)
+
+                        // Автоскролл истории
+                        if (this.historyRef?.scrollToBottom) {
+                            this.historyRef.scrollToBottom()
+                        }
+                    })
+                    .listen('.CallEvent', (e) => {
+                        logger.info('Событие звонка:', e)
+                        // Здесь можно добавить обработку входящего звонка
+                    })
 
                 this.subscribedChannels.push({
-                    name: channelName,
+                    name: privateChannelName,
                     channel: userChannel
                 })
 
-                logger.info(`Успешно подписался на канал ${channelName}`)
+                logger.info(`Успешно подписался на канал ${privateChannelName}`)
             } catch (error) {
-                logger.error('Ошибка при подписке на каналы:', error)
+                logger.error('Ошибка при подписке на приватные каналы:', error)
+            }
+
+            try {
+                // Presence-канал для онлайна
+                logger.info('Подписка на presence-канал: presence-chat')
+                const presenceChannel = setupUserPresenceChannel()
+
+                if (presenceChannel) {
+                    this.subscribedChannels.push({
+                        name: 'presence-chat',
+                        channel: presenceChannel
+                    })
+                    logger.info('Успешно подписался на presence-канал')
+                }
+            } catch (error) {
+                logger.error('Ошибка при подписке на presence-канал:', error)
             }
         },
 
@@ -293,16 +329,6 @@ export const useTalkStreamStore = defineStore('talkStream', {
             }
 
             this.subscribedChannels = []
-        },
-
-        handleUserEvent(data) {
-            logger.debug('Событие пользователя:', data)
-            // Здесь можно добавить логику обработки события
-        },
-
-        handleCallEvent(data) {
-            logger.debug('Событие звонка:', data)
-            // Здесь можно добавить логику обработки звонка
         },
 
         disconnect() {
@@ -322,7 +348,7 @@ export const useTalkStreamStore = defineStore('talkStream', {
                 }
             }
 
-            // Очищаем глобальный экземпляр
+            // Очистка глобального экземпляра Echo
             disconnectEcho()
         },
 
@@ -330,6 +356,12 @@ export const useTalkStreamStore = defineStore('talkStream', {
             logger.info('Принудительное переподключение')
             this.reconnectAttempts = 0
             this.reconnect()
+        },
+
+        setSelectedContact(contactId) {
+            this.selectedContactId = contactId
+            localStorage.setItem('last-selected-contact', contactId)
+            logger.info(`Выбранный контакт обновлён: ${contactId}`)
         }
     }
 })

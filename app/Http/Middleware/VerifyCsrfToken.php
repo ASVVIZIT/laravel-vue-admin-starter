@@ -15,6 +15,10 @@ class VerifyCsrfToken extends Middleware
         'api/*',
         'broadcasting/auth',
         'api/broadcasting/auth',
+        'broadcasting/authenticate',
+        'api/broadcasting/authenticate',
+        'sanctum/csrf-cookie',
+        'api/sanctum/csrf-cookie',
         'login',
         'logout'
     ];

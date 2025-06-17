@@ -19,14 +19,10 @@
     <div class="contacts-wrap">
       <!-- Список всех пользователей -->
       <ul class="contact-list">
-        <ContactItem
+        <ContactItemWrapper
             v-for="contact in contacts"
             :key="contact.id"
             :contact="contact"
-            :is-online="contactStore.isOnline(contact.id)"
-            :is-friend="useFriendStore.isFriend(contact.id)"
-            :has-incoming="useFriendStore.hasIncoming(contact.id)"
-            :has-sent="useFriendStore.hasSent(contact.id)"
             @select="selectContact"
             @add-friend="sendRequest"
             @accept-request="acceptRequest"
@@ -37,58 +33,43 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { userStore } from '@/store/user'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
-import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
+import ContactItemWrapper from '@/modules/TalkStream/Components/ContactItemWrapper.vue'
 import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
-
-import { userStore } from '@/store/user'
 
 const props = defineProps(['contacts'])
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 
 const router = useRouter()
+const useUserStore = userStore()
 const contactStore = useContactStore()
 const useFriendStore = friendStore()
 
 const route = useRoute()
-const useUserStore = userStore()
 
 const contacts = computed(() => contactStore.contacts)
 const currentMode = ref(route.params.mode || 'chat')
 
-const isFriend = (userId) => {
-  return useFriendStore.friends.some(f => f.id === userId)
-}
-
-const hasIncomingRequest = (userId) => {
-  return useFriendStore.incomingRequests.some(r => r.user_id === userId)
-}
-
-const hasSentRequest = (userId) => {
-  return useFriendStore.sentRequests.some(r => r.friend_id === userId)
-}
-
 function selectContact(contact) {
-  //router.push({ name: 'chat', query: { to: contact.id }})
-   emit('select', contact)
+  emit('select', contact)
 }
 
 function sendRequest(contact) {
   useFriendStore.sendRequest(contact.id)
-  //emit('add-friend', contact)
+  emit('add-friend', contact)
 }
 
 function acceptRequest(contact) {
   useFriendStore.acceptRequest(contact.id)
- /// emit('accept-request', contact)
+  emit('accept-request', contact)
 }
 
 function switchMode(mode) {
   currentMode.value = mode
- // router.push(`/talkstream/${mode}`)
 }
 </script>
 

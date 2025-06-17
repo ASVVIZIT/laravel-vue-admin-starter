@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import TalkService from '@/modules/TalkStream/Services/talkService'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-const contactStore = useContactStore()
 
 export const useChatStore = defineStore('chat', {
     state: () => ({
@@ -9,30 +8,39 @@ export const useChatStore = defineStore('chat', {
          * Текущий список сообщений (для UI)
          */
         messages: [],
-
         /**
          * Кэшированная история чатов
          * key: `${userId}_${contactId}`
          */
         history: {},
-
         /**
          * Статусы прочтения
          */
         readStatus: {},
-
         /**
          * API-сервис
          */
         talkService: new TalkService()
     }),
+
     actions: {
+        // Получаем contactStore только внутри actions
+        getContactStore() {
+            try {
+                const contactStore = useContactStore()
+                return contactStore
+            } catch (e) {
+                console.error('[chatStore] Не удалось получить контакт-стор:', e)
+                throw new Error('ContactStore ещё не доступен')
+            }
+        },
+
         // ———————————————————————
         // Добавление временного сообщения
         // ———————————————————————
         addLocalMessage(message) {
             console.log('[chatStore] Добавлено локальное сообщение с проверкой на дубли:', message)
-            // ✅ Проверка на дубли
+
             if (!this.messages.some(m => m.id === message.id)) {
                 this.messages.push(message)
             }
@@ -42,6 +50,8 @@ export const useChatStore = defineStore('chat', {
         // Отправка сообщения на сервер
         // ———————————————————————
         async sendMessage(content, to_id) {
+            const contactStore = this.getContactStore()
+
             const tempMessage = {
                 id: Date.now(),
                 content,
@@ -68,13 +78,16 @@ export const useChatStore = defineStore('chat', {
         // Загрузка истории с сервера
         // ———————————————————————
         async loadHistory(contactId) {
+            const contactStore = this.getContactStore()
             const userId = contactStore.userId
             const key = this.getHistoryKey(userId, contactId)
+
             if (this.history[key]) {
                 this.messages = [...this.history[key]]
                 console.log(`[chatStore] Использована кэшированная история для ${contactId}`)
                 return
             }
+
             try {
                 const res = await this.talkService.getHistory(contactId)
                 this.history[key] = res.data
@@ -113,16 +126,12 @@ export const useChatStore = defineStore('chat', {
             return [userId, contactId].sort((a, b) => a - b).join('_')
         },
 
-        /*getHistoryKey(userId, contactId) {
-            return [userId, contactId].sort().join('_')
-        },*/
-
         // ———————————————————————
         // Отметка сообщений как прочитанных
         // ———————————————————————
         markAsRead(contactId) {
+            const contactStore = this.getContactStore()
             const userId = contactStore.userId
-            const key = this.getHistoryKey(userId, contactId)
 
             this.messages.forEach(m => {
                 if (m.to_id === userId && m.from_id === contactId && !m.read_at) {
@@ -131,6 +140,7 @@ export const useChatStore = defineStore('chat', {
                 }
             })
 
+            const key = this.getHistoryKey(userId, contactId)
             this.history[key] = this.messages.map(m => ({ ...m }))
             console.log(`[chatStore] Сообщения с ${contactId} отмечены как прочитанные`)
         }

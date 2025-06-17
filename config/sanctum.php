@@ -15,7 +15,7 @@ return [
 
     'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', sprintf(
         '%s%s',
-        '94.41.87.10,94.41.87.10:80,94.41.87.10:8080,localhost,192.168.88.249',
+        '94.41.87.10,94.41.87.10:80,94.41.87.10:8080,localhost,localhost:5173,192.168.88.249',
         env('APP_URL') ? ','.parse_url(env('APP_URL'), PHP_URL_HOST) : ''
     ))),
 
@@ -74,5 +74,8 @@ return [
     | Move CSRF protection to /api prefix for easier in cors configuration
     |
     */
+
+
+    'csrf_cookie_name' => 'XSRF-TOKEN',
     'prefix' => 'api/sanctum'
 ];

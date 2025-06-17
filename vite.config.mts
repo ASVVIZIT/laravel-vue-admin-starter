@@ -125,6 +125,7 @@ export default defineConfig(({ mode }) => {
                 VITE_REVERB_SCHEME: JSON.stringify(process.env.VITE_REVERB_SCHEME),
                 VITE_REVERB_AUTH_ENDPOINT: JSON.stringify(process.env.VITE_REVERB_AUTH_ENDPOINT),
                 VITE_REVERB_PATH: JSON.stringify(process.env.VITE_REVERB_PATH),
+                VITE_SANCTUM_CSRF_ENDPOINT: JSON.stringify(process.env.VITE_SANCTUM_CSRF_ENDPOINT),
             },
         },
         plugins: [
@@ -241,7 +242,9 @@ export default defineConfig(({ mode }) => {
             preprocessorOptions: {
                 scss: {
                     api: "modern",
-                    sassOptions: { quietDeps: true },
+                    sassOptions: {
+                        quietDeps: true
+                    },
                     implementation: sass,
                     additionalData: `
                             @use "@/styles/core/variables" as *;
@@ -263,28 +266,36 @@ export default defineConfig(({ mode }) => {
             hmr: {
                 protocol: 'ws',
                 host: 'localhost',
-                port: 5173
+                port: 5173,
+                clientPort: 5173
             },
             watch: {
                 usePolling: true,
                 interval: 1000
             },
             proxy: {
-                '/api/broadcasting/auth': {
-                    target: 'http://fenixlaravel.loc',
-                    changeOrigin: true,
-                    secure: false,
-                },
                 '/api': {
-                    target: 'http://fenixlaravel.loc',
+                    target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false,
                     ws: true
                 },
-                '/sanctum': {
-                    target: 'http://fenixlaravel.loc',
+                '/sanctum/csrf-cookie': {
+                    target: 'http://94.41.87.10:8050',
+                    changeOrigin: true,
+                    secure: false
+                },
+                '/broadcasting/auth': {
+                    target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false,
+                    ws: true
+                },
+                '/ws': {
+                    target: 'ws://94.41.87.10:8080',
+                    changeOrigin: true,
+                    secure: false,
+                    ws: true
                 }
             }
         },
@@ -311,12 +322,34 @@ export default defineConfig(({ mode }) => {
             host: '0.0.0.0',
             port: 5173,
             hmr: {
-                host: env.VITE_DOCKER_SERVER_URL ? new URL(env.VITE_DOCKER_SERVER_URL).hostname : 'localhost',
+                host: new URL(env.VITE_DOCKER_SERVER_URL || 'http://localhost:5173').hostname,
                 protocol: 'ws',
                 clientPort: 80
+            },
+            proxy: {
+                '/api': {
+                    target: 'http://host.docker.internal:8050',
+                    changeOrigin: true,
+                    secure: false,
+                    rewrite: path => path.replace(/^\/api/, '')
+                },
+                '/broadcasting/auth': {
+                    target: 'http://host.docker.internal:8080',
+                    changeOrigin: true,
+                    secure: false,
+                    ws: true
+                }
             }
         },
-        build: { sourcemap: false },
+        build: {
+            outDir: 'public/build',
+            manifest: true,
+            sourcemap: false,
+            minify: 'esbuild',
+            rollupOptions: {
+                input: 'resources/js/app.js'
+            }
+        },
         css: { devSourcemap: false }
     }
 
@@ -324,38 +357,32 @@ export default defineConfig(({ mode }) => {
     const productionConfig = {
         base: '/build',
         server: {
-            host: `${env.APP_URL}`,
-            port: 80,
+            host: '0.0.0.0',
+            port: 8050,
             proxy: {
                 '/api': {
-                    target: `${env.APP_URL}:${env.APP_URL_PORT}`,
+                    target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false,
-                    //rewrite: path => path.replace(/^\/api/, '')
+                    rewrite: path => path.replace(/^\/api/, '')
                 },
-                '/api/sanctum/csrf-cookie': {
-                    target: `${env.APP_URL}:${env.APP_URL_PORT}`,
+                '/broadcasting/auth': {
+                    target: 'http://94.41.87.10:8050',
+                    changeOrigin: true,
+                    secure: false,
+                    ws: true
+                },
+                '/sanctum/csrf-cookie': {
+                    target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false
                 },
-                '/api/broadcasting/auth': {
-                    target: `${env.VITE_REVERB_SCHEME}://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`,
+                '/ws': {
+                    target: 'ws://94.41.87.10:8080',
                     changeOrigin: true,
                     secure: false,
                     ws: true
-                },
-                '/reverb': {
-                    target: `${env.VITE_REVERB_SCHEME}://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`,
-                    changeOrigin: true,
-                    ws: true
                 }
-                /*'/ws': {
-                    target: env.VITE_REVERB_SCHEME === 'https'
-                        ? `wss://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`
-                        : `ws://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`,
-                    changeOrigin: true,
-                    ws: true
-                }*/
             }
         },
         build: {

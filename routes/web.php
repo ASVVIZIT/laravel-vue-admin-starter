@@ -14,10 +14,16 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// routes/web.php
+
+// RouteServiceProvider загружает index.html
+Route::get('/{any}', function () {
+    return view('index');
+})->where('any', '.*');
+
 Route::group(['middleware' => 'web'], function () {
     Route::get('', 'HomeController@index')->where('any', '.*');
 });
-// routes/web.php
 
 Route::get('/debug-broadcast', function() {
     return Broadcast::auth(request());

@@ -29,7 +29,7 @@
     "reverb-prod": "php artisan reverb:start --host=0.0.0.0 --port=8080 --debug",
     "start-dev-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run reverb\"",
     "dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run reverb-local\"",
-    "prod-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"vite preview --host --port 8080\" \"npm run reverb-prod\"",
+    "prod-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"vite preview --host --port 80\" \"npm run reverb-prod\"",
     "docker-dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run docker-dev\" \"npm run reverb-local\"",
     "start": "npm run dev-with-reverb",
     "start-prod": "npm run prod-with-reverb",

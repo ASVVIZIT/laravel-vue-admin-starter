@@ -14,23 +14,23 @@
     <!-- Кнопки действий -->
     <div class="contact-actions">
       <button v-if="isFriend" disabled class="btn btn-friend">
-        {{statusText}}
+        {{ statusText }}
       </button>
       <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">
-        {{statusText}}
+        {{ statusText }}
       </button>
       <button v-else-if="hasSent" disabled class="btn btn-sent">
-        {{statusText}}
+        {{ statusText }}
       </button>
       <button v-else @click.stop="add" class="btn btn-add">
-        {{statusText}}
+        {{ statusText }}
       </button>
     </div>
   </li>
 </template>
 
 <script setup>
-import { defineProps, defineEmits } from 'vue'
+import { defineProps, defineEmits, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 const props = defineProps({
@@ -56,10 +56,9 @@ const props = defineProps({
   }
 })
 
-const router = useRouter()
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 
-// Заглушки по умолчанию
+const router = useRouter()
 const defaultName = 'Без имени'
 
 const statusText = computed(() => {
@@ -70,7 +69,6 @@ const statusText = computed(() => {
 })
 
 function select() {
-  //router.push({ name: 'chat', query: { to: props.contact.id || defaultId }})
   emit('select', props.contact)
 }
 

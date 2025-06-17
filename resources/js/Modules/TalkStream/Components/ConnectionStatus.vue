@@ -7,18 +7,18 @@ const talkStream = useTalkStreamStore();
 <template>
   <div class="connection-status">
     <div v-if="talkStream.isConnected" class="status connected">
-      <span class="indicator"></span>Online
+      <span class="indicator"></span>Server Online
     </div>
 
     <div v-else-if="talkStream.connectionError" class="status error">
       <span class="indicator"></span>
-      Connection error: {{ talkStream.connectionError || 'Unknown error' }}
-      <button @click="talkStream.forceReconnect">Retry</button>
+      Server Connection error: {{ talkStream.connectionError || 'Unknown error' }}
+      <button @click="talkStream.forceReconnect">Server Retry</button>
     </div>
 
     <div v-else class="status connecting">
       <span class="indicator"></span>
-      Connecting...
+      Server Connecting...
     </div>
   </div>
 </template>

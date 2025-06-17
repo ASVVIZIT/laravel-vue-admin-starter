@@ -17,7 +17,12 @@ use Illuminate\Support\Facades\Broadcast;
 
 // Убедитесь, что используете правильную модель User
 Broadcast::channel('private-user.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+    return (int)$user->id === (int)$id;
+});
+
+// Присутствие
+Broadcast::channel('presence-chat', function ($user) {
+    return ['id' => (int)$user->id, 'name' => $user->name, 'avatar' => $user->avatar];
 });
 
 // Добавьте тестовый канал для диагностики
@@ -48,11 +53,6 @@ Broadcast::channel('chat.read.{from_id}', function ($user, $from_id) {
 // Звонки
 Broadcast::channel('call.{userId}', function ($user, $userId) {
     return (int)$user->id === (int)$userId;
-});
-
-// Присутствие
-Broadcast::channel('presence-chat', function ($user) {
-    return ['id' => (int)$user->id, 'name' => $user->name, 'avatar' => $user->avatar];
 });
 
 // Друзья
