@@ -47,7 +47,8 @@ export default {
     "thirdparty": "Or connect with",
     "thirdpartyTips": "Cannot be simulated locally. Please implement your own business logic!",
     "email": "Email",
-    "loginSuccess": "Login Successful"
+    "loginSuccess": "Login Successful",
+    "loginFailed": "Couldn't log in",
   },
   "validation": {
     "general": {

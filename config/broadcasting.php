@@ -15,7 +15,7 @@ return [
     |
     */
 
-    'default' => env('BROADCAST_DRIVER', 'null'),
+    'default' => env('BROADCAST_DRIVER', 'reverb'),
 
     /*
     |--------------------------------------------------------------------------
@@ -37,7 +37,7 @@ return [
             'app_id' => env('PUSHER_APP_ID'),
             'options' => [
                 'cluster' => env('PUSHER_APP_CLUSTER'),
-                'useTLS' => true,
+                'useTLS' => false,
             ],
         ],
 
@@ -48,8 +48,8 @@ return [
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
-                'host' => env('REVERB_HOST', '127.0.0.1'),
-                'port' => env('REVERB_PORT', 8080),
+                'host' => env('REVERB_HOST', '0.0.0.0'),
+                'port' => env('REVERB_PORT', 8050),
                 'scheme' => env('REVERB_SCHEME', 'http'),
                 'useTLS' => env('REVERB_SCHEME') === 'https',
             ],

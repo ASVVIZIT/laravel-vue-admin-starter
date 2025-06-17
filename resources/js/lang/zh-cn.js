@@ -47,7 +47,8 @@ export default {
     "thirdparty": "第三方登录",
     "thirdpartyTips": "本地无法模拟，请根据业务需求实现！",
     "email": "邮箱",
-    "loginSuccess": "登录成功"
+    "loginSuccess": "登录成功",
+    "loginFailed": "无法登录",
   },
   "validation": {
     "general": {

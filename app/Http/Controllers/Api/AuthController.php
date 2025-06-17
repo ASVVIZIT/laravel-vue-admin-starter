@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Class AuthController
@@ -23,18 +24,33 @@ class AuthController extends BaseController
      */
     public function login(Request $request)
     {
-        $data = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required'
+
+        // Временная отладка
+        Log::debug('CSRF Token: ' . csrf_token());
+        Log::debug('Session ID: ' . session()->getId());
+        Log::debug('Cookies: ' . json_encode($request->cookies->all()));
+
+        logger('Login attempt', [
+            'email' => $request->email,
+            'headers' => $request->headers->all(),
+            'cookies' => $request->cookies->all(),
+            'session_id' => session()->getId(),
         ]);
-        $user = User::query()->where('email', $request->input('email'))->first();
-        if (empty($user) || !Hash::check($request->input('password'), $user->password)) {
-            return responseFailed('These credentials do not match our records.', Response::HTTP_UNAUTHORIZED);
+
+        $credentials = $request->only('email', 'password');
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            $token = $user->createToken('fenix_token')->plainTextToken;
+
+            return response()->json([
+                'user' => $user,
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ]);
         }
 
-        $user->token = $user->createToken('laravel-vue-admin-fenix')->plainTextToken;
-
-        return responseSuccess($user);
+        return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
     /**

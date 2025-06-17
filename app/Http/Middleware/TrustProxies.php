@@ -12,7 +12,13 @@ class TrustProxies extends Middleware
      *
      * @var array<int, string>|string|null
      */
-    protected $proxies;
+    protected $proxies = [
+        '192.168.88.1',      // IP MikroTik
+        '94.41.87.10',       // Внешний IP
+        '192.168.88.249',    // Локальный сервер
+        '127.0.0.1',         // Localhost
+        '10.0.0.0/8'         // Все локальные сети
+    ];
 
     /**
      * The headers that should be used to detect proxies.

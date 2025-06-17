@@ -15,6 +15,20 @@ use Illuminate\Support\Facades\Broadcast;
 |
 */
 
+// Убедитесь, что используете правильную модель User
+Broadcast::channel('private-user.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+
+// Добавьте тестовый канал для диагностики
+Broadcast::channel('test-channel', function ($user) {
+    return true; // Разрешить всем аутентифицированным пользователям
+});
+
+Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
+    return (int) $user->id === (int) $id;
+});
+
 // Общий канал
 Broadcast::channel('presence-channel', function ($user) {
     return ['id' => (int)$user->id, 'name' => $user->name];
@@ -22,8 +36,8 @@ Broadcast::channel('presence-channel', function ($user) {
 
 // Чат Канал для новых сообщений
 Broadcast::channel('chat.{userId}', function ($user, $userId) {
-    //return FriendRequest::areFriends($user->id, $userId);
-    return (int)$user->id === (int)$userId;
+    return FriendRequest::areFriends((int)$user->id, (int)$userId);
+    //return (int)$user->id === (int)$userId;
 });
 
 // Канал для прочтения

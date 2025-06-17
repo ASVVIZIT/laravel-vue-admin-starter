@@ -23,8 +23,18 @@ export function logout() {
 }
 
 export function csrf() {
-  return request({
-    url: '/sanctum/csrf-cookie',
-    method: 'get',
-  });
+  return new Promise((resolve, reject) => {
+    request({
+      url: '/sanctum/csrf-cookie',
+      method: 'get',
+    })
+        .then(() => {
+          console.log('CSRF cookies установлены:', document.cookie)
+          resolve()
+        })
+        .catch(error => {
+          console.error('Ошибка получения CSRF:', error)
+          reject(error)
+        })
+  })
 }

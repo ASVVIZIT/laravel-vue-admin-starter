@@ -11,7 +11,8 @@ export const useContactStore = defineStore('contact', {
         contacts: [],
         onlineUsers: [],
         talkService: new TalkService(),
-        userId: null,
+        selectedContact: null,
+        userId: updateUserFrom().id,
         userFrom: updateUserFrom(),
     }),
     actions: {

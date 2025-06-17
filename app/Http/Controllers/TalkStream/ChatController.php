@@ -40,7 +40,8 @@ class ChatController extends Controller
         event(new NewMessage([
             'from_id' => $message->from_id,
             'to_id' => $message->to_id,
-            'content' => $message->content
+            'content' => $message->content,
+            'id' => $message->id
         ]));
 
         return response()->json(['status' => 'Message sent','data' => $message]);

@@ -10,6 +10,7 @@
       >
         {{ mode === 'chat' ? 'Чат' : 'Звонок' }}
       </button>
+      <ConnectionStatus />
     </div>
     <div>
       <h3>Общий список пользователей</h3>
@@ -41,6 +42,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
+import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
+
 import { userStore } from '@/store/user'
 
 const props = defineProps(['contacts'])

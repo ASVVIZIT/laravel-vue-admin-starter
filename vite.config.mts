@@ -106,7 +106,7 @@ const ELEMENT_LOCALES = [
 ]
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, process.cwd(), ['VITE_', 'APP_'])
+    const env = loadEnv(mode, process.cwd(), ['VITE_', 'APP_', 'REVERB_', 'PUSHER_'])
     const isProduction = env.APP_ENV === 'production'
     const isDocker = env.APP_ENV === 'docker'
     const isDev = env.APP_ENV === 'development'
@@ -119,9 +119,12 @@ export default defineConfig(({ mode }) => {
             'process.version': null,
             'import.meta.env': {
                 ...env,
-                VITE_REVERB_APP_KEY: env.VITE_REVERB_APP_KEY,
-                VITE_REVERB_HOST: env.VITE_REVERB_HOST,
-                VITE_REVERB_PORT: env.VITE_REVERB_PORT,
+                VITE_REVERB_APP_KEY: JSON.stringify(process.env.VITE_REVERB_APP_KEY),
+                VITE_REVERB_HOST: JSON.stringify(process.env.VITE_REVERB_HOST),
+                VITE_REVERB_PORT: JSON.stringify(process.env.VITE_REVERB_PORT),
+                VITE_REVERB_SCHEME: JSON.stringify(process.env.VITE_REVERB_SCHEME),
+                VITE_REVERB_AUTH_ENDPOINT: JSON.stringify(process.env.VITE_REVERB_AUTH_ENDPOINT),
+                VITE_REVERB_PATH: JSON.stringify(process.env.VITE_REVERB_PATH),
             },
         },
         plugins: [
@@ -153,24 +156,24 @@ export default defineConfig(({ mode }) => {
                 }
             }),
             vueDevTools(),
-            /*            createHtmlPlugin({
-                            minify: isProduction,
-                            inject: {
-                                data: {
-                                    // Добавляем предзагрузку только для локалей
-                                    preloadLinks: isProduction ?
-                                        ELEMENT_LOCALES.map(path =>
-                                            `<link rel="modulepreload" href="/${path}" as="script" crossorigin="anonymous">`
-                                        ).join('') : ''
-                                }
-                            }
-                        }),*/
-            /*VitePWA({
+            createHtmlPlugin({
+                minify: isProduction,
+                inject: {
+                    data: {
+                        // Добавляем предзагрузку только для локалей
+                        preloadLinks: isProduction ?
+                            ELEMENT_LOCALES.map(path =>
+                                `<link rel="modulepreload" href="/${path}" as="script" crossorigin="anonymous">`
+                            ).join('') : ''
+                    }
+                }
+            }),
+            VitePWA({
                 // Конфиг для кэширования локалей
                 registerType: 'autoUpdate',
                 workbox: {
                     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
-                    globPatterns: ['**!/!*.{js,css,html,ico,png,svg,woff2}'],
+                    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                     runtimeCaching: [
                         {
                             urlPattern: ({ url }) =>
@@ -186,7 +189,7 @@ export default defineConfig(({ mode }) => {
                         }
                     ]
                 }
-            }),*/
+            }),
             VueJsx(),
             VueSetupExtend(),
             ElementPlus({
@@ -267,21 +270,21 @@ export default defineConfig(({ mode }) => {
                 interval: 1000
             },
             proxy: {
+                '/api/broadcasting/auth': {
+                    target: 'http://fenixlaravel.loc',
+                    changeOrigin: true,
+                    secure: false,
+                },
                 '/api': {
                     target: 'http://fenixlaravel.loc',
                     changeOrigin: true,
-                    secure: false
+                    secure: false,
+                    ws: true
                 },
-                '/api/sanctum/csrf-cookie': {
+                '/sanctum': {
                     target: 'http://fenixlaravel.loc',
                     changeOrigin: true,
-                    secure: false
-                },
-                '/api/broadcasting/auth': {
-                    target: 'http://fenixlaravel.loc',
-                    ws: true,
-                    changeOrigin: true,
-                    secure: false
+                    secure: false,
                 }
             }
         },
@@ -321,25 +324,38 @@ export default defineConfig(({ mode }) => {
     const productionConfig = {
         base: '/build',
         server: {
-            host: 'fenixlaravel.loc',
-            port: 5173,
+            host: `${env.APP_URL}`,
+            port: 80,
             proxy: {
                 '/api': {
-                    target: 'http://fenixlaravel.loc',
+                    target: `${env.APP_URL}:${env.APP_URL_PORT}`,
                     changeOrigin: true,
-                    secure: false
+                    secure: false,
+                    //rewrite: path => path.replace(/^\/api/, '')
                 },
                 '/api/sanctum/csrf-cookie': {
-                    target: 'http://fenixlaravel.loc',
+                    target: `${env.APP_URL}:${env.APP_URL_PORT}`,
                     changeOrigin: true,
                     secure: false
                 },
                 '/api/broadcasting/auth': {
-                    target: 'http://fenixlaravel.loc',
-                    ws: true,
+                    target: `${env.VITE_REVERB_SCHEME}://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`,
                     changeOrigin: true,
-                    secure: false
+                    secure: false,
+                    ws: true
+                },
+                '/reverb': {
+                    target: `${env.VITE_REVERB_SCHEME}://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`,
+                    changeOrigin: true,
+                    ws: true
                 }
+                /*'/ws': {
+                    target: env.VITE_REVERB_SCHEME === 'https'
+                        ? `wss://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`
+                        : `ws://${env.VITE_REVERB_HOST}:${env.VITE_REVERB_PORT}`,
+                    changeOrigin: true,
+                    ws: true
+                }*/
             }
         },
         build: {
@@ -353,10 +369,10 @@ export default defineConfig(({ mode }) => {
             rollupOptions: {
                 input: 'resources/js/app.js',
                 plugins: [
-                    /*                    visualizer({
-                                            ...BUNDLE_ANALYZER,
-                                            title: `Анализ сборки (${mode.toUpperCase()})`
-                                        }),*/
+                    visualizer({
+                        ...BUNDLE_ANALYZER,
+                        title: `Анализ сборки (${mode.toUpperCase()})`
+                    }),
                 ],
                 output: {
                     entryFileNames: 'assets/js/[name]-[hash].js',

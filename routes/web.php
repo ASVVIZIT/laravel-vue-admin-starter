@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -15,4 +16,37 @@ use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => 'web'], function () {
     Route::get('', 'HomeController@index')->where('any', '.*');
+});
+// routes/web.php
+
+Route::get('/debug-broadcast', function() {
+    return Broadcast::auth(request());
+});
+
+Route::get('/test-ws', function() {
+    try {
+        $socket = @fsockopen('94.41.87.10', 8070, $errno, $errstr, 2);
+
+        if ($socket) {
+            fwrite($socket, "GET /ws HTTP/1.1\r\nHost: 94.41.87.10\r\n\r\n");
+            $response = fread($socket, 1024);
+            fclose($socket);
+
+            return response()->json([
+                'status' => 'success',
+                'response' => $response
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => "$errstr ($errno)"
+        ], 500);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'exception',
+            'message' => $e->getMessage()
+        ], 500);
+    }
 });

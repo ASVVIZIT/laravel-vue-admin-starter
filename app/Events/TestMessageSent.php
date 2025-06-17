@@ -17,6 +17,6 @@ class TestMessageSent implements ShouldBroadcast
 
     public function broadcastOn(): Channel
     {
-        return new Channel('test-channel');
+        return new Channel('test-message-channel');
     }
 }

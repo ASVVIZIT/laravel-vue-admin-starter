@@ -22,4 +22,8 @@ class NewMessage implements ShouldBroadcast
     {
         return 'NewMessage';
     }
+    public function broadcastWith()
+    {
+        return ['message' => $this->message];
+    }
 }

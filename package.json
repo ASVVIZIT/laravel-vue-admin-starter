@@ -17,6 +17,7 @@
     "node": ">=16.0.0"
   },
   "scripts": {
+    "preview": "vite preview --host=0.0.0.0 --port=80",
     "dev": "cross-env APP_ENV=local vite --mode development",
     "docker-dev": "cross-env APP_ENV=docker vite --mode docker",
     "build": "cross-env APP_ENV=production vite build --mode production",
@@ -24,9 +25,16 @@
     "lint": "eslint --ext .js,.vue resources/js",
     "prepare": "husky install",
     "reverb": "php artisan reverb:start --debug",
-    "dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run reverb\"",
-    "docker-dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run docker-dev\" \"npm run reverb\"",
-    "start": "npm run dev-with-reverb"
+    "reverb-local": "php artisan reverb:start --host=0.0.0.0 --port=8080 --debug",
+    "reverb-prod": "php artisan reverb:start --host=0.0.0.0 --port=8080 --debug",
+    "start-dev-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run reverb\"",
+    "dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run dev\" \"npm run reverb-local\"",
+    "prod-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"vite preview --host --port 8080\" \"npm run reverb-prod\"",
+    "docker-dev-with-reverb": "concurrently -n \"VITE,REVERB\" -c \"bgBlue.bold,bgGreen.bold\" \"npm run docker-dev\" \"npm run reverb-local\"",
+    "start": "npm run dev-with-reverb",
+    "start-prod": "npm run prod-with-reverb",
+    "cache-prod": "php artisan config:custom-cache production",
+    "cache-local": "php artisan config:custom-cache local"
   },
   "repository": {
     "type": "git",

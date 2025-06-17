@@ -25,3 +25,5 @@ composer.lock
 /types/
 /types/*
 *structure*
+/composer-old.lock
+/.env.production

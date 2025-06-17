@@ -7,7 +7,17 @@ export function isLogged() {
 }
 
 export function setToken(token) {
-  return Cookies.set(TokenKey, token);
+  // Определяем домен для production
+  const domain = window.location.hostname === 'localhost'
+      ? undefined
+      : '94.41.87.10';
+
+  return Cookies.set(TokenKey, token, {
+    expires: 7, // 7 дней
+    domain: domain,
+    secure: false,
+    sameSite: 'Lax'
+  });
 }
 
 export function getToken() {
@@ -15,5 +25,16 @@ export function getToken() {
 }
 
 export function removeToken() {
-  return Cookies.remove(TokenKey);
+  const domain = window.location.hostname === 'localhost'
+      ? undefined
+      : '94.41.87.10';
+
+  return Cookies.remove(TokenKey, { domain });
+}
+
+export function getCsrfToken() {
+  return document.cookie
+      .split('; ')
+      .find(row => row.startsWith('XSRF-TOKEN='))
+      ?.split('=')[1];
 }

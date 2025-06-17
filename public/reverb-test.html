@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    reverb Test Смотри консоль!
+</body>
+</html>
+<script>
+    const ws = new WebSocket('ws://94.41.87.10:8080/reverb');
+    ws.onopen = () => console.log('CONNECTED!');
+    ws.onerror = e => {
+        console.error('ERROR:', e);
+        alert(`WebSocket error: ${e.message || 'Unknown error'}`);
+    };
+</script>

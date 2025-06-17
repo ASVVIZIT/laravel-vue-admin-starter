@@ -12,6 +12,9 @@ class EncryptCookies extends Middleware
      * @var array<int, string>
      */
     protected $except = [
-        //
+        'XSRF-TOKEN',
+        'fenix-token',
+        'laravel_session',
+        'laravel-vue-admin-fenix_session',
     ];
 }

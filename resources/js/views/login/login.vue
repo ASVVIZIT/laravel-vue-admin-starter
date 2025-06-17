@@ -123,28 +123,36 @@ export default {
     const useUserStore = userStore()
     const { t } = useI18n({ useScope: 'global' })
     const handleLogin = (formEl) => {
-      if (!formEl) {
-        return
-      }
+      if (!formEl) return;
+
       formEl.validate((valid) => {
         if (valid) {
-          resData.loading = true
+          resData.loading = true;
+
           csrf().then(() => {
-            useUserStore.login(resData.loginForm).then(() => {
-              ElMessage({ message: t('login.loginSuccess'), type: 'success' })
-              router.push({path: resData.redirect || '/', query: resData.otherQuery}, onAbort => {
-              })
-              resData.loading = false
-            }).catch(() => {
-              resData.loading = false
-            })
-          })
-        } else {
-          console.log('error submit!!')
-          return false
+            useUserStore.login(resData.loginForm)
+                .then(() => {
+                  // Успешный вход
+                  ElMessage.success(t('login.loginSuccess'));
+
+                  // Перезагружаем страницу для полной инициализации
+                  window.location.reload();
+                })
+                .catch(error => {
+                  console.error('Login error:', error);
+                  ElMessage.error(t('login.loginFailed'));
+                })
+                .finally(() => {
+                  resData.loading = false;
+                });
+          }).catch(csrfError => {
+            console.error('CSRF error:', csrfError);
+            ElMessage.error(t('login.csrfFailed'));
+            resData.loading = false;
+          });
         }
-      })
-    }
+      });
+    };
     const getOtherQuery = (query) => {
       return Object.keys(query).reduce((acc, cur) => {
         if (cur !== 'redirect') {

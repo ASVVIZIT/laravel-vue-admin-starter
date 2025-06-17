@@ -4,6 +4,7 @@ use App\Models\Acl;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Http\Request;
 use Illuminate\Contracts\Routing\Registrar as RouteContract;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 use App\Http\Controllers\Api\UserTabController;
@@ -28,7 +29,9 @@ use App\Http\Controllers\TalkStream\FriendRequestController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
-
+/*Route::get('/sanctum/csrf-cookie', function (Request $request) {
+    return response()->noContent();
+});*/
 Route::namespace('Api')->group(function() {
     Route::post('auth/login', 'AuthController@login');
     Route::group(['middleware' => 'auth:sanctum'], function () {
@@ -76,6 +79,7 @@ Route::namespace('Api')->group(function() {
         // Все токеновые роуты модуля TalkStream
         Route::prefix('talkstream')->group(function () {
             // Контакты
+            Route::get('/user', [ContactController::class, 'show']);
             Route::get('/contacts', [ContactController::class, 'index']);
 
             // Получить конкретного пользователя
@@ -96,14 +100,69 @@ Route::namespace('Api')->group(function() {
             Route::get('/friends/sent', [FriendRequestController::class, 'sent']);
             Route::post('/friends/send', [FriendRequestController::class, 'send']);
             Route::post('/friends/accept/{id}', [FriendRequestController::class, 'accept']);
-        });
 
+
+
+
+     /*       Route::post('/broadcasting/auth', function (Request $request) {
+                try {
+                    if (!auth('sanctum')->check()) {
+                        return response()->json(['error' => 'Unauthenticated'], 401);
+                    }
+
+                    return Broadcast::auth($request);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'error' => 'Broadcast authentication failed',
+                        'message' => $e->getMessage()
+                    ], 500);
+                }
+            })->middleware(['cors']); // Только CORS middleware
+
+            Route::middleware(['auth:sanctum', 'broadcast.auth'])->post('/broadcasting/auth', function (Request $request) {
+                // Проверяем аутентификацию
+                if (!$request->user()) {
+                    return response()->json(['error' => 'Unauthenticated'], 401);
+                }
+                return Broadcast::auth($request);
+            });*/
+
+        });
+    });
+/*    Route::middleware(['auth:sanctum', 'broadcast.auth'])->post('/broadcasting/auth', function (Request $request) {
+        // Проверяем аутентификацию
+        if (!$request->user()) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+        return Broadcast::auth($request);
+    });*/
+   /* Route::middleware('auth:sanctum')->group(function () {
         // Роут для Laravel Echo / WebSockets
         Route::post('/broadcasting/auth', function (Request $request) {
             return Broadcast::auth($request);
-        })->middleware('auth:sanctum')->name('broadcast.auth');
-    });
+        })->name('broadcast.auth');
+    });*/
+
 });
+
+Route::get('/debug/network', function(Request $request) {
+    return response()->json([
+        'client_ip' => $request->ip(),
+        'headers' => $request->headers->all(),
+        'server' => $_SERVER,
+        'connections' => [
+            'database' => DB::connection()->getPdo() ? true : false,
+            'redis' => Redis::connection()->ping() === true
+        ]
+    ]);
+});
+/*
+Route::middleware('auth:sanctum')->group(function () {
+    // Роут для Laravel Echo / WebSockets
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    })->name('broadcast.auth');
+});*/
 
 Route::prefix('table')->group(function () {
     Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);

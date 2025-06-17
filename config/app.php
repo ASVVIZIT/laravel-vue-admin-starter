@@ -95,6 +95,13 @@ return [
 
     'fallback_locale' => 'ru',
 
+    'available_locales' => [
+        'ru' => 'Russian',
+        'en' => 'English',
+        'zh-cn' => '中文',
+        // Добавьте другие локали
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Faker Locale
@@ -174,6 +181,7 @@ return [
         App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
+        Laravel\Sanctum\SanctumServiceProvider::class,
         Laravel\Reverb\ReverbServiceProvider::class,
     ],
 

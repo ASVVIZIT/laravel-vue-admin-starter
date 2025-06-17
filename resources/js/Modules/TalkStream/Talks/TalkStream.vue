@@ -15,7 +15,7 @@
           :contact="selectedContact"
           :userFrom="contactStore.userFrom"
           :messages="messages"
-          :is-online="contactStore.isOnline(selectedContact.id)"
+          :is-online="contactStore.isOnline(4)"
       />
       <TalkStreamSender
           v-if="selectedContact"
@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import {ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
 import { useRouter } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
@@ -58,6 +58,7 @@ const handleSelectContact = (contact) => {
   selectedContact.value = contact
   localStorage.setItem('last-selected-contact', contact.id)
   // Загрузка истории
+  contactStore.selectedContact = contact.id
   chatStore.loadHistory(contact.id)
 }
 
@@ -135,7 +136,12 @@ onMounted(async () => {
   if (!useFriendStore.sentRequests.length) {
     await useFriendStore.loadSentRequests()
   }
-
+  nextTick(() => {
+    // Мгновенная прокрутка без анимации при инициализации
+    if (history.value) {
+      history.value.scrollTop = history.value.scrollHeight;
+    }
+  });
 
   const lastContactId = localStorage.getItem('last-selected-contact')
   if (lastContactId && contactStore.contacts.some(c => c.id === Number(lastContactId))) {
@@ -178,11 +184,19 @@ onUnmounted(() => {
     friendRequestsChannel.value.stopListening()
   }
 })
+
+function scrollToBottom() {
+  if (history.value) {
+    history.value.scrollToBottom();
+  }
+}
+
 </script>
 
 <style scoped lang="scss">
 .talkstream-container {
   display: flex;
+  height: 100%;
   margin: 0.6rem;
   border-radius: 12px;
   background-color: #f9f9f9;
@@ -194,5 +208,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  height: 100%;
+  min-height: 300px;
 }
 </style>

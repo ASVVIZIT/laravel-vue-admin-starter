@@ -10,6 +10,7 @@
           <el-card>
             <h3>Настройки интерфейса сайта</h3>
           </el-card>
+          <WebSocketTest></WebSocketTest>
         </div>
       </RightPanel>
     </div>
@@ -30,6 +31,7 @@ const classObj = computed(() => ({
   hideSidebar: !settings.value.showLeftMenu
 }))
 //import ResizeHook to   listen  page size that   open or close
+import WebSocketTest from '@/components/WebSocketTest/WebSocketTest.vue'
 import ResizeHook from './hook/ResizeHandler'
 ResizeHook()
 

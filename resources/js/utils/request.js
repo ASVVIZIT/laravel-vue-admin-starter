@@ -1,25 +1,36 @@
 import '@/bootstrap';
 import { ElMessage } from 'element-plus';
-import { isLogged, getToken, setToken } from '@/utils/auth';
+import { isLogged, getToken, setToken, getCsrfToken } from '@/utils/auth';
 
 const service = window.axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     timeout: 30000,
+    withCredentials: true, // Важно для передачи кук
 });
 
-// Интерцептор запросов
+// Объединенный интерцептор запросов
 service.interceptors.request.use(
     config => {
-        const token = getToken(); // Получаем токен из хранилища
+        const token = getToken();
+        const csrfToken = getCsrfToken();
 
-        if (token && isLogged()) {
-            config.headers['Authorization'] = 'Bearer ' + token;
-            config.withCredentials = true; // Важно для передачи кук
+        // Для всех запросов, кроме CSRF, добавляем токен авторизации
+        if (!config.url.includes('sanctum/csrf-cookie')) {
+            if (token && isLogged()) {
+                config.headers['Authorization'] = `Bearer ${token}`;
+            }
         }
 
+        // Всегда добавляем CSRF-токен, если он есть
+        if (csrfToken) {
+            config.headers['X-XSRF-TOKEN'] = csrfToken;
+        }
+
+        console.debug('[AXIOS] Request to:', config.method?.toUpperCase(), config.url);
         return config;
     },
     error => {
+        console.error('[AXIOS] Request error:', error);
         return Promise.reject(error);
     }
 );
