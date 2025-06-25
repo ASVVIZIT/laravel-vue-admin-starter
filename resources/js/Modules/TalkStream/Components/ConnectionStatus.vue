@@ -23,15 +23,15 @@ const talkStream = useTalkStreamStore();
   </div>
 </template>
 
-<style scoped>
+<style lang="scss" scoped>
 .connection-status {
   position: fixed;
-  bottom: 16px;
-  right: 16px;
-  padding: 8px 16px;
-  background: white;
+  bottom: 8px;
+  right: 24px;
+  padding: 6px 10px;
+  background: #f3efef;
   border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: 3px 3px 7px 1px rgba(0, 0, 0, 0.3);
   font-size: 14px;
   display: flex;
   align-items: center;

@@ -35,7 +35,7 @@ class AuthController extends BaseController
         $token = csrf_token();
 
         // Отправляем его как куку
-        return response()->json(['status' => 'CSRF cookie set'])
+        return response()->json(['status' => 'OK'])
             ->withCookie(Cookie::make('XSRF-TOKEN', $token, 1440, null, null, false, false))
             ->withCookie(Cookie::make(
                 'laravel_vue_admin_fenix_session',
@@ -57,7 +57,6 @@ class AuthController extends BaseController
      */
     public function login(Request $request)
     {
-
 
         // Временная отладка
         Log::debug('CSRF Token: ' . csrf_token());

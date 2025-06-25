@@ -1,10 +1,19 @@
 <template>
-  <div className="talkstream-container">
-    <!-- Список контактов -->
-    <TalkStreamContacts @select="handleSelectContact"/>
+  <div class="talkstream-container">
+    <ConnectionStatus />
+    <!-- Обёртка для панели контактов с анимацией -->
+    <div
+        v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
+        class="contacts-wrapper" :class="{ 'collapsed': isContactsPanelCollapsed }"
+    >
+      <TalkStreamContacts @select="handleSelectContact"/>
+    </div>
 
-    <!-- Чат -->
-    <div className="talkstream-chat">
+    <!-- Основной чат -->
+    <div
+        v-loading-talk.history="{ text: 'Загрузка истории...', background: '#ffffffaa' }"
+        class="talkstream-chat" :class="{ 'full-width': isContactsPanelCollapsed }"
+    >
       <TalkStreamHeader
           :contact="selectedContact"
           :is-online="contactStore.isOnline(selectedContact?.id)"
@@ -26,21 +35,26 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onUnmounted, nextTick, watch} from 'vue'
-import {useRouter} from 'vue-router'
-import {useTalkStreamStore} from '@/modules/TalkStream/Stores/talkStreamStore.js'
-import {useContactStore} from '@/modules/TalkStream/Stores/contactStore'
-import {useChatStore} from '@/modules/TalkStream/Stores/chatStore'
-import {friendStore} from '@/modules/TalkStream/Stores/friendStore'
-import {userStore} from '@/store/user'
+import { useLoading } from '@/modules/TalkStream/Composables/useLoading'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+// Stores
+import { useUiStore } from '@/modules/TalkStream/stores/uiStore'
+import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore.js'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+import { userStore } from '@/store/user'
 
 // Компоненты
+import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
 import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
 import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
 import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
 import TalkStreamSender from '@/modules/TalkStream/Talks/TalkStreamSender.vue'
 
 const router = useRouter()
+const uiStore = useUiStore()
 const chatStore = useChatStore()
 const contactStore = useContactStore()
 const useFriendStore = friendStore()
@@ -53,16 +67,26 @@ const history = ref(null)
 // Сообщения из стора
 const messages = computed(() => chatStore.messages)
 
+// Состояние панели контактов
+const isContactsPanelCollapsed = computed(() => uiStore.isContactsPanelCollapsed)
+
+// Loading Для контактов
+const { withLoading: withContactsLoading } = useLoading('contacts')
+// Loading Для истории
+const { withLoading: withHistoryChatLoading } = useLoading('history')
+
 /**
  * Обработчик выбора контакта
  */
-const handleSelectContact = (contact) => {
+const handleSelectContact = async (contact) => {
   if (!contact) return
 
   selectedContact.value = contact
   localStorage.setItem('last-selected-contact', contact.id)
   contactStore.selectContact(contact)
-  chatStore.loadHistory(contact.id)
+  if (selectedContact.value) {
+    await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
+  }
 }
 
 /**
@@ -99,7 +123,23 @@ const handleSendMessage = (data) => {
   }
 }
 
+// Загрузка контактов
+async function loadContacts() {
+  await withContactsLoading(() => contactStore.loadContacts())
+}
+
+// Загрузка истории
+async function loadHistory(contactId) {
+  await withHistoryChatLoading(() => chatStore.loadHistory(contactId))
+}
+
 onMounted(async () => {
+  // Восстановление состояния панели контактов
+  const savedState = localStorage.getItem('contactsPanelCollapsed')
+  if (savedState !== null) {
+    uiStore.setContactsPanelState(JSON.parse(savedState))
+  }
+
   // Инициализация пользователя
   if (!useUserStore.id) {
     try {
@@ -114,14 +154,14 @@ onMounted(async () => {
     await contactStore.refreshUserFrom()
   }
 
-  // Загрузка контактов
+  // Загрузка контактов с индикатором
   if (!contactStore.contacts.length) {
-    await contactStore.loadContacts()
+    await loadContacts()
   }
-
+  // Загрузка истории с индикатором
   if (selectedContact.value) {
     if (!chatStore.messages.length) {
-      await chatStore.loadHistory()
+      await loadHistory(contact.id)
     }
   }
 
@@ -138,12 +178,10 @@ onMounted(async () => {
     await useFriendStore.loadSentRequests()
   }
 
-  nextTick(() => {
-    // Мгновенная прокрутка без анимации при инициализации
-    if (history.value) {
-      history.value.scrollTop = history.value.scrollHeight
-    }
-  });
+  // Мгновенная прокрутка без анимации при инициализации
+  if (history.value) {
+    history.value.scrollTop = history.value.scrollHeight
+  }
 
   const lastContactId = localStorage.getItem('last-selected-contact')
   if (lastContactId && contactStore.contacts.some(c => c.id === Number(lastContactId))) {
@@ -164,7 +202,24 @@ onMounted(async () => {
   margin: 0.6rem;
   border-radius: 12px;
   background-color: #f9f9f9;
-  height: calc(100vh - 170px);
+  height: calc(100vh - 150px);
+  overflow: hidden;
+}
+
+.contacts-wrapper {
+  min-width: 160px;
+  min-height: 200px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    min-width: 0;
+    width: 0;
+    opacity: 0;
+    transform: translateX(-100%);
+    margin-right: 0;
+    padding: 0;
+  }
 }
 
 .talkstream-chat {
@@ -173,6 +228,12 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
   height: 100%;
+  min-width: 200px;
   min-height: 300px;
+  transition: all 0.3s ease;
+
+  &.full-width {
+    margin-left: 0;
+  }
 }
 </style>

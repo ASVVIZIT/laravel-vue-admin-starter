@@ -11,6 +11,11 @@ class CacheConfig extends Command
 
     public function handle()
     {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Установка кодировки UTF-8 в Windows CMD/PowerShell
+            exec('chcp 65001');
+        }
+
         $envFile = $this->argument('env') ?: 'production';
         $source = ".env.{$envFile}";
         $target = '.env';

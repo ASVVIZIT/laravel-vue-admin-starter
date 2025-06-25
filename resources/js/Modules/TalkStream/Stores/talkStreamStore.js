@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { createEcho, disconnectEcho } from '../plugins/echoTalkStream'
+import { createEcho, disconnectEcho } from '@/modules/TalkStream/plugins/echoTalkStream'
 import { setupUserPresenceChannel } from '@/modules/TalkStream/Subscriptions/userPresenceHandler'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
@@ -260,7 +260,7 @@ export const useTalkStreamStore = defineStore('talkStream', {
                 return
             }
 
-            // Отписываемся от предыдущих каналов
+            // Очищаем предыдущие подписки
             this.unsubscribeFromAllChannels()
 
             try {
@@ -274,19 +274,19 @@ export const useTalkStreamStore = defineStore('talkStream', {
                         const chatStore = useChatStore()
                         const contactStore = useContactStore()
 
-                        if (e.message.from_id === contactStore.userId) return
+                        if (e.message.from_id === setSelectedContact(contactStore.selectedContact.id)) return
 
                         logger.info('Новое сообщение от пользователя:', e.message)
                         chatStore.addLocalMessage(e.message)
 
                         // Автоскролл истории
-                        if (this.historyRef?.scrollToBottom) {
-                            this.historyRef.scrollToBottom()
+                        if (this.historyContainer?.scrollToBottom) {
+                            this.historyContainer.scrollToBottom()
                         }
                     })
                     .listen('.CallEvent', (e) => {
                         logger.info('Событие звонка:', e)
-                        // Здесь можно добавить обработку входящего звонка
+                        // Логика обработки входящего звонка
                     })
 
                 this.subscribedChannels.push({
@@ -302,18 +302,38 @@ export const useTalkStreamStore = defineStore('talkStream', {
             try {
                 // Presence-канал для онлайна
                 logger.info('Подписка на presence-канал: presence-chat')
-                const presenceChannel = setupUserPresenceChannel()
 
+                const presenceChannel = setupUserPresenceChannel()
                 if (presenceChannel) {
                     this.subscribedChannels.push({
                         name: 'presence-chat',
                         channel: presenceChannel
                     })
-                    logger.info('Успешно подписался на presence-канал')
                 }
+
+                logger.info('Успешно подписался на presence-канал')
             } catch (error) {
                 logger.error('Ошибка при подписке на presence-канал:', error)
             }
+
+
+            try {
+                // Presence-канал для онлайна
+                logger.info('Подписка на presence-канал: presence-chat')
+
+                const presenceChannel = setupUserPresenceChannel()
+                if (presenceChannel) {
+                    this.subscribedChannels.push({
+                        name: 'presence-chat',
+                        channel: presenceChannel
+                    })
+                }
+
+                logger.info('Успешно подписался на presence-канал')
+            } catch (error) {
+                logger.error('Ошибка при подписке на presence-канал:', error)
+            }
+
         },
 
         unsubscribeFromAllChannels() {

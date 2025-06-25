@@ -3,6 +3,7 @@
 use App\Models\TalkStream\FriendRequest;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,13 +18,23 @@ use Illuminate\Support\Facades\Broadcast;
 
 // Убедитесь, что используете правильную модель User
 Broadcast::channel('private-user.{id}', function ($user, $id) {
-    return (int)$user->id === (int)$id;
+    Log::info("Подписка на private-user.$id", [
+        'user' => $user?->id,
+        'id' => $id
+    ]);
+    return (int)$user?->id === (int)$id;
 });
 
 // Присутствие
-Broadcast::channel('presence-chat', function ($user) {
-    return ['id' => (int)$user->id, 'name' => $user->name, 'avatar' => $user->avatar];
-});
+/*Broadcast::channel('presence-chat', function ($user) {
+    Log::info("Подписка на presence-chat", [
+        'user' => $user?->id,
+        'time' => now()->toDateTimeString()
+    ]);
+
+    //return true; // или верните true, если пользователь авторизован
+    return $user->id; // или верните true, если пользователь авторизован
+});*/
 
 // Добавьте тестовый канал для диагностики
 Broadcast::channel('test-channel', function ($user) {
@@ -31,18 +42,19 @@ Broadcast::channel('test-channel', function ($user) {
 });
 
 Broadcast::channel('App.Models.User.{id}', function ($user, $id) {
-    return (int) $user->id === (int) $id;
+    return (int)$user->id === (int)$id;
 });
 
 // Общий канал
-Broadcast::channel('presence-channel', function ($user) {
-    return ['id' => (int)$user->id, 'name' => $user->name];
+Broadcast::channel('presence-chat', function ($user) {
+    //return ['id' => (int)$user->id, 'name' => $user->name];
+    return $user->id;
 });
 
 // Чат Канал для новых сообщений
 Broadcast::channel('chat.{userId}', function ($user, $userId) {
-    return FriendRequest::areFriends((int)$user->id, (int)$userId);
-    //return (int)$user->id === (int)$userId;
+    //return FriendRequest::areFriends((int)$user->id, (int)$userId);
+    return (int)$user->id === (int)$userId;
 });
 
 // Канал для прочтения

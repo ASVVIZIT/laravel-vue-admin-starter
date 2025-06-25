@@ -25,7 +25,7 @@ Route::group(['middleware' => 'web'], function () {
     Route::get('', 'HomeController@index')->where('any', '.*');
 });
 
-Route::get('/debug-broadcast', function() {
+/*Route::get('/debug-broadcast', function() {
     return Broadcast::auth(request());
 });
 
@@ -55,4 +55,4 @@ Route::get('/test-ws', function() {
             'message' => $e->getMessage()
         ], 500);
     }
-});
+});*/

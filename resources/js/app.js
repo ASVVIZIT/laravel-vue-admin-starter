@@ -11,8 +11,6 @@ import 'bootstrap-icons/font/bootstrap-icons.scss'
 // SUBSECTION 2.1: Базовые утилиты
 // ----------------------------
 import { createApp, watch } from 'vue'
-
-
 // Подключение Pinia
 import { createPinia } from 'pinia'
 const pinia = createPinia()
@@ -72,6 +70,9 @@ app.use(ElementPlus, {
 })
 app.use(i18n)
 app.use(router)
+
+import TalkStreamDirective from '@/modules/TalkStream/Directives/loadingDirective'
+app.use(TalkStreamDirective)
 
 // ==============================================
 // SECTION 8: Глобальная регистрация компонентов

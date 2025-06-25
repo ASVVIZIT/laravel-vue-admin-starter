@@ -29,7 +29,7 @@ class User extends Authenticatable
         'name', 'email', 'password', 'status', 'sex', 'birthday', 'description', 'avatar'
     ];
 
-    public $appends = ['age', 'sex_format'];
+    public $appends = ['age', 'sex_format', 'main_role'];
 
     protected $hidden = [
         'password',
@@ -44,6 +44,11 @@ class User extends Authenticatable
     public function userTabs()
     {
         return $this->hasMany(UserTab::class);
+    }
+
+    public function getMainRoleAttribute()
+    {
+        return $this->roles->first()?->name ?? 'Гость';
     }
 
     public function getAvatarAttribute($value)
@@ -102,6 +107,17 @@ class User extends Authenticatable
     public function friendRequestsReceived()
     {
         return $this->hasMany(FriendRequest::class, 'friend_id');
+    }
+
+    // Друзья пользователя
+    public function friends()
+    {
+        return $this->belongsToMany(
+            User::class,
+            'friend_requests',
+            'user_id',
+            'friend_id'
+        )->wherePivot('accepted', true);
     }
 
     public function getAuthIdentifier()

@@ -1,67 +1,3 @@
-/**
- * ========================================================
- * Vite Configuration File (v5.4+) - ESM-совместимая версия
- * ========================================================
- *
- * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
- *                     РЕЖИМЫ РАБОТЫ
- * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
- *
- * [Переменная окружения APP_ENV в .env]
- *
- * 1. development    — Локальная разработка (default)
- *    → .env: APP_ENV=development
- *    → Особенности: HMR, sourcemaps, dev-сервер
- *
- * 2. docker-dev   — Docker-окружение
- *    → .env: APP_ENV=docker
- *    → Особенности: HMR через host.docker.internal
- *
- * 3. production   — Продакшен-сборка
- *    → .env: APP_ENV=production
- *    → Особенности: минификация, чанкинг, Brotli-сжатие
- *
- *
- * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
- *                     КОМАНДЫ ЗАПУСКА
- * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
- *
- * ┌──────────────┬───────────────────────┬───────────────────────┐
- * │   РЕЖИМ      │       КОМАНДА         │ ПЕРЕМЕННЫЕ .ENV       │
- * ├──────────────┼───────────────────────┼───────────────────────┤
- * │ development  │ npm run dev           │ VITE_DEV_SERVER_URL=  │
- * │              │                       │ http://localhost:5173 │
- * ├──────────────┼───────────────────────┼───────────────────────┤
- * │ docker-dev   │ npm run docker-dev    │ VITE_DOCKER_SERVER_URL│
- * │              │                       │ =http://host.docker...│
- * ├──────────────┼───────────────────────┼───────────────────────┤
- * │ production   │ npm run build         │ VITE_BASE_PATH=/build/│
- * └──────────────┴───────────────────────┴───────────────────────┘
- *
- *
- * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
- *               ОСОБЕННОСТИ РЕАЛИЗАЦИИ
- * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
- *
- * ✓ Поддержка Vue 3 Composition API + JSX
- * ✓ Интеграция с Element Plus (кастомизация темы)
- * ✓ Автоматический импорт компонентов (unplugin-auto-import)
- * ✓ Полная поддержка TypeScript (строгая типизация)
- * ✓ Оптимизированные алиасы путей (@/ → /resources/js)
- * ✓ Анализ бандла через rollup-plugin-visualizer
- * ✓ Горячая перезагрузка Blade-шаблонов
- * ✓ Поддержка SCSS-модулей с глобальными переменными
- * ✓ PostCSS-обработка (автопрефиксер, чистка CSS)
- *
- *
- * █▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█
- *                 ТРЕБОВАНИЯ К ОКРУЖЕНИЮ
- * █▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄█
- *
- • Node.js 20.02+ • npm 11.3+ • PHPStorm 2021.2+ • Docker 24+
- * ========================================================
- */
-
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
@@ -119,6 +55,7 @@ export default defineConfig(({ mode }) => {
             'process.version': null,
             'import.meta.env': {
                 ...env,
+                VITE_APP_HOST: JSON.stringify(process.env.VITE_APP_HOST),
                 VITE_REVERB_APP_KEY: JSON.stringify(process.env.VITE_REVERB_APP_KEY),
                 VITE_REVERB_HOST: JSON.stringify(process.env.VITE_REVERB_HOST),
                 VITE_REVERB_PORT: JSON.stringify(process.env.VITE_REVERB_PORT),
@@ -173,7 +110,9 @@ export default defineConfig(({ mode }) => {
                 // Конфиг для кэширования локалей
                 registerType: 'autoUpdate',
                 workbox: {
+                    globDirectory: 'public/build',
                     maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB
+                    // ИСПРАВЛЕННЫЙ ПАТТЕРН:
                     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
                     runtimeCaching: [
                         {
@@ -213,7 +152,7 @@ export default defineConfig(({ mode }) => {
                 }
             }),
             Components({
-                dirs: ['resources/js/components/!**!/!*.vue'],
+                dirs: ['resources/js/components/**/*.vue'],
                 extensions: ['vue','js', 'jsx'],
                 resolvers: [
                     ElementPlusResolver({ importStyle: 'sass' }),
@@ -224,11 +163,11 @@ export default defineConfig(({ mode }) => {
             Icons({
                 autoInstall: true,
             }),
-            compress({
-                threshold: 10240,
-                algorithm: 'brotliCompress',
-                ext: '.br'
-            })
+            /*            compress({
+                            threshold: 10240,
+                            algorithm: 'brotliCompress',
+                            ext: '.br'
+                        })*/
         ],
         resolve: {
             alias: createAliases(),
@@ -274,25 +213,32 @@ export default defineConfig(({ mode }) => {
                 interval: 1000
             },
             proxy: {
+                // API запросы
                 '/api': {
                     target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false,
                     ws: true
                 },
+
+                // CSRF токен
                 '/sanctum/csrf-cookie': {
                     target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false
                 },
+
+                // Аутентификация каналов (важно для Echo.js)
                 '/broadcasting/auth': {
                     target: 'http://94.41.87.10:8050',
                     changeOrigin: true,
                     secure: false,
                     ws: true
                 },
-                '/ws': {
-                    target: 'ws://94.41.87.10:8080',
+
+                // WebSocket для Reverb
+                '/reverb': {
+                    target: 'ws://localhost:8080',
                     changeOrigin: true,
                     secure: false,
                     ws: true
@@ -308,7 +254,6 @@ export default defineConfig(({ mode }) => {
             include: [
                 'vue',
                 'element-plus',
-                //'element-plus/dist/locale/ru.mjs',
                 ...ELEMENT_LOCALES
             ],
             exclude: ['vue-demi']
@@ -357,32 +302,16 @@ export default defineConfig(({ mode }) => {
     const productionConfig = {
         base: '/build',
         server: {
-            host: '0.0.0.0',
+            host: process.env.VITE_APP_HOST || 'fenixlaravel.loc',
             port: 8050,
-            proxy: {
-                '/api': {
-                    target: 'http://94.41.87.10:8050',
-                    changeOrigin: true,
-                    secure: false,
-                    rewrite: path => path.replace(/^\/api/, '')
-                },
-                '/broadcasting/auth': {
-                    target: 'http://94.41.87.10:8050',
-                    changeOrigin: true,
-                    secure: false,
-                    ws: true
-                },
-                '/sanctum/csrf-cookie': {
-                    target: 'http://94.41.87.10:8050',
-                    changeOrigin: true,
-                    secure: false
-                },
-                '/ws': {
-                    target: 'ws://94.41.87.10:8080',
-                    changeOrigin: true,
-                    secure: false,
-                    ws: true
-                }
+            // 🌐 Разрешить подключения с внешнего IP
+            cors: {
+                origin: [
+                    'http://fenixlaravel.loc',
+                    'http://94.41.87.10',
+                    'http://localhost:5173'
+                ],
+                credentials: true
             }
         },
         build: {

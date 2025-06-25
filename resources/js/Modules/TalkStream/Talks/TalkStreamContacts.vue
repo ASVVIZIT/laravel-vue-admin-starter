@@ -1,19 +1,7 @@
 <template>
   <div class="contacts-container">
-    <!-- Меню режимов -->
-    <div class="mode-switcher">
-      <button
-          v-for="mode in ['chat', 'call']"
-          :key="mode"
-          :class="['mode-button', { active: currentMode === mode }]"
-          @click="switchMode(mode)"
-      >
-        {{ mode === 'chat' ? 'Чат' : 'Звонок' }}
-      </button>
-      <ConnectionStatus />
-    </div>
-    <div>
-      <h3>Общий список пользователей</h3>
+    <div class="contacts-container-header">
+      <span>Общий список пользователей</span>
     </div>
     <!-- Обёртка для прокрутки -->
     <div class="contacts-wrap">
@@ -39,9 +27,8 @@ import { userStore } from '@/store/user'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItemWrapper from '@/modules/TalkStream/Components/ContactItemWrapper.vue'
-import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
 
-const props = defineProps(['contacts'])
+const props = defineProps(['contacts', 'isLoadingContacts'])
 const emit = defineEmits(['select', 'add-friend', 'accept-request'])
 
 const router = useRouter()
@@ -77,12 +64,28 @@ function switchMode(mode) {
 .contacts-container {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  padding: 0.5rem;
-  border-bottom: 1px solid #eaeaea;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  min-width: 140px;
+  max-width: 210px;
+  height: calc(100vh - 130px);
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
+.contacts-container-header {
+  height: 30px; /* Фиксированная высота */
+  min-height: 30px; /* Гарантирует минимальную высоту */
+  display: flex;
+  align-items: center; /* Вертикальное выравнивание */
+  justify-content: center; /* Горизонтальное выравнивание */
+  width: 100%; /* Занимает всю ширину */
+  font-size: .7rem;
+  /* Добавьте это для предотвращения сжатия: */
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Остальные стили без изменений */
 .mode-switcher {
   display: flex;
   justify-content: center;
@@ -93,11 +96,15 @@ function switchMode(mode) {
   flex-grow: 1;
   overflow-y: auto;
   max-height: calc(100vh - 160px);
+  /* Добавьте это: */
+  min-height: 0; /* Разрешает сжатие */
 }
 
 .contact-list {
   list-style: none;
-  padding: 0;
-  margin: 0;
+  padding-top: 4px;
+  padding-left: 2px;
+  padding-bottom: 4px;
+  margin-right: 4px;
 }
 </style>

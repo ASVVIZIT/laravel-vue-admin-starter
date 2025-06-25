@@ -6,6 +6,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import {getCsrfToken, isLogged} from '@/utils/auth';
 import { ElConfigProvider } from 'element-plus'
 import { getActivePinia } from 'pinia'
 import { useI18n } from 'vue-i18n'
@@ -25,7 +26,10 @@ import('element-plus/dist/locale/ru.mjs').then(module => {
 const useUserStore = userStore()
 const talkStreamStore = useTalkStreamStore()
 
-onMounted(() => {
+onMounted(async () => {
+  if (isLogged) {
+    await getCsrfToken()
+  }
   // Для отладки: проверка состояния хранилища
   console.log('TalkStream store state onMounted:', talkStreamStore.$state)
 

@@ -30,10 +30,10 @@ class FriendRequestController extends Controller
             'friend_id' => $data['friend_id']
         ]);
 
-        event(new FriendRequestSent([
+        broadcast(new FriendRequestSent([
             'user_id' => $userId,
             'friend_id' => $data['friend_id']
-        ]));
+        ]))->toOthers();
 
         return response()->json(['message' => 'Запрос отправлен', 'data' => $req], 201);
     }
@@ -53,9 +53,9 @@ class FriendRequestController extends Controller
             'declined' => null,
         ]);
 
-        event(new FriendRequestAccepted([
+        broadcast(new FriendRequestAccepted([
             'user_id' => $req->user_id,
-            'friend_id' => $req->friend_id
+            'friend_id' => $userId
         ]));
 
         return response()->json(['message' => 'Запрос принят', 'data' => $req]);
@@ -70,14 +70,46 @@ class FriendRequestController extends Controller
         }
 
         $requests = FriendRequest::where('friend_id', $userId)
-            ->where('accepted', false)
-            ->where('declined', false)
-            ->with('user')
+            ->whereNull('accepted')
+            ->whereNull('declined')
+            ->with([
+                'user:id,name,avatar'
+            ])
             ->get();
 
-        return response()->json(['data' =>$requests]);
+        return response()->json(['data' => $requests]);
     }
 
+    // для получения исходящих запросов
+    public function sent()
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $requests = FriendRequest::where('user_id', $userId)
+            ->whereNull('accepted')
+            ->whereNull('declined')
+            ->with([
+                'friend:name'
+            ])
+            ->get();
+
+        return response()->json(['data' => $requests]);
+    }
+
+    public function isFriend(Request $request, int $userId)
+    {
+        $currentUserId = auth()->id();
+        if (!$currentUserId) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        return response()->json([
+            'isFriend' => self::areFriends($currentUserId, $userId)
+        ]);
+    }
     // Список друзей
     public function friends()
     {
@@ -86,40 +118,14 @@ class FriendRequestController extends Controller
         $friends = User::where('id', '!=', $userId)
             ->where(function ($query) use ($userId) {
                 $query->whereHas('friendRequestsSent', function ($q) use ($userId) {
-                    $q->where('friend_id', $userId)->where('accepted', true);
+                    $q->where('friend_id', $userId)->whereNotNull('accepted');
                 })
                     ->orWhereHas('friendRequestsReceived', function ($q) use ($userId) {
-                        $q->where('user_id', $userId)->where('accepted', true);
+                        $q->where('user_id', $userId)->whereNotNull('accepted');
                     });
             })
             ->get();
 
         return response()->json(['data' => $friends]);
-    }
-    // для получения исходящих запросов
-    public function sent()
-    {
-        $userId = auth()->id();
-
-        $requests = FriendRequest::where('user_id', $userId)
-            ->whereNull('accepted')
-            ->whereNull('declined')
-            ->with(['friend' => function ($q) {
-                $q->select('id');
-            }])
-            ->get()
-            ->filter(function ($request) {
-                return !is_null($request->friend);
-            });
-
-        return response()->json(['data' => $requests]);
-    }
-
-    public function isFriend(int $friendId)
-    {
-        $userId = auth()->id();
-        return response()->json([
-            'isFriend' => self::areFriends($userId, $friendId)
-        ]);
     }
 }

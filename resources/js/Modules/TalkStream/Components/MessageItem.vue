@@ -1,31 +1,30 @@
 <template>
-  <!-- Контейнер сообщения -->
   <div
-     class="message-wrapper"
-     :class="{
-        sent: isSent,
-        received: !isSent,
-        'group-start': isGroupStart,
+      class="message-wrapper"
+      :class="{
+      sent: !isSent,
+      received: isSent,
+      'group-top': isFirstInGroup,
+      'group-bottom': isLastInGroup,
+      'wide-message': isWideMessage,
+      'narrow-message': !isWideMessage
+    }"
+  >
+    <div
+        class="message-bubble"
+        :class="{
         'group-top': isFirstInGroup,
-        'group-bottom': isLastInGroup
-      }">
-    <!-- Аватарка для исходящих -->
-    <div class="message-avatar-wrapper" v-if="!isSent">
-      <div class="message-avatar" v-if="isLastInGroup">
-        <img class="avatar-img" :src="userFrom.avatar" :alt="userFrom.name" />
-      </div>
-    </div>
-
-    <!-- Блок сообщения -->
-    <div class="message-bubble">
+        'group-bottom': isLastInGroup,
+        'wide': isWideMessage,
+        'narrow': !isWideMessage
+      }"
+    >
       <div class="message-content">{{ message.content }}</div>
 
-      <!-- Meta + Status -->
       <div class="message-footer">
         <div class="message-meta">
-          {{ formatTime(message.created_at) }}
+          {{ message.formatted_created_at }}
         </div>
-        <!-- Статус -->
         <div class="message-status">
           <span v-if="isSent && !message.read_at" class="status-icon status-sent-unread">✔✔</span>
           <span v-if="isSent && message.read_at" class="status-icon status-sent-read">✔✔</span>
@@ -33,21 +32,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Аватарка для входящих -->
-    <div class="message-avatar-wrapper" v-if="isSent">
-      <div class="message-avatar sent" v-if="isLastInGroup">
-        <img class="avatar-img" :src="contact.avatar" :alt="contact.name" />
-        <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
-      </div>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
-import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
-const chatStore = useChatStore()
+import { defineProps, computed } from 'vue'
 
 const props = defineProps({
   userFrom: {
@@ -66,219 +55,258 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  isFirstInGroup: { // Первое в группе
+  isFirstInGroup: {
     type: Boolean,
     default: false
   },
-  isLastInGroup: { // Последнее в группе
+  isLastInGroup: {
     type: Boolean,
     default: false
   },
-  isGroupStart: {  // Начало новой группы
+  isGroupStart: {
     type: Boolean,
     default: false
-  },
-})
-
-const isSent = props.message.from_id === props.contact.id
-
-function formatTime(time) {
-  const date = new Date(time)
-  return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
-}
-
-onMounted(() => {
-  // Если уже есть в кэше — не делаем лишних запросов
-  if (props.message.read_at) {
-    // Отправляем событие о прочтении
-    chatStore.markAsRead(props.message.to_id)
-  } else if (props.message.from_id === props.contact.id) {
-    // Нужно отправить событие о прочтении
   }
 })
+
+const isSent = computed(() => props.message.from_id !== props.contact.id)
+const isWideMessage = computed(() => props.message.content.length < 40)
 </script>
-<style lang="scss">
+
+<style lang="scss" scoped>
 .message-wrapper {
   display: flex;
-  align-items: self-start;
-  padding: 4px 8px;
+  align-items: flex-start;
+  padding: 4px 6px;
+  position: relative;
 
   &.group-start {
-    margin-top: 0.6rem;
-  }
-
-  &:not(.group-start) {
-    margin-top: 0;
+    margin-top: 0.8rem;
   }
 
   &.sent {
-    justify-content: flex-end;
-    border-radius: 0px 0px;
-    background-color: #131f2a;
-    margin-left: 30%;
-    min-width: 120px;;
-
-    // Стиль для одиночных сообщений (которые одновременно и первое и последнее)
-    &.group-top.group-bottom {
-      border-radius: 8px !important;
-    }
+    justify-content: flex-start;
 
     .message-bubble {
-      background-color: #4a82c2;
-      color: #f6f6f6;
-    }
+      background-color: rgba(46, 83, 112, 0.69);
+      box-shadow: 0px 0px 2px 1px rgba(107, 130, 147, 0.94);
+      color: #e5e5e5;
 
-    // Для sent сообщений
-    &.group-top {
-      background-color: #131f2a;
-      border-radius: 8px 8px 0 0;
-    }
+      /* Одиночные сообщения */
+      &.group-top.group-bottom {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
 
-    &.group-bottom {
-      background-color: #131f2a;
-      border-radius: 0 0 8px 8px;
+      /* Верхние сообщения в группе */
+      &.group-top:not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие верхние сообщения */
+      &.group-top:not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие верхние сообщения */
+      &.group-top:not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Нижние сообщения в группе */
+      &.group-bottom:not(.group-top) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие нижние сообщения */
+      &.group-bottom:not(.group-top).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие нижние сообщения */
+      &.group-bottom:not(.group-top).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Средние сообщения */
+      &:not(.group-top):not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
     }
   }
 
   &.received {
-    justify-content: flex-start;
-    border-radius: 0px 0px;
-    background-color: #1b1c1c;
-    margin-right: 30%;
-    min-width: 120px;;
-
-    // Стиль для одиночных сообщений (которые одновременно и первое и последнее)
-    &.group-top.group-bottom {
-      border-radius: 8px !important;
-    }
+    justify-content: flex-end;
 
     .message-bubble {
-      background-color: rgba(46, 83, 112, 0.69);
-      color: #e5e5e5;
-    }
+      background-color: #5f84aec7;
+      box-shadow: 0px 0px 2px 1px rgba(107, 130, 147, 0.94);
+      color: #f6f6f6;
 
-    // Для received сообщений
-    &.group-top {
-      background-color: #1b1c1c;
-      border-radius: 8px 8px 0 0;
-    }
+      /* Одиночные сообщения */
+      &.group-top.group-bottom {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
 
-    &.group-bottom {
-      background-color: #1b1c1c;
-      border-radius: 0 0 8px 8px;
+      /* Верхние сообщения в группе */
+      &.group-top:not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие верхние сообщения */
+      &.group-top:not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие верхние сообщения */
+      &.group-top:not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Нижние сообщения в группе */
+      &.group-bottom:not(.group-top) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие нижние сообщения */
+      &.group-bottom:not(.group-top).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие нижние сообщения */
+      &.group-bottom:not(.group-top).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Средние сообщения */
+      &:not(.group-top):not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
     }
   }
 
   .message-bubble {
-    min-width: 50px;
-    border-radius: 8px !important;
-  }
-
-  .message-avatar-wrapper {
-    position: relative;
-    width: 45px;
-    height: 45px;
-    flex-shrink: 0;
-    align-self: center;
-  }
-
-  .message-avatar {
-    width: 40px;
-    height: 40px;
-    border: 0.12rem solid #b8c4cc;
-    border-radius: 50%;
-    flex-shrink: 0;
-    margin-top: auto;
-    margin-bottom: auto;
-
-    &.sent {
-      margin-left: 0.45rem;
-      margin-right: 0rem;
-      position: relative;
-    }
-
-    &:not(.sent) {
-      margin-right: 0.45rem;
-      margin-left: 0rem;
-    }
-
-    &.sent .status-indicator {
-      position: absolute;
-      bottom: 1px;
-      left: 1px;
-      font-size: 0.40rem;
-      color: #42b983;
-      z-index: 1;
-      user-select: none;
-      pointer-events: none;
-    }
-  }
-
-  .avatar-img {
-    width: 100%;
-    height: 100%;
-    border-radius: 50%;
-    object-fit: cover;
-    display: block;
-  }
-
-  .message-bubble {
-    min-width: 20%;
-    padding: 0.45rem 0.75rem;
-    font-size: 0.85rem;
+    padding: 8px 12px;
+    font-size: 0.95rem;
     line-height: 1.4;
     display: flex;
     flex-direction: column;
-    border-radius: 0;
+    position: relative;
+    word-break: break-word;
+    transition: all 0.3s ease;
+    overflow: hidden;
   }
 
   .message-content {
     word-break: break-word;
     white-space: pre-wrap;
-    flex: 1;
-    min-width: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .message-footer {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    font-size: 0.45rem;
-    color: #a6a5a5;
-    margin-top: 0.15rem;
-    white-space: nowrap;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 4px;
     position: relative;
+    z-index: 1;
   }
 
   .message-meta {
-    margin-right: 0.05rem;
+    margin-right: 6px;
   }
 
   .message-status {
     display: flex;
     align-items: center;
-    color: #999;
-    margin-top: 0.25rem;
-    position: absolute;
-    bottom: 0.25rem;
-    right: 0.5rem;
-    white-space: nowrap;
-    margin-left: 0.05rem;
-    font-size: 0.50rem;
-    z-index: 1;
+  }
 
-    .status-icon {
-      display: inline-block;
-      text-align: center;
-      line-height: 1;
-      font-weight: bold;
-      font-size: 0.50rem;
-      color: #999;
-      user-select: none;
-      pointer-events: none;
-      margin-left: 0.05rem;
-      letter-spacing: -0.10rem;
-    }
+  .status-icon {
+    display: inline-block;
+    font-size: 0.7rem;
+    margin-left: 2px;
   }
 
   .status-sent-unread {

@@ -11,44 +11,76 @@ export const friendStore = defineStore('friend', {
         talkService: new TalkService()
     }),
     actions: {
-        async sendRequest(friend_id) {
-            const res = await this.talkService.sendFriendRequest(friend_id)
-            console.log('sendRequest res ', res)
-            this.friendRequests.push(res.data)
+        async sendRequest(friendId) {
+            try {
+                await this.talkService.sendFriendRequest(friendId).then(res => {
+                    this.sentRequests.push(res.data)
+                })
+            } catch (e) {
+                console.error('Не удалось загрузить запросы:', e.message)
+                this.sentRequests = []
+            }
         },
         async acceptRequest(id) {
-            const res = await this.talkService.acceptFriendRequest(id)
-            console.log('acceptRequest res ', res)
-            this.friends.push(res.data)
+            try {
+                await this.talkService.acceptFriendRequest(id).then(() => {
+                    this.incomingRequests = this.incomingRequests.filter(r => r.id !== id)
+                })
+            } catch (e) {
+                console.error('Не удалось загрузить запросы:', e.message)
+                this.incomingRequests = []
+            }
         },
         async loadIncomingRequests() {
-            const res = await this.talkService.getIncomingRequests()
-            console.log('loadIncomingRequests res ', res)
-            this.incomingRequests = res.data.map(r => Number(r.user_id))
+            try {
+                console.log('Запрашиваем входящие запросы в друзья...')
+                const res = await this.talkService.getIncomingFriendsRequest()
+                console.log('Получено входящих запросов:', res.data.length)
+                this.incomingRequests = res.data || []
+            } catch (e) {
+                console.error('Не удалось загрузить входящие запросы:', e.message)
+                this.incomingRequests = []
+            }
         },
         async loadSentRequests() {
-            const res = await this.talkService.getSentRequests()
-            console.log('loadSentRequests res ', res)
-            this.sentRequests = res.map(r => Number(r.friend_id))
+            try {
+                console.log('Запрашиваем исходящие запросы в друзья...')
+                const res = await this.talkService.getSentRequests()
+                console.log('Получено исходящих запросов:', res.data.length)
+                this.sentRequests = res.data || []
+            } catch (e) {
+                console.error('Не удалось загрузить исходящие запросы:', e.message)
+                this.sentRequests = []
+            }
         },
         async loadFriendsList() {
-            const res = await this.talkService.getFriendsList()
-            console.log('loadFriendsList res ', res)
-            this.friends = res.data.map(f => Number(f.id))
+            try {
+                console.log('Запрашиваем список друзей...')
+                const res = await this.talkService.getFriendsList()
+                console.log('Получено друзей число:', res.data.length)
+                this.friends = res.data.map(f => Number(f.id))
+            } catch (e) {
+                console.error('Не удалось загрузить друзей:', e.message)
+                this.friends = []
+            }
         },
 
         async isFriend(userId) {
-            const isCached = this.friends.includes(Number(userId))
-            if (isCached) return true
-            console.log('isFriend isCached ', isCached)
-            // Если не в кэше — запрос на сервер
-            const res = await this.talkService.isFriend(userId)
-            console.log('isFriend res ', res)
-            if (res.data.isFriend) {
-                this.friends.push(Number(userId))
+            try {
+                const isCached = this.friends.includes(Number(userId))
+                if (isCached) return true
+                console.log('isFriend isCached ', isCached)
+                // Если не в кэше — запрос на сервер
+                const res = await this.talkService.isFriend(userId)
+                console.log('isFriend res ', res)
+                if (res.data.isFriend) {
+                    this.friends.push(Number(userId))
+                }
+                console.log('res.data.isFriend ', res.data.isFriend)
+                return res.data.isFriend
+            } catch (e) {
+                console.error('Не удалось определить друзей:', e.message)
             }
-            console.log('res.data.isFriend ', res.data.isFriend)
-            return res.data.isFriend
         },
 
         async checkFriend(userId) {
@@ -67,14 +99,14 @@ export const friendStore = defineStore('friend', {
         },
         hasIncoming(userId) {
             const id = Number(userId)
-            console.log('hasIncoming userId', userId)
+            //console.log('hasIncoming userId', userId)
             if (isNaN(id)) return false
 
-            console.log('hasIncoming isNaN(id)', isNaN(id))
+            //console.log('hasIncoming isNaN(id)', isNaN(id))
             return this.incomingRequests.includes(id)
         },
         hasSent(userId) {
-            console.log('hasSent userId', userId)
+            //console.log('hasSent userId', userId)
             return this.sentRequests.includes(Number(userId))
         },
         addFriend(userId) {

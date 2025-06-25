@@ -2,14 +2,16 @@
   <form class="talkstream-sender" @submit.prevent="send">
     <div class="sender-input-wrapper">
       <textarea
-          v-model="message"
-          @input="adjustHeight"
-          @keydown.enter="handleEnter"
-          placeholder="Введите сообщение..."
-          ref="textarea"
-          :rows="rows"
+        v-model="message"
+        @input="adjustHeight"
+        @keydown.enter="handleEnter"
+        placeholder="Введите сообщение..."
+        ref="textarea"
+        :rows="rows"
       />
-      <button type="submit" :disabled="!message.trim()">Отправить</button>
+      <button type="submit" :disabled="!message.trim()">
+        <SendPlaneIcon />
+      </button>
     </div>
   </form>
 </template>
@@ -17,14 +19,14 @@
 <script setup>
 import { ref } from 'vue'
 import { defineProps, defineEmits } from 'vue'
-
+import SendPlaneIcon from '@/modules/TalkStream/Components/Icons/SendPlaneIcon.vue'
 const props = defineProps(['contact'])
 const emit = defineEmits(['send'])
 
 const message = ref('')
 const textarea = ref(null)
 const rows = ref(3)
-const MAX_ROWS = 10
+const MAX_ROWS = 6
 
 function adjustHeight() {
   const el = textarea.value
@@ -56,10 +58,35 @@ function send() {
 <style lang="scss">
 .talkstream-sender {
   position: relative;
-  padding: 1rem;
+  padding: 0.4rem 0.2rem 0.4rem 0.2rem;
   background-color: #fff;
   border-top: 1px solid #eee;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+}
+
+ .send-button {
+   background-color: #3490dc;
+   color: white;
+   padding: 0.4rem 0.8rem;
+   border-radius: 20px;
+   font-size: 0.85rem;
+   display: flex;
+   align-items: center;
+   gap: 0.4rem;
+   transition: all 0.2s ease;
+ }
+
+.send-button:hover {
+  background-color: #2779bf;
+}
+
+.send-button .send-icon svg {
+  transform: rotate(45deg);
+  transition: transform 0.3s ease;
+}
+
+.send-button:hover .send-icon svg {
+  transform: rotate(15deg) translateX(2px);
 }
 
 .sender-input-wrapper {
@@ -106,7 +133,10 @@ function send() {
   min-width: 80px;
 
   &:hover {
-    background-color: #36a871;
+    border-color: #42b983;
+    color: #1f2d3d;
+    background-color: #f0fff7;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
   }
 
   &:disabled {

@@ -77,6 +77,11 @@ Route::namespace('Api')->group(function() {
 Route::namespace('Api')->group(function() {
     Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
     Route::post('auth/login', [AuthController::class, 'login']);
+
+    Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+        return Broadcast::auth($request);
+    })->middleware(['auth:sanctum']);
+
     Route::middleware('auth:sanctum')->group(function () {
         // Все токеновые роуты модуля TalkStream
         Route::prefix('talkstream')->group(function () {
@@ -92,16 +97,19 @@ Route::namespace('Api')->group(function() {
             Route::get('/history/{userId}', [ChatController::class, 'getHistory']);
 
             // Звонки
-            Route::post('/start', [CallController::class, 'startCall']);
-            Route::post('/end', [CallController::class, 'endCall']);
-
+            Route::prefix('call')->group(function () {
+                Route::post('/start', [CallController::class, 'startCall']);
+                Route::post('/end', [CallController::class, 'endCall']);
+            });
             // Друзья
-            Route::get('/friends', [FriendRequestController::class, 'friends']);
-            Route::get('/friends/is-friend/{userId}', [FriendRequestController::class, 'isFriend']);
-            Route::get('/friends/incoming', [FriendRequestController::class, 'incoming']);
-            Route::get('/friends/sent', [FriendRequestController::class, 'sent']);
-            Route::post('/friends/send', [FriendRequestController::class, 'send']);
-            Route::post('/friends/accept/{id}', [FriendRequestController::class, 'accept']);
+            Route::prefix('friends')->group(function () {
+                Route::get('/', [FriendRequestController::class, 'friends']);
+                Route::get('/is-friend/{userId}', [FriendRequestController::class, 'isFriend']);
+                Route::get('/incoming', [FriendRequestController::class, 'incoming']);
+                Route::get('/sent', [FriendRequestController::class, 'sent']);
+                Route::post('/send', [FriendRequestController::class, 'send']);
+                Route::post('/accept/{id}', [FriendRequestController::class, 'accept']);
+            });
         });
     });
 });
@@ -116,11 +124,6 @@ Route::get('/debug/network', function(Request $request) {
             'redis' => Redis::connection()->ping() === true
         ]
     ]);
-});
-Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/broadcasting/auth', function (Request $request) {
-        return Broadcast::auth($request);
-    })->name('broadcast.auth');
 });
 
 Route::prefix('table')->group(function () {

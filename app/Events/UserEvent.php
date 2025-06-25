@@ -26,21 +26,18 @@ class UserEvent implements ShouldBroadcast
         $this->data = $data;
     }
 
-    /**
-     * Get the channels the event should broadcast on.
-     *
-     * @return \Illuminate\Broadcasting\Channel|array
-     */
     public function broadcastOn()
     {
-        return new PrivateChannel('private-user.' . $this->data['id']);
+        return new Channel('presence-chat');
     }
 
-    /**
-     * Имя события (опционально)
-     */
     public function broadcastAs()
     {
         return 'UserEvent';
+    }
+
+    public function broadcastWith()
+    {
+        return $this->data;
     }
 }

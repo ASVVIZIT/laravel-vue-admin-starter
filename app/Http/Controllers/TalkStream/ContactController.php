@@ -15,7 +15,9 @@ class ContactController extends Controller
             return response()->json(['error' => 'Пользователь не авторизован'], 401);
         }
 
-        $contacts = User::where('id', '!=', $user->id)->get();
+        $contacts = User::where('id', '!=', $user->id)
+            ->with(['roles:id,name']) // Подгружаем роли
+            ->get();
 
         return response()->json(['data' => $contacts]);
     }
@@ -23,7 +25,7 @@ class ContactController extends Controller
     // Получить одного пользователя
     public function show($id)
     {
-        $contact = User::findOrFail($id);
+        $contact = User::with(['roles'])->findOrFail($id);
         return response()->json(['data' => $contact]);
     }
 

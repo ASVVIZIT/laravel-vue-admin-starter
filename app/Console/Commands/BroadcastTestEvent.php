@@ -36,7 +36,7 @@ class BroadcastTestEvent extends Command
         }
 
         // Для теста выбран id пользователя 1 (Вероятнее всего это будет администратор)
-        $data = ['id' => 1, 'message' => 'Тестовое сообщение для BroadcastTestEvent Reverb server'];
+        $data = ['id' => 4, 'message' => 'Тестовое сообщение для BroadcastTestEvent Reverb server'];
 
         // Триггер события
         Event::dispatch(new UserEvent($data));

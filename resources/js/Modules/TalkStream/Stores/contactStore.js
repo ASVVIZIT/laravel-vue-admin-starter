@@ -17,15 +17,6 @@ export const useContactStore = defineStore('contact', {
             roles: []
         }
     }),
-    getters: {
-        isOnline: (state) => (userId) => {
-            return userId ? state.onlineUsers.includes(userId) : false
-        },
-        isUserOnline: (state) => (userId) => {
-            if (!userId) return false;
-            return state.onlineUsers.includes(userId);
-        }
-    },
     actions: {
         async loadUserId() {
             try {
@@ -91,9 +82,9 @@ export const useContactStore = defineStore('contact', {
             this.onlineUsers = this.onlineUsers.filter(id => id !== userId)
         },
 
-/*        isOnline(userId) {
-            return userId ? this.onlineUsers.includes(userId) : false
-        },*/
+        isOnline(userId) {
+            return this.onlineUsers.includes(userId)
+        },
 
         async refreshUserFrom() {
             const useUserStore = userStore()
@@ -106,6 +97,11 @@ export const useContactStore = defineStore('contact', {
                 email: useUserStore.email,
                 roles: useUserStore.roles
             }
+        }
+    },
+    getters: {
+        isContactSelected: (state) => (contactId) => {
+            return state.selectedContact?.id === contactId
         }
     }
 })

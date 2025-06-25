@@ -1,7 +1,7 @@
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 
 // ————————————————————————
-// Система логирования (копируем из talkStreamStore
+// Система логирования
 // ————————————————————————
 
 const createLogger = () => {
@@ -41,7 +41,6 @@ const createLogger = () => {
 const logger = createLogger()
 
 export function setupUserPresenceChannel() {
-    const contactStore = useContactStore()
 
     if (!window.Echo) {
         logger.warn('Echo ещё не создан')
@@ -49,9 +48,9 @@ export function setupUserPresenceChannel() {
     }
 
     try {
-        const channel = window.Echo.join('presence-chat')
+        const presenceChannel = window.Echo.join('presence-chat')
 
-        channel
+        presenceChannel
             .here((users) => {
                 logger.info(`Пользователи онлайн: ${users.length}`, 'here')
                 users.forEach(user => setUserOnline(user.id))
@@ -65,7 +64,7 @@ export function setupUserPresenceChannel() {
                 setUserOffline(user.id)
             })
 
-        return channel
+        return presenceChannel
     } catch (error) {
         logger.error(`Ошибка при настройке presence-канала: ${error.message}`)
         return null
@@ -73,20 +72,20 @@ export function setupUserPresenceChannel() {
 }
 
 function setUserOnline(userId) {
-    const store = getContactStore()
-    if (!store) return
+    const storeContact = getContactStore()
+    if (!storeContact) return
 
-    if (!store.onlineUsers.includes(userId)) {
-        store.setOnline(userId)
+    if (!storeContact.onlineUsers.includes(userId)) {
+        storeContact.setOnline(userId)
         logger.info(`🟢 Пользователь ${userId} онлайн`, 'joining')
     }
 }
 
 function setUserOffline(userId) {
-    const store = getContactStore()
-    if (!store) return
+    const storeContact = getContactStore()
+    if (!storeContact) return
 
-    store.setOffline(userId)
+    storeContact.setOffline(userId)
     logger.info(`⚪ Пользователь ${userId} оффлайн`, 'leaving')
 }
 

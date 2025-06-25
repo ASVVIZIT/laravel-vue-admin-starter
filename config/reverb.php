@@ -13,15 +13,19 @@ return [
         'reverb' => [
             'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
             'port' => env('REVERB_SERVER_PORT', 8080), // Используем порт
-            'path' => env('REVERB_SERVER_PATH', '/ws'), // Добавляем путь /ws
+            'path' => env('REVERB_SERVER_PATH', '/reverb'), // Добавляем путь /reverb
             'hostname' => env('REVERB_HOST', '94.41.87.10'), // Ваш внешний IP
+            'allowed_origins' => ['*'],
             'options' => [
                 'tls' => [],
+                'transport' => 'tcp',
+                'path' => '/reverb',
+                'allowed_origins' => ['*']
             ],
             'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10_000),
             'scaling' => [
                 'enabled' => env('REVERB_SCALING_ENABLED', false),
-                'channel' => env('REVERB_SCALING_CHANNEL', 'reverb'),
+                'channel' => env('REVERB_SCALING_CHANNEL', 'ws'),
                 'server' => [
                     'url' => env('REDIS_URL'),
                     'host' => env('REDIS_HOST', '127.0.0.1'),

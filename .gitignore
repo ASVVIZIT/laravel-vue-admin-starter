@@ -27,3 +27,4 @@ composer.lock
 *structure*
 /composer-old.lock
 /.env.production
+/vite.config.mts.*

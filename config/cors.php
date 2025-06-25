@@ -17,12 +17,14 @@ return [
 
     'paths' => [
         'api/*',
-        'sanctum/csrf-cookie',
-        'api/sanctum/csrf-cookie',
-        'api/login',
         'login',
+        'api/login',
         'logout',
         'api/logout',
+        'sanctum/*',
+        'sanctum/csrf-cookie',
+        'api/sanctum/csrf-cookie',
+        'broadcasting/*',
         'broadcasting/auth',
         'api/broadcasting/auth',
         'reverb/*',
@@ -30,24 +32,17 @@ return [
     ],
 
     'allowed_methods' => ['*'],
-    'allowed_origins' => [
-        'http://94.41.87.10',
-        'http://94.41.87.10:8050',
-        'http://94.41.87.10:8070',
-        'http://fenixlaravel.loc',
-        'http://localhost:5173',
-        'http://127.0.0.1:8080',
-        'http://127.0.0.1',
-    ],
+    'allowed_origins' => ['*'],
     /*'allowed_origins' => [
         'http://94.41.87.10',
-        'http://94.41.87.10:8070',
         'http://94.41.87.10:8050',
-        'http://192.168.88.249',
+        'http://94.41.87.10:8070',
+        'http://94.41.87.10:8080',
+        'http://fenixlaravel.loc:8050',
+        'http://fenixlaravel.loc:8080',
         'http://fenixlaravel.loc',
         'http://localhost:5173',
-        'http://localhost:80',
-        'http://localhost',
+        'http://127.0.0.1:8050',
         'http://127.0.0.1:8080',
         'http://127.0.0.1',
     ],*/
@@ -57,10 +52,10 @@ return [
         'Authorization',
         'Content-Type',
         'X-Requested-With',
-        'X-Socket-ID',
         'X-CSRF-TOKEN',
     ],*/
     'max_age' => 0,
+    'credentials' => true,
     'supports_credentials' => true,
 
 ];

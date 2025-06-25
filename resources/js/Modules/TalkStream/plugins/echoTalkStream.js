@@ -1,8 +1,9 @@
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 import axios from 'axios'
+import logger from '@/modules/TalkStream/utils/logger'
 import { getToken } from '@utils/auth.js'
-
+import { userStore } from '@/store/user'
 window.Pusher = Pusher
 
 let echoInstance = null
@@ -35,33 +36,50 @@ export function createEcho() {
 
         // Установка глобального заголовка
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        axios.defaults.withCredentials = true
+        window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        window.axios.defaults.withCredentials = true
 
         // Получение CSRF токена
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+        // Используем текущий хост из URL вместо .env переменных
+        const currentHost = window.location.hostname;
+        const isSecure = window.location.protocol === 'https:';
+
         const configEcho = {
             broadcaster: 'reverb',
             key: import.meta.env.VITE_REVERB_APP_KEY,
-            wsHost: import.meta.env.VITE_REVERB_HOST,    // ✅ Здесь должно быть 94.41.87.10
-            wsPort: import.meta.env.VITE_REVERB_PORT,    // ✅ 8080
-            wssPort: import.meta.env.VITE_REVERB_PORT,   // ✅ http
-            scheme: import.meta.env.VITE_REVERB_SCHEME,
+            wsHost: 'fenixlaravel.loc',    // ✅ Здесь должно быть 94.41.87.10
+            wsPort: window.location.port || (isSecure ? 443 : 80), // Автопорт
+            wssPort: window.location.port || (isSecure ? 443 : 80),
+            scheme: isSecure ? 'wss' : 'ws',
             authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/api/broadcasting/auth',
-            wsPath: import.meta.env.VITE_REVERB_PATH || '/ws',
-            forceTLS: false,
+            wsPath: import.meta.env.VITE_REVERB_PATH || '/reverb',
+            forceTLS: isSecure,
             disableStats: true,
-            enabledTransports: ['ws', 'wss'],
+            enabledTransports: ['ws'],
             withCredentials: true,
             auth: {
                 headers: {
                     'Accept': 'application/json',
                     'Authorization': `Bearer ${token}`,
-                    'X-CSRF-TOKEN': csrfToken,
                     'X-Requested-With': 'XMLHttpRequest',
-                    //'X-Socket-ID': () => echoInstance?.socketId() || '',
+                    'X-CSRF-TOKEN': csrfToken,
                 },
                 withCredentials: true,
-            }
+            },
+            /*options: {
+                auth: {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                    withCredentials: true,
+                }
+            }*/
         };
 
         log.debug('Конфигурация Echo:', configEcho);
@@ -93,8 +111,11 @@ export function updateEchoToken(newToken) {
         log.info('Обновление токена авторизации');
 
         // Обновляем токен во всех местах
+        //echoInstance.options.auth.headers.Authorization = `Bearer ${newToken}`;
         echoInstance.options.auth.headers.Authorization = `Bearer ${newToken}`;
+        echoInstance.options.auth.headers['X-Requested-With'] = `XMLHttpRequest`;
         axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+        window.axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
 
         // Безопасное переподключение
         if (echoInstance.connector?.pusher?.connection) {

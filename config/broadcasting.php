@@ -49,12 +49,14 @@ return [
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
                 'host' => env('REVERB_HOST', '0.0.0.0'),
-                'port' => env('REVERB_PORT', 8080),
+                'port' => env('REVERB_PORT', 443),
                 'scheme' => env('REVERB_SCHEME', 'http'),
                 'useTLS' => env('REVERB_SCHEME') === 'https',
+                'timeout' => 0.1,
+
             ],
             'enableCrypto' => false,
-            'authEndpoint' => '/api/broadcasting/authenticate',
+            'authEndpoint' => '/api/broadcasting/auth',
         ],
 
         'ably' => [

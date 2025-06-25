@@ -1,10 +1,10 @@
 import { login, logout, getInfo } from '@/api/auth'
 import { isLogged, setToken, removeToken } from '@/utils/auth'
-import router, { resetRouter } from '../router'
+import router, { resetRouter } from '@/router'
 import { defineStore } from "pinia"
 import { permissionStore } from "@/store/permission"
-import { useTalkStreamStore } from "@/Modules/TalkStream/Stores/talkStreamStore"
-import { updateEchoToken } from "@/Modules/TalkStream/plugins/echoTalkStream"
+import { useTalkStreamStore } from "@/modules/TalkStream/Stores/talkStreamStore"
+import { updateEchoToken } from "@/modules/TalkStream/plugins/echoTalkStream"
 
 export const userStore = defineStore('user', {
     state: () => {
