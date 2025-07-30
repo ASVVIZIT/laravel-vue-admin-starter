@@ -3,8 +3,8 @@
 namespace App\Http\Middleware;
 
 use Closure;
-use App\Models\LoginAttempt;
 use Illuminate\Support\Facades\Auth;
+use App\Models\LoginAttempt;
 
 class CheckIpBanned
 {
@@ -14,14 +14,17 @@ class CheckIpBanned
         $attempt = LoginAttempt::firstOrCreate(['ip_address' => $ip]);
 
         if ($attempt->banned) {
-            return response()->json(['error' => 'IP заблокирован'], 403);
+            return response()->json(['error' => 'Ваш IP заблокирован'], 403);
         }
 
-        // Запись неудачной попытки при ошибке аутентификации
-        if ($request->is('auth/login') && !Auth::attempt($request->only('email', 'password'))) {
-            LoginAttempt::recordAttempt($ip);
+        $response = $next($request);
+
+        // Записываем попытку после обработки запроса
+        if ($request->routeIs('login')) {
+            $success = Auth::check();
+            LoginAttempt::recordAttempt($ip, $success);
         }
 
-        return $next($request);
+        return $response;
     }
 }

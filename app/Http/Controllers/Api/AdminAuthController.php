@@ -10,19 +10,23 @@ class AdminAuthController extends Controller
 {
     public function login(Request $request)
     {
-        $hardcoded = config('auth.admin_users', [
-            [
-                'email' => 'admin@test.com',
-                'password' => 'secret',
-                'id' => 1
-            ]
-        ]);
+        $admins = config('auth.admin_users', []);
 
-        foreach ($hardcoded as $admin) {
-            if ($admin['email'] === $request->email &&
-                $admin['password'] === $request->password) {
+        foreach ($admins as $admin) {
+            if ($request->email === $admin['email'] &&
+                $request->password === $admin['password']) {
 
                 $user = User::find($admin['id']);
+
+                if (!$user) {
+                    return response()->json(['error' => 'Пользователь не найден'], 404);
+                }
+
+                // Проверка роли
+                if (!$user->hasRole('admin')) {
+                    return response()->json(['error' => 'Доступ запрещен'], 403);
+                }
+
                 $token = $user->createToken('admin-token', ['admin'])->plainTextToken;
 
                 return response()->json([
@@ -32,6 +36,6 @@ class AdminAuthController extends Controller
             }
         }
 
-        return response()->json(['error' => 'Unauthorized'], 401);
+        return response()->json(['error' => 'Неверные учетные данные'], 401);
     }
 }

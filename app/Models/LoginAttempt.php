@@ -13,15 +13,19 @@ class LoginAttempt extends Model
         'banned'
     ];
 
-    public static function recordAttempt($ip)
+    public static function recordAttempt($ip, $success = false)
     {
-        $attempt = self::firstOrCreate(['ip_address' => $ip]);
-        $attempt->attempts++;
-        $attempt->last_attempt_at = now();
+        $attempt = self::firstOrNew(['ip_address' => $ip]);
 
-        // Блокировка после 5 неудачных попыток
-        if ($attempt->attempts >= 5) {
-            $attempt->banned = true;
+        if ($success) {
+            $attempt->attempts = 0;
+        } else {
+            $attempt->attempts++;
+            $attempt->last_attempt_at = now();
+
+            if ($attempt->attempts >= 5) {
+                $attempt->banned = true;
+            }
         }
 
         $attempt->save();

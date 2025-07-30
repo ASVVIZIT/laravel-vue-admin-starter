@@ -9,7 +9,9 @@ class IsTestingEnvironment
     public function handle($request, Closure $next)
     {
         if (app()->environment('production')) {
-            abort(404, 'Тестовый режим недоступен в production');
+            return response()->json([
+                'error' => 'Тестовый режим недоступен в production'
+            ], 403);
         }
         return $next($request);
     }

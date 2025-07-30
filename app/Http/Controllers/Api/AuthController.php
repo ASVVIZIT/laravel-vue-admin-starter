@@ -6,11 +6,12 @@ use App\Http\Controllers\Api\BaseController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Models\LoginAttempt;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use App\Models\LoginAttempt;
 use function csrf_token;
 use function logger;
 use function response;
@@ -72,10 +73,33 @@ class AuthController extends BaseController
             'session_id' => session()->getId(),
         ]);
 
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['error' => 'Неверные данные'], 422);
+        }
+
+        // Проверка IP-блокировки
+        $ip = $request->ip();
+        $attempt = LoginAttempt::firstOrCreate(['ip_address' => $ip]);
+
+        if ($attempt->banned) {
+            return response()->json(['error' => 'Ваш IP заблокирован'], 403);
+        }
+
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
+
+            // Проверка верификации email
+            if (!$user->hasVerifiedEmail()) {
+                return response()->json(['error' => 'Email не подтвержден'], 403);
+            }
+
             $token = $user->createToken('fenix_token')->plainTextToken;
 
             return response()->json([
@@ -85,7 +109,8 @@ class AuthController extends BaseController
             ]);
         }
 
-        return response()->json(['message' => 'Invalid credentials'], 401);
+        LoginAttempt::recordAttempt($ip, false);
+        return response()->json(['message' => 'Неверные учетные данные'], 401);
     }
 
     /**
@@ -94,6 +119,7 @@ class AuthController extends BaseController
      */
     public function logout(Request $request): JsonResponse
     {
+        $request->user()->tokens()->delete();
         Auth::guard('web')->logout();
         return responseSuccess();
     }
@@ -122,19 +148,7 @@ class AuthController extends BaseController
         ]);
 
         $user->sendEmailVerificationNotification();
-
         return response()->json(['message' => 'Регистрация успешна. Проверьте почту.']);
-    }
-
-    public function verify(Request $request)
-    {
-        if ($request->user()->hasVerifiedEmail()) {
-            return response()->json(['message' => 'Email уже подтвержден']);
-        }
-
-        $request->user()->markEmailAsVerified();
-
-        return response()->json(['message' => 'Email успешно подтвержден']);
     }
 
     public function resendVerification(Request $request)
@@ -144,7 +158,13 @@ class AuthController extends BaseController
         }
 
         $request->user()->sendEmailVerificationNotification();
-
         return response()->json(['message' => 'Ссылка отправлена']);
+    }
+
+    public function checkVerification(Request $request)
+    {
+        return response()->json([
+            'verified' => $request->user()->hasVerifiedEmail()
+        ]);
     }
 }
