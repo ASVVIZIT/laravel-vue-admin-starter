@@ -1,5 +1,6 @@
 import Layout from '@/layout/Layout.vue'
 import chatRoutes from '@/modules/TalkStream/Routes.js'
+import videoRoutes from '@/modules/Video/Routes.js'
 
 const servicesRoutes = {
     path: '/services',
@@ -13,7 +14,10 @@ const servicesRoutes = {
         bootstrapIcon: 'person',
         permissions: ['view menu entity'],
     },
-    children: chatRoutes
+    children: [
+        ...chatRoutes,
+        ...videoRoutes
+    ]
 }
 
 export default servicesRoutes

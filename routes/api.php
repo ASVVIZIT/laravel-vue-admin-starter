@@ -126,6 +126,43 @@ Route::get('/debug/network', function(Request $request) {
     ]);
 });
 
+
+use App\Http\Controllers\Video\VideoController;
+
+
+// API для получения видео
+Route::get('/videos', [VideoController::class, 'index']);
+
+Route::get('/videos/file-list', [VideoController::class, 'getFileList']);
+
+Route::get('/videos/scan-single', [VideoController::class, 'scanSingleFile']);
+
+Route::post('/videos/scan-multiple', [VideoController::class, 'scanMultipleFiles']);
+
+// Статические файлы видео
+Route::get('/video-files/{filename}', function ($filename) {
+    $path = storage_path('/Videos/videos/' . $filename);
+
+    if (!file_exists($path)) {
+        abort(404);
+    }
+
+    $mimeTypes = [
+        'webm' => 'video/webm',
+        'mp4' => 'video/mp4',
+        'mov' => 'video/quicktime',
+        'avi' => 'video/x-msvideo'
+    ];
+
+    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    $mime = $mimeTypes[$ext] ?? 'video/webm';
+
+    return response()->file($path, [
+        'Content-Type' => $mime,
+        'Cache-Control' => 'public, max-age=31536000'
+    ]);
+})->where('filename', '.*');
+
 Route::prefix('table')->group(function () {
     Route::get('templates/{id}', [App\Http\Controllers\Api\TemplateController::class, 'show']);
     Route::get('rows', [App\Http\Controllers\Api\TableRowController::class, 'index']);

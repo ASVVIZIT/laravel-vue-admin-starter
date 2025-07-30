@@ -116,7 +116,7 @@ defineExpose({ moveToTarget })
 
   :deep(.el-scrollbar__wrap) {
     scroll-behavior: smooth;
-    height: 40px;
+    height: 32px;
     padding: 0px 0px;
     margin-bottom: 0px;
     overflow-x: auto;

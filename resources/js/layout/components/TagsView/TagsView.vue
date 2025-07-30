@@ -266,10 +266,10 @@ const handleScroll = () => state.visible = false
 
 <style lang="scss" scoped>
 .tags-view-container {
-  height: 40px;
+  height: 32px;
   background: #ffffff;
   border-bottom: 1px solid #e6ebf5;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.06);
   position: relative;
 
   .tags-view-wrapper {
@@ -288,10 +288,10 @@ const handleScroll = () => state.visible = false
   .tags-view-item {
     display: inline-flex;
     align-items: center;
-    height: 22px;
+    height: 20px;
     padding: 0 4px 0px 8px;
     margin-right: 2px;
-    font-size: 11px;
+    font-size: 12px;
     color: #606266;
     background: #f0f2f5;
     border-radius: 4px;
@@ -330,7 +330,7 @@ const handleScroll = () => state.visible = false
     .tag-title {
       white-space: nowrap;
       line-height: 1;
-      max-width: 200px;
+      max-width: 180px;
       overflow: hidden;
       text-overflow: ellipsis;
     }

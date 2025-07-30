@@ -34,7 +34,8 @@
     "start": "npm run dev-with-reverb",
     "start-prod": "npm run prod-with-reverb",
     "cache-prod": "php artisan config:custom-cache production",
-    "cache-local": "php artisan config:custom-cache local"
+    "cache-local": "php artisan config:custom-cache local",
+    "queue": "php artisan queue:work"
   },
   "repository": {
     "type": "git",

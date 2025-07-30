@@ -113,6 +113,13 @@ return [
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
+
+        'video_download' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/video_download.log'),
+            'level' => 'debug',
+            'days' => 30,
+        ],
     ],
 
 ];

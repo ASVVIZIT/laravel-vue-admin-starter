@@ -28,3 +28,8 @@ composer.lock
 /composer-old.lock
 /.env.production
 /vite.config.mts.*
+/storage/Videos/
+/public/chromedriver.exe
+/public/chromedriver_32.exe
+/public/chromedriver_64.exe
+/panther-test.php
