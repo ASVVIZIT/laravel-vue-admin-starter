@@ -30,11 +30,22 @@ use App\Http\Controllers\TalkStream\FriendRequestController;
 | is assigned the "api" middleware group. Enjoy building your API!
 |
 */
+
+Route::prefix('admin')->group(function () {
+    Route::post('auth/login', [\App\Http\Controllers\Api\AdminAuthController::class, 'login']);
+});
+
+Route::prefix('tester')->middleware('is_testing')->group(function () {
+    Route::post('login/{role}', [\App\Http\Controllers\Api\TesterController::class, 'login']);
+});
+
 Route::namespace('Api')->group(function() {
 
     Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
     Route::post('auth/login', [AuthController::class, 'login']);
     Route::group(['middleware' => 'auth:sanctum'], function () {
+        Route::post('/email/resend', [AuthController::class, 'resendVerification']);
+        Route::get('/email/verify', [AuthController::class, 'checkVerification']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
         Route::get('/user', [AuthController::class, 'user']);

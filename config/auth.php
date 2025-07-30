@@ -114,4 +114,22 @@ return [
 
     'password_timeout' => 10800,
 
+    /*
+     * Конфиг для админских пользователей
+     */
+
+    'admin_users' => [
+        [
+            'email' => env('ADMIN_EMAIL', 'admin@test.com'),
+            'password' => env('ADMIN_PASSWORD', 'secret'),
+            'id' => env('ADMIN_ID', 1)
+        ],
+        [
+            'email' => env('DEV_EMAIL', 'dev@test.com'),
+            'password' => env('DEV_PASSWORD', 'devpass'),
+            'id' => env('DEV_ID', 2)
+        ]
+    ],
+
+
 ];

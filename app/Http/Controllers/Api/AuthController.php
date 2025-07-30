@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\BaseController;
 use App\Http\Resources\UserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use App\Models\LoginAttempt;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
@@ -99,5 +101,50 @@ class AuthController extends BaseController
     public function user(Request $request): UserResource
     {
         return new UserResource($request->user());
+    }
+
+    public function register(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users',
+            'password' => 'required|min:6|confirmed'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => bcrypt($request->password)
+        ]);
+
+        $user->sendEmailVerificationNotification();
+
+        return response()->json(['message' => 'Регистрация успешна. Проверьте почту.']);
+    }
+
+    public function verify(Request $request)
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email уже подтвержден']);
+        }
+
+        $request->user()->markEmailAsVerified();
+
+        return response()->json(['message' => 'Email успешно подтвержден']);
+    }
+
+    public function resendVerification(Request $request)
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return response()->json(['message' => 'Email уже подтвержден']);
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return response()->json(['message' => 'Ссылка отправлена']);
     }
 }
