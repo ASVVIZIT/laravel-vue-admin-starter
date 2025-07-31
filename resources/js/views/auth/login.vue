@@ -67,14 +67,14 @@
 </template>
 
 <script>
-import LangSelect from '@/components/LangSelect/LangSelect.vue'
-import {validEmail} from '@/utils/validate'
-import {csrf} from '@/api/auth'
+import LangSelect from '@components/LangSelect/LangSelect.vue'
+import {validEmail} from '@utils/validate.js'
+import {csrf} from '@api/auth.js'
 import {reactive, toRefs, watch} from "vue"
 import {useRoute, useRouter} from "vue-router"
-import {userStore} from "@/store/user"
+import {userStore} from "@store/user.js"
 import { ElMessage } from 'element-plus'
-import logo from '@/assets/login/logo.svg'
+import logo from '@assets/login/logo.svg'
 import {useI18n} from "vue-i18n";
 
 export default {
@@ -259,7 +259,7 @@ $textColor: #eee;
       justify-content: flex-end;
       overflow: hidden;
       background-color: #303c4b;
-      background-image: url('/resources/js/assets/login/background.jpg');
+      background-image: url('/js/assets/login/background.jpg');
       background-position: 50%;
       background-size: cover;
       opacity: 1;

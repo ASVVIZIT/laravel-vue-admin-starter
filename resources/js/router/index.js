@@ -14,12 +14,12 @@ import servicesRoutes from './modules/services.js'
 export const constantRoutes = [
   {
     path: '/login',
-    component: () => import('@/views/login/login.vue'),
+    component: () => import('@views/auth/login.vue'),
     hidden: true,
   },
   {
     path: '/auth-redirect',
-    component: () => import('@/views/login/AuthRedirect.vue'),
+    component: () => import('@views/auth/AuthRedirect.vue'),
     hidden: true,
   },
   {
