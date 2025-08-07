@@ -18,8 +18,8 @@
 import UserBio from './components/UserBio.vue'
 import UserCard from './components/UserCard.vue'
 import UserActivity from './components/UserActivity.vue'
-import {onMounted, reactive, toRefs} from "vue"
-import {userStore} from "@/store/userStore";
+import { onMounted, reactive, toRefs } from "vue"
+import { userStore } from "@/store/userStore";
 
 export default {
   name: 'SelfProfile',
@@ -36,7 +36,7 @@ export default {
     const useUserStore = userStore()
 
     const getUser = async () => {
-        resData.user = await useUserStore.getInfo()
+        resData.user = await useUserStore.fetchInfo()
     }
 
     return {

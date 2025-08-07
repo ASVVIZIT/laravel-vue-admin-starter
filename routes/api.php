@@ -271,17 +271,17 @@ Route::get('/video-files/{filename}', function ($filename) {
 // GET /api/orders
 // Логика: Генерирует и возвращает фиктивные данные заказов.
 Route::get('/orders', function () {
-    $rowsNumber = 8;
+    $rowsNumber = 22;
     $data = [];
     for ($rowIndex = 0; $rowIndex < $rowsNumber; $rowIndex++) {
         $row = [
-            'order_no' => 'LARAVUE' . mt_rand(1000000, 9999999),
+            'order_no' => 'LARAVUE' . ' ' . mt_rand(1000000, 9999999),
             'price' => mt_rand(10000, 999999),
-            'status' => ['success', 'pending'][rand(0, 1)],
+            'status' => randomInArray(['success', 'pending', 'error']),
         ];
         $data[] = $row;
     }
-    return response()->json(['items' => $data]);
+    return responseSuccess(['items' => $data]);
 });
 
 // ===================================================

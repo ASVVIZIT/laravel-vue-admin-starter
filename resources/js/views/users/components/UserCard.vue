@@ -37,11 +37,11 @@
 </template>
 
 <script setup>
-import PanThumb from '@/components/PanThumb/PanThumb.vue'
-import {uppercaseFirst, toThousandFilter} from "@/utils/index"
-import {useI18n} from "vue-i18n";
+import PanThumb from '@/components/PanThumb/PanThumb.vue';
+import { uppercaseFirst, toThousandFilter } from '@/utils/index';
+import { useI18n } from 'vue-i18n';
 
-const {t} = useI18n({useScope: 'global'})
+const { t } = useI18n({useScope: 'global'})
 
 /*const date1 = moment(moment(), 'YYYY-MM-DD HH:mm:ss');
 console.log('date1 ', date1)

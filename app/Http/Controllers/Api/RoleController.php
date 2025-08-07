@@ -23,8 +23,7 @@ class RoleController extends BaseController
     public function index(Request $request): JsonResponse
     {
         // Валидация параметров
-        $params = $request->all();
-        $validator = Validator::make($params, [
+        $validator = Validator::make($request->all(), [
             'per_page' => 'nullable|integer|min:1|max:300',
             'current_page' => 'nullable|integer|min:1',
             'role' => 'nullable|string',
@@ -35,28 +34,32 @@ class RoleController extends BaseController
             return $this->sendValidationError($validator->errors());
         }
 
+        // Создаем запрос без выполнения
+        $query = Role::query();
 
-
-        $query = Role::query()->get();
-
+        // Применяем фильтры
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
 
         // Пагинация
-        $users = $query->paginate(
-            $params['per_page'] ?? 10,
-            ['*'],
-            'page',
-            $params['page'] ?? 1
-        );
+        $perPage = $request->input('per_page', 10);
+        $currentPage = $request->input('current_page', 1);
+        $roles = $query->paginate($perPage, ['*'], 'page', $currentPage);
 
         // Успешный ответ
         return response()->json([
             'success' => true,
-            'items' => RoleResource::collection($users),
+            'items' => RoleResource::collection($roles),
             'meta' => [
-                'total' => $users->total(),
-                'page' => $users->currentPage(),
-                'per_page' => $users->perPage(),
-                'last_page' => $users->lastPage(),
+                'total' => $roles->total(),
+                'current_page' => $roles->currentPage(),
+                'per_page' => $roles->perPage(),
+                'last_page' => $roles->lastPage(),
             ]
         ]);
     }
@@ -92,14 +95,13 @@ class RoleController extends BaseController
      */
     public function update(Request $request, Role $role)
     {
-        if ($role === null || $role->isAdmin()) {
-            return responseFailed('Role not found', Response::HTTP_NOT_FOUND);
+        if ($role->isAdmin()) {
+            return response()->json(['error' => 'Cannot edit admin role'], 403);
         }
 
         $permissionIds = $request->get('permissions', []);
-        $permissions = Permission::allowed()->whereIn('id', $permissionIds)->get();
+        $permissions = Permission::whereIn('id', $permissionIds)->get();
         $role->syncPermissions($permissions);
-        $role->save();
         return new RoleResource($role);
     }
 

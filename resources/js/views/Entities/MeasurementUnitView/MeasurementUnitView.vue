@@ -6,12 +6,12 @@
     <el-row :gutter="12" class="toolbar">
       <el-col :span="12" style="text-align: left">
         <el-input
-          v-model="searchQuery"
-          :placeholder="$t('measurementUnit.table.search_placeholder')"
-          clearable
-          @input="debouncedSearch"
-          @clear="debouncedSearch"
-          :size="store.size"
+            v-model="searchQuery"
+            :placeholder="$t('measurementUnit.table.search_placeholder')"
+            clearable
+            @input="debouncedSearch"
+            @clear="debouncedSearch"
+            :size="store.size"
         >
           <template #prefix>
             <el-icon><Search /></el-icon>
@@ -20,9 +20,9 @@
       </el-col>
       <el-col :span="12" style="text-align: right">
         <el-button
-          type="primary"
-          @click="dialogVisibleAdd = true"
-          :size="store.size"
+            type="primary"
+            @click="dialogVisibleAdd = true"
+            :size="store.size"
         >
           <el-icon><Plus /></el-icon> {{ $t('measurementUnit.table.add_button') }}
         </el-button>
@@ -31,40 +31,40 @@
 
     <!-- Таблица единиц измерений -->
     <el-table
-      border
-      style="width: 100%"
-      :data="measurementUnitStore.measurementUnits"
-      v-loading="measurementUnitStore.loading"
-      :empty-text="$t('measurementUnit.table.empty_text')"
-      :size="store.size"
-      :height="tableHeight"
-  >
+        border
+        style="width: 100%"
+        :data="measurementUnitStore.measurementUnits"
+        v-loading="measurementUnitStore.loading"
+        :empty-text="$t('measurementUnit.table.empty_text')"
+        :size="store.size"
+        :height="tableHeight"
+    >
       <el-table-column
-        prop="id"
-        sortable
-        :label="$t('measurementUnit.table.columns.id')"
-        width="60"
+          prop="id"
+          sortable
+          :label="$t('measurementUnit.table.columns.id')"
+          width="60"
       />
       <el-table-column
-        prop="name"
-        :label="$t('measurementUnit.table.columns.name')"
-        sortable
+          prop="name"
+          :label="$t('measurementUnit.table.columns.name')"
+          sortable
       />
       <el-table-column
-        prop="display_symbol"
-        :label="$t('measurementUnit.table.columns.display_symbol')"
-        width="100"
-        sortable
+          prop="display_symbol"
+          :label="$t('measurementUnit.table.columns.display_symbol')"
+          width="100"
+          sortable
       />
       <el-table-column
-        prop="physical_quantity"
-        :label="$t('measurementUnit.table.columns.physical_quantity')"
-        width="150"
-        sortable
+          prop="physical_quantity"
+          :label="$t('measurementUnit.table.columns.physical_quantity')"
+          width="150"
+          sortable
       />
       <el-table-column
-        :label="$t('measurementUnit.table.columns.category')"
-        sortable
+          :label="$t('measurementUnit.table.columns.category')"
+          sortable
       >
         <template #default="scope">
           {{ getCategoryName(scope.row.measurement_category_id) || '-' }}
@@ -72,27 +72,27 @@
       </el-table-column>
 
       <el-table-column
-        :label="$t('measurementUnit.table.actions')"
-        fixed="right"
-        width="100"
+          :label="$t('measurementUnit.table.actions')"
+          fixed="right"
+          width="100"
       >
         <template #default="scope">
           <el-button-group :size="store.size">
             <el-button
-              type="primary"
-              :icon="Edit"
-              :title="$t('measurementUnit.table.item_actions.edit')"
-              @click="editMeasurementUnit(scope.row)"
-              :size="store.size"
-              circle
+                type="primary"
+                :icon="Edit"
+                :title="$t('measurementUnit.table.item_actions.edit')"
+                @click="editMeasurementUnit(scope.row)"
+                :size="store.size"
+                circle
             />
             <el-button
-              type="danger"
-              :icon="Delete"
-              :title="$t('measurementUnit.table.item_actions.delete')"
-              :size="store.size"
-              @click="deleteMeasurementUnit(scope.row.id)"
-              circle
+                type="danger"
+                :icon="Delete"
+                :title="$t('measurementUnit.table.item_actions.delete')"
+                :size="store.size"
+                @click="deleteMeasurementUnit(scope.row.id)"
+                circle
             />
           </el-button-group>
         </template>
@@ -105,30 +105,30 @@
         <div class="per-page-selector">
           <span>{{ $t('measurementUnit.table.per_page_selector') }}</span>
           <el-select
-            v-model="measurementUnitStore.pagination.per_page"
-            @change="handlePerPageChange"
-            :size="store.size"
-            style="width: 100px"
-            clearable
+              v-model="measurementUnitStore.pagination.per_page"
+              @change="handlePerPageChange"
+              :size="store.size"
+              style="width: 100px"
+              clearable
           >
             <el-option
-              v-for="item in per_pages"
-              :key="item"
-              :label="item"
-              :value="item"
-              :size="store.size"
+                v-for="item in per_pages"
+                :key="item"
+                :label="item"
+                :value="item"
+                :size="store.size"
             />
           </el-select>
         </div>
 
         <el-pagination
-          background
-          layout="sizes, prev, pager, next, jumper"
-          :total="measurementUnitStore.pagination.total"
-          :page-size="measurementUnitStore.pagination.per_page"
-          :current-page="measurementUnitStore.pagination.current_page"
-          @current-change="handlePageChange"
-          :size="store.size"
+            background
+            layout="sizes, prev, pager, next, jumper"
+            :total="measurementUnitStore.pagination.total"
+            :page-size="measurementUnitStore.pagination.per_page"
+            :current-page="measurementUnitStore.pagination.current_page"
+            @current-change="handlePageChange"
+            :size="store.size"
         />
       </div>
       <div class="total-items">
@@ -142,6 +142,7 @@
         :title="$t('measurementUnit.form.add_title')"
         :size="store.size"
         width="50%"
+        @open="handleAddDialogOpen"
     >
       <el-form
           :model="newMeasurementUnit"
@@ -153,75 +154,85 @@
         <el-row :gutter="20">
           <el-col :span="24">
             <el-form-item
-              :label="$t('measurementUnit.form.fields.name.label')"
-              prop="name"
-              :rules="[{ required: true, message: $t('measurementUnit.form.rules.name_required') }]"
+                :label="$t('measurementUnit.form.fields.name.label')"
+                prop="name"
+                :rules="[{ required: true, message: $t('measurementUnit.form.rules.name_required') }]"
+                :error="addFormErrors.name"
             >
               <el-input
-                v-model="newMeasurementUnit.name"
-                :placeholder="$t('measurementUnit.form.fields.name.placeholder')"
-                :size="store.size"
+                  v-model="newMeasurementUnit.name"
+                  :placeholder="$t('measurementUnit.form.fields.name.placeholder')"
+                  :size="store.size"
+                  @input="clearAddFormError('name')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              :label="$t('measurementUnit.form.fields.symbol.label')"
-              prop="symbol"
-              :rules="[{ required: true, message: $t('measurementUnit.form.rules.symbol_required') }]"
+                :label="$t('measurementUnit.form.fields.symbol.label')"
+                prop="symbol"
+                :rules="[{ required: true, message: $t('measurementUnit.form.rules.symbol_required') }]"
+                :error="addFormErrors.symbol"
             >
               <el-input
-                v-model="newMeasurementUnit.symbol"
-                :placeholder="$t('measurementUnit.form.fields.symbol.placeholder')"
-                :size="store.size"
+                  v-model="newMeasurementUnit.symbol"
+                  :placeholder="$t('measurementUnit.form.fields.symbol.placeholder')"
+                  :size="store.size"
+                  @input="clearAddFormError('symbol')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              :label="$t('measurementUnit.form.fields.display_symbol.label')"
-              prop="display_symbol"
-              :rules="[{ required: true, message: $t('measurementUnit.form.rules.display_symbol_required') }]"
+                :label="$t('measurementUnit.form.fields.display_symbol.label')"
+                prop="display_symbol"
+                :rules="[{ required: true, message: $t('measurementUnit.form.rules.display_symbol_required') }]"
+                :error="addFormErrors.display_symbol"
             >
               <el-input
-                v-model="newMeasurementUnit.display_symbol"
-                :placeholder="$t('measurementUnit.form.fields.display_symbol.placeholder')"
-                :size="store.size"
+                  v-model="newMeasurementUnit.display_symbol"
+                  :placeholder="$t('measurementUnit.form.fields.display_symbol.placeholder')"
+                  :size="store.size"
+                  @input="clearAddFormError('display_symbol')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              :label="$t('measurementUnit.form.fields.physical_quantity.label')"
-              prop="physical_quantity"
-              :rules="[{ required: true, message: $t('measurementUnit.form.rules.physical_quantity_required') }]"
+                :label="$t('measurementUnit.form.fields.physical_quantity.label')"
+                prop="physical_quantity"
+                :rules="[{ required: true, message: $t('measurementUnit.form.rules.physical_quantity_required') }]"
+                :error="addFormErrors.physical_quantity"
             >
               <el-input
-                v-model="newMeasurementUnit.physical_quantity"
-                :placeholder="$t('measurementUnit.form.fields.physical_quantity.placeholder')"
-                :size="store.size"
+                  v-model="newMeasurementUnit.physical_quantity"
+                  :placeholder="$t('measurementUnit.form.fields.physical_quantity.placeholder')"
+                  :size="store.size"
+                  @input="clearAddFormError('physical_quantity')"
               />
             </el-form-item>
           </el-col>
           <el-col :span="24">
             <el-form-item
-              :label="$t('measurementUnit.form.fields.measurement_category_id.label')"
-              prop="measurement_category_id"
-              :rules="[{ required: true, message: $t('measurementUnit.form.rules.category_required') }]"
+                :label="$t('measurementUnit.form.fields.measurement_category_id.label')"
+                prop="measurement_category_id"
+                :rules="[{ required: true, message: $t('measurementUnit.form.rules.category_required') }]"
+                :error="addFormErrors.measurement_category_id"
             >
               <el-select
-                v-model="newMeasurementUnit.measurement_category_id"
-                :placeholder="$t('measurementUnit.form.fields.measurement_category_id.placeholder')"
-                :size="store.size"
-                style="width: 100%"
-                filterable
-                clearable
+                  v-model="newMeasurementUnit.measurement_category_id"
+                  :placeholder="$t('measurementUnit.form.fields.measurement_category_id.placeholder')"
+                  :size="store.size"
+                  style="width: 100%"
+                  filterable
+                  clearable
+                  @change="clearAddFormError('measurement_category_id')"
               >
                 <el-option
-                  v-for="category in categoryStore.dropdownCategories"
-                  :key="category.id"
-                  :label="category.name + ' (' + category.description + ')'"
-                  :value="category.id"
+                    v-for="category in categoryStore.dropdownCategories"
+                    :key="category.id"
+                    :label="category.name + ' (' + category.description + ')'"
+                    :value="category.id"
                 >
                   <span style="min-width: 80px; max-width: 80px;">{{ category.name }}</span>
                   <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
@@ -233,15 +244,15 @@
       </el-form>
       <template #footer>
         <el-button
-          @click="dialogVisibleAdd = false"
-          :size="store.size"
+            @click="dialogVisibleAdd = false"
+            :size="store.size"
         >
           {{ $t('measurementUnit.form.buttons.cancel') }}
         </el-button>
         <el-button
-          type="primary"
-          @click="validateAddForm"
-          :size="store.size"
+            type="primary"
+            @click="validateAddForm"
+            :size="store.size"
         >
           {{ $t('measurementUnit.form.buttons.add') }}
         </el-button>
@@ -250,76 +261,87 @@
 
     <!-- Диалог редактирования -->
     <el-dialog
-      v-model="dialogVisible"
-      :title="$t('measurementUnit.form.edit_title', { name: editingMeasurementUnit?.name })"
-      :size="store.size"
-      width="50%"
+        v-model="dialogVisible"
+        :title="$t('measurementUnit.form.edit_title', { name: editingMeasurementUnit?.name })"
+        :size="store.size"
+        width="50%"
+        @open="handleEditDialogOpen"
     >
       <el-form
-        :model="editingMeasurementUnit"
-        label-width="140px"
-        ref="editForm"
-        label-position="top"
-        :size="store.size"
+          :model="editingMeasurementUnit"
+          label-width="140px"
+          ref="editForm"
+          label-position="top"
+          :size="store.size"
       >
         <el-form-item
-          :label="$t('measurementUnit.form.fields.name.label')"
-          prop="name"
-          :rules="[{ required: true, message: $t('measurementUnit.form.rules.name_required') }]"
+            :label="$t('measurementUnit.form.fields.name.label')"
+            prop="name"
+            :rules="[{ required: true, message: $t('measurementUnit.form.rules.name_required') }]"
+            :error="editFormErrors.name"
         >
           <el-input
-            v-model="editingMeasurementUnit.name"
-            :size="store.size"
+              v-model="editingMeasurementUnit.name"
+              :size="store.size"
+              @input="clearEditFormError('name')"
           />
         </el-form-item>
         <el-form-item
-          :label="$t('measurementUnit.form.fields.symbol.label')"
-          prop="symbol"
-          :rules="[{ required: true, message: $t('measurementUnit.form.rules.symbol_required') }]"
+            :label="$t('measurementUnit.form.fields.symbol.label')"
+            prop="symbol"
+            :rules="[{ required: true, message: $t('measurementUnit.form.rules.symbol_required') }]"
+            :error="editFormErrors.symbol"
         >
           <el-input
-            v-model="editingMeasurementUnit.symbol"
-            :size="store.size"
+              v-model="editingMeasurementUnit.symbol"
+              :size="store.size"
+              @input="clearEditFormError('symbol')"
           />
         </el-form-item>
         <el-form-item
-          :label="$t('measurementUnit.form.fields.display_symbol.label')"
-          prop="display_symbol"
-          :rules="[{ required: true, message: $t('measurementUnit.form.rules.display_symbol_required') }]"
+            :label="$t('measurementUnit.form.fields.display_symbol.label')"
+            prop="display_symbol"
+            :rules="[{ required: true, message: $t('measurementUnit.form.rules.display_symbol_required') }]"
+            :error="editFormErrors.display_symbol"
         >
           <el-input
-            v-model="editingMeasurementUnit.display_symbol"
-            :size="store.size"
+              v-model="editingMeasurementUnit.display_symbol"
+              :size="store.size"
+              @input="clearEditFormError('display_symbol')"
           />
         </el-form-item>
         <el-form-item
-          :label="$t('measurementUnit.form.fields.physical_quantity.label')"
-          prop="physical_quantity"
-          :rules="[{ required: true, message: $t('measurementUnit.form.rules.physical_quantity_required') }]"
+            :label="$t('measurementUnit.form.fields.physical_quantity.label')"
+            prop="physical_quantity"
+            :rules="[{ required: true, message: $t('measurementUnit.form.rules.physical_quantity_required') }]"
+            :error="editFormErrors.physical_quantity"
         >
           <el-input
-            v-model="editingMeasurementUnit.physical_quantity"
-            :size="store.size"
+              v-model="editingMeasurementUnit.physical_quantity"
+              :size="store.size"
+              @input="clearEditFormError('physical_quantity')"
           />
         </el-form-item>
         <el-form-item
-          :label="$t('measurementUnit.form.fields.measurement_category_id.label')"
-          prop="measurement_category_id"
-          :rules="[{ required: true, message: $t('measurementUnit.form.rules.category_required') }]"
+            :label="$t('measurementUnit.form.fields.measurement_category_id.label')"
+            prop="measurement_category_id"
+            :rules="[{ required: true, message: $t('measurementUnit.form.rules.category_required') }]"
+            :error="editFormErrors.measurement_category_id"
         >
           <el-select
-            v-model="editingMeasurementUnit.measurement_category_id"
-            :placeholder="$t('measurementUnit.form.fields.measurement_category_id.placeholder')"
-            :size="store.size"
-            style="width: 100%"
-            filterable
-            clearable
+              v-model="editingMeasurementUnit.measurement_category_id"
+              :placeholder="$t('measurementUnit.form.fields.measurement_category_id.placeholder')"
+              :size="store.size"
+              style="width: 100%"
+              filterable
+              clearable
+              @change="clearEditFormError('measurement_category_id')"
           >
             <el-option
-              v-for="category in categoryStore.dropdownCategories"
-              :key="category.id"
-              :label="category.name + ' (' + category.description + ')'"
-              :value="category.id"
+                v-for="category in categoryStore.dropdownCategories"
+                :key="category.id"
+                :label="category.name + ' (' + category.description + ')'"
+                :value="category.id"
             >
               <span style="min-width: 80px; max-width: 80px;">{{ category.name }}</span>
               <el-tag :size="store.size" style="margin-left: 10px">{{ category.description }}</el-tag>
@@ -329,15 +351,15 @@
       </el-form>
       <template #footer>
         <el-button
-          @click="dialogVisible = false"
-          :size="store.size"
+            @click="dialogVisible = false"
+            :size="store.size"
         >
           {{ $t('measurementUnit.form.buttons.cancel') }}
         </el-button>
         <el-button
-          type="primary"
-          @click="validateEditForm"
-          :size="store.size"
+            type="primary"
+            @click="validateEditForm"
+            :size="store.size"
         >
           {{ $t('measurementUnit.form.buttons.save') }}
         </el-button>
@@ -347,7 +369,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
@@ -366,6 +388,22 @@ const categoryStore = useMeasurementCategoryStore();
 // Рефы для форм
 const addForm = ref(null);
 const editForm = ref(null);
+
+// Ошибки валидации
+const addFormErrors = ref({
+  name: '',
+  symbol: '',
+  display_symbol: '',
+  physical_quantity: '',
+  measurement_category_id: ''
+});
+const editFormErrors = ref({
+  name: '',
+  symbol: '',
+  display_symbol: '',
+  physical_quantity: '',
+  measurement_category_id: ''
+});
 
 // Опции для пагинации
 const per_pages = ref([5, 10, 20, 30, 50, 100, 200]);
@@ -413,7 +451,6 @@ const handlePageChange = (page) => {
 // Получение названия категории по ID из запроса где находятся все категории
 const getCategoryName = (categoryId) => {
   const category = categoryStore.dropdownCategories.find(cat => cat.id === categoryId);
-  console.log('getCategoryName ', category)
   return category ? category.name : null;
 };
 
@@ -448,31 +485,10 @@ const addMeasurementUnit = async () => {
     });
 
     dialogVisibleAdd.value = false;
-    newMeasurementUnit.value = {
-      name: '',
-      symbol: '',
-      display_symbol: '',
-      physical_quantity: '',
-      measurement_category_id: null
-    };
+    resetAddForm();
+    await loadMeasurementUnits();
   } catch (error) {
-    let errorMessage = t('measurementUnit.messages.error', { error: '' });
-
-    // Обработка ошибок валидации
-    if (error.errors) {
-      errorMessage = Object.values(error.errors)
-          .flat()
-          .join('; ');
-    }
-    // Обработка стандартных ошибок
-    else if (error.details) {
-      errorMessage = `${t('measurementUnit.messages.error', { error: '' })}: ${error.details}`;
-    }
-
-    ElMessage.error({
-      message: errorMessage,
-      duration: 5000
-    });
+    handleValidationErrors(error, addFormErrors, 'add');
   }
 };
 
@@ -502,25 +518,9 @@ const saveEdit = async () => {
     });
 
     dialogVisible.value = false;
+    await loadMeasurementUnits();
   } catch (error) {
-    let errorMessage = t('measurementUnit.messages.error', { error: '' });
-
-    if (error.response && error.response.data) {
-      if (error.response.data.errors) {
-        errorMessage = Object.values(error.response.data.errors)
-            .flat()
-            .join('; ');
-      } else if (error.response.data.error) {
-        errorMessage = error.response.data.error;
-      }
-    } else {
-      errorMessage = error.message || errorMessage;
-    }
-
-    ElMessage.error({
-      message: errorMessage,
-      duration: 5000
-    });
+    handleValidationErrors(error, editFormErrors, 'edit');
   }
 };
 
@@ -549,8 +549,8 @@ const deleteMeasurementUnit = async (id) => {
     if (measurementUnitStore.measurementUnits.length === 0 &&
         measurementUnitStore.pagination.current_page > 1) {
       measurementUnitStore.pagination.current_page--;
-      loadMeasurementUnits();
     }
+    await loadMeasurementUnits();
   } catch (error) {
     if (error !== 'cancel') {
       let errorMessage = t('measurementUnit.messages.error', { error: '' });
@@ -568,6 +568,102 @@ const deleteMeasurementUnit = async (id) => {
         duration: 5000
       });
     }
+  }
+};
+
+// Обработка ошибок валидации
+const handleValidationErrors = (error, errorsRef, formType) => {
+  // Очистка предыдущих ошибок
+  Object.keys(errorsRef.value).forEach(key => {
+    errorsRef.value[key] = '';
+  });
+
+  // Обработка ошибок валидации
+  if (error.response && error.response.status === 422 && error.response.data.errors) {
+    const validationErrors = error.response.data.errors;
+
+    Object.keys(validationErrors).forEach(field => {
+      if (errorsRef.value.hasOwnProperty(field)) {
+        errorsRef.value[field] = Array.isArray(validationErrors[field])
+            ? validationErrors[field].join(' ')
+            : validationErrors[field];
+      }
+    });
+
+    // Прокрутка к первой ошибке
+    nextTick(() => {
+      const firstErrorField = Object.keys(validationErrors)[0];
+      const errorElement = document.querySelector(`.el-form-item__error[data-field="${firstErrorField}"]`);
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  } else {
+    // Обработка других ошибок
+    let errorMessage = t('measurementUnit.messages.error', { error: '' });
+
+    if (error.response && error.response.data) {
+      if (error.response.data.details) {
+        errorMessage = `${t('measurementUnit.messages.error', { error: '' })}: ${error.response.data.details}`;
+      } else if (error.response.data.error) {
+        errorMessage = error.response.data.error;
+      }
+    }
+
+    ElMessage.error({
+      message: errorMessage,
+      duration: 5000
+    });
+  }
+};
+
+// Очистка ошибки в форме добавления
+const clearAddFormError = (field) => {
+  if (addFormErrors.value[field]) {
+    addFormErrors.value[field] = '';
+  }
+};
+
+// Очистка ошибки в форме редактирования
+const clearEditFormError = (field) => {
+  if (editFormErrors.value[field]) {
+    editFormErrors.value[field] = '';
+  }
+};
+
+// Сброс формы добавления
+const resetAddForm = () => {
+  newMeasurementUnit.value = {
+    name: '',
+    symbol: '',
+    display_symbol: '',
+    physical_quantity: '',
+    measurement_category_id: null
+  };
+
+  // Очистка ошибок
+  Object.keys(addFormErrors.value).forEach(key => {
+    addFormErrors.value[key] = '';
+  });
+
+  if (addForm.value) {
+    addForm.value.clearValidate();
+  }
+};
+
+// Обработчики открытия диалогов
+const handleAddDialogOpen = () => {
+  resetAddForm();
+};
+
+const handleEditDialogOpen = () => {
+  // Очистка ошибок формы редактирования
+  Object.keys(editFormErrors.value).forEach(key => {
+    editFormErrors.value[key] = '';
+  });
+
+  if (editForm.value) {
+    editForm.value.clearValidate();
   }
 };
 
@@ -632,5 +728,10 @@ onUnmounted(() => {
   text-align: right;
   font-size: 12px;
   color: #666;
+}
+
+/* Стиль для подсветки полей с ошибками */
+.el-form-item.is-error :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-color-danger) inset;
 }
 </style>

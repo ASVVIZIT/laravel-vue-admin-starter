@@ -76,14 +76,14 @@
 
         <div class="dialog-footer">
           <el-button type="danger" @click="dialogVisible = false">
-            {{ t('permission.cancel') }}
+            {{ t('permission.actions.cancel') }}
           </el-button>
           <el-button
               type="primary"
               :loading="dialogLoading"
               @click="confirmPermission"
           >
-            {{ t('permission.confirm') }}
+            {{ t('permission.actions.confirm') }}
           </el-button>
         </div>
       </div>
@@ -104,7 +104,7 @@ import {ElMessage} from 'element-plus';
 
 const { t } = useI18n({ useScope: 'global' });
 const roleResource = new RoleResource();
-const permissionResource = new Resource('permissions')
+const permissionResource = new Resource('permissions');
 const useUserStore = userStore();
 
 // Реактивные переменные
@@ -114,7 +114,7 @@ const pageSizes = ref([5, 10, 30, 50, 100, 150, 200]);
 const filters = reactive({
   role: null,
   search: null
-})
+});
 
 // Пагинация
 const pagination = reactive({
@@ -124,16 +124,16 @@ const pagination = reactive({
     total: 0,
     last_page: 1
   }
-})
+});
 
 // Диалог редактирования
-const dialogVisible = ref(false)
-const dialogLoading = ref(false)
-const currentRole = ref({})
-const menuPermissions = ref([])
-const otherPermissions = ref([])
-const refMenuPermissions = ref(null)
-const refOtherPermissions = ref(null)
+const dialogVisible = ref(false);
+const dialogLoading = ref(false);
+const currentRole = ref({});
+const menuPermissions = ref([]);
+const otherPermissions = ref([]);
+const refMenuPermissions = ref(null);
+const refOtherPermissions = ref(null);
 
 // Колонки таблицы
 const basicColumn = computed(() => [
@@ -144,66 +144,72 @@ const basicColumn = computed(() => [
   },
   {
     prop: 'description',
-    label: t('table.description'),
+    label: t('table.general.description'),
   }
-])
+]);
 
 // Опции таблицы
 const tableOption = computed(() => {
   if (useUserStore.permissions.includes('manage user')) {
     return {
       slot: true,
-      label: t('table.actions'),
+      label: t('table.general.actions'),
       fixed: 'right',
       item_actions: [
-        {name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('permission.editPermission')},
+        {name: 'edit-item', type: 'primary', icon: 'EditPen', label: t('permission.actions.editPermission')},
       ]
     }
   }
   return {}
-})
+});
 
 // Свойства дерева разрешений
 const permissionProps = reactive({
   children: 'children',
   label: 'name',
   disabled: 'disabled'
-})
+});
 
 // Вычисляемые свойства для разрешений
 const roleMenuPermissions = computed(() =>
     currentRole.value.permissions
         ? classifyPermissions(currentRole.value.permissions).menu
         : []
-)
+);
 
 const roleOtherPermissions = computed(() =>
     currentRole.value.permissions
         ? classifyPermissions(currentRole.value.permissions).other
         : []
-)
+);
 
 // Загрузка ролей
 const getRoles = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     const params = {
       ...filters,
-      page: pagination.current_page || 1,
-      per_page: pagination.per_page || 10
+      current_page: pagination.meta.current_page,
+      per_page: pagination.meta.per_page
     }
 
-    const response = await roleResource.list(params)
+    const response = await roleResource.list(params);
+
+    console.log('Role List response ', response);
 
     // Обновление данных
-    response.data.forEach(role => {
+    response.items.forEach(role => {
       role.description = t(`roles.description.${role.name}`)
-    })
+    });
 
-    tableData.value = response.data
-    pagination.total = res.meta.total
-    pagination.currentPage = res.meta.current_page
-    pagination.pageSize = res.meta.per_page
+    tableData.value = response.items;
+    // Обновляем метаданные пагинации
+    pagination.meta = {
+      total: response.meta.total,
+      current_page: response.meta.current_page,
+      per_page: response.meta.per_page,
+      last_page: response.meta.last_page
+    }
   } finally {
     loading.value = false
   }
@@ -212,20 +218,20 @@ const getRoles = async () => {
 // Обработка действий таблицы
 const tableActions = (action, data) => {
   if (action === 'edit-item') {
-    handleEditPermissions(data)
+    handleEditPermissions(data);
   }
 }
 
 // Загрузка разрешений
 const getPermissions = async () => {
   try {
-    const {data} = await permissionResource.list({})
-    const {menu, other} = classifyPermissions(data)
-    menuPermissions.value = menu
-    otherPermissions.value = other
+    const { data } = await permissionResource.list({});
+    const { menu, other } = classifyPermissions(data);
+    menuPermissions.value = menu;
+    otherPermissions.value = other;
   } catch (error) {
-    console.error('Ошибка загрузки разрешений:', error)
-    ElMessage.error(t('error.loadPermissions'))
+    console.error('Ошибка загрузки разрешений:', error);
+    ElMessage.error(t('error.loadPermissions'));
   }
 }
 

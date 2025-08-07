@@ -143,7 +143,7 @@ onMounted(async () => {
   // Инициализация пользователя
   if (!useUserStore.id) {
     try {
-      await useUserStore.getInfo()
+      await useUserStore.fetchInfo()
       contactStore.userId = useUserStore.id
       console.log('Пользователь Авторизован')
     } catch (e) {

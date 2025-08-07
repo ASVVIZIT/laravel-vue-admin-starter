@@ -66,7 +66,7 @@ onMounted(async () => {
   // Проверка авторизации
   try {
     if (!useUserStore.id) {
-      await useUserStore.getInfo()
+      await useUserStore.fetchInfo()
     }
   } catch (e) {
     console.warn('Пользователь не авторизован')
