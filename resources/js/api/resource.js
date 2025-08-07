@@ -1,10 +1,5 @@
 // api/resource.js
-
 import request from '@/utils/request';
-
-/**
- * Simple RESTful resource class
- */
 class Resource {
   constructor(uri) {
     this.uri = uri;

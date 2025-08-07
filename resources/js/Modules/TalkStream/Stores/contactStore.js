@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia'
-import TalkService from '@/modules/TalkStream/Services/talkService'
-import { userStore } from '@/store/user'
+import { defineStore } from 'pinia';
+import TalkService from '@/modules/TalkStream/Services/talkService';
+import { userStore } from '@/store/userStore';
 
 export const useContactStore = defineStore('contact', {
     state: () => ({
@@ -88,7 +88,7 @@ export const useContactStore = defineStore('contact', {
 
         async refreshUserFrom() {
             const useUserStore = userStore()
-            await useUserStore.getInfo()
+            await useUserStore.fetchInfo()
 
             this.userFrom = {
                 id: useUserStore.id,

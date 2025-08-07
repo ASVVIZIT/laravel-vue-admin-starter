@@ -89,7 +89,7 @@ import dayjs from 'dayjs'
 import {ElMessage} from "element-plus"
 import {useI18n} from "vue-i18n";
 const {t} = useI18n({useScope: 'global'})
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 const store = appStore()
 const userResource = new UserResource('users')
 

@@ -1,3 +1,4 @@
+// resources/js/api/order.js
 import request from '@/utils/request';
 
 export function fetchList(query) {

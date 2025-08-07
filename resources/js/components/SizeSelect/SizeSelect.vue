@@ -19,7 +19,7 @@
 </template>
 
 <script setup>
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 import { computed } from 'vue'
 
 const store = appStore()

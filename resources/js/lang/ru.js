@@ -40,13 +40,17 @@ export default {
     },
     "login": {
         "title": "Войдите в свой личный кабинет",
+        "adminTitle": "Вход администратора",
+        "testerTitle": "Тестовый вход",
+        "email": "Email",
         "logIn": "Авторизоваться",
+        "loginAsTester": "Войти как тестер",
+        "selectRole": "Выберите роль",
         "username": "Имя пользователя",
         "password": "Пароль",
         "any": "any",
         "thirdparty": "Или соединиться с",
         "thirdpartyTips": "Невозможно смоделировать локально, поэтому, пожалуйста, объедините вашу собственную бизнес-симуляцию!!!",
-        "email": "Email",
         "loginSuccess": "Успешный вход в систему",
         "loginFailed": "Войти в систему не удалось",
     },
@@ -401,6 +405,9 @@ export default {
         }
     },
     "roles": {
+        "admin": "Администратор",
+        "user": "Пользователь",
+        "moderator": "Модератор",
         "name": "Роль",
         "description": {
             "superadmin": "Super Administrator. Имеет доступ и полное разрешение на доступ ко всем страницам, и многое другое.",
@@ -780,5 +787,9 @@ export default {
             "kg": "кг",
             "l": "л"
         }
-    }
+    },
+    "error.loadPermissions": "Ошибка загрузки разрешений",
+    "permission.editPermissionForForm": "Редактирование разрешений для роли",
+    "roles.description.admin": "Администратор системы",
+    "roles.description.superadmin": "Суперадминистратор"
 };

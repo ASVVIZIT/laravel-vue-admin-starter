@@ -18,9 +18,13 @@ return [
     'paths' => [
         'api/*',
         'login',
+        'admin/login',
         'api/login',
+        'api/admin/login',
         'logout',
+        'admin/logout',
         'api/logout',
+        'api/admin/logout',
         'sanctum/*',
         'sanctum/csrf-cookie',
         'api/sanctum/csrf-cookie',
@@ -32,7 +36,7 @@ return [
     ],
 
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['http://94.41.87.10'],
     /*'allowed_origins' => [
         'http://94.41.87.10',
         'http://94.41.87.10:8050',
@@ -48,6 +52,7 @@ return [
     ],*/
     'allowed_origins_patterns' => [],
     'allowed_headers' => ['*'],
+    'exposed_headers' => [],
     /*'allowed_headers' => [
         'Authorization',
         'Content-Type',

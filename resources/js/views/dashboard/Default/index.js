@@ -1,2 +1,2 @@
-import component from './Default.vue'
+import component from './Dashboard.vue'
 export default component

@@ -44,7 +44,7 @@ import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore.
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
-import { userStore } from '@/store/user'
+import { userStore } from '@/store/userStore'
 
 // Компоненты
 import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'

@@ -268,7 +268,7 @@ import { useI18n } from 'vue-i18n';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { appStore } from "@/store/app";
+import { appStore } from '@/store/appStore'
 import { useDeviceTypeStore } from '@store/ElectricalProtection/deviceTypeStore.js';
 
 const { t } = useI18n();

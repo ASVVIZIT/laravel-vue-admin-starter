@@ -1,3 +1,4 @@
+// resources/js/api/article.js
 import request from '@/utils/request';
 
 export function fetchList(query) {

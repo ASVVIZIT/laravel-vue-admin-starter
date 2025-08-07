@@ -1,3 +1,4 @@
+// resources/js/api/role.js
 import request from '@/utils/request';
 import Resource from '@/api/resource';
 

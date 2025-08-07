@@ -1,6 +1,6 @@
 const { body } = document
 const WIDTH = 992
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 export default function () {
   const useAppStore = appStore()
   const $_isMobile = () => {

@@ -28,14 +28,14 @@
 </template>
 
 <script setup>
-import { useCssVar } from '@vueuse/core'
-import { computed } from 'vue'
-import { useRoute } from 'vue-router'
-import Logo from './Logo.vue'
-import SidebarItem from './SidebarItem.vue'
-import { appStore } from '@/store/app'
-import { permissionStore } from '@/store/permission'
-import path from 'path-browserify'
+import { useCssVar } from '@vueuse/core';
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+import Logo from './Logo.vue';
+import SidebarItem from './SidebarItem.vue';
+import { appStore } from '@/store/appStore';
+import { permissionStore } from '@/store/permissionStore';
+import path from 'path-browserify';
 
 // CSS-переменные (более надежный способ)
 const sidebarMenuEl = ref(null);

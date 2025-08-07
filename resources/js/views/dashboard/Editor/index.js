@@ -1,2 +1,2 @@
-import component from './Editor.vue'
+import component from './Dashboard.vue'
 export default component

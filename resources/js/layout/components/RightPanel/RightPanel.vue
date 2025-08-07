@@ -13,7 +13,7 @@
 </template>
 
 <script setup>
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 
 defineProps({
     clickNotClose: {

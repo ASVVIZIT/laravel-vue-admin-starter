@@ -1,4 +1,4 @@
-import {userStore} from '@/store/user';
+import {userStore} from '@/store/userStore';
 
 /**
  * @param {Array} value

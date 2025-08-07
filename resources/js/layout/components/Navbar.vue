@@ -58,8 +58,8 @@ import ScreenFull from '@/components/ScreenFull/ScreenFull.vue'
 import { CaretBottom } from '@element-plus/icons-vue'
 import Breadcrumb from './Breadcrumb'
 import Hamburger from './Hamburger'
-import { appStore } from '@/store/app'
-import { userStore } from '@/store/user'
+import { appStore } from '@/store/appStore'
+import { userStore } from '@/store/userStore'
 
 const router = useRouter()
 const route = useRoute()

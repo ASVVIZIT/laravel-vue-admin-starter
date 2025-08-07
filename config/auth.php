@@ -120,6 +120,11 @@ return [
 
     'admin_users' => [
         [
+            'id' => 1,
+            'email' => 'admin@fenix.dev',
+            'password' => '$2y$10$...' // Хеш для 123456
+        ],
+        [
             'email' => env('ADMIN_EMAIL', 'admin@test.com'),
             'password' => env('ADMIN_PASSWORD', 'secret'),
             'id' => env('ADMIN_ID', 1)

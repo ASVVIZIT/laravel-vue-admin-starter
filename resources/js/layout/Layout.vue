@@ -19,7 +19,7 @@
 
 <script setup>
 import { computed, watch } from 'vue'
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 import { AppMain, Navbar, Sidebar, TagsView, RightPanel } from './components'
 const useAppStore = appStore()
 

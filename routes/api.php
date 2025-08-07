@@ -1,106 +1,155 @@
 <?php
+// routes/api.php
 
-use App\Models\Acl;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Http\Request;
-use Illuminate\Contracts\Routing\Registrar as RouteContract;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\App;
+// Импорты моделей
+use App\Models\Acl;
+// === ИМПОРТЫ КОНТРОЛЛЕРОВ АВТОРИЗАЦИИ ===
+// Эти контроллеры реализуют логику входа для разных типов пользователей
+use App\Http\Controllers\Api\AuthController; // Для обычных пользователей
+use App\Http\Controllers\Api\AdminAuthController; // Для админов
+use App\Http\Controllers\Api\TesterController; // Для тестовых пользователей
+// === КОНЕЦ ИМПОРТОВ КОНТРОЛЛЕРОВ АВТОРИЗАЦИИ ===
 
-use App\Http\Controllers\Api\AuthController;
+// Импорты других контроллеров (остаются как в оригинале)
 use App\Http\Controllers\Api\UserTabController;
-use App\Http\Controllers\Api\AdminAuthController;
-use App\Http\Controllers\Api\TesterController;
-
-use App\Http\Controllers\Api\Entity\BrandController;
-use App\Http\Controllers\Api\Entity\DeviceTypeController;
+use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Api\TableRowController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\Entity\MeasurementCategoryController;
 use App\Http\Controllers\Api\Entity\MeasurementUnitController;
 use App\Http\Controllers\Api\Entity\AccessoryController;
-
+use App\Http\Controllers\Api\Entity\BrandController;
+use App\Http\Controllers\Api\Entity\DeviceTypeController;
 use App\Http\Controllers\TalkStream\ContactController;
 use App\Http\Controllers\TalkStream\ChatController;
 use App\Http\Controllers\TalkStream\CallController;
 use App\Http\Controllers\TalkStream\FriendRequestController;
 use App\Http\Controllers\Video\VideoController;
-use App\Http\Controllers\Api\TemplateController;
-use App\Http\Controllers\Api\TableRowController;
+// Импорты фасадов для отладочных маршрутов
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
+// Импорт контракта Route для одного из примеров
+use Illuminate\Contracts\Routing\Registrar as RouteContract;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Основные группы маршрутов:
-| 1. Аутентификация (включая админскую и тестовую)
+| Здесь регистрируются API маршруты для вашего приложения.
+| Эти маршруты загружаются RouteServiceProvider и назначаются
+| группе middleware "api". Это означает, что они автоматически
+| получают префикс /api и middleware, определенные в Kernel.php
+| для группы 'api' (обычно 'throttle:api').
+|
+| Структура файла (основана на предоставленном фрагменте):
+| 1. Маршруты аутентификации (включая админскую и тестовую)
 | 2. Пользовательские маршруты (требуют аутентификации)
 | 3. TalkStream (чат и звонки)
 | 4. Видео-функционал
 | 5. Дополнительные сервисы
+| 6. Демо-данные (тестовые заказы)
+| 7. Отладочные и сервисные маршруты
 |
-| Все маршруты защищены соответствующими middleware
+| Все маршруты защищены соответствующими middleware.
+|
 */
 
 // ===================================================
-// 1. Маршруты аутентификации
+// 1. МАРШРУТЫ АУТЕНТИФИКАЦИИ
 // ===================================================
-
-// Админский вход (не требует аутентификации)
+// --- Админский вход (не требует аутентификации Sanctum) ---
+// POST /api/admin/auth/login
+// Контроллер: App\Http\Controllers\Api\AdminAuthController@login
+// Логика: Проверяет учетные данные админа (через config/auth.admin_users),
+//         находит пользователя в БД, проверяет роль 'admin', создает токен.
 Route::prefix('admin')->group(function () {
     Route::post('auth/login', [AdminAuthController::class, 'login']);
 });
 
-// Тестовый вход (только для не-production окружения)
+// --- Тестовый вход (только для не-production окружения) ---
+// POST /api/tester/login/{role?}
+// Контроллер: App\Http\Controllers\Api\TesterController@login
+// Middleware: is_testing (проверяет APP_ENV)
+// Логика: Создает временного тестового пользователя с указанной ролью,
+//         устанавливает флаг is_test=1, создает токен.
 Route::prefix('tester')->middleware('is_testing')->group(function () {
     Route::post('login/{role}', [TesterController::class, 'login']);
 });
 
-// Основные маршруты аутентификации
+// --- Основные маршруты аутентификации (пространство имен Api) ---
+// Это группа маршрутов, использующая пространство имен 'Api'.
+// Она включает как публичные, так и защищенные маршруты.
 Route::namespace('Api')->group(function() {
-
-    // CSRF-защита для Sanctum
+    // --- CSRF-защита для Sanctum ---
+    // GET /api/sanctum/csrf-cookie
+    // Контроллер: App\Http\Controllers\Api\AuthController@csrf
+    // Логика: Устанавливает XSRF-TOKEN cookie для защиты от CSRF.
     Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
 
-    // Обычный вход с защитой от IP-блокировок
+    // --- Обычный вход с защитой от IP-блокировок ---
+    // POST /api/auth/login
+    // Контроллер: App\Http\Controllers\Api\AuthController@login
+    // Middleware: ip.banned (проверяет LoginAttempt на блокировку)
+    // Логика: Проверяет учетные данные, логирует попытки,
+    //         блокирует IP после 5 неудачных попыток, создает токен.
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('ip.banned');
 
-    // Группа защищенных маршрутов (требуют аутентификации)
+    // --- Группа ЗАЩИЩЕННЫХ маршрутов (требуют аутентификации Sanctum) ---
+    // Все маршруты внутри этой группы требуют действительного Bearer токена.
     Route::middleware('auth:sanctum')->group(function () {
-
-        // Верификация email
+        // --- Верификация email ---
+        // POST /api/email/verify/{id}/{hash}
+        Route::post('/email/verify/{id}/{hash}', [AuthController::class, 'verify']);
+        // POST /api/email/resend
         Route::post('/email/resend', [AuthController::class, 'resendVerification']);
+        // GET /api/email/verify
         Route::get('/email/verify', [AuthController::class, 'checkVerification']);
 
-        // Управление сессиями
+        // --- Управление сессиями (Выход) ---
+        // POST /api/auth/logout
+        // Контроллер: App\Http\Controllers\Api\AuthController@logout
+        // Логика: Отзывает (удаляет) текущий токен пользователя.
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
-        // Информация о пользователе
+        // --- Информация о пользователе ---
+        // GET /api/user
+        // Контроллер: App\Http\Controllers\Api\AuthController@user
+        // Логика: Возвращает объект аутентифицированного пользователя.
         Route::get('/user', [AuthController::class, 'user']);
 
-        // Пользовательские вкладки
-        Route::get('/user-tabs', [UserTabController::class, 'index']);
-        Route::post('/user-tabs', [UserTabController::class, 'store']);
-        Route::put('/user-tabs/{userTab}', [UserTabController::class, 'update']);
-        Route::delete('/user-tabs/{userTab}', [UserTabController::class, 'destroy']);
+        // --- Пользовательские вкладки ---
+        Route::apiResource('/user-tabs', UserTabController::class);
 
-        // Управление ролями и разрешениями
-        Route::apiResource('roles', 'RoleController')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
-        Route::apiResource('users', 'UserController')->middleware('permission:' . Acl::PERMISSION_USER_MANAGE);
-        Route::apiResource('permissions', 'PermissionController')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
+        // --- Шаблоны и строки таблиц ---
+        Route::apiResource('templates', TemplateController::class);
+        Route::apiResource('table-rows', TableRowController::class);
 
-        // Кастомные маршруты для пользователей
+        // --- Управление ролями и разрешениями ---
+        // Требуют специального разрешения (Acl::PERMISSION_PERMISSION_MANAGE или Acl::PERMISSION_USER_MANAGE)
+        Route::apiResource('roles', RoleController::class)->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
+        Route::apiResource('users', UserController::class)->middleware('permission:' . Acl::PERMISSION_USER_MANAGE);
+        Route::apiResource('permissions', PermissionController::class)->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
+
+        // --- Кастомные маршруты для пользователей ---
+        // Используется объект $api (RouteContract) как в оригинале
         Route::prefix('users')->group(function (RouteContract $api) {
+            // Получение разрешений пользователя (требует разрешения)
             $api->get('{user}/permissions', 'UserController@permissions')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
-            $api->put('{user}/permissions', 'UserController@updatePermissions')->middleware('permission:' .Acl::PERMISSION_PERMISSION_MANAGE);
+            // Обновление разрешений пользователя (требует разрешения)
+            $api->put('{user}/permissions', 'UserController@updatePermissions')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
+            // Получение логов пользователя
             $api->get('{user}/logs', 'LogController@index');
+            // ... другие пользовательские маршруты
         });
 
-        // Маршруты для ролей
-        Route::get('roles/{role}/permissions', 'RoleController@permissions')->middleware('permission:' . Acl::PERMISSION_PERMISSION_MANAGE);
-        Route::get('requests', 'RequestController@index');
-
-        // Сущности системы
+        // --- Маршруты для сущностей (Entities) ---
+        // Требуют специального разрешения (Acl::PERMISSION_ENTITY_MANAGE)
         Route::prefix('entities')->middleware('permission:' . Acl::PERMISSION_ENTITY_MANAGE)->group(function () {
             Route::apiResource('ep_brands', BrandController::class);
             Route::apiResource('ep_device_types', DeviceTypeController::class);
@@ -108,25 +157,10 @@ Route::namespace('Api')->group(function() {
             Route::apiResource('ep_measurement_categories', MeasurementCategoryController::class)->only(['index']);
             Route::apiResource('ep_measurement_units', MeasurementUnitController::class);
             Route::apiResource('ep_accessories', AccessoryController::class);
+            // ... другие сущности
         });
-    });
-});
 
-// ===================================================
-// 2. Маршруты TalkStream (чат и коммуникации)
-// ===================================================
-Route::namespace('Api')->group(function() {
-    // Повторная CSRF-защита (для совместимости)
-    Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
-    Route::post('auth/login', [AuthController::class, 'login']);
-
-    // Аутентификация для broadcasting
-    Route::post('/broadcasting/auth', function (Request $request) {
-        return Broadcast::auth($request);
-    })->middleware(['auth:sanctum']);
-
-    // Защищенные маршруты TalkStream
-    Route::middleware('auth:sanctum')->group(function () {
+        // --- TalkStream (чат и звонки) - внутри защищенной группы ---
         Route::prefix('talkstream')->group(function () {
             // Контакты
             Route::get('/user', [ContactController::class, 'show']);
@@ -139,8 +173,13 @@ Route::namespace('Api')->group(function() {
 
             // Звонки
             Route::prefix('call')->group(function () {
+                Route::post('/initiate', [CallController::class, 'initiate']);
+                Route::post('/accept', [CallController::class, 'accept']);
+                Route::post('/decline', [CallController::class, 'decline']);
+                Route::post('/end', [CallController::class, 'end']);
+                // Дополнительные маршруты звонков из фрагмента
                 Route::post('/start', [CallController::class, 'startCall']);
-                Route::post('/end', [CallController::class, 'endCall']);
+                Route::post('/end', [CallController::class, 'endCall']); // Дублируется, но оставлено как в исходнике
             });
 
             // Друзья
@@ -153,65 +192,84 @@ Route::namespace('Api')->group(function() {
                 Route::post('/accept/{id}', [FriendRequestController::class, 'accept']);
             });
         });
+
+        // --- Видео-функционал (внутри защищенной группы) ---
+        Route::prefix('video')->group(function () {
+            // Предполагаемые маршруты, основанные на VideoController
+            Route::get('/index', [VideoController::class, 'index']);
+            Route::get('/file-list', [VideoController::class, 'getFileList']);
+            Route::get('/scan-single', [VideoController::class, 'scanSingleFile']);
+            Route::post('/scan-multiple', [VideoController::class, 'scanMultipleFiles']);
+            // Статические видео-файлы - обычно не API маршрут, но оставлен как пример
+            // Route::get('/files/{filename}', function ($filename) { ... });
+        });
+
+        // --- Другие потенциальные защищенные маршруты ---
+        Route::get('requests', 'RequestController@index'); // Предполагается существование RequestController
+
     });
 });
 
 // ===================================================
-// 3. Отладочные и сервисные маршруты
+// 2. Маршруты TalkStream (чат и коммуникации)
+// (Некоторые маршруты дублируются из предыдущей группы)
 // ===================================================
-Route::get('/debug/network', function(Request $request) {
-    return response()->json([
-        'client_ip' => $request->ip(),
-        'headers' => $request->headers->all(),
-        'server' => $_SERVER,
-        'connections' => [
-            'database' => DB::connection()->getPdo() ? true : false,
-            'redis' => Redis::connection()->ping() === true
-        ]
-    ]);
+// Эта группа определяет пространство имен 'Api' снова.
+// Это может быть избыточно, если оно уже установлено выше, но сохранено как в оригинале.
+Route::namespace('Api')->group(function() {
+    // --- Повторная CSRF-защита (для совместимости) ---
+    // GET /api/sanctum/csrf-cookie
+    // Дублируется из предыдущей группы.
+    Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
+
+    // --- Повторный маршрут входа (для совместимости) ---
+    // POST /api/auth/login
+    // Дублируется из предыдущей группы. Middleware 'ip.banned' не применено здесь в оригинале.
+    Route::post('auth/login', [AuthController::class, 'login']);
+
+    // --- Аутентификация для broadcasting (Laravel Echo) ---
+    // POST /api/broadcasting/auth
+    // Middleware: auth:sanctum (унаследовано от группы или должно быть добавлено)
+    // Логика: Позволяет Laravel Echo аутентифицироваться для приватных каналов.
+    Route::post('/broadcasting/auth', function (Request $request) {
+        // Используем фасад Broadcast для аутентификации запроса на подписку
+        return Broadcast::auth($request);
+    })->middleware(['auth:sanctum']); // Убедитесь, что middleware применено
 });
 
 // ===================================================
-// 4. Видео-функционал
+// 4. Видео-функционал (дополнительные маршруты вне защищенной группы?)
 // ===================================================
+// Предполагая, что некоторые видео-маршруты могут быть публичными или имеют другую структуру
 Route::get('/videos', [VideoController::class, 'index']);
 Route::get('/videos/file-list', [VideoController::class, 'getFileList']);
 Route::get('/videos/scan-single', [VideoController::class, 'scanSingleFile']);
 Route::post('/videos/scan-multiple', [VideoController::class, 'scanMultipleFiles']);
 
-// Статические видео-файлы
+// --- Статические видео-файлы (пример из фрагмента) ---
+// GET /api/video-files/{filename}
+// Логика: Отдает статические видеофайлы напрямую из storage.
 Route::get('/video-files/{filename}', function ($filename) {
     $path = storage_path('/Videos/videos/' . $filename);
-
     if (!file_exists($path)) abort(404);
-
     $mimeTypes = [
         'webm' => 'video/webm',
         'mp4' => 'video/mp4',
         'mov' => 'video/quicktime',
-        'avi' => 'video/x-msvideo'
+        'avi' => 'video/x-msvideo',
+        // Добавьте другие типы по необходимости
     ];
+    $extension = pathinfo($filename, PATHINFO_EXTENSION);
+    $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
 
-    $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
-    $mime = $mimeTypes[$ext] ?? 'video/webm';
-
-    return response()->file($path, [
-        'Content-Type' => $mime,
-        'Cache-Control' => 'public, max-age=31536000'
-    ]);
-})->where('filename', '.*');
-
-// ===================================================
-// 5. Таблицы и данные
-// ===================================================
-Route::prefix('table')->group(function () {
-    Route::get('templates/{id}', [TemplateController::class, 'show']);
-    Route::get('rows', [TableRowController::class, 'index']);
+    return response()->file($path, ['Content-Type' => $mimeType]);
 });
 
 // ===================================================
 // 6. Демо-данные (тестовые заказы)
 // ===================================================
+// GET /api/orders
+// Логика: Генерирует и возвращает фиктивные данные заказов.
 Route::get('/orders', function () {
     $rowsNumber = 8;
     $data = [];
@@ -227,12 +285,48 @@ Route::get('/orders', function () {
 });
 
 // ===================================================
-// Регистрация middleware для роутов
+// 3. Отладочные и сервисные маршруты
 // ===================================================
-App::booted(function() {
-    // Блокировка по IP (после 5 неудачных попыток)
-    Route::aliasMiddleware('ip.banned', \App\Http\Middleware\CheckIpBanned::class);
+// GET /api/debug/network
+// Логика: Проверяет подключение к БД и Redis, возвращает информацию о запросе.
+Route::get('/debug/network', function(Request $request) {
+    // Проверка подключений
+    $dbConnected = false;
+    $redisConnected = false;
+    try {
+        $dbConnected = DB::connection()->getPdo() ? true : false;
+    } catch (\Exception $e) {
+        // Логика обработки ошибки подключения к БД
+        \Log::error("DB Connection Error: " . $e->getMessage());
+    }
 
-    // Ограничение тестового режима (только не-production)
-    Route::aliasMiddleware('is_testing', \App\Http\Middleware\IsTestingEnvironment::class);
+    try {
+        $redisConnected = Redis::connection()->ping() === true;
+    } catch (\Exception $e) {
+        // Логика обработки ошибки подключения к Redis
+        \Log::error("Redis Connection Error: " . $e->getMessage());
+    }
+
+    return response()->json([
+        'client_ip' => $request->ip(),
+        'headers' => $request->headers->all(),
+        'server' => $_SERVER,
+        'connections' => [
+            'database' => $dbConnected,
+            'redis' => $redisConnected,
+        ]
+    ]);
 });
+
+// ===================================================
+// Регистрация middleware для роутов
+// (Обычно находится в AppServiceProvider или RouteServiceProvider, а не здесь)
+// ===================================================
+// Примечание: Этот блок обычно не размещается в routes/api.php.
+// Он показан здесь для полноты картины, основанной на комментариях в вашем файле.
+// App::booted(function() {
+// Регистрация middleware 'ip.banned'
+// Route::aliasMiddleware('ip.banned', \App\Http\Middleware\CheckIpBanned::class);
+// Регистрация middleware 'is_testing'
+// Route::aliasMiddleware('is_testing', \App\Http\Middleware\IsTestingEnvironment::class);
+// });

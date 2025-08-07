@@ -4,7 +4,7 @@ import { setupUserPresenceChannel } from '@/modules/TalkStream/Subscriptions/use
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
-import { userStore } from '@/store/user'
+import { userStore } from '@/store/userStore'
 import { isLogged } from '@/utils/auth'
 
 // Расширенная система логирования с уровнями и цветами

@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-default-container">
+  <div class="dashboard-editor-container">
     <div class="clearfix">
       <pan-thumb :image="avatar" style="float: left">
         Your roles:
@@ -8,7 +8,7 @@
       <github-corner style="position: absolute; top: 0px; border: 0; right: 0" />
       <div class="info-container">
         <span class="display_name">{{ name }}</span>
-        <span style="font-size: 20px; padding-top: 20px; display: inline-block">Default's Dashboard</span>
+        <span style="font-size: 20px; padding-top: 20px; display: inline-block">Editor's Dashboard</span>
       </div>
     </div>
     <div class="emptyGif">
@@ -22,7 +22,7 @@
 import PanThumb from '@/views/dashboard/PanThumb'
 import GithubCorner from '@/views/dashboard/GithubCorner'
 import { toRefs, reactive, computed } from 'vue'
-import { userStore } from '@/store/user'
+import { userStore } from '@/store/userStore'
 const resData = reactive({
   yierGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/yier.gif',
   bubuGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/bubu.gif'
@@ -49,7 +49,7 @@ let { yierGif, bubuGif } = toRefs(resData)
   max-height: 400px;
 }
 
-.dashboard-default-container {
+.dashboard-editor-container {
   background-color: #e3e3e3;
   min-height: 100vh;
   padding: 50px 60px 0;

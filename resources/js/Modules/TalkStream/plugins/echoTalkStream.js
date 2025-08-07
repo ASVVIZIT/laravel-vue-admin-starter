@@ -3,7 +3,7 @@ import Pusher from 'pusher-js'
 import axios from 'axios'
 import logger from '@/modules/TalkStream/utils/logger'
 import { getToken } from '@utils/auth.js'
-import { userStore } from '@/store/user'
+import { userStore } from '@/store/userStore'
 window.Pusher = Pusher
 
 let echoInstance = null

@@ -1,4 +1,4 @@
-// api/user.js
+// resources/js/api/user.js
 import request from '@/utils/request';
 import Resource from '@/api/resource';
 

@@ -1,32 +1,35 @@
 import '@/bootstrap';
+import Cookies from 'js-cookie';
 import { ElMessage } from 'element-plus';
-import { isLogged, getToken, setToken, getCsrfToken } from '@/utils/auth';
+import { isLogged, getToken, setToken, getLoginType } from '@/utils/auth';
 
 const service = window.axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     timeout: 30000,
-    withCredentials: true, // Важно для передачи кук
+    withCredentials: true,
 });
 
-// Объединенный интерцептор запросов
 service.interceptors.request.use(
     config => {
         const token = getToken();
-        const csrfToken = getCsrfToken();
+        const loginType = getLoginType();
+        const csrfToken = Cookies.get('XSRF-TOKEN');
 
-        // Для всех запросов, кроме CSRF, добавляем токен авторизации
-        if (!config.url.includes('sanctum/csrf-cookie')) {
-            if (token && isLogged()) {
-                config.headers['Authorization'] = `Bearer ${token}`;
-            }
+        console.log(`[Request] ${config.method.toUpperCase()} ${config.url} [${loginType}]`);
+
+        if (token && isLogged()) {
+            config.headers['Authorization'] = `Bearer ${token}`;
         }
 
-        // Всегда добавляем CSRF-токен, если он есть
         if (csrfToken) {
             config.headers['X-XSRF-TOKEN'] = csrfToken;
         }
 
-        console.debug('[AXIOS] Request to:', config.method?.toUpperCase(), config.url);
+        if (loginType === 'admin' && !config.url.startsWith('/admin')) {
+            config.url = `/admin${config.url}`;
+            console.log(`[Request] Rewriting URL to: ${config.url}`);
+        }
+
         return config;
     },
     error => {
@@ -35,68 +38,37 @@ service.interceptors.request.use(
     }
 );
 
-// Интерцептор ответов
 service.interceptors.response.use(
     response => {
-        // Обновление токена, если он пришел в заголовках
         const newToken = response.headers['authorization'] || response.headers['Authorization'];
 
-        if (newToken) {
-            setToken(newToken); // Сохраняем новый токен
-            response.data.token = newToken; // Для возможного использования
+/*        if (newToken) {
+            const tokenValue = newToken.startsWith('Bearer ') ? newToken.slice(7) : newToken;
+            setToken(tokenValue);
+            response.data = { ...response.data, token: tokenValue };
+        }*/
+
+        const authToken = response.data?.token || response.headers['authorization'];
+        if (authToken) {
+            const tokenValue = authToken.replace('Bearer ', '');
+            setToken(tokenValue);
         }
 
         return response.data;
     },
     error => {
-        if (!error.response) {
-            ElMessage.error({
-                message: 'Сетевая ошибка: ' + error.message,
-                duration: 5000,
-            });
-            return Promise.reject(error);
+        if (error.response?.status === 401) {
+            const loginType = getLoginType();
+            window.location.href = loginType === 'admin' ? '/admin/login' : '/login';
         }
 
-        const response = error.response;
-        const status = response.status;
-        let message = 'Произошла ошибка';
-        let details = '';
+        const message = error.response?.data?.message ||
+            error.response?.data?.error ||
+            error.message ||
+            'Network error';
 
-        // Обработка 401 ошибки (неавторизован)
-        if (status === 401) {
-            message = 'Требуется авторизация';
-            // Перенаправление на страницу входа
-            window.location.href = '#/login';
-            return Promise.reject(error);
-        }
-
-        // Стандартная обработка ошибок
-        if (response.data) {
-            message = response.data.error || response.data.message || message;
-            details = response.data.details || '';
-        }
-
-        // Ошибки валидации
-        if (status === 422 && response.data.errors) {
-            message = 'Ошибка валидации';
-            details = Object.values(response.data.errors)
-                .flat()
-                .join('; ');
-        }
-
-        const fullMessage = details ? `${message}: ${details}` : message;
-
-        ElMessage.error({
-            message: fullMessage,
-            duration: 5000,
-        });
-
-        return Promise.reject({
-            status,
-            message,
-            details,
-            response
-        });
+        ElMessage.error(message);
+        return Promise.reject(error);
     }
 );
 

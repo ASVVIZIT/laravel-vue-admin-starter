@@ -1,4 +1,4 @@
-import { isLogged, getToken, setToken, getCsrfToken } from '@/utils/auth';
+import {isLogged, getToken, setToken, getCsrfToken} from '@/utils/auth';
 import axios from 'axios';
 import videoMessage from '@/modules/Video/utils/videoMessage/videoMessage.js';
 

@@ -147,7 +147,7 @@ import { useRouter } from 'vue-router';
 import { debounce } from 'lodash-es';
 import { Search, Plus, Edit, Delete } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import { appStore } from "@/store/app";
+import { appStore } from '@/store/appStore'
 import { useAccessoryStore } from '@store/ElectricalProtection/accessoryStore.js';
 
 const { t } = useI18n();

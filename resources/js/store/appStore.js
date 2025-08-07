@@ -1,6 +1,6 @@
 import Cookies from 'js-cookie'
 import {getLanguage} from '@/lang'
-import {defineStore} from "pinia"
+import {defineStore} from 'pinia'
 import defaultSettings from '@/settings'
 
 export const appStore = defineStore('app', {

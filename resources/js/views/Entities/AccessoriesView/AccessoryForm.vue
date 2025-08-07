@@ -612,7 +612,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { ArrowLeft, Setting, Grid } from '@element-plus/icons-vue';
-import { appStore } from "@/store/app";
+import { appStore } from '@/store/appStore'
 import { useAccessoryStore } from '@store/ElectricalProtection/accessoryStore.js';
 import { useBrandStore } from '@store/ElectricalProtection/brandStore.js';
 import { useDeviceTypeStore } from '@store/ElectricalProtection/deviceTypeStore.js';

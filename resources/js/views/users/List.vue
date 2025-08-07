@@ -280,8 +280,8 @@ import Resource from '@/api/resource'
 import checkPermission from '@/utils/permission'
 import { uppercaseFirst } from "@/utils"
 import createValidators from '@/utils/validators'
-import { appStore } from '@/store/app'
-import { userStore } from "@/store/user"
+import { appStore } from '@/store/appStore'
+import { userStore } from "@/store/userStore"
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import { debounce } from 'lodash-es'

@@ -28,7 +28,7 @@
 import { driver } from 'driver.js'
 import 'driver.js/dist/driver.css'
 import { useRouter } from 'vue-router'
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 const store = appStore()
 import { ElNotification } from 'element-plus'
 import elementSteps from './steps/elements'

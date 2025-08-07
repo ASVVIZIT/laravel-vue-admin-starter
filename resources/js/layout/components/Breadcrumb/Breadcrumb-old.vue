@@ -26,7 +26,7 @@ const levelList = ref(null)
 
 //Whether close the animation fo breadcrumb
 
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 import i18n from "@/utils/i18n"
 const { generateTitle } = i18n()
 const useAppStore = appStore()

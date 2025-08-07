@@ -23,7 +23,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { userStore } from '@/store/user'
+import { userStore } from '@/store/userStore'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItemWrapper from '@/modules/TalkStream/Components/ContactItemWrapper.vue'

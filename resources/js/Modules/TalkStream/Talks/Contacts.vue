@@ -39,7 +39,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem'
-import { userStore } from '@/store/user'
+import { userStore } from '@/store/userStore'
 import { setupUserOnlinePresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
 import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
 

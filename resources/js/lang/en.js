@@ -39,16 +39,20 @@ export default {
     "home": "Home"
   },
   "login": {
-    "title": "Log in to Your Account",
+    "title": "Log in to your personal account",
+    "adminTitle": "Administrator Login",
+    "testerTitle": "Test Login",
+    "email": "Email",
     "logIn": "Log In",
+    "loginAsTester": "Log in as Tester",
+    "selectRole": "Select Role",
     "username": "Username",
     "password": "Password",
     "any": "any",
     "thirdparty": "Or connect with",
-    "thirdpartyTips": "Cannot be simulated locally. Please implement your own business logic!",
-    "email": "Email",
-    "loginSuccess": "Login Successful",
-    "loginFailed": "Couldn't log in",
+    "thirdpartyTips": "Cannot be simulated locally, so please integrate your own business simulation!!!",
+    "loginSuccess": "Login successful",
+    "loginFailed": "Login failed"
   },
   "validation": {
     "general": {
@@ -392,14 +396,17 @@ export default {
     }
   },
   "roles": {
+    "admin": "Administrator",
+    "user": "User",
+    "moderator": "Moderator",
     "name": "Role",
     "description": {
-      "superadmin": "Super Administrator: Full access to all pages and features.",
-      "admin": "Administrator: Full access to all pages.",
-      "manager": "Manager: Access to most pages except permissions.",
-      "editor": "Editor: Access to articles and related resources.",
-      "user": "User: Limited access to specific pages.",
-      "visitor": "Visitor: Access to static pages only."
+      "superadmin": "Super Administrator. Has access and full permission to all pages, and more.",
+      "admin": "Administrator. Has access and full permission to all pages.",
+      "manager": "Manager. Has access and permissions to most pages, except the permissions page.",
+      "editor": "Editor. Has access to most pages, full permission to access articles and related resources.",
+      "user": "Normal user. Has access to some pages.",
+      "visitor": "Visitor. Has access to static pages, no write permissions."
     }
   },
   "switchLang": {

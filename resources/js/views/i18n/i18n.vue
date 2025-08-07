@@ -75,7 +75,7 @@
 
 <script>
 import local from './local';
-import { appStore } from "@/store/app";
+import { appStore } from '@/store/appStore'
 
 // Инициализация хранилищ
 const store = appStore();

@@ -92,24 +92,25 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
-import CustomTable from '@/components/CustomTable.vue'
-import SvgItem from "@/components/Item/SvgItem.vue"
+import { ref, reactive, computed, onMounted, nextTick } from 'vue';
+import CustomTable from '@/components/CustomTable.vue';
+import SvgItem from '@/components/Item/SvgItem.vue';
 import Resource from '@/api/resource'
-import RoleResource from '@/api/role'
-import {useI18n} from "vue-i18n"
-import {uppercaseFirst} from "@/utils"
-import {userStore} from "@/store/user"
-import {ElMessage} from "element-plus"
+import RoleResource from '@/api/role';
+import {useI18n} from 'vue-i18n';
+import {uppercaseFirst} from '@/utils';
+import {userStore} from '@/store/userStore';
+import {ElMessage} from 'element-plus';
 
-const { t } = useI18n({ useScope: 'global' })
-const roleResource = new RoleResource()
-const useUserStore = userStore()
+const { t } = useI18n({ useScope: 'global' });
+const roleResource = new RoleResource();
+const permissionResource = new Resource('permissions')
+const useUserStore = userStore();
 
 // Реактивные переменные
-const tableData = ref([])
-const loading = ref(true)
-const pageSizes = ref([5, 10, 30, 50, 100, 150, 200])
+const tableData = ref([]);
+const loading = ref(true);
+const pageSizes = ref([5, 10, 30, 50, 100, 150, 200]);
 const filters = reactive({
   role: null,
   search: null
@@ -188,8 +189,8 @@ const getRoles = async () => {
   try {
     const params = {
       ...filters,
-      page: pagination.meta.current_page,
-      per_page: pagination.meta.per_page
+      page: pagination.current_page || 1,
+      per_page: pagination.per_page || 10
     }
 
     const response = await roleResource.list(params)
@@ -200,7 +201,9 @@ const getRoles = async () => {
     })
 
     tableData.value = response.data
-    pagination.meta = response.meta
+    pagination.total = res.meta.total
+    pagination.currentPage = res.meta.current_page
+    pagination.pageSize = res.meta.per_page
   } finally {
     loading.value = false
   }
@@ -216,7 +219,7 @@ const tableActions = (action, data) => {
 // Загрузка разрешений
 const getPermissions = async () => {
   try {
-    const {data} = await permissionResource.permissions({})
+    const {data} = await permissionResource.list({})
     const {menu, other} = classifyPermissions(data)
     menuPermissions.value = menu
     otherPermissions.value = other

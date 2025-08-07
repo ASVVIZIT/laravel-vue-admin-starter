@@ -1,32 +1,23 @@
 <template>
-  <div class="dashboard-editor-container">
+  <div class="dashboard-default-container">
     <div class="clearfix">
       <pan-thumb :image="avatar" style="float: left">
         Your roles:
         <span v-for="item in roles" :key="item" class="pan-info-roles">{{ item }}</span>
       </pan-thumb>
-      <github-corner style="position: absolute; top: 0px; border: 0; right: 0" />
       <div class="info-container">
         <span class="display_name">{{ name }}</span>
-        <span style="font-size: 20px; padding-top: 20px; display: inline-block">Editor's Dashboard</span>
+        <span style="font-size: 20px; padding-top: 20px; display: inline-block">Tester's Dashboard</span>
       </div>
     </div>
-    <div class="emptyGif">
-      <img :src="yierGif" style="width: 50%;float: left;transform: rotateY(180deg);" />
-      <img :src="bubuGif" style="width: 50%; float: right" />
-    </div>
+
   </div>
 </template>
 
 <script setup>
 import PanThumb from '@/views/dashboard/PanThumb'
-import GithubCorner from '@/views/dashboard/GithubCorner'
-import { toRefs, reactive, computed } from 'vue'
-import { userStore } from '@/store/user'
-const resData = reactive({
-  yierGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/yier.gif',
-  bubuGif: 'https://cdn.laravel-vue-admin.eu.org/static/images/blog/bubu.gif'
-})
+import { computed } from 'vue'
+import { userStore } from '@/store/userStore'
 
 const useUserStore = userStore()
 const name = computed(() => {
@@ -38,7 +29,6 @@ const avatar = computed(() => {
 const roles = computed(() => {
   return useUserStore.roles
 })
-let { yierGif, bubuGif } = toRefs(resData)
 </script>
 
 <style lang="scss">
@@ -49,7 +39,7 @@ let { yierGif, bubuGif } = toRefs(resData)
   max-height: 400px;
 }
 
-.dashboard-editor-container {
+.dashboard-default-container {
   background-color: #e3e3e3;
   min-height: 100vh;
   padding: 50px 60px 0;

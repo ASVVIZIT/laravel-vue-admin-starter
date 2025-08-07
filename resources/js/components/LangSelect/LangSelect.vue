@@ -20,7 +20,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { appStore } from '@/store/app';
+import { appStore } from '@/store/appStore';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 

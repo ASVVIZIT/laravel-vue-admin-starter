@@ -31,7 +31,7 @@
 <script>
 import PanThumb from '@/components/PanThumb/PanThumb.vue'
 import {computed, reactive, toRefs} from "vue"
-import {userStore} from "@/store/user"
+import {userStore} from "@/store/userStore"
 
 export default {
   components: {PanThumb},

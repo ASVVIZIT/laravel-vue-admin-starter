@@ -1,40 +1,64 @@
 import request from '@/utils/request';
+import Cookies from 'js-cookie';
 
-export function login(data) {
+export const login = (data, loginType = 'user') => {
+  const url = loginType === 'admin' ? '/admin/auth/login' : '/auth/login';
   return request({
-    url: '/auth/login',
+    url,
     method: 'post',
-    data: data,
+    data,
   });
-}
+};
 
-export function getInfo(token) {
+export const testerLogin = (role) => {
   return request({
-    url: '/user',
-    method: 'get',
+    url: `/tester/login/${role}`,
+    method: 'post',
   });
-}
+};
 
-export function logout() {
+export const logout = () => {
   return request({
     url: '/auth/logout',
     method: 'post',
   });
-}
+};
 
-export function csrf() {
-  return new Promise((resolve, reject) => {
+export const getInfo = () => {
+  return request({
+    url: '/user',
+    method: 'get',
+  });
+};
+
+export const csrf = () => {
+  return new Promise((resolve) => {
+    // Проверяем, есть ли уже токен
+    const existingToken = Cookies.get('XSRF-TOKEN');
+    if (existingToken) {
+      resolve(existingToken);
+      return;
+    }
+
+    // Если токена нет - запрашиваем
     request({
       url: '/sanctum/csrf-cookie',
       method: 'get',
     })
         .then(() => {
-          console.log('CSRF cookies установлены:', document.cookie)
-          resolve()
+          // Проверяем установился ли токен
+          const token = Cookies.get('XSRF-TOKEN');
+          if (token) {
+            resolve(token);
+          } else {
+            // Если не установился - ждем 100мс и проверяем снова
+            setTimeout(() => {
+              resolve(Cookies.get('XSRF-TOKEN') || '');
+            }, 100);
+          }
         })
-        .catch(error => {
-          console.error('Ошибка получения CSRF:', error)
-          reject(error)
-        })
-  })
-}
+        .catch(() => {
+          resolve(''); // Все равно разрешаем промис
+        });
+  });
+};

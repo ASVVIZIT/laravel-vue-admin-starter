@@ -39,16 +39,20 @@ export default {
     "home": "首页"
   },
   "login": {
-    "title": "系统登录",
+    "title": "登录您的个人账户",
+    "adminTitle": "管理员登录",
+    "testerTitle": "测试登录",
+    "email": "邮箱",
     "logIn": "登录",
+    "loginAsTester": "以测试员身份登录",
+    "selectRole": "选择角色",
     "username": "用户名",
     "password": "密码",
     "any": "任意",
-    "thirdparty": "第三方登录",
-    "thirdpartyTips": "本地无法模拟，请根据业务需求实现！",
-    "email": "邮箱",
+    "thirdparty": "或通过以下方式登录",
+    "thirdpartyTips": "本地无法模拟，请结合您自己的业务进行模拟！！！",
     "loginSuccess": "登录成功",
-    "loginFailed": "无法登录",
+    "loginFailed": "登录失败"
   },
   "validation": {
     "general": {
@@ -392,14 +396,17 @@ export default {
     }
   },
   "roles": {
+    "admin": "管理员",
+    "user": "用户",
+    "moderator": "版主",
     "name": "角色",
     "description": {
-      "superadmin": "超级管理员：拥有所有页面和功能的完全访问权限。",
-      "admin": "管理员：拥有所有页面的完全访问权限。",
-      "manager": "经理：除权限页面外的大部分页面访问权限。",
-      "editor": "编辑：可访问文章和相关资源。",
-      "user": "用户：仅限访问特定页面。",
-      "visitor": "访客：仅限访问静态页面。"
+      "superadmin": "超级管理员。拥有对所有页面的访问权和完全权限，等等。",
+      "admin": "管理员。拥有对所有页面的访问权和完全权限。",
+      "manager": "经理。拥有对大多数页面的访问权和权限（权限页面除外）。",
+      "editor": "编辑。可访问大多数页面，拥有对文章及相关资源的完全访问权限。",
+      "user": "普通用户。可访问部分页面。",
+      "visitor": "访客。可访问静态页面，无任何写入权限。"
     }
   },
   "switchLang": {

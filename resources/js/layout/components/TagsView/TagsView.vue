@@ -57,8 +57,8 @@ import { Close, Lock, Unlock } from '@element-plus/icons-vue'
 import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { getCurrentInstance, watch, ref, reactive, onMounted, nextTick, computed } from 'vue'
-import { permissionStore } from '@/store/permission'
-import { tagsViewStore } from '@/store/tags-view'
+import { permissionStore } from '@/store/permissionStore'
+import { tagsViewStore } from '@/store/tagsViewStore'
 import i18n from "@/utils/i18n"
 
 const { t } = useI18n({ useScope: 'global' })

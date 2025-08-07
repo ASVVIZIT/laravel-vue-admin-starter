@@ -21,7 +21,7 @@
 <script setup>
 import {fetchList} from '@/api/order'
 import {toRefs, reactive, onBeforeMount} from 'vue'
-import { appStore } from "@/store/app";
+import { appStore } from '@/store/appStore'
 
 // Инициализация хранилищ
 const store = appStore();

@@ -40,7 +40,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { Unlock, Lock } from '@element-plus/icons-vue'
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 
 const props = defineProps({
   isActive: Boolean

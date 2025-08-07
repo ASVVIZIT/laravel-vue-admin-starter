@@ -73,7 +73,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { compile } from 'path-to-regexp'
 import { ArrowRight, MoreFilled } from '@element-plus/icons-vue'
 import { useResizeObserver } from '@vueuse/core'
-import { appStore } from '@/store/app'
+import { appStore } from '@/store/appStore'
 import i18n from "@/utils/i18n"
 
 const DEBUG = true

@@ -60,57 +60,76 @@ class AuthController extends BaseController
      */
     public function login(Request $request)
     {
+        // Получаем IP клиента
+        $ipAddress = $request->ip();
 
-        // Временная отладка
-        Log::debug('CSRF Token: ' . csrf_token());
-        Log::debug('Session ID: ' . session()->getId());
-        Log::debug('Cookies: ' . json_encode($request->cookies->all()));
+        // Проверяем, заблокирован ли IP
+        $banRecord = LoginAttempt::where('ip_address', $ipAddress)
+            ->where('is_banned', true)
+            ->first();
 
-        logger('Login attempt', [
-            'email' => $request->email,
-            'headers' => $request->headers->all(),
-            'cookies' => $request->cookies->all(),
-            'session_id' => session()->getId(),
-        ]);
-
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email',
-            'password' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => 'Неверные данные'], 422);
-        }
-
-        // Проверка IP-блокировки
-        $ip = $request->ip();
-        $attempt = LoginAttempt::firstOrCreate(['ip_address' => $ip]);
-
-        if ($attempt->banned) {
+        if ($banRecord) {
             return response()->json(['error' => 'Ваш IP заблокирован'], 403);
         }
 
+        // Валидация входных данных
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required|string|min:6'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        // Попытка аутентификации
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
+            // Аутентификация успешна
             $user = Auth::user();
 
-            // Проверка верификации email
-            if (!$user->hasVerifiedEmail()) {
-                return response()->json(['error' => 'Email не подтвержден'], 403);
-            }
+            // Очищаем неудачные попытки для этого IP при успешном входе
+            // Сброс счетчика попыток
+            LoginAttempt::recordAttempt(
+                $ipAddress,
+                $request->email,
+                $request->userAgent(),
+                true
+            );
 
-            $token = $user->createToken('fenix_token')->plainTextToken;
+            // Генерация токена Sanctum
+            $token = $user->createToken('fenix-token')->plainTextToken;
 
             return response()->json([
-                'user' => $user,
+                'message' => 'Успешный вход',
                 'token' => $token,
                 'token_type' => 'Bearer',
+                'user' => $user,
             ]);
-        }
+        } else {
+            // Аутентификация не удалась
+            // Логируем неудачную попытку
+            $attempt = LoginAttempt::recordAttempt(
+                $ipAddress,
+                $request->email,
+                $request->userAgent(),
+                false
+            );
 
-        LoginAttempt::recordAttempt($ip, false);
-        return response()->json(['message' => 'Неверные учетные данные'], 401);
+            // Проверяем количество неудачных попыток за последние 15 минут
+            $failedAttemptsCount = LoginAttempt::where('ip_address', $ipAddress)
+                ->where('created_at', '>', now()->subMinutes(15))
+                ->count();
+
+            // Если 5 или более попыток, блокируем IP
+            if ($failedAttemptsCount >= 5) {
+                LoginAttempt::where('ip_address', $ipAddress)->update(['is_banned' => true]);
+                return response()->json(['error' => 'Ваш IP заблокирован из-за множества неудачных попыток входа'], 403);
+            }
+
+            return response()->json(['error' => 'Неверные учетные данные'], 401);
+        }
     }
 
     /**
@@ -119,13 +138,20 @@ class AuthController extends BaseController
      */
     public function logout(Request $request): JsonResponse
     {
+        // Удаляем все токены пользователя
         $request->user()->tokens()->delete();
+        $request->user()->currentAccessToken()->delete();
+        // Очищаем сессию
         Auth::guard('web')->logout();
-        return responseSuccess();
+
+        return response()->json(['message' => 'Успешный выход']);
     }
 
     public function user(Request $request): UserResource
     {
+        // Возвращаем данные аутентифицированного пользователя
+        // return response()->json($request->user());
+
         return new UserResource($request->user());
     }
 
