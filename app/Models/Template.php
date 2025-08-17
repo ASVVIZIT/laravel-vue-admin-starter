@@ -1,11 +1,10 @@
 <?php
-
+// app/Models/Template.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\ColumnTemplate as ColumnTemplate;
 
 class Template extends Model
 {
@@ -13,12 +12,13 @@ class Template extends Model
 
     protected $fillable = ['name'];
 
-    public function columns()
+    public function columns(): HasMany
     {
-        return $this->hasMany(ColumnTemplate::class);
+        return $this->hasMany(ColumnTemplate::class)
+            ->orderBy('order');
     }
 
-    public function rows()
+    public function rows(): HasMany
     {
         return $this->hasMany(TableRow::class);
     }

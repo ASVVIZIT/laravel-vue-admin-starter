@@ -1,5 +1,5 @@
 <?php
-
+// app/Models/TableRow.php
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,11 +14,13 @@ class TableRow extends Model
         'template_id',
         'parent_id',
         'data',
-        'order'
+        'order',
+        'is_expanded'
     ];
 
     protected $casts = [
-        'data' => 'array'
+        'data' => 'array',
+        'is_expanded' => 'boolean'
     ];
 
     public function template()
@@ -28,12 +30,12 @@ class TableRow extends Model
 
     public function parent()
     {
-        return $this->belongsTo(self::class);
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     public function children()
     {
-        return $this->hasMany(self::class, 'parent_id');
+        return $this->hasMany(self::class, 'parent_id')->orderBy('order');
     }
 
 }

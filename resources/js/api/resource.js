@@ -1,4 +1,4 @@
-// api/resource.js
+// resources/js/api/resource.js
 import request from '@/utils/request';
 class Resource {
   constructor(uri) {
@@ -39,6 +39,10 @@ class Resource {
       url: '/' + this.uri + '/' + id,
       method: 'delete',
     });
+  }
+
+  children(parentId, query) {
+    return this.list(query, `${parentId}/children`);
   }
 }
 

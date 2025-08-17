@@ -13,6 +13,7 @@ import nestedRoutes from './modules/nested';
 import errorRoutes from './modules/error';
 import entityRoutes from './modules/entity';
 import servicesRoutes from './modules/services.js';
+import dynamicTableRoutes from './modules/dynamicTable.js';
 
 // Функции для работы с куками
 function getCookie(name) {
@@ -93,47 +94,6 @@ export const constantRoutes = [
     hidden: true,
   },
   {
-    path: '/admin/dashboard',
-    name: 'AdminDashboard',
-    component: Layout,
-    redirect: '/admin/dashboard',
-    children: [
-      {
-        path: '',
-        component: () => import('@/views/dashboard/admin/Dashboard.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Dashboard',
-          bootstrapIcon: 'house-fill',
-          showInGuide: true,
-          affix: true,
-          noCache: false,
-          role: 'admin'
-        }
-      }
-    ]
-  },
-  {
-    path: '/tester/dashboard',
-    name: 'TesterDashboard',
-    component: Layout,
-    redirect: '/tester/dashboard',
-    children: [
-      {
-        path: '',
-        component: () => import('@/views/dashboard/tester/Dashboard.vue'),
-        meta: {
-          requiresAuth: true,
-          title: 'Dashboard',
-          bootstrapIcon: 'house-fill',
-          showInGuide: true,
-          affix: true,
-          noCache: false
-        }
-      }
-    ]
-  },
-  {
     path: '/',
     component: Layout,
     redirect: '/dashboard',
@@ -151,20 +111,6 @@ export const constantRoutes = [
         }
       }
     ]
-  },
-  {
-    path: '/dynamic-table',
-    component: Layout,
-    redirect: '/dynamic-table/:templateId?',
-    children: [
-      {
-        path: '/dynamic-table/:templateId?',
-        name: 'DynamicTable',
-        component: () => import('@/views/DynamicTable/FenixTable.vue'), // Используем правильный путь к компоненту
-        meta: { title: 'DynamicTable', bootstrapIcon: 'table' },
-        props: true,
-      },
-    ],
   },
   {
     path: '/profile',
@@ -192,6 +138,7 @@ export const constantRoutes = [
       },
     ],
   },
+  ...dynamicTableRoutes,
 ];
 
 export const asyncRoutes = [
