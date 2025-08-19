@@ -1,16 +1,18 @@
 <?php
+// app/Http/Controllers/Api/ReferenceController.php
 
 namespace App\Http\Controllers\Api;
 
 use Illuminate\Http\Request;
-use App\Models\ReferenceType;
-use App\Models\ReferenceItem;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ReferenceController extends Controller
 {
     /**
      * Получение списка типов справочников
+     * (Этот метод остается как есть)
      */
     public function getTypes()
     {
@@ -19,6 +21,7 @@ class ReferenceController extends Controller
                 ['value' => 'accessory', 'label' => 'Аксессуары'],
                 ['value' => 'brand', 'label' => 'Бренды'],
                 ['value' => 'device_type', 'label' => 'Типы устройств']
+                // Добавьте другие типы справочников по мере необходимости
             ]
         ])->header('Access-Control-Allow-Origin', '*')
             ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
@@ -26,39 +29,99 @@ class ReferenceController extends Controller
     }
 
     /**
-     * Получение данных справочника по типу
+     * УНИВЕРСАЛЬНЫЙ метод для получения данных справочника по типу (модели)
+     *
+     * @param Request $request
+     * @param string $modelName - Название модели в snake_case (например, 'accessory', 'brand')
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function getData($type)
+    public function getData(Request $request, $modelName)
     {
-        // В реальном приложении здесь будет загрузка данных из базы
-        // Для примера возвращаем моковые данные
-        switch ($type) {
-            case 'accessory':
+        try {
+            // 1. Преобразуем snake_case в PascalCase для поиска класса модели
+            // Например, 'device_type' -> 'DeviceType'
+            $className = Str::studly($modelName);
+
+            // 2. Формируем полное имя класса модели
+            // Предполагаем, что все модели справочников находятся в одном namespace
+            // Например, App\Models\ElectricalProtection\
+            $modelNamespace = 'App\\Models\\ElectricalProtection\\';
+            $fullModelClass = $modelNamespace . $className;
+
+            // 3. Проверяем, существует ли класс модели
+            if (!class_exists($fullModelClass)) {
                 return response()->json([
-                    'data' => [
-                        ['id' => 1, 'brand' => ['name' => 'ABB'], 'model' => 'SH200', 'series' => 'S200', 'name' => 'ABB SH200'],
-                        ['id' => 2, 'brand' => ['name' => 'Legrand'], 'model' => 'DX 3', 'series' => 'DX3', 'name' => 'Legrand DX 3'],
-                        ['id' => 3, 'brand' => ['name' => 'IEK'], 'model' => 'VA47-29', 'series' => 'VA47', 'name' => 'IEK VA47-29']
-                    ]
-                ]);
-            case 'brand':
+                    'error' => "Модель '{$fullModelClass}' не найдена"
+                ], 404);
+            }
+
+            // 4. Создаем экземпляр запроса к модели
+            // Используем with() для eager loading отношений, если они определены в модели
+            // Например, в Accessory есть with(['brand', 'type', ...])
+            // Для простоты предположим, что у всех моделей есть метод scopeWithRelations()
+            // или мы можем определить отношения динамически
+
+            // Попробуем вызвать scopeWithRelations, если он существует
+            if (method_exists($fullModelClass, 'scopeWithRelations')) {
+                $query = $fullModelClass::withRelations();
+            } else {
+                // Или просто получаем все записи без отношений
+                $query = $fullModelClass::query();
+            }
+
+            // 5. Применяем фильтры из запроса
+            if ($request->filled('search')) {
+                $search = $request->search;
+                // Применяем универсальный поиск по полям модели
+                // Это может быть сложнее в реальном приложении,
+                // но для начала можно использовать whereHas или where для основных полей
+                $query->where(function($q) use ($search, $fullModelClass) {
+                    // Получаем fillable поля модели для поиска
+                    $modelInstance = new $fullModelClass;
+                    $fillableFields = $modelInstance->getFillable();
+
+                    // Добавляем поиск по каждому fillable полю
+                    foreach ($fillableFields as $field) {
+                        // Исключаем некоторые служебные поля
+                        if (!in_array($field, ['id', 'created_at', 'updated_at'])) {
+                            $q->orWhere($field, 'LIKE', "%{$search}%");
+                        }
+                    }
+
+                    // Добавляем поиск по отношениям, если они определены
+                    // Это требует дополнительной логики для определения отношений
+                    // Пока оставим как есть
+                });
+            }
+
+            // 6. Обрабатываем режим для выпадающих списков
+            if ($request->boolean('for_dropdown')) {
+                // Возвращаем все записи
                 return response()->json([
-                    'data' => [
-                        ['id' => 1, 'name' => 'ABB', 'country' => 'Швейцария'],
-                        ['id' => 2, 'name' => 'Legrand', 'country' => 'Франция'],
-                        ['id' => 3, 'name' => 'IEK', 'country' => 'Россия']
-                    ]
+                    'data' => $query->get()
                 ]);
-            case 'device_type':
-                return response()->json([
-                    'data' => [
-                        ['id' => 1, 'name' => 'Автоматический выключатель', 'code' => 'ACB'],
-                        ['id' => 2, 'name' => 'УЗО', 'code' => 'RCD'],
-                        ['id' => 3, 'name' => 'Дифавтомат', 'code' => 'RCBO']
-                    ]
-                ]);
-            default:
-                return response()->json(['data' => []]);
+            }
+
+            // 7. Стандартный режим с пагинацией
+            $perPage = $request->per_page ?? 10;
+            $items = $query->paginate($perPage);
+
+            return response()->json([
+                'data' => $items->items(),
+                'meta' => [
+                    'total' => $items->total(),
+                    'per_page' => $items->perPage(),
+                    'current_page' => $items->currentPage(),
+                    'last_page' => $items->lastPage()
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("ReferenceController getData error for model '{$modelName}': " . $e->getMessage());
+            return response()->json([
+                'error' => 'Ошибка при загрузке данных справочника',
+                'details' => $e->getMessage()
+            ], 500);
         }
     }
 }
