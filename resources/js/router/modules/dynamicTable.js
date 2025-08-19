@@ -1,4 +1,4 @@
-// resources/js/router/index.js
+// resources/js/router/modules/dynamicTable.js
 import Layout from "@/layout/Layout.vue";
 
 export default [
@@ -35,6 +35,7 @@ export default [
                     bootstrapIcon: 'table',
                     showInMenu: false
                 },
+                hidden: true,
                 props: true
             },
             {

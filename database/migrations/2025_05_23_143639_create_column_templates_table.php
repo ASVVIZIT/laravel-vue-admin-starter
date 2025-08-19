@@ -13,11 +13,19 @@ return new class extends Migration
     {
         Schema::create('column_templates', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('template_id')->constrained();
-            $table->string('type');
-            $table->string('label');
+            $table->foreignId('template_id')->constrained()->onDelete('cascade');
+            $table->string('type', 20);
+            $table->string('label', 255);
             $table->json('options')->nullable();
             $table->integer('order')->default(0);
+
+            // Добавляем специфичные поля для разных типов колонок
+            $table->string('data_type', 20)->nullable();
+            $table->string('unit', 20)->nullable();
+            $table->text('reference')->nullable();
+            $table->text('boolean_settings')->nullable();
+            $table->string('date_format', 20)->nullable();
+
             $table->timestamps();
         });
     }

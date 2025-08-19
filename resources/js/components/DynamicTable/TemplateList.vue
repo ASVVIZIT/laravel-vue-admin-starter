@@ -1,3 +1,4 @@
+<!-- resources/js/components/DynamicTable/TemplateList.vue -->
 <template>
   <div class="template-list">
     <div class="page-header">
@@ -31,7 +32,7 @@
         <el-table-column prop="name" label="Название" sortable>
           <template #default="{row}">
             <router-link
-                :to="{name: 'DynamicTable', params: {templateId: row.id}}"
+                :to="{name: 'DynamicTableWithTemplate', params: {templateId: row.id}}"
                 class="template-link"
             >
               {{ row.name }}
@@ -107,7 +108,7 @@ const filteredTemplates = computed(() => {
 const fetchTemplates = async () => {
   try {
     loading.value = true;
-    const response = await dataSource.fetchTemplates({
+    const response = await dataSource.list({
       page: pagination.value.current_page,
       per_page: pagination.value.per_page,
       search: searchQuery.value
@@ -147,7 +148,7 @@ const deleteTemplate = async (template) => {
         }
     );
 
-    await dataSource.deleteTemplate(template.id);
+    await dataSource.destroy(template.id);
     ElMessage.success(`Шаблон "${template.name}" успешно удален`);
     fetchTemplates();
   } catch (error) {

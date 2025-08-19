@@ -1,272 +1,55 @@
 // resources/js/components/DynamicTable/services/mockDataService.js
-
-import { MOCK_ACCESSORIES, MOCK_BRANDS, MOCK_DEVICE_TYPES } from './mockData';
-
 export class MockDataService {
     constructor() {
-        this.MAX_ROWS = 50;
-        this.mockDataStore = {
-            templates: [],
-            rows: [],
-            nextId: 1
-        };
-        this.referenceOptions = {
-            accessory: MOCK_ACCESSORIES,
-            brand: MOCK_BRANDS,
-            device_type: MOCK_DEVICE_TYPES
-        };
-
-        // Инициализируем моковые данные
-        this.initializeMockData();
+        // Инициализация данных
+        this.initData();
     }
 
-    /**
-     * Генерация моковых данных (на основе шаблона)
-     */
-    generateMockData(currentTemplate, levels = 2, itemsPerLevel = 5) {
-        if (!currentTemplate?.columns) return [];
-
-        const columns = currentTemplate.columns;
-        let idCounter = this.mockDataStore.nextId;
-        let totalItems = 0;
-        const maxTotalItems = this.MAX_ROWS;
-
-        const createLevel = (parentId = null, currentLevel = 0) => {
-            // Проверяем, не превысили ли мы максимальное количество строк
-            if (totalItems >= maxTotalItems) return [];
-
-            const levelItems = Math.min(itemsPerLevel, maxTotalItems - totalItems);
-            totalItems += levelItems;
-
-            return Array.from({ length: levelItems }, (_, i) => {
-                const rowId = idCounter++;
-                const row = {
-                    id: rowId,
-                    parent_id: parentId,
-                    data: {},
-                    children: [],
-                    has_children: currentLevel < levels - 1 && totalItems < maxTotalItems,
-                    order: i
-                };
-
-                // Генерация данных для каждой колонки
-                columns.forEach(column => {
-                    switch (column.type) {
-                        case 'text':
-                            row.data[column.label] = `Элемент ${rowId}`;
-                            break;
-                        case 'select': {
-                            // Получаем опции из шаблона
-                            const options = column.options || [];
-
-                            if (options.length === 0) {
-                                row.data[column.label] = `Вариант ${rowId}`;
-                            } else {
-                                // Выбираем случайное значение
-                                const randomIndex = Math.floor(Math.random() * options.length);
-                                row.data[column.label] = options[randomIndex];
-                            }
-                            break;
-                        }
-                        case 'reference': {
-                            // Для справочников сохраняем ID
-                            if (column.reference && column.reference.entityType) {
-                                const options = this.referenceOptions[column.reference.entityType] || [];
-                                if (options.length > 0) {
-                                    const randomIndex = Math.floor(Math.random() * options.length);
-                                    row.data[column.label] = options[randomIndex].id;
-                                } else {
-                                    row.data[column.label] = null;
-                                }
-                            } else {
-                                row.data[column.label] = null;
-                            }
-                            break;
-                        }
-                        case 'boolean':
-                            row.data[column.label] = Math.random() > 0.5;
-                            break;
-                        case 'number':
-                            row.data[column.label] = Math.floor(Math.random() * 1000) + 100;
-                            break;
-                        case 'date': {
-                            const today = new Date();
-                            today.setDate(today.getDate() - Math.floor(Math.random() * 365));
-                            row.data[column.label] = this.formatDate(today, column.dateFormat || 'YYYY-MM-DD');
-                            break;
-                        }
-                        default:
-                            row.data[column.label] = '';
-                    }
-                });
-
-                if (row.has_children && totalItems < maxTotalItems) {
-                    row.children = createLevel(rowId, currentLevel + 1);
-                }
-
-                return row;
-            });
-        };
-
-        const data = createLevel();
-
-        // Обновляем nextId для следующих генераций
-        this.mockDataStore.nextId = idCounter;
-
-        return data;
-    }
-
-    /**
-     * Создание новой строки в моковом хранилище
-     */
-    createRow(data) {
-        const rowId = this.mockDataStore.nextId++;
-
-        const newRow = {
-            id: rowId,
-            template_id: data.template_id,
-            parent_id: data.parent_id || null,
-            data: data.data || {},
-            order: data.order !== undefined ? data.order : (this.mockDataStore.rows.filter(r => r.parent_id === data.parent_id).length),
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-        };
-
-        this.mockDataStore.rows.push(newRow);
-        return newRow;
-    }
-
-    /**
-     * Обновление строки в моковом хранилище
-     */
-    updateRow(id, data) {
-        const index = this.mockDataStore.rows.findIndex(r => r.id === id);
-
-        if (index === -1) {
-            throw new Error('Строка не найдена');
-        }
-
-        const updatedRow = {
-            ...this.mockDataStore.rows[index],
-            ...data,
-            data: {
-                ...this.mockDataStore.rows[index].data,
-                ...data.data
-            },
-            updated_at: new Date().toISOString()
-        };
-
-        this.mockDataStore.rows[index] = updatedRow;
-        return updatedRow;
-    }
-
-    /**
-     * Удаление строки из мокового хранилища
-     */
-    deleteRow(id) {
-        const index = this.mockDataStore.rows.findIndex(r => r.id === id);
-
-        if (index === -1) {
-            throw new Error('Строка не найдена');
-        }
-
-        // Удаляем дочерние элементы рекурсивно
-        const removeChildren = (parentId) => {
-            const childIndices = this.mockDataStore.rows
-                .map((r, i) => ({ r, i }))
-                .filter(({ r }) => r.parent_id === parentId)
-                .map(({ i }) => i);
-
-            for (const childIndex of childIndices) {
-                removeChildren(this.mockDataStore.rows[childIndex].id);
-                this.mockDataStore.rows[childIndex] = null;
-            }
-        };
-
-        removeChildren(id);
-        this.mockDataStore.rows[index] = null;
-
-        // Очищаем null-значения
-        this.mockDataStore.rows = this.mockDataStore.rows.filter(r => r !== null);
-    }
-
-    /**
-     * Получение строк из мокового хранилища
-     */
-    getRows(params) {
-        let filteredRows = [...this.mockDataStore.rows];
-
-        // Фильтрация по шаблону
-        if (params.template_id) {
-            filteredRows = filteredRows.filter(r => r.template_id == params.template_id);
-        }
-
-        // Фильтрация по родителю
-        if (params.parent_id !== undefined) {
-            filteredRows = filteredRows.filter(r => r.parent_id == params.parent_id);
-        }
-
-        // Сортировка
-        filteredRows.sort((a, b) => a.order - b.order);
-
-        // Пагинация
-        const page = params.page || 1;
-        const perPage = params.per_page || 20;
-        const startIndex = (page - 1) * perPage;
-        const paginatedRows = filteredRows.slice(startIndex, startIndex + perPage);
-
-        return {
-            data: paginatedRows,
-            meta: {
-                current_page: page,
-                per_page: perPage,
-                total: filteredRows.length,
-                last_page: Math.ceil(filteredRows.length / perPage)
-            }
-        };
-    }
-
-    /**
-     * Инициализация моковых данных
-     */
-    initializeMockData() {
-        // Создаем несколько моковых шаблонов
-        const templates = [
+    initData() {
+        // Моковые шаблоны
+        this.templates = [
             {
                 id: 1,
-                name: 'Электроавтоматы',
+                name: 'Электрооборудование',
                 columns: [
                     {
                         id: 1,
+                        tempId: 1,
                         type: 'text',
                         label: 'Наименование',
-                        order: 0
+                        order: 0,
+                        dataType: 'string'
                     },
                     {
                         id: 2,
+                        tempId: 2,
+                        type: 'number',
+                        label: 'Количество',
+                        order: 1,
+                        unit: 'шт.'
+                    },
+                    {
+                        id: 3,
+                        tempId: 3,
                         type: 'reference',
                         label: 'Производитель',
-                        order: 1,
+                        order: 2,
                         reference: {
                             entityType: 'brand',
                             displayFormat: '{name} ({country})'
                         }
                     },
                     {
-                        id: 3,
-                        type: 'select',
-                        label: 'Тип',
-                        order: 2,
-                        options: ['Автомат', 'УЗО', 'Дифавтомат']
-                    },
-                    {
                         id: 4,
-                        type: 'number',
-                        label: 'Номинал, А',
-                        order: 3
+                        tempId: 4,
+                        type: 'date',
+                        label: 'Дата поставки',
+                        order: 3,
+                        dateFormat: 'DD.MM.YYYY'
                     },
                     {
                         id: 5,
+                        tempId: 5,
                         type: 'boolean',
                         label: 'В наличии',
                         order: 4,
@@ -275,324 +58,738 @@ export class MockDataService {
                             trueLabel: 'Да',
                             falseLabel: 'Нет'
                         }
-                    },
-                    {
-                        id: 6,
-                        type: 'date',
-                        label: 'Дата добавления',
-                        order: 5,
-                        dateFormat: 'DD.MM.YYYY'
                     }
                 ]
             },
             {
                 id: 2,
-                name: 'Световые приборы',
+                name: 'Аксессуары',
                 columns: [
                     {
-                        id: 1,
+                        id: 6,
+                        tempId: 6,
                         type: 'text',
                         label: 'Модель',
-                        order: 0
+                        order: 0,
+                        dataType: 'string'
                     },
                     {
-                        id: 2,
-                        type: 'reference',
-                        label: 'Производитель',
+                        id: 7,
+                        tempId: 7,
+                        type: 'number',
+                        label: 'Цена',
                         order: 1,
-                        reference: {
-                            entityType: 'brand',
-                            displayFormat: '{name}'
-                        }
+                        unit: 'руб.'
                     },
                     {
-                        id: 3,
+                        id: 8,
+                        tempId: 8,
                         type: 'select',
                         label: 'Тип',
                         order: 2,
-                        options: ['Светодиодная лампа', 'Люминесцентная лампа', 'Галогенная лампа']
-                    },
-                    {
-                        id: 4,
-                        type: 'number',
-                        label: 'Мощность, Вт',
-                        order: 3
-                    },
-                    {
-                        id: 5,
-                        type: 'boolean',
-                        label: 'Диммируемая',
-                        order: 4,
-                        booleanSettings: {
-                            displayType: 'checkbox'
-                        }
+                        options: ['Корпус', 'Крепление', 'Доп. оборудование']
                     }
                 ]
             }
         ];
 
-        this.mockDataStore.templates = templates;
-
-        // Генерируем данные для первого шаблона
-        const templateId = templates[0].id;
-        const mockData = this.generateMockData(templates[0], 2, 5);
-
-        // Добавляем данные в хранилище
-        mockData.forEach(row => {
-            this.mockDataStore.rows.push({
-                id: row.id,
-                template_id: templateId,
-                parent_id: row.parent_id,
-                data: row.data,
-                order: row.order,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            });
-        });
-    }
-
-    /**
-     * Форматирование моковых строк для отображения
-     */
-    formatRows(rows, template) {
-        return rows.map(row => {
-            const formattedRow = { ...row };
-
-            // Форматируем данные
-            formattedRow.data = {};
-            for (const [key, value] of Object.entries(row.data)) {
-                const column = template.columns.find(col => col.label === key);
-
-                if (column) {
-                    formattedRow.data[key] = this.formatValue(value, column);
-                } else {
-                    formattedRow.data[key] = value;
+        // Моковые строки таблиц
+        this.tableRows = {
+            1: [ // Для шаблона 1
+                {
+                    id: 1,
+                    template_id: 1,
+                    parent_id: null,
+                    data: {
+                        'Наименование': 'Автоматический выключатель',
+                        'Количество': 5,
+                        'Производитель': 1,
+                        'Дата поставки': '2023-10-15',
+                        'В наличии': true
+                    },
+                    order: 0,
+                    has_children: true,
+                    children: [
+                        {
+                            id: 4,
+                            template_id: 1,
+                            parent_id: 1,
+                            data: {
+                                'Наименование': 'ABB SH200',
+                                'Количество': 2,
+                                'Производитель': 1,
+                                'Дата поставки': '2023-10-15',
+                                'В наличии': true
+                            },
+                            order: 0,
+                            has_children: false
+                        },
+                        {
+                            id: 5,
+                            template_id: 1,
+                            parent_id: 1,
+                            data: {
+                                'Наименование': 'Legrand DX 3',
+                                'Количество': 3,
+                                'Производитель': 2,
+                                'Дата поставки': '2023-10-15',
+                                'В наличии': true
+                            },
+                            order: 1,
+                            has_children: false
+                        }
+                    ]
+                },
+                {
+                    id: 2,
+                    template_id: 1,
+                    parent_id: null,
+                    data: {
+                        'Наименование': 'УЗО',
+                        'Количество': 3,
+                        'Производитель': 2,
+                        'Дата поставки': '2023-10-20',
+                        'В наличии': true
+                    },
+                    order: 1,
+                    has_children: false
+                },
+                {
+                    id: 3,
+                    template_id: 1,
+                    parent_id: null,
+                    data: {
+                        'Наименование': 'Дифавтомат',
+                        'Количество': 7,
+                        'Производитель': 3,
+                        'Дата поставки': '2023-10-25',
+                        'В наличии': false
+                    },
+                    order: 2,
+                    has_children: false
                 }
-            }
-
-            // Добавляем информацию о шаблоне
-            formattedRow.template = {
-                id: template.id,
-                name: template.name
-            };
-
-            return formattedRow;
-        });
-    }
-
-    /**
-     * Форматирование значения для моковых данных
-     */
-    formatValue(value, column) {
-        if (value === null || value === undefined) {
-            return {
-                value: null,
-                display: '—'
-            };
-        }
-
-        switch (column.type) {
-            case 'boolean':
-                const settings = column.booleanSettings || {
-                    displayType: 'toggle',
-                    trueLabel: 'Да',
-                    falseLabel: 'Нет'
-                };
-
-                return {
-                    value: value,
-                    display: value ? settings.trueLabel : settings.falseLabel
-                };
-
-            case 'date':
-                return {
-                    value: value,
-                    display: this.formatDate(value, column.dateFormat || 'DD.MM.YYYY')
-                };
-
-            case 'reference':
-                if (column.reference && column.reference.entityType) {
-                    const options = this.referenceOptions[column.reference.entityType] || [];
-                    const item = options.find(opt => opt.id == value);
-
-                    if (item) {
-                        return {
-                            id: value,
-                            display: this.formatReferenceDisplay(item, column)
-                        };
-                    }
+            ],
+            2: [ // Для шаблона 2
+                {
+                    id: 6,
+                    template_id: 2,
+                    parent_id: null,
+                    data: {
+                        'Модель': 'Корпус IP44',
+                        'Цена': 150,
+                        'Тип': 'Корпус'
+                    },
+                    order: 0,
+                    has_children: false
+                },
+                {
+                    id: 7,
+                    template_id: 2,
+                    parent_id: null,
+                    data: {
+                        'Модель': 'Крепежный комплект',
+                        'Цена': 75,
+                        'Тип': 'Крепление'
+                    },
+                    order: 1,
+                    has_children: false
                 }
-
-                return {
-                    id: value,
-                    display: `Элемент #${value}`
-                };
-
-            case 'select':
-                return {
-                    value: value,
-                    display: value
-                };
-
-            default:
-                return {
-                    value: value,
-                    display: value
-                };
-        }
-    }
-
-    /**
-     * Форматирование отображаемого значения для справочника
-     */
-    formatReferenceDisplay(item, column) {
-        if (!column || !column.reference || !column.reference.displayFormat || !column.reference.entityType) {
-            return this.getExampleFormat(column.reference?.entityType || 'accessory');
-        }
-
-        let display = column.reference.displayFormat;
-        const keys = this.getAvailableKeys(column.reference.entityType);
-
-        keys.forEach(key => {
-            const regex = new RegExp(`{${key.key}}`, 'g');
-            let value = this.getNestedValue(item, key.key);
-
-            display = display.replace(regex, value || '');
-        });
-
-        display = display.replace(/\s+/g, ' ').trim();
-        display = display.replace(/\(\s*\)/g, '');
-        display = display.replace(/\s+\)/g, ')');
-        display = display.replace(/\(\s+/g, '(');
-
-        return display;
-    }
-
-    /**
-     * Получение доступных ключей для справочника
-     */
-    getAvailableKeys(entityType) {
-        const configs = {
-            accessory: [
-                { key: 'brand.name', label: 'Бренд' },
-                { key: 'model', label: 'Модель' },
-                { key: 'series', label: 'Серия' },
-                { key: 'name', label: 'Название' }
-            ],
-            brand: [
-                { key: 'name', label: 'Название' },
-                { key: 'country', label: 'Страна' },
-                { key: 'website', label: 'Веб-сайт' }
-            ],
-            device_type: [
-                { key: 'name', label: 'Название' },
-                { key: 'code', label: 'Код' }
             ]
         };
 
-        return configs[entityType] || [];
-    }
+        // Генератор ID
+        this.nextTemplateId = 3;
+        this.nextRowId = 8;
+        this.nextColumnId = 9;
 
-    /**
-     * Получение примера формата для справочника
-     */
-    getExampleFormat(entityType) {
-        const examples = {
-            accessory: '{brand.name} {model} ({series})',
-            brand: '{name} ({country})',
-            device_type: '{name} - {code}'
+        // Типы справочников
+        this.referenceTypes = [
+            { value: 'accessory', label: 'Аксессуары' },
+            { value: 'brand', label: 'Бренды' },
+            { value: 'device_type', label: 'Типы устройств' }
+        ];
+
+        // Данные справочников
+        this.referenceData = {
+            accessory: [
+                { id: 1, brand: { name: 'ABB' }, model: 'SH200', series: 'S200', name: 'ABB SH200' },
+                { id: 2, brand: { name: 'Legrand' }, model: 'DX 3', series: 'DX3', name: 'Legrand DX 3' },
+                { id: 3, brand: { name: 'IEK' }, model: 'VA47-29', series: 'VA47', name: 'IEK VA47-29' }
+            ],
+            brand: [
+                { id: 1, name: 'ABB', country: 'Швейцария', website: 'https://www.se.com' },
+                { id: 2, name: 'Legrand', country: 'Франция', website: 'https://www.legrand.com' },
+                { id: 3, name: 'IEK', country: 'Россия', website: 'https://www.iek.ru' }
+            ],
+            device_type: [
+                { id: 1, name: 'Автоматический выключатель', code: 'ACB' },
+                { id: 2, name: 'УЗО', code: 'RCD' },
+                { id: 3, name: 'Дифавтомат', code: 'RCBO' }
+            ]
         };
 
-        return examples[entityType] || '{name}';
+        // Генератор ID для справочников
+        this.nextReferenceId = {
+            accessory: 4,
+            brand: 4,
+            device_type: 4
+        };
     }
 
-    /**
-     * Получение вложенного значения по пути (brand.name)
-     */
-    getNestedValue(obj, path) {
-        return path.split('.').reduce((current, key) => {
-            return current && current[key] !== undefined ? current[key] : '';
-        }, obj);
-    }
+    // ===========================
+    // Методы для работы с шаблонами
+    // ===========================
 
     /**
-     * Форматирование даты
+     * Получение списка шаблонов с пагинацией и поиском
      */
-    formatDate(date, format) {
-        if (!date) return '';
+    async listTemplates(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                let filteredTemplates = [...this.templates];
 
-        // Если это строка, преобразуем в объект Date
-        const dateObj = typeof date === 'string' ? new Date(date) : date;
+                // Фильтрация по поиску
+                if (params.search) {
+                    const search = params.search.toLowerCase();
+                    filteredTemplates = filteredTemplates.filter(template =>
+                        template.name.toLowerCase().includes(search)
+                    );
+                }
 
-        // Проверяем валидность даты
-        if (isNaN(dateObj.getTime())) return date;
+                // Пагинация
+                const page = parseInt(params.page) || 1;
+                const perPage = parseInt(params.per_page) || 10;
+                const total = filteredTemplates.length;
+                const totalPages = Math.ceil(total / perPage);
+                const start = (page - 1) * perPage;
+                const end = start + perPage;
 
-        const year = dateObj.getFullYear();
-        const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-        const day = dateObj.getDate().toString().padStart(2, '0');
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const paginatedData = filteredTemplates.slice(start, end);
 
-        switch (format) {
-            case 'YYYY-MM-DD':
-                return `${year}-${month}-${day}`;
-            case 'DD.MM.YYYY':
-                return `${day}.${month}.${year}`;
-            case 'MM/DD/YYYY':
-                return `${month}/${day}/${year}`;
-            case 'DD MMM YYYY':
-                return `${day} ${monthNames[dateObj.getMonth()]} ${year}`;
-            case 'YYYY/MM/DD':
-                return `${year}/${month}/${day}`;
-            case 'DD-MM-YYYY':
-                return `${day}-${month}-${year}`;
-            default:
-                return `${year}-${month}-${day}`;
-        }
-    }
-
-    /**
-     * Обновление дерева строк (универсальная реализация)
-     */
-    updateTree(rows, targetId, updateFn) {
-        return rows.map(row => {
-            if (row.id === targetId) {
-                const updatedRow = updateFn(row);
-                // Гарантируем наличие children и has_children
-                return {
-                    ...updatedRow,
-                    children: updatedRow.children || [],
-                    has_children: updatedRow.has_children ?? updatedRow.children?.length > 0
-                };
-            }
-            return {
-                ...row,
-                children: row.children ? this.updateTree(row.children, targetId, updateFn) : []
-            };
+                resolve({
+                    data: paginatedData.map(template => ({
+                        id: template.id,
+                        name: template.name,
+                        columns_count: template.columns.length
+                    })),
+                    meta: {
+                        current_page: page,
+                        per_page: perPage,
+                        total: total,
+                        last_page: totalPages
+                    }
+                });
+            }, 300);
         });
     }
 
     /**
-     * Загрузка шаблона таблицы
+     * Получение шаблона по ID
      */
-    async fetchTemplate(templateId) {
-        const template = this.mockDataStore.templates.find(t => t.id == templateId);
-        if (!template) {
-            throw new Error('Шаблон не найден');
-        }
-        return template;
+    async getTemplate(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const template = this.templates.find(t => t.id === parseInt(id));
+
+                if (!template) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                // Форматируем колонки в соответствии с API
+                const formattedTemplate = {
+                    id: template.id,
+                    name: template.name,
+                    columns: template.columns.map(column => ({
+                        id: column.id,
+                        type: column.type,
+                        label: column.label,
+                        options: column.options || [],
+                        order: column.order,
+                        reference: column.reference ? {
+                            entityType: column.reference.entityType,
+                            displayFormat: column.reference.displayFormat
+                        } : null,
+                        booleanSettings: column.booleanSettings ? {
+                            displayType: column.booleanSettings.displayType,
+                            trueLabel: column.booleanSettings.trueLabel,
+                            falseLabel: column.booleanSettings.falseLabel
+                        } : null,
+                        dateFormat: column.dateFormat
+                    }))
+                };
+
+                resolve(formattedTemplate);
+            }, 200);
+        });
     }
 
     /**
-     * Загрузка данных таблицы
+     * Создание нового шаблона
      */
-    async fetchTableData(params) {
-        return this.getRows(params);
+    async createTemplate(data) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const newTemplate = {
+                    id: this.nextTemplateId++,
+                    name: data.name,
+                    columns: data.columns.map((column, index) => ({
+                        id: this.nextColumnId++,
+                        tempId: column.tempId || Date.now() + index,
+                        type: column.type,
+                        label: column.label,
+                        options: column.options || [],
+                        order: column.order || index,
+                        reference: column.reference,
+                        booleanSettings: column.booleanSettings,
+                        dateFormat: column.dateFormat
+                    }))
+                };
+
+                this.templates.push(newTemplate);
+
+                // Создаем пустую структуру для строк таблицы
+                this.tableRows[newTemplate.id] = [];
+
+                resolve({
+                    id: newTemplate.id,
+                    name: newTemplate.name,
+                    columns: newTemplate.columns
+                });
+            }, 300);
+        });
     }
 
     /**
-     * Загрузка дочерних строк
+     * Обновление шаблона
      */
-    async fetchChildRows(params) {
-        return this.getRows(params);
+    async updateTemplate(id, data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const index = this.templates.findIndex(t => t.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                // Обрабатываем удаление колонок
+                const oldColumns = this.templates[index].columns;
+                const oldColumnIds = oldColumns.map(c => c.id);
+                const newColumnIds = data.columns.map(c => c.id).filter(id => id);
+
+                const columnsToDelete = oldColumnIds.filter(id => !newColumnIds.includes(id));
+
+                // Удаляем колонки из строк таблицы
+                if (columnsToDelete.length > 0 && this.tableRows[id]) {
+                    this.tableRows[id] = this.tableRows[id].map(row => {
+                        const newData = { ...row.data };
+
+                        // Находим метки колонок для удаления
+                        const columnsToDeleteLabels = oldColumns
+                            .filter(col => columnsToDelete.includes(col.id))
+                            .map(col => col.label);
+
+                        columnsToDeleteLabels.forEach(label => {
+                            delete newData[label];
+                        });
+
+                        return {
+                            ...row,
+                            data: newData
+                        };
+                    });
+                }
+
+                // Обновляем шаблон
+                this.templates[index] = {
+                    id: parseInt(id),
+                    name: data.name,
+                    columns: data.columns.map((column, index) => ({
+                        id: column.id || this.nextColumnId++,
+                        tempId: column.tempId || Date.now() + index,
+                        type: column.type,
+                        label: column.label,
+                        options: column.options || [],
+                        order: column.order || index,
+                        reference: column.reference,
+                        booleanSettings: column.booleanSettings,
+                        dateFormat: column.dateFormat
+                    }))
+                };
+
+                resolve(this.templates[index]);
+            }, 300);
+        });
+    }
+
+    /**
+     * Удаление шаблона
+     */
+    async deleteTemplate(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const index = this.templates.findIndex(t => t.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                // Удаляем строки таблицы
+                delete this.tableRows[id];
+
+                // Удаляем шаблон
+                const template = this.templates[index];
+                this.templates.splice(index, 1);
+
+                resolve({
+                    message: `Шаблон '${template.name}' успешно удален`,
+                    id: template.id
+                });
+            }, 200);
+        });
+    }
+
+    // ===========================
+    // Методы для работы со строками таблиц
+    // ===========================
+
+    /**
+     * Получение строк таблицы с пагинацией
+     */
+    async getTableRows(params) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const templateId = parseInt(params.template_id);
+
+                if (!this.tableRows[templateId]) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                let rows = [...this.tableRows[templateId]];
+
+                // Фильтрация по родительскому ID
+                if (params.parent_id !== undefined) {
+                    const parentId = params.parent_id === 'null' ? null : parseInt(params.parent_id);
+
+                    // Если запрашиваются дочерние элементы
+                    if (parentId !== null) {
+                        rows = rows.filter(row => row.parent_id === parentId);
+                    } else {
+                        // Если запрашиваются корневые элементы
+                        rows = rows.filter(row => row.parent_id === null);
+                    }
+                } else {
+                    // По умолчанию - корневые элементы
+                    rows = rows.filter(row => row.parent_id === null);
+                }
+
+                // Пагинация
+                const page = parseInt(params.page) || 1;
+                const perPage = parseInt(params.per_page) || 10;
+                const total = rows.length;
+                const totalPages = Math.ceil(total / perPage);
+                const start = (page - 1) * perPage;
+                const end = start + perPage;
+
+                const paginatedData = rows.slice(start, end);
+
+                resolve({
+                    data: this.formatRowsForResponse(paginatedData),
+                    meta: {
+                        current_page: page,
+                        per_page: perPage,
+                        total: total,
+                        last_page: totalPages
+                    }
+                });
+            }, 300);
+        });
+    }
+
+    /**
+     * Получение конкретной строки
+     */
+    async getTableRow(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                let foundRow = null;
+
+                // Ищем строку во всех шаблонах
+                Object.values(this.tableRows).forEach(rows => {
+                    const row = rows.find(r => r.id === parseInt(id));
+                    if (row) foundRow = row;
+                });
+
+                if (!foundRow) {
+                    reject(new Error('Row not found'));
+                    return;
+                }
+
+                // Форматируем ответ
+                resolve(this.formatRowForResponse(foundRow));
+            }, 200);
+        });
+    }
+
+    /**
+     * Создание новой строки
+     */
+    async createTableRow(data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const templateId = parseInt(data.template_id);
+
+                if (!this.templates.some(t => t.id === templateId)) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                // Генерируем новый ID
+                const newId = this.nextRowId++;
+
+                // Создаем новую строку
+                const newRow = {
+                    id: newId,
+                    template_id: templateId,
+                    parent_id: data.parent_id || null,
+                    data: data.data,
+                    order: data.order !== undefined ? data.order : (this.tableRows[templateId]?.filter(r => r.parent_id === data.parent_id).length || 0),
+                    has_children: false
+                };
+
+                // Добавляем строку
+                if (!this.tableRows[templateId]) {
+                    this.tableRows[templateId] = [];
+                }
+
+                this.tableRows[templateId].push(newRow);
+
+                resolve(this.formatRowForResponse(newRow));
+            }, 300);
+        });
+    }
+
+    /**
+     * Обновление строки
+     */
+    async updateTableRow(id, data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                let targetRow = null;
+                let templateId = null;
+
+                // Ищем строку
+                for (const [tid, rows] of Object.entries(this.tableRows)) {
+                    const index = rows.findIndex(r => r.id === parseInt(id));
+                    if (index !== -1) {
+                        targetRow = rows[index];
+                        templateId = parseInt(tid);
+                        break;
+                    }
+                }
+
+                if (!targetRow) {
+                    reject(new Error('Row not found'));
+                    return;
+                }
+
+                // Обновляем данные
+                const updatedRow = {
+                    ...targetRow,
+                    data: {
+                        ...targetRow.data,
+                        ...data.data
+                    },
+                    order: data.order !== undefined ? data.order : targetRow.order
+                };
+
+                // Обновляем строку
+                const index = this.tableRows[templateId].findIndex(r => r.id === parseInt(id));
+                this.tableRows[templateId][index] = updatedRow;
+
+                resolve(this.formatRowForResponse(updatedRow));
+            }, 300);
+        });
+    }
+
+    /**
+     * Удаление строки
+     */
+    async deleteTableRow(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                let templateId = null;
+
+                // Ищем строку и удаляем её
+                for (const [tid, rows] of Object.entries(this.tableRows)) {
+                    const index = rows.findIndex(r => r.id === parseInt(id));
+                    if (index !== -1) {
+                        // Удаляем дочерние строки
+                        const childrenIds = rows
+                            .filter(r => r.parent_id === parseInt(id))
+                            .map(r => r.id);
+
+                        childrenIds.forEach(childId => {
+                            const childIndex = rows.findIndex(r => r.id === childId);
+                            if (childIndex !== -1) {
+                                rows.splice(childIndex, 1);
+                            }
+                        });
+
+                        // Удаляем саму строку
+                        rows.splice(index, 1);
+                        templateId = parseInt(tid);
+                        break;
+                    }
+                }
+
+                if (templateId === null) {
+                    reject(new Error('Row not found'));
+                    return;
+                }
+
+                resolve({ success: true });
+            }, 300);
+        });
+    }
+
+    // ===========================
+    // Методы для работы со справочниками
+    // ===========================
+
+    /**
+     * Получение списка типов справочников
+     */
+    async getReferenceTypes() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({
+                    data: [...this.referenceTypes]
+                });
+            }, 100);
+        });
+    }
+
+    /**
+     * Получение данных справочника по типу
+     */
+    async getReferenceData(entityType) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (!this.referenceData[entityType]) {
+                    reject(new Error('Invalid reference type'));
+                    return;
+                }
+
+                resolve({
+                    data: [...this.referenceData[entityType]]
+                });
+            }, 200);
+        });
+    }
+
+    /**
+     * Создание нового элемента справочника
+     */
+    async createReferenceItem(entityType, data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (!this.referenceData[entityType]) {
+                    reject(new Error('Invalid reference type'));
+                    return;
+                }
+
+                const newItem = {
+                    id: this.nextReferenceId[entityType]++,
+                    ...data
+                };
+
+                this.referenceData[entityType].push(newItem);
+
+                resolve(newItem);
+            }, 200);
+        });
+    }
+
+    /**
+     * Обновление элемента справочника
+     */
+    async updateReferenceItem(entityType, id, data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (!this.referenceData[entityType]) {
+                    reject(new Error('Invalid reference type'));
+                    return;
+                }
+
+                const index = this.referenceData[entityType].findIndex(item => item.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Item not found'));
+                    return;
+                }
+
+                this.referenceData[entityType][index] = {
+                    ...this.referenceData[entityType][index],
+                    ...data
+                };
+
+                resolve(this.referenceData[entityType][index]);
+            }, 200);
+        });
+    }
+
+    /**
+     * Удаление элемента справочника
+     */
+    async deleteReferenceItem(entityType, id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                if (!this.referenceData[entityType]) {
+                    reject(new Error('Invalid reference type'));
+                    return;
+                }
+
+                const index = this.referenceData[entityType].findIndex(item => item.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Item not found'));
+                    return;
+                }
+
+                this.referenceData[entityType].splice(index, 1);
+
+                resolve({ success: true });
+            }, 200);
+        });
+    }
+
+    // ===========================
+    // Вспомогательные методы
+    // ===========================
+
+    /**
+     * Форматирование строк для ответа API
+     */
+    formatRowsForResponse(rows) {
+        return rows.map(row => this.formatRowForResponse(row));
+    }
+
+    /**
+     * Форматирование строки для ответа API
+     */
+    formatRowForResponse(row) {
+        return {
+            id: row.id,
+            template_id: row.template_id,
+            parent_id: row.parent_id,
+            data: row.data,
+            order: row.order,
+            has_children: row.has_children,
+            children: row.children ? this.formatRowsForResponse(row.children) : []
+        };
     }
 }

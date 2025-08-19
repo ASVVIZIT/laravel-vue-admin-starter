@@ -46,6 +46,7 @@
             :key="child.id"
             :rowData="child"
             :columns="columns"
+            :level="level + 1"
             @row-updated="handleChildRowUpdated"
             @row-deleted="handleChildRowDeleted"
         />
@@ -60,9 +61,7 @@ import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { CaretRight, Plus, Delete } from '@element-plus/icons-vue';
 import TableCell from './TableCell.vue';
-import { useTableStore } from './stores/tableStore';
-
-const tableStore = useTableStore();
+import { dataSource } from './services/dataSource';
 
 const props = defineProps({
   rowData: {
@@ -100,7 +99,7 @@ const toggleExpand = async () => {
     if (!props.rowData.children || props.rowData.children.length === 0) {
       try {
         isChildrenLoading.value = true;
-        const response = await tableStore.fetchChildRows(props.rowData.id, {
+        const response = await dataSource.fetchChildRows(props.rowData.id, {
           template_id: props.rowData.template_id
         });
 
@@ -168,7 +167,7 @@ const addChildRow = async () => {
     });
 
     // Отправляем запрос на создание строки
-    await tableStore.addRow({
+    await dataSource.createRow({
       template_id: props.rowData.template_id,
       parent_id: props.rowData.id,
       data: rowData,
@@ -176,8 +175,7 @@ const addChildRow = async () => {
     });
 
     // Перезагружаем данные
-    await tableStore.resetAndFetchData(props.rowData.template_id);
-
+    await toggleExpand();
     ElMessage.success('Дочерняя строка добавлена');
   } catch (err) {
     console.error('Ошибка при добавлении дочерней строки:', err);
@@ -229,7 +227,7 @@ const confirmDeleteRow = () => {
       }
   ).then(async () => {
     try {
-      await tableStore.deleteRow(props.rowData.id);
+      await dataSource.deleteRow(props.rowData.id);
       emit('row-deleted', props.rowData.id);
       ElMessage.success('Строка успешно удалена');
     } catch (err) {
@@ -253,7 +251,7 @@ const updateCellData = async (column, newValue) => {
       [column.label]: newValue
     };
 
-    await tableStore.updateRow(props.rowData.id, {
+    await dataSource.updateRow(props.rowData.id, {
       data: updatedData,
       order: props.rowData.order
     });

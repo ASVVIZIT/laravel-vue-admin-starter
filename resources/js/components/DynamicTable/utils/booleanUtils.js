@@ -1,107 +1,129 @@
-// resources/js/components/DynamicTable/utils/booleanUtils.js
+// resources/js/utils/booleanUtils.js
 
 /**
- * Безопасное получение настроек для boolean-колонки
+ * Безопасное получение настроек boolean
  * @param {Object} column - Объект колонки
- * @param {string} setting - Название настройки ('displayType', 'trueLabel', 'falseLabel')
- * @returns {string|boolean} Значение настройки или значение по умолчанию
+ * @param {string} setting - Название настройки
+ * @returns {*} Значение настройки или значение по умолчанию
  */
-export const getBooleanSetting = (column, setting) => {
-    // Безопасный доступ к настройкам boolean
-    if (!column.booleanSettings) {
-        // Инициализируем, если не определен
-        column.booleanSettings = {
+export function getBooleanSetting(column, setting) {
+    if (!column || column.type !== 'boolean') {
+        return null;
+    }
+
+    // Если booleanSettings - это строка, попробуем распарсить
+    let settings = column.booleanSettings;
+    if (typeof settings === 'string') {
+        try {
+            settings = JSON.parse(settings);
+        } catch (e) {
+            console.warn('Не удалось распарсить настройки boolean:', e);
+            settings = null;
+        }
+    }
+
+    // Если settings не объект, используем значения по умолчанию
+    if (!settings || typeof settings !== 'object') {
+        settings = {
             displayType: 'toggle',
             trueLabel: 'Да',
             falseLabel: 'Нет'
         };
     }
 
-    // Возвращаем значение или значение по умолчанию
-    return column.booleanSettings[setting] ||
+    return settings[setting] ||
         (setting === 'displayType' ? 'toggle' :
             setting === 'trueLabel' ? 'Да' : 'Нет');
 };
+
+/**
+ * Установка значения настройки булевой колонки
+ * @param {Object} column - Объект колонки
+ * @param {Object} settings - Объект настроек
+ */
+export function setBooleanSetting(column, settings) {
+    if (!column || column.type !== 'boolean') {
+        return;
+    }
+
+    // Инициализируем booleanSettings, если не существует
+    if (!column.booleanSettings || typeof column.booleanSettings === 'string') {
+        try {
+            // Пытаемся распарсить, если это строка
+            column.booleanSettings = typeof column.booleanSettings === 'string'
+                ? JSON.parse(column.booleanSettings)
+                : {};
+        } catch (e) {
+            column.booleanSettings = {};
+        }
+    }
+
+    // Если это не объект, создаем новый объект
+    if (typeof column.booleanSettings !== 'object') {
+        column.booleanSettings = {};
+    }
+
+    // Устанавливаем значения
+    column.booleanSettings.displayType = settings.displayType || 'toggle';
+    column.booleanSettings.trueLabel = settings.trueLabel || 'Да';
+    column.booleanSettings.falseLabel = settings.falseLabel || 'Нет';
+}
 
 /**
  * Парсинг различных представлений булевых значений в стандартное булево значение
  * @param {any} value - Значение для парсинга
  * @returns {boolean|null} - Стандартное булево значение или null
  */
-export const parseBooleanValue = (value) => {
+export function parseBooleanValue(value) {
     // Список значений, которые считаются истиной
-    const trueValues = [
-        true,
-        1,
-        'true',
-        '1',
-        'yes',
-        'да'
-    ];
-
+    const trueValues = [true, 1, 'true', '1', 'yes', 'да'];
     // Список значений, которые считаются ложью
-    const falseValues = [
-        false,
-        0,
-        'false',
-        '0',
-        'no',
-        'нет',
-        null,
-        undefined,
-        ''
-    ];
+    const falseValues = [false, 0, 'false', '0', 'no', 'нет', null, undefined, ''];
 
     // Проверяем, является ли значение истиной
-    if (trueValues.some(v =>
-        v === value ||
-        (typeof v === 'string' && typeof value === 'string' && v.toLowerCase() === value.toLowerCase())
-    )) {
+    if (trueValues.some(v => {
+        if (typeof v === 'string' && typeof value === 'string') {
+            return v.toLowerCase() === value.toLowerCase();
+        }
+        return v === value;
+    })) {
         return true;
     }
 
     // Проверяем, является ли значение ложью
-    if (falseValues.some(v =>
-        v === value ||
-        (v === null && value === null) ||
-        (v === undefined && value === undefined) ||
-        (typeof v === 'string' && typeof value === 'string' && v.toLowerCase() === value.toLowerCase())
-    )) {
+    if (falseValues.some(v => {
+        if (typeof v === 'string' && typeof value === 'string') {
+            return v.toLowerCase() === value.toLowerCase();
+        }
+        return v === value;
+    })) {
         return false;
     }
 
     // Если значение не распознано, возвращаем null
     return null;
-};
+}
 
 /**
- * Получить отображаемое значение для булевого поля
- * @param {boolean|null} value - Значение поля
+ * Форматирование булева значения для отображения
+ * @param {*} value - Значение для форматирования
  * @param {Object} column - Объект колонки
- * @returns {string} Отображаемое значение
+ * @returns {string} Отформатированное значение
  */
-export const getBooleanDisplayValue = (value, column) => {
-    const boolValue = parseBooleanValue(value);
+export const formatBooleanDisplay = (value, column) => {
+    // Получаем настройки из колонки
+    const settings = column.booleanSettings || {
+        displayType: 'toggle',
+        trueLabel: 'Да',
+        falseLabel: 'Нет'
+    };
 
-    if (boolValue === true) {
-        return getBooleanSetting(column, 'trueLabel');
-    } else if (boolValue === false) {
-        return getBooleanSetting(column, 'falseLabel');
+    const parsedValue = parseBooleanValue(value);
+    if (parsedValue === null) {
+        return '—';
     }
-    return '—';
-};
-
-// Метод для установки значений boolean-настроек
-export const setBooleanSetting = (column, setting, value) => {
-    // Инициализируем booleanSettings, если не определен
-    if (!column.booleanSettings) {
-        column.booleanSettings = {
-            displayType: 'toggle',
-            trueLabel: 'Да',
-            falseLabel: 'Нет'
-        };
+    if (settings.displayType === 'text') {
+        return parsedValue ? settings.trueLabel : settings.falseLabel;
     }
-
-    // Устанавливаем значение
-    column.booleanSettings[setting] = value;
+    return parsedValue ? 'Да' : 'Нет';
 };

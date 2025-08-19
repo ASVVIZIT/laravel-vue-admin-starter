@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\TesterController; // Для тестовых пол
 // Импорты других контроллеров (остаются как в оригинале)
 use App\Http\Controllers\Api\UserTabController;
 use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Api\ReferenceController;
 use App\Http\Controllers\Api\TableRowController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
@@ -129,6 +130,10 @@ Route::namespace('Api')->group(function() {
         // --- Шаблоны и строки таблиц ---
         Route::apiResource('templates', TemplateController::class);
         Route::apiResource('table-rows', TableRowController::class);
+
+        // --- Справочники для шаблонов ---
+        Route::get('references/types', [ReferenceController::class, 'getTypes']);
+        Route::get('references/{type}', [ReferenceController::class, 'getData']);
 
         // --- Управление ролями и разрешениями ---
         // Требуют специального разрешения (Acl::PERMISSION_PERMISSION_MANAGE или Acl::PERMISSION_USER_MANAGE)

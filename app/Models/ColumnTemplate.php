@@ -4,8 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Template as Template;
 
 class ColumnTemplate extends Model
 {
@@ -15,12 +13,19 @@ class ColumnTemplate extends Model
         'template_id',
         'type',
         'label',
+        'order',
+        'data_type',
+        'unit',
         'options',
-        'order'
+        'date_format',
+        'boolean_settings',
+        'reference'
     ];
 
     protected $casts = [
-        'options' => 'array'
+        'options' => 'array',
+        'boolean_settings' => 'array',
+        'reference' => 'array'
     ];
 
     public function template()

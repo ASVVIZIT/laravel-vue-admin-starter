@@ -33,3 +33,10 @@ composer.lock
 /public/chromedriver_32.exe
 /public/chromedriver_64.exe
 /panther-test.php
+/dynamic_tables_dump.txt
+/dump_project.bat
+/project_dump_v2.bat
+/project_dump.txt
+/project_dump_dynamic_table_v2.bat
+/dynamic_tables_dump_simple.txt
+/dynamic_tables_dump_fast.txt
