@@ -132,8 +132,10 @@ Route::namespace('Api')->group(function() {
         Route::apiResource('table-rows', TableRowController::class);
 
         // --- Справочники для шаблонов ---
+        // Получение типов справочников
         Route::get('references/types', [ReferenceController::class, 'getTypes']);
-        Route::get('references/{type}', [ReferenceController::class, 'getData']);
+        // Например: GET /api/references/accessory?search=ABB&for_dropdown=1
+        Route::get('references/{modelName}', [ReferenceController::class, 'getData']);
 
         // --- Управление ролями и разрешениями ---
         // Требуют специального разрешения (Acl::PERMISSION_PERMISSION_MANAGE или Acl::PERMISSION_USER_MANAGE)

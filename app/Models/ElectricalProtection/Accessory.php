@@ -89,4 +89,11 @@ class Accessory extends Model
     {
         return $this->belongsToMany(CircuitBreaker::class, 'ep_circuit_breaker_accessories');
     }
+
+    // Scope для загрузки всех необходимых отношений
+    public function scopeWithRelations($query)
+    {
+        return $query->with(['brand', 'type', 'crossSectionUnit', 'currentRatingUnit',
+            'quantityPerPackUnit', 'thicknessUnit', 'ratedDiffCurrentUnit', 'voltageUnit']);
+    }
 }

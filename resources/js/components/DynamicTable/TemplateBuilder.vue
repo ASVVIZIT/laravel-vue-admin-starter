@@ -607,7 +607,7 @@ const entityTypes = [
   { value: 'accessory', label: 'Аксессуар' },
   { value: 'brand', label: 'Бренд' },
   { value: 'device_type', label: 'Тип устройства' },
-  { value: 'category', label: 'Категория' }
+  { value: 'MeasurementCategory', label: 'Категория Единиц измерения' }
 ];
 
 // Вычисляемое свойство для данных предпросмотра строк
@@ -1236,26 +1236,27 @@ const updatePreviewDataForColumn = (column) => {
       exampleValue = true;
       break;
     case 'reference':
-      // Устанавливаем первый элемент из справочника, если он есть
-      if (column.reference?.entityType) {
-        const entityType = column.reference.entityType;
+      // Генерируем примерные данные в зависимости от настроек колонки
+      console.log(`[TemplateBuilder] Processing 'reference' type for column: ${column.label}`);
 
-        // Если данные справочника уже загружены, используем первый элемент
-        if (loadedReferences.value.has(entityType) && referenceOptions.value[entityType]?.[0]) {
-          // Для reference передаем ID
-          exampleValue = referenceOptions.value[entityType][0].id;
-        }
-        // Если данные загружаются, устанавливаем null
-        else if (loadingReferences.value.has(entityType)) {
-          exampleValue = null;
-        }
-        // Если данных нет, запускаем загрузку
-        else {
-          loadReferenceData(entityType);
-          exampleValue = null;
+      // Проверяем, загружены ли данные справочника
+      if (column.reference?.entityType && loadedReferences.value.has(column.reference.entityType)) {
+        console.log(`[TemplateBuilder] Reference data for ${column.reference.entityType} is loaded.`);
+        const options = referenceOptions.value[column.reference.entityType];
+        if (options && options.length > 0) {
+          // Берем ID первого элемента из загруженных данных
+          exampleValue = options[0].id;
+          console.log(`[TemplateBuilder] Using first item ID (${exampleValue}) from loaded reference data.`);
+        } else {
+          // Если данные загружены, но пустые
+          console.log(`[TemplateBuilder] Reference data for ${column.reference.entityType} is loaded but empty.`);
+          exampleValue = 1; // Устанавливаем примерный ID
         }
       } else {
-        exampleValue = null;
+        // Если данные справочника еще не загружены или entityType не задан
+        console.log(`[TemplateBuilder] Reference data for ${column.reference?.entityType || 'unknown'} is not loaded or entityType is missing.`);
+        // Устанавливаем примерный ID для отображения в предварительном просмотре
+        exampleValue = 1; // Или другой примерный ID
       }
       break;
     default:

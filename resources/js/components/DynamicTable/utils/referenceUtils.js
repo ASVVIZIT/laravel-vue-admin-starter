@@ -44,7 +44,7 @@ export function getExampleFormat(entityType) {
             return '{name} ({country})';
         case 'device_type':
             return '{name} ({code})';
-        case 'category':
+        case 'MeasurementCategory':
             return '{name}';
         default:
             return '{name}';
@@ -64,7 +64,7 @@ export function getAvailableKeys(entityType) {
             return ['id', 'name', 'country'];
         case 'device_type':
             return ['id', 'name', 'code'];
-        case 'category':
+        case 'MeasurementCategory':
             return ['id', 'name', 'description'];
         default:
             return ['id', 'name'];
