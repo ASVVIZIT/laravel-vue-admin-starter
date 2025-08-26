@@ -133,9 +133,13 @@ Route::namespace('Api')->group(function() {
 
         // --- Справочники для шаблонов ---
         // Получение типов справочников
-        Route::get('references/types', [ReferenceController::class, 'getTypes']);
-        // Например: GET /api/references/accessory?search=ABB&for_dropdown=1
-        Route::get('references/{modelName}', [ReferenceController::class, 'getData']);
+        Route::prefix('references')->group(function () {
+            Route::get('types', [ReferenceController::class, 'getTypes']);
+            // Например: GET /api/references/accessory?search=ABB&for_dropdown=1
+            Route::get('{modelName}', [ReferenceController::class, 'getData']);
+            // Например: GET /api/references/accessory/info
+            Route::get('{modelName}/info', [ReferenceController::class, 'getFieldInfo']);
+        });
 
         // --- Управление ролями и разрешениями ---
         // Требуют специального разрешения (Acl::PERMISSION_PERMISSION_MANAGE или Acl::PERMISSION_USER_MANAGE)

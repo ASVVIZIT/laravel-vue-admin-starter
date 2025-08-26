@@ -38,16 +38,11 @@ export function formatReferenceDisplay(item, column) {
  */
 export function getExampleFormat(entityType) {
     switch (entityType) {
-        case 'accessory':
-            return '{brand.name} ({brand.country}) - {model}{code}';
-        case 'brand':
-            return '{name} ({country})';
-        case 'device_type':
-            return '{name} ({code})';
-        case 'MeasurementCategory':
-            return '{name}';
-        default:
-            return '{name}';
+        case 'accessory': return '{id} {brand.name} {type.name} - ({brand.country}) {model} {series}';
+        case 'brand': return '{name} - ({country})';
+        case 'device_type': return '{name} ({code})';
+        case 'measurement_category': return '{name} ({description})';
+        default: return '{id} - {name}';
     }
 }
 
@@ -58,16 +53,11 @@ export function getExampleFormat(entityType) {
  */
 export function getAvailableKeys(entityType) {
     switch (entityType) {
-        case 'accessory':
-            return ['id', 'brand.name', 'brand.country', 'model', 'series', 'code', 'name'];
-        case 'brand':
-            return ['id', 'name', 'country'];
-        case 'device_type':
-            return ['id', 'name', 'code'];
-        case 'MeasurementCategory':
-            return ['id', 'name', 'description'];
-        default:
-            return ['id', 'name'];
+        case 'accessory': return ['id', 'name', 'model', 'series', 'brand.name', 'brand.country', 'type.name', 'type.code'];
+        case 'brand': return ['id', 'name', 'country', 'website'];
+        case 'device_type': return ['id', 'name', 'code'];
+        case 'measurement_category': return ['id', 'name', 'description'];
+        default: return ['id', 'name'];
     }
 }
 

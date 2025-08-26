@@ -44,7 +44,7 @@
             <el-tag size="small">{{ row.columns_count }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="Действия" width="200" align="center">
+        <el-table-column label="Действия" width="300" align="center">
           <template #default="{row}">
             <el-button
                 size="mini"
@@ -172,13 +172,13 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .template-list {
-  padding: 20px;
+  padding: 10px;
 
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 
     h1 {
       margin: 0;
@@ -202,7 +202,7 @@ onMounted(() => {
   }
 
   .pagination {
-    margin-top: 20px;
+    margin-top: 10px;
     display: flex;
     justify-content: flex-end;
   }

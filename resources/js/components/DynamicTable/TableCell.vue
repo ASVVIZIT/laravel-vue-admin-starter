@@ -1,6 +1,6 @@
 <!-- resources/js/components/DynamicTable/TableCell.vue -->
 <template>
-  <!-- Корневой элемент изменен с <td> на <div> -->
+  <!-- Корневой элемент -->
   <div @dblclick="toggleEdit" class="table-cell-wrapper">
     <!-- Режим просмотра: отображаем вычисленное значение -->
     <template v-if="!isEditing">
@@ -151,9 +151,8 @@ import {
   convertDateFormat,
   parseFlexibleDate // Импортируем новую функцию для гибкого парсинга дат
 } from './utils/dateUtils';
-import { referenceApi } from './api/referenceApi';
+import { dataSource } from './services/dataSource';
 
-// Определение входных параметров компонента
 const props = defineProps({
   // Значение ячейки
   value: [String, Number, Boolean, Object, null, undefined],
@@ -166,30 +165,10 @@ const props = defineProps({
   rowData: {
     type: Object,
     required: true
-  },
-  // Флаг, указывающий, находится ли ячейка в режиме редактирования
-  isEditing: {
-    type: Boolean,
-    default: false
-  },
-  // Значение для редактирования
-  editValue: {
-    default: null
-  },
-  // Данные справочника
-  referenceData: {
-    type: Array,
-    default: () => []
-  },
-  // Флаг загрузки данных справочника
-  loading: {
-    type: Boolean,
-    default: false
   }
 });
 
-// Определение событий, которые может эмитить компонент
-const emit = defineEmits(['start-edit', 'stop-edit', 'update-value', 'reference-selected', 'loading']);
+const emit = defineEmits(['update', 'reference-selected', 'loading']);
 
 // === Состояние компонента ===
 // Флаг, указывающий, находится ли ячейка в режиме редактирования
@@ -202,11 +181,6 @@ const inputRef = ref(null);
 const referenceOptions = ref([]);
 // Флаг загрузки данных справочника
 const loadingReference = ref(false);
-
-
-// Sets для отслеживания состояния загрузки справочников ===
-const loadedReferences = ref(new Set());
-const loadingReferences = ref(new Set());
 
 // === Вычисляемые свойства ===
 
@@ -243,185 +217,113 @@ const editValueInternal = computed({
   }
 });
 
-// === ОБНОВЛЕННОЕ ВЫЧИСЛЯЕМОЕ СВОЙСТВО displayValue ===
+// Отображаемое значение ячейки в режиме просмотра
 const displayValue = computed(() => {
   let result = '—'; // Значение по умолчанию
 
   try {
     // Обработка типа "Справочник"
-    if (props.column.type === 'reference') {
-      // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 1: Обработка null/undefined props.value ===
-      if (props.value === null || props.value === undefined) {
-        console.log("[TableCell/displayValue] Reference value is null/undefined");
-        result = 'Не выбрано';
-        console.log("[TableCell/displayValue] Returning for reference (null/undef):", result);
-        return result; // Важно: выходим early
-      }
-
+    if (props.column.type === 'reference' && props.value !== null && props.value !== undefined) {
       let id = null;
-      console.log("[TableCell/displayValue] Processing reference. Raw props.value:", props.value, typeof props.value);
 
       // Определяем ID из разных возможных форматов
       if (typeof props.value === 'object') {
-        console.log("[TableCell/displayValue] props.value is an object");
         // Если это объект с полем id
         if (props.value.id !== undefined) {
           id = props.value.id;
-          console.log("[TableCell/displayValue] Found id in .id:", id, typeof id);
         }
         // Если это объект с полем value
         else if (props.value.value !== undefined) {
           id = props.value.value;
-          console.log("[TableCell/displayValue] Found id in .value:", id, typeof id);
         }
         // Если это объект, но без специальных полей, пытаемся использовать как ID
         else {
           id = props.value;
-          console.log("[TableCell/displayValue] Using object as ID:", id, typeof id);
         }
       } else if (typeof props.value === 'number' || typeof props.value === 'string') {
-        console.log("[TableCell/displayValue] props.value is a primitive (number/string)");
         id = props.value;
-        console.log("[TableCell/displayValue] Using primitive as ID:", id, typeof id);
       } else {
-        console.log("[TableCell/displayValue] props.value type not handled for reference:", typeof props.value, props.value);
         // Если тип не поддерживается, показываем сырую строку или '#value'
         result = props.value !== null && props.value !== undefined ? `#${props.value}` : 'Не выбрано';
-        console.log("[TableCell/displayValue] Unrecognized type, returning raw/hash value:", result);
         return result; // Важно: выходим early
       }
 
-      // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 2: Проверка id на null/empty после обработки ===
-      if (id === null || id === '' || id === undefined) {
+      if (id === null || id === '') {
         result = 'Не выбрано';
-        console.log("[TableCell/displayValue] ID is null/empty/undefined after processing, returning:", result);
       } else {
-        console.log("[TableCell/displayValue] Final ID for reference lookup:", id, typeof id);
-        // === ИНТЕГРАЦИЯ TABLECELL: Используем referenceData, переданное извне ===
-        // Предполагаем, что referenceData передается как prop или через inject/provide
-        // В TemplateBuilder.vue это будет referenceOptions.value[column.reference.entityType]
-        const referenceDataArray = props.referenceData || []; // Используем props.referenceData
-        console.log("[TableCell/displayValue] Using referenceData from props:", referenceDataArray.length, "items");
-
         // Если данные справочника уже загружены, показываем отформатированное значение
-        if (referenceDataArray.length > 0) {
-          console.log("[TableCell/displayValue] Reference data is loaded, searching for ID:", id);
-          // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 3: Безопасный поиск и сравнение ===
-          const item = referenceDataArray.find(opt => {
-            // Сравниваем как строки, чтобы избежать проблем с типами (например, id=1 vs itemId="1")
+        if (referenceOptions.value.length > 0) {
+          const item = referenceOptions.value.find(opt => {
+            // Сравниваем как строки, чтобы избежать проблем с типами
             const match = String(opt.id) === String(id);
-            console.log(`[TableCell/displayValue] Comparing opt.id (${opt.id}) with value id (${id}) -> ${match}`);
             return match;
           });
 
           if (item) {
-            // === ИНТЕГРАЦИЯ TABLECELL: Используем props.column для formatReferenceDisplay ===
-            result = formatReferenceDisplay(item, props.column); // Передаем props.column
-            console.log("[TableCell/displayValue] Found item, formatted display value:", result);
+            result = formatReferenceDisplay(item, props.column);
           } else {
             result = `#${id} (не найдено)`;
-            console.log("[TableCell/displayValue] Item not found in loaded options, returning:", result);
           }
         } else {
-          // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ 4: Если данные справочника еще не загружены, показываем ID ===
-          // Вместо "Загрузка..." или "Недоступно" показываем ID, как в предыдущем коде
+          // Если данные справочника еще не загружены, показываем ID
           result = `#${id}`;
-          console.log("[TableCell/displayValue] Reference data not loaded yet, returning ID:", result);
-
-          // === ИНТЕГРАЦИЯ TABLECELL: Запускаем загрузку данных справочника ===
-          // Предполагаем, что есть метод loadReferenceData, который вызывается из родителя
-          // или доступен через inject/provide. Здесь просто эмитим событие.
-          // В TemplateBuilder.vue это будет handled в TableCell @loading или напрямую.
-          // Для упрощения, можно не делать этого здесь, а оставить родителю.
-          // emit('load-reference', props.column.reference?.entityType);
         }
       }
     }
     // Обработка типа "Boolean"
     else if (props.column.type === 'boolean') {
-      console.log("[TableCell/displayValue] Processing boolean...");
       const boolValue = parseBooleanValue(props.value);
-      console.log("[TableCell/displayValue] Parsed boolean value:", boolValue);
 
       if (boolValue === true) {
         result = getBooleanSetting(props.column, 'trueLabel') || 'Да';
-        console.log("[TableCell/displayValue] Value is true, returning:", result);
       } else if (boolValue === false) {
         result = getBooleanSetting(props.column, 'falseLabel') || 'Нет';
-        console.log("[TableCell/displayValue] Value is false, returning:", result);
       } else {
         result = 'Не выбрано';
-        console.log("[TableCell/displayValue] Value is null/undefined, returning:", result);
       }
     }
     // Обработка типа "Дата"
     else if (props.column.type === 'date' && props.value) {
-      console.log("[TableCell/displayValue] Processing date...");
-      try {
-        // Используем parseFlexibleDate для более гибкого парсинга
-        const date = parseFlexibleDate(props.value);
-        if (!isNaN(date.getTime())) {
-          result = formatDate(date, props.column.dateFormat || 'YYYY-MM-DD');
-          console.log("[TableCell/displayValue] Formatted date value:", result);
-        } else {
-          throw new Error('Invalid Date');
-        }
-      } catch (e) {
-        console.error('[TableCell/displayValue] Invalid date value:', props.value, e);
+      // Используем parseFlexibleDate для более гибкого парсинга
+      const date = parseFlexibleDate(props.value);
+      if (date && !isNaN(date.getTime())) {
+        result = formatDate(date, props.column.dateFormat || 'YYYY-MM-DD');
+      } else {
+        console.error('Invalid date value:', props.value);
         result = props.value; // Показываем исходное значение, если не распарсилось
       }
     }
     // Обработка типа "Дата и время"
     else if (props.column.type === 'datetime' && props.value) {
-      console.log("[TableCell/displayValue] Processing datetime...");
-      try {
-        // Используем parseFlexibleDate для более гибкого парсинга
-        const date = parseFlexibleDate(props.value);
-        if (!isNaN(date.getTime())) {
-          result = formatDate(date, 'YYYY-MM-DD HH:mm'); // Используем фиксированный формат для datetime
-          console.log("[TableCell/displayValue] Formatted datetime value:", result);
-        } else {
-          throw new Error('Invalid DateTime');
-        }
-      } catch (e) {
-        console.error('[TableCell/displayValue] Invalid datetime value:', props.value, e);
+      // Используем parseFlexibleDate для более гибкого парсинга
+      const date = parseFlexibleDate(props.value);
+      if (date && !isNaN(date.getTime())) {
+        result = formatDate(date, 'YYYY-MM-DD HH:mm'); // Используем фиксированный формат для datetime
+      } else {
+        console.error('Invalid datetime value:', props.value);
         result = props.value; // Показываем исходное значение, если не распарсилось
       }
     }
     // Обработка типа "Выбор"
     else if (props.column.type === 'select' && props.value !== null && props.value !== undefined) {
-      console.log("[TableCell/displayValue] Processing select...");
-      console.log("[TableCell/displayValue] Column options:", props.column.options);
-      console.log("[TableCell/displayValue] Value to check:", props.value, typeof props.value);
       if (Array.isArray(props.column.options) &&
           props.column.options.includes(props.value)) {
         result = props.value;
-        console.log("[TableCell/displayValue] Value found in options, returning:", result);
       } else {
         result = 'Недопустимое значение';
-        console.log("[TableCell/displayValue] Value NOT found in options, returning:", result);
-        console.log("[TableCell/displayValue] Options array:", props.column.options);
-        console.log("[TableCell/displayValue] Type of props.value:", typeof props.value);
-        console.log("[TableCell/displayValue] Strict equality check results:", props.column.options.map(opt => `${opt} === ${props.value} ? ${opt === props.value}`));
-        console.log("[TableCell/displayValue] Loose equality check results:", props.column.options.map(opt => `${opt} == ${props.value} ? ${opt == props.value}`));
       }
     }
     // Для остальных типов
     else {
-      console.log("[TableCell/displayValue] Processing default type...");
       result = props.value !== null && props.value !== undefined ? props.value : '—';
-      console.log("[TableCell/displayValue] Default value processing, returning:", result);
     }
   } catch (error) {
-    console.error("[TableCell/displayValue] Error in displayValue computation:", error);
+    console.error("[TableCell] Error in displayValue computation:", error);
     result = `[Ошибка: ${error.message}]`;
-  } finally {
-    console.log("[TableCell/displayValue] Final result:", result);
   }
 
   return result;
 });
-// === КОНЕЦ ОБНОВЛЕННОГО displayValue ===
 
 // === Следим за изменениями props.value ===
 watch(() => props.value, (newVal) => {
@@ -466,7 +368,8 @@ watch(() => props.value, (newVal) => {
   } else if (props.column.type === 'date' || props.column.type === 'datetime') {
     if (newVal) {
       try {
-        const date = parseFlexibleDate(newVal); // Используем parseFlexibleDate
+        // Используем parseFlexibleDate для более гибкого парсинга
+        const date = parseFlexibleDate(newVal);
         if (!isNaN(date.getTime())) {
           internalEditValue.value = date;
         } else {
@@ -485,7 +388,7 @@ watch(() => props.value, (newVal) => {
 
 // === Методы компонента ===
 
-// Переключение режима редактирования
+// === УЛУЧШЕННЫЙ toggleEdit с универсальной фокусировкой ===
 const toggleEdit = () => {
   console.log("[TableCell] toggleEdit called. Current isEditing:", isEditing.value);
   if (isEditing.value) {
@@ -541,33 +444,23 @@ const toggleEdit = () => {
     internalEditValue.value = props.value;
   }
 
+  // === УЛУЧШЕННАЯ ЛОГИКА ФОКУСИРОВКИ ===
   // Фокусируем поле ввода
   nextTick(() => {
-    if (inputRef.value) {
-      // inputRef.value может быть HTMLElement или Vue Component instance
-      let inputElement = inputRef.value;
-      // Если это Vue компонент (например, el-date-picker), пытаемся получить внутренний input
-      if (inputElement.$el) {
-        inputElement = inputElement.$el.querySelector('input') || inputElement.$el;
-      } else if (inputElement.$refs && inputElement.$refs.input) {
-        // Для некоторых компонентов Element Plus
-        inputElement = inputElement.$refs.input;
-      }
-
-      if (inputElement && inputElement.focus) {
-        inputElement.focus();
-        if (inputElement.select) {
-          inputElement.select();
-        }
-      }
-    }
+    focusInput(); // <-- ВЫЗЫВАЕМ УНИВЕРСАЛЬНУЮ ФУНКЦИЮ ФОКУСИРОВКИ
   });
+  // === КОНЕЦ УЛУЧШЕННОЙ ЛОГИКИ ФОКУСИРОВКИ ===
 
   console.log("[TableCell] Emitting 'start-edit'");
   emit('start-edit');
 };
+// === КОНЕЦ УЛУЧШЕННОГО toggleEdit ===
 
-// Фокусируем поле ввода
+// === НОВАЯ УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ФОКУСИРОВКИ ===
+/**
+ * Универсальная функция фокусировки поля ввода
+ * Обрабатывает все типы полей ввода (input, select, el-switch, el-checkbox, el-date-picker и т.д.)
+ */
 const focusInput = () => {
   nextTick(() => {
     if (!inputRef.value) {
@@ -655,8 +548,10 @@ const focusInput = () => {
         // console.log("[focusInput] Final element is HTMLElement, attempting focus/select");
         if (typeof inputElement.focus === 'function') {
           inputElement.focus();
-          // Попытка выделить текст, если метод select существует
-          if (typeof inputElement.select === 'function') {
+          // === УЛУЧШЕНИЕ: Не вызываем select для input type="date"/"datetime" ===
+          // Попытка выделить текст, если метод select существует И элемент не date/datetime
+          if (typeof inputElement.select === 'function' &&
+              !(inputElement.type === 'date' || inputElement.type === 'datetime')) {
             // Небольшая задержка может помочь в некоторых случаях
             setTimeout(() => {
               try {
@@ -666,7 +561,7 @@ const focusInput = () => {
               }
             }, 0);
           } else {
-            // console.log("[focusInput] select() method not available on element");
+            // console.log("[focusInput] select() method not available on element or element is date/datetime");
           }
         } else {
           console.warn("[focusInput] focus() method not available on HTMLElement");
@@ -678,8 +573,10 @@ const focusInput = () => {
       else if (inputElement && typeof inputElement.focus === 'function') {
         // console.log("[focusInput] Final element is an object with focus(), calling it");
         inputElement.focus();
-        // Попытка вызвать select, если он есть
-        if (typeof inputElement.select === 'function') {
+        // === УЛУЧШЕНИЕ: Не вызываем select для input type="date"/"datetime" ===
+        // Попытка вызвать select, если он есть И элемент не date/datetime
+        if (typeof inputElement.select === 'function' &&
+            !(inputElement.type === 'date' || inputElement.type === 'datetime')) {
           setTimeout(() => {
             try {
               inputElement.select();
@@ -703,6 +600,7 @@ const focusInput = () => {
     }
   });
 };
+// === КОНЕЦ НОВОЙ УНИВЕРСАЛЬНОЙ ФУНКЦИИ ФОКУСИРОВКИ ===
 
 // Обработка ввода даты
 const handleDateInput = (value) => {
@@ -829,57 +727,37 @@ const cancelEdit = () => {
 
 /**
  * Загрузка данных справочника
- * @param {string} entityType - Название модели в snake_case (например, 'accessory', 'brand')
+ * @param {string} modelName - Название модели в snake_case (например, 'accessory', 'brand')
  */
-const loadReferenceData = async (entityType) => {
-  // 1. Проверяем, что колонка типа 'reference' и задан entityType
-  if (props.column.type !== 'reference' || !props.column.reference?.entityType) {
-    console.log("[TableCell] Not a reference column or no entityType, skipping load.");
-    return;
-  }
-
-  // 2. Получаем cleanEntityType
-  const cleanEntityType = props.column.reference.entityType.replace(/\/$/, '');
-  console.log(`[TableCell] Loading reference data for type: ${cleanEntityType}`);
-
-  // 3. Проверяем, не загружен ли уже и не загружается ли
-  if (loadedReferences.value.has(cleanEntityType) || loadingReferences.value.has(cleanEntityType)) {
-    console.log(`[TableCell] Reference data for ${cleanEntityType} already loaded/loading.`);
-    return;
-  }
+const loadReferenceData = async () => {
+  if (props.column.type !== 'reference' || !props.column.reference?.entityType) return;
 
   try {
-    // 4. Устанавливаем состояние загрузки
-    loadingReferences.value.add(cleanEntityType);
     loadingReference.value = true;
     emit('loading', true);
 
-    console.log(`[TableCell] Starting reference data load for ${cleanEntityType}...`);
+    // Убираем завершающий слэш из entityType
+    const cleanEntityType = props.column.reference.entityType.replace(/\/$/, '');
+    console.log(`[TableCell] Loading reference data for type: ${cleanEntityType}`);
 
-    // 5. Выполняем асинхронный запрос к API через referenceApi
-    const response = await referenceApi.getData(cleanEntityType);
-    console.log(`[TableCell] Reference data loaded for ${cleanEntityType}:`, response.data?.length, 'items');
-
-    // 6. Сохраняем данные
+    // === ИСПОЛЬЗУЕМ referenceService.getData вместо referenceApi.getData ===
+    const response = await dataSource.getReferenceData(cleanEntityType);
+    console.log('[TableCell] Reference data loaded:', response.data);
     referenceOptions.value = response.data || [];
-    loadedReferences.value.add(cleanEntityType);
-    console.log(`[TableCell] referenceOptions updated for ${cleanEntityType}.`);
-
+    console.log('[TableCell] referenceOptions updated.');
   } catch (error) {
-    console.error(`[TableCell] Ошибка загрузки данных справочника (${cleanEntityType}):`, error);
-    ElMessage.error('Ошибка загрузки справочника');
-
-    // 7. Даже при ошибке помечаем как загруженный, чтобы не пытаться загружать повторно
-    loadedReferences.value.add(cleanEntityType);
-
+    // === УЛУЧШЕННАЯ ОБРАБОТКА ОШИБОК ===
+    console.error('[TableCell] Load reference error:', error);
+    // Показываем пользователю более понятное сообщение об ошибке
+    ElMessage.error(error.message || `Не удалось загрузить данные справочника "${props.column.reference.entityType}"`);
+    // Даже при ошибке помечаем как загруженный, чтобы не пытаться загружать повторно
+    referenceOptions.value = []; // Очищаем опции, чтобы не показывать старые данные
   } finally {
-    // 8. Сбрасываем состояние загрузки
-    loadingReferences.value.delete(cleanEntityType);
     loadingReference.value = false;
     emit('loading', false);
-    console.log(`[TableCell] Finished reference data load attempt for ${cleanEntityType}.`);
   }
 };
+// === КОНЕЦ Методов для работы со справочниками ===
 
 // === Вспомогательные функции ===
 
@@ -940,10 +818,11 @@ const getDateTimeFormat = (column) => {
 .table-cell-wrapper {
   width: 100%;
   height: 100%;
-  position: relative;
+  position: relative; /* Контекст позиционирования для absolutely positioned children */
   cursor: pointer;
   box-sizing: border-box;
-  padding: 4px 8px; /* Переносим padding сюда */
+  padding: 1px 1px; /* Переносим padding сюда */
+  border: 1px solid rgba(64, 158, 255, 0.32);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -951,12 +830,16 @@ const getDateTimeFormat = (column) => {
   .table-cell-display {
     /* display: block; width: 100%; height: 100%; padding: ...; */
     /* Заменяем на более простое */
+    display: block;
     width: 100%;
     height: 100%;
+    padding: 4px 8px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-align: left;
+    vertical-align: middle;
   }
 
   &:hover {
@@ -969,10 +852,12 @@ const getDateTimeFormat = (column) => {
 .cell-edit-input,
 .cell-edit-boolean {
   /* Абсолютное позиционирование относительно .table-cell-wrapper */
-  position: absolute !important;
+  // position: absolute !important;
+  bottom: 0 !important;
   top: 0 !important;
   left: 0 !important;
-  width: 100% !important;  /* Занимает всю ширину ячейки */
+  right: 0 !important;
+  /*width: 100% !important;  !* Занимает всю ширину ячейки *!*/
   height: 100% !important; /* Занимает всю высоту ячейки */
   margin: 0 !important; /* Убираем возможные margin */
   padding: 4px 8px !important; /* Внутренние отступы */
@@ -984,9 +869,8 @@ const getDateTimeFormat = (column) => {
   background-color: #fff !important; /* Фон */
   color: inherit !important; /* Цвет текста */
   z-index: 1000 !important; /* Высокий z-index для отображения поверх */
-  /* Убираем все border-radius */
-  border-radius: 0 !important;
 
+  border-radius: 0 !important; /* Убираем все border-radius */
 
   /* Стили для конкретных типов полей */
   &.cell-edit-input--text,
@@ -1016,19 +900,19 @@ const getDateTimeFormat = (column) => {
   /* Мы пытаемся стилизовать ВСЕ внутренности */
   /* :deep не всегда работает корректно в scoped стилях, поэтому используем !important */
   :deep(*) {
-    width: 100% !important;
+/*    width: 100% !important;
     height: 100% !important;
     min-width: unset !important;
-    min-height: unset !important;
+    min-height: unset !important;*/
     max-width: 100% !important;
     max-height: 100% !important;
     margin: 0 !important;
     padding: 0 !important; /* Будем использовать padding у родителя */
-    border: none !important;
+    /*border: none !important;*/
     outline: none !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
-    border-radius: 0 !important;
+    /*border-radius: 0 !important;*/
   }
 
   /* Стили для input внутри */
@@ -1114,9 +998,9 @@ const getDateTimeFormat = (column) => {
   border: 1px solid #409eff !important; /* Добавляем явную рамку для видимости */
   background-color: #fff !important;
   z-index: 1000 !important;
-  position: absolute !important;
+ /* position: absolute !important;
   top: 0 !important;
-  left: 0 !important;
+  left: 0 !important;*/
 
   .text-boolean {
     cursor: pointer;

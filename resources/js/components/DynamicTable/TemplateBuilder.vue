@@ -1,160 +1,95 @@
 <!-- resources/js/components/DynamicTable/TemplateBuilder.vue -->
 <template>
-  <!-- Шаблон без изменений -->
   <div class="template-builder">
+    <!-- Заголовок -->
     <div class="builder-header">
-      <h2>Конструктор шаблона таблицы</h2>
+      <h2>{{ template.id ? `Редактирование шаблона: ${template.name}` : 'Создание нового шаблона' }}</h2>
       <div class="builder-actions">
-        <el-button
-            type="primary"
-            @click="saveTemplate"
-            :loading="saving"
-            :disabled="!canSave"
-        >
-          <el-icon v-if="saving">
-            <Loading />
-          </el-icon>
-          <span v-else>
-            <el-icon>
-              <Edit />
-            </el-icon>
-            {{ template.id ? 'Обновить шаблон' : 'Создать шаблон' }}
-          </span>
+        <el-button type="primary" @click="saveTemplate" :loading="saving" :disabled="!canSave">
+          <el-icon v-if="saving"><Loading /></el-icon>
+          <span v-else><el-icon><Edit /></el-icon>{{ template.id ? 'Обновить шаблон' : 'Создать шаблон' }}</span>
         </el-button>
         <el-button @click="resetForm">
-          <el-icon>
-            <Refresh />
-          </el-icon>
-          Сбросить
+          <el-icon><Refresh /></el-icon>Сбросить
+        </el-button>
+        <el-button @click="updatePreviewData">
+          <el-icon><Refresh /></el-icon>Обновить предпросмотр
         </el-button>
         <el-button @click="cancel">
-          <el-icon>
-            <Close />
-          </el-icon>
-          Отмена
+          <el-icon><Close /></el-icon>Отмена
         </el-button>
       </div>
     </div>
 
+    <!-- Форма шаблона -->
     <div class="form-section">
-      <el-form :model="template" :rules="rules" ref="templateForm" label-width="120px">
-        <el-form-item label="Название" prop="name">
-          <el-input
-              v-model="template.name"
-              placeholder="Введите название шаблона"
-          >
-            <template #suffix>
-              <el-icon>
-                <Edit />
-              </el-icon>
-            </template>
-          </el-input>
+      <el-form :model="template" :rules="rules" ref="templateForm" label-position="top">
+        <el-form-item label="Название шаблона" prop="name">
+          <el-input v-model="template.name" placeholder="Введите название шаблона" />
         </el-form-item>
       </el-form>
     </div>
 
-    <!-- Блок предварительного просмотра теперь выше, как и требуется -->
+    <!-- Блок предварительного просмотра -->
     <div class="preview-section">
       <h3>Предварительный просмотр</h3>
-      <div class="table-preview">
+      <div class="table-preview-container" ref="previewTableContainerRef">
         <div v-if="template.columns.length === 0" class="preview-empty">
           <el-empty description="Нет колонок для отображения" :image-size="60" />
         </div>
-        <div v-else class="preview-table-container" ref="previewTableContainer">
-          <table class="preview-table" ref="previewTable">
-            <thead>
-            <tr>
-              <th class="sort-handle"></th>
-              <th
-                  v-for="(column, index) in template.columns"
-                  :key="index"
-                  class="preview-th"
-                  :class="{
-                    'active': selectedPreviewColumnIndex === index,
-                    'preview-dragover-left': previewDragOverIndex === index && previewDragDirection === 'left',
-                    'preview-dragover-right': previewDragOverIndex === index && previewDragDirection === 'right'
-                  }"
-                  @click="selectPreviewColumn(index)"
-                  @dragover="previewDragOver($event, index)"
-                  @dragenter="previewDragEnter($event, index)"
-                  @dragleave="previewDragLeave($event, index)"
-                  @drop="previewDrop($event, index)"
-                  :style="{ width: columnWidths[index] ? `${columnWidths[index]}px` : 'auto' }"
-              >
-                {{ column.label }}
-              </th>
-              <!-- Заполнитель для вставки -->
-              <th
-                  v-if="previewDragOverIndex === template.columns.length"
-                  class="preview-th preview-dragover-right"
-                  :class="{
-                    'preview-dragover-left': previewDragDirection === 'left',
-                    'preview-dragover-right': previewDragDirection === 'right'
-                  }"
-                  @dragover="previewDragOver($event, template.columns.length)"
-                  @dragenter="previewDragEnter($event, template.columns.length)"
-                  @dragleave="previewDragLeave($event, template.columns.length)"
-                  @drop="previewDrop($event, template.columns.length)"
-                  :style="{ width: columnWidths[columnWidths.length - 1] ? `${columnWidths[columnWidths.length - 1]}px` : '100px' }"
-              >
-                &nbsp;
-              </th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr v-for="(row, rowIndex) in previewRows" :key="rowIndex">
-              <td class="sort-handle">
-                <el-icon>
-                  <MoreFilled />
-                </el-icon>
-              </td>
-              <td
-                  v-for="(column, colIndex) in template.columns"
-                  :key="colIndex"
-                  class="preview-td"
-                  :class="{
-                    'active': selectedPreviewColumnIndex === colIndex,
-                    'loading-reference': isReferenceLoading(column)
-                  }"
-                  :style="{ width: columnWidths[colIndex] ? `${columnWidths[colIndex]}px` : 'auto' }"
-              >
-                <!-- Используем реальный компонент ячейки для предпросмотра -->
-                <TableCell
-                    :column="column"
-                    :row-data="row"
-                    :value="row.data[column.tempId]"
-                    :is-editing="isCellEditing(rowIndex, colIndex)"
-                    :edit-value="getEditValue(rowIndex, colIndex)"
-                    @start-edit="startEditingCell(rowIndex, colIndex, $event)"
-                    @stop-edit="stopEditingCell"
-                    @update-value="updatePreviewCellValue"
-                    :reference-data="getReferenceDataForColumn(column)"
-                    @loading="handleReferenceLoading(column, $event)"
-                />
-              </td>
-            </tr>
-            </tbody>
-          </table>
-
-          <!-- Заполнитель для drag-and-drop в превью -->
-          <div
-              v-if="previewPlaceholderWidth > 0"
-              class="preview-drag-placeholder"
-              :style="{
-              left: `${previewPlaceholderLeft}px`,
-              top: `${previewPlaceholderTop}px`,
-              width: `${previewPlaceholderWidth}px`,
-              height: `${previewPlaceholderHeight}px`
-            }"
-          >
-            Вставить здесь
-          </div>
-        </div>
+        <table v-else class="preview-table" ref="previewTableRef">
+          <thead>
+          <tr>
+            <th class="sort-handle">#</th>
+            <th
+                v-for="(column, index) in sortedTemplateColumns"
+                :key="column.tempId"
+                class="preview-th"
+                :class="{
+                  'active': selectedPreviewColumnIndex === index
+                }"
+                @click="selectPreviewColumn(index)"
+                :style="{ width: columnWidths[index] ? `${columnWidths[index]}px` : 'auto' }"
+            >
+              {{ column.label }}
+            </th>
+          </tr>
+          </thead>
+          <tbody>
+          <tr v-for="(row, rowIndex) in previewRows" :key="rowIndex">
+            <td class="sort-handle">{{ rowIndex + 1 }}</td>
+            <td
+                v-for="(column, colIndex) in sortedTemplateColumns"
+                :key="colIndex"
+                class="preview-td"
+                :class="{
+                  'active': selectedPreviewColumnIndex === colIndex,
+                  'loading-reference': isReferenceLoading(column)
+                }"
+                :style="{ width: columnWidths[colIndex] ? `${columnWidths[colIndex]}px` : 'auto' }"
+            >
+              <!-- Используем реальный компонент ячейки для предпросмотра -->
+              <TableCell
+                  :column="column"
+                  :row-data="row"
+                  :value="row.rowData[column.tempId]"
+                  :is-editing="isCellEditing(rowIndex, colIndex)"
+                  :edit-value="getEditValue(rowIndex, colIndex)"
+                  @start-edit="startEditingCell(rowIndex, colIndex, $event)"
+                  @stop-edit="stopEditingCell"
+                  @update-value="updatePreviewCellValue"
+                  :reference-data="getReferenceDataForColumn(column)"
+              />
+            </td>
+          </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <!-- Блок колонок шаблона теперь ниже блока предпросмотра -->
+    <!-- Основной контент: Список колонок и Панель настроек -->
     <div class="builder-content">
+      <!-- Список колонок -->
       <div class="columns-section">
         <div class="section-header">
           <h3>Колонки шаблона</h3>
@@ -173,9 +108,7 @@
               />
             </el-select>
             <el-button type="success" @click="addColumn">
-              <el-icon>
-                <Plus />
-              </el-icon>
+              <el-icon><Plus /></el-icon>
               Добавить колонку
             </el-button>
           </div>
@@ -190,93 +123,107 @@
           Добавьте хотя бы одну колонку для создания шаблона
         </el-alert>
 
-        <div class="columns-table-container">
-          <div class="columns-table" ref="columnsList">
-            <draggable
-                v-model="template.columns"
-                @start="dragStart"
-                @end="dragEnd"
-                handle=".sort-handle"
-                ghost-class="drag-ghost"
-                chosen-class="drag-chosen"
-                drag-class="drag-class"
-                item-key="tempId"
-            >
-              <template #item="{ element, index }">
-                <div class="column-row" :class="{ 'active': selectedColumnIndex === index }">
-                  <div class="sort-handle">
-                    <el-icon>
-                      <Rank />
-                    </el-icon>
-                  </div>
+        <div class="columns-table-container" ref="columnsListRef">
+          <draggable
+              v-model="template.columns"
+              item-key="tempId"
+              tag="div"
+              class="columns-table"
+              :animation="200"
+              ghost-class="drag-ghost"
+              chosen-class="drag-chosen"
+              drag-class="drag-class"
+              @end="dragEnd"
+              handle=".sort-handle"
+              :scroll-sensitivity="100"
+              :scroll-speed="10"
+              :force-fallback="true"
+              :fallback-tolerance="5"
+              :fallback-on-body="true"
+              ref="columnsDraggableRef"
+          >
+            <template #item="{ element, index }">
+              <div
+                  class="column-row"
+                  :class="{
+                    'active': selectedColumnIndex === index,
+                    'drag-over-top': dragOverIndex === index && dragDirection === 'top',
+                    'drag-over-bottom': dragOverIndex === index && dragDirection === 'bottom'
+                  }"
+                  @click="selectColumn(index)"
+                  @dragover="listDragOver($event, index)"
+                  @dragenter="listDragEnter($event, index)"
+                  @dragleave="listDragLeave"
+                  @drop="listDrop($event, index)"
+                  draggable="true"
+                  @dragstart="listDragStart($event, index)"
+                  @dragend="listDragEnd"
+              >
+                <div class="sort-handle">
+                  <el-icon><Rank /></el-icon>
+                </div>
 
-                  <div class="column-name" @click="selectColumn(index)" @dblclick="startInlineEdit(index)">
-                    <div class="name-header">
-                      <!-- Инлайн редактирование названия колонки -->
-                      <div v-if="isEditingColumn(index)" class="inline-edit">
-                        <el-input
-                            ref="inlineEditInputRef"
-                            v-model="editingColumnValue"
-                            @blur="saveInlineEdit"
-                            @keyup.enter="saveInlineEdit"
-                            @keyup.esc="cancelInlineEdit"
-                            @click.stop
-                            autofocus
-                            class="inline-edit-input"
-                        />
-                      </div>
-                      <div v-else class="name-display">
-                        <span class="name-text">{{ element.label || 'Без названия' }}</span>
-                        <el-icon class="edit-icon" @click.stop="startInlineEdit(index)">
-                          <Edit />
-                        </el-icon>
-                      </div>
-
-                      <el-tag size="small" type="info" class="column-type">
-                        {{ getColumnTypeName(element.type) }}
-                      </el-tag>
+                <div class="column-name" @dblclick="startInlineEdit(index)">
+                  <div class="name-header">
+                    <div v-if="isEditingColumn(index)" class="inline-edit">
+                      <el-input
+                          ref="inlineEditInputRef"
+                          v-model="editingColumnValue"
+                          @blur="saveInlineEdit"
+                          @keyup.enter="saveInlineEdit"
+                          @keyup.esc="cancelInlineEdit"
+                          @click.stop
+                          size="small"
+                      />
                     </div>
-                  </div>
+                    <div v-else class="name-display">
+                      <span class="name-text">{{ element.label || 'Без названия' }}</span>
+                      <el-icon class="edit-icon" @click.stop="startInlineEdit(index)">
+                        <Edit />
+                      </el-icon>
+                    </div>
 
-                  <div class="column-actions">
-                    <el-button
-                        size="small"
-                        type="primary"
-                        circle
-                        @click.stop="selectColumn(index)"
-                    >
-                      <el-icon>
-                        <Setting />
-                      </el-icon>
-                    </el-button>
-                    <el-button
-                        size="small"
-                        type="danger"
-                        circle
-                        @click.stop="removeColumn(index)"
-                    >
-                      <el-icon>
-                        <Delete />
-                      </el-icon>
-                    </el-button>
+                    <el-tag size="small" type="info" class="column-type">
+                      {{ getColumnTypeName(element.type) }}
+                    </el-tag>
                   </div>
                 </div>
-              </template>
-            </draggable>
-          </div>
+
+                <div class="column-actions">
+                  <el-button
+                      size="small"
+                      type="primary"
+                      circle
+                      @click.stop="selectColumn(index)"
+                      title="Настройки"
+                  >
+                    <el-icon><Setting /></el-icon>
+                  </el-button>
+                  <el-button
+                      size="small"
+                      type="danger"
+                      circle
+                      @click.stop="removeColumn(index)"
+                      title="Удалить"
+                  >
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </div>
+              </div>
+            </template>
+          </draggable>
         </div>
       </div>
 
+      <!-- Панель настроек колонки -->
       <div class="column-settings-panel">
         <div v-if="selectedColumn" class="column-settings">
           <h4>
-            <el-icon>
-              <Setting />
-            </el-icon>
+            <el-icon><Setting /></el-icon>
             Настройки колонки: {{ selectedColumn.label }}
           </h4>
 
-          <el-form label-position="top" class="settings-form">
+          <el-form label-position="top" class="settings-form" size="small">
             <el-form-item label="Тип колонки">
               <el-select
                   v-model="selectedColumn.type"
@@ -325,23 +272,25 @@
                 <div class="options-list">
                   <draggable
                       v-model="selectedColumn.options"
-                      @end="updatePreviewData"
-                      handle=".option-handle"
+                      item-key="index"
+                      tag="div"
+                      class="draggable-options-list"
+                      :animation="200"
                       ghost-class="drag-ghost"
                       chosen-class="drag-chosen"
                       drag-class="drag-class"
-                      item-key="index"
+                      @end="updatePreviewData"
+                      handle=".option-handle"
                   >
                     <template #item="{ element, index }">
                       <div class="option-item">
                         <div class="option-handle">
-                          <el-icon>
-                            <Rank />
-                          </el-icon>
+                          <el-icon><Rank /></el-icon>
                         </div>
                         <el-input
                             v-model="selectedColumn.options[index]"
                             @blur="updatePreviewData"
+                            size="small"
                         />
                         <el-button
                             type="danger"
@@ -349,9 +298,7 @@
                             circle
                             @click="removeOption(index)"
                         >
-                          <el-icon>
-                            <Delete />
-                          </el-icon>
+                          <el-icon><Delete /></el-icon>
                         </el-button>
                       </div>
                     </template>
@@ -363,9 +310,7 @@
                       @click="addOption"
                       class="add-option-btn"
                   >
-                    <el-icon>
-                      <Plus />
-                    </el-icon>
+                    <el-icon><Plus /></el-icon>
                     Добавить вариант
                   </el-button>
                 </div>
@@ -394,25 +339,25 @@
             <div v-if="selectedColumn.type === 'boolean'" class="boolean-settings">
               <el-form-item label="Тип отображения">
                 <el-radio-group
-                    v-model="selectedBooleanSettings.displayType"
-                    @change="handleBooleanSettingChange('displayType', $event)"
+                    v-model="selectedColumn.booleanSettings.displayType"
+                    @change="onBooleanDisplayTypeChange"
                 >
-                  <el-radio label="toggle">Переключатель</el-radio>
-                  <el-radio label="checkbox">Чекбокс</el-radio>
-                  <el-radio label="text">Текст</el-radio>
+                  <el-radio label="toggle" size="small">Переключатель</el-radio>
+                  <el-radio label="checkbox" size="small">Чекбокс</el-radio>
+                  <el-radio label="text" size="small">Текст</el-radio>
                 </el-radio-group>
               </el-form-item>
 
               <el-form-item
                   label="Подписи"
-                  v-if="selectedBooleanSettings.displayType === 'text'"
+                  v-if="selectedColumn.booleanSettings.displayType === 'text'"
               >
                 <div class="boolean-text-settings">
                   <div class="text-input">
                     <span>Да:</span>
                     <el-input
-                        v-model="selectedBooleanSettings.trueLabel"
-                        @input="handleBooleanSettingChange('trueLabel', $event)"
+                        v-model="selectedColumn.booleanSettings.trueLabel"
+                        @input="updatePreviewData"
                         size="small"
                         placeholder="Да"
                     />
@@ -420,8 +365,8 @@
                   <div class="text-input">
                     <span>Нет:</span>
                     <el-input
-                        v-model="selectedBooleanSettings.falseLabel"
-                        @input="handleBooleanSettingChange('falseLabel', $event)"
+                        v-model="selectedColumn.booleanSettings.falseLabel"
+                        @input="updatePreviewData"
                         size="small"
                         placeholder="Нет"
                     />
@@ -437,6 +382,7 @@
                     v-model="selectedColumn.reference.entityType"
                     @change="onReferenceTypeChange"
                     placeholder="Выберите тип справочника"
+                    :loading="loadingReferenceTypes"
                 >
                   <el-option
                       v-for="entity in entityTypes"
@@ -451,19 +397,47 @@
                 <div class="format-input">
                   <el-input
                       v-model="selectedColumn.reference.displayFormat"
-                      placeholder="Введите формат отображения"
+                      placeholder="Введите формат отображения (например, {name} ({country}))"
+                      @input="updatePreviewData"
                   />
                   <div class="format-hint">
                     Доступные поля:
-                    <span
-                        v-for="(key, index) in getAvailableKeys(selectedColumn.reference.entityType)"
-                        :key="index"
-                        class="format-key"
-                        draggable="true"
-                        @dragstart="dragStartKey($event, key)"
-                    >
-                      {{ key }}
+                    <span v-if="!selectedColumn.reference.entityType">Выберите тип справочника</span>
+                    <span v-else-if="loadingReferenceFields && !referenceFields[selectedColumn.reference.entityType]">
+                      <el-icon class="is-loading"><Loading /></el-icon> Загрузка...
                     </span>
+                    <span v-else-if="referenceFieldLoadError">
+                      <el-icon><Warning /></el-icon> {{ referenceFieldLoadError }}
+                    </span>
+                    <draggable
+                        v-else-if="selectedColumn.reference.entityType && referenceFields[selectedColumn.reference.entityType]"
+                        :list="referenceFields[selectedColumn.reference.entityType]"
+                        item-key="key"
+                        group="{ name: 'referenceFields', pull: 'clone', put: false }"
+                        :sort="false"
+                        :clone="cloneReferenceField"
+                        ghost-class="ghost"
+                        chosen-class="chosen"
+                        drag-class="drag"
+                        :force-fallback="true"
+                        tag="span"
+                        style="display: inline;"
+                    >
+                      <template #item="{ element }">
+                        <span
+                            class="format-key"
+                            draggable="true"
+                            @dragstart="dragStartKey($event, element.key)"
+                            :title="`Перетащите {${element.key}} в поле формата`"
+                        >
+                          {{ element.key }}
+                        </span>
+                      </template>
+                    </draggable>
+                    <span v-else-if="selectedColumn.reference.entityType && !referenceFields[selectedColumn.reference.entityType]">
+                        Нет доступных полей (ошибка загрузки?)
+                    </span>
+                    <span v-else>Выберите тип справочника</span>
                   </div>
                 </div>
               </el-form-item>
@@ -486,92 +460,28 @@
 </template>
 
 <script setup>
-// Импорты без изменений
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage, ElNotification } from 'element-plus';
+import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import {
+  Loading,
   Edit,
   Close,
   Refresh,
+  Rank,
   Plus,
   Delete,
-  Rank,
-  MoreFilled,
-  Loading,
-  Setting
+  Setting,
+  Warning
 } from '@element-plus/icons-vue';
 import draggable from 'vuedraggable';
-import ReferenceSelector from './ReferenceSelector.vue';
 import TableCell from './TableCell.vue';
-
-// Используем относительные пути (./) вместо глобальных (@/)
-import {
-  formatReferenceDisplay,
-  getExampleFormat,
-  getAvailableKeys,
-  getNestedValue
-} from './utils/referenceUtils';
-import {
-  getBooleanSetting,
-  setBooleanSetting,
-  parseBooleanValue
-} from './utils/booleanUtils';
 import { templateService } from './services/templateService';
-import { dataSource } from './services/DataSource';
+import { referenceService } from './services/referenceService';
+import { MOCK_REFERENCE_DATA } from './services/mockData';
+import { formatReferenceDisplay } from './utils/referenceUtils';
 
-// Получаем параметры маршрута
-const route = useRoute();
-const router = useRouter();
-const templateId = route.params.id ? parseInt(route.params.id) : null;
-const templateForm = ref(null);
-// Состояние
-const template = ref({
-  id: null,
-  name: '',
-  columns: []
-});
-
-const previewData = ref({}); // Хранит примерные данные для каждой колонки по tempId
-const columnWidths = ref([]);
-const saving = ref(false);
-const selectedColumnIndex = ref(null);
-const selectedPreviewColumnIndex = ref(null);
-const previewTable = ref(null);
-const previewTableContainer = ref(null); // Ref для контейнера предпросмотра
-const columnsList = ref(null);
-const inlineEditInputRef = ref([]);
-// editInputRef больше не нужен, так как редактирование будет обрабатываться TableCell
-
-// Для drag-and-drop
-const currentDragIndex = ref(null);
-const dragOverIndex = ref(null);
-const dragDirection = ref(null);
-const currentPreviewColumn = ref(null);
-const previewDragOverIndex = ref(null);
-const previewDragDirection = ref(null);
-
-// Позиции заполнителей
-const dragPlaceholderTop = ref(0);
-const dragPlaceholderHeight = ref(0);
-const previewPlaceholderLeft = ref(0);
-const previewPlaceholderWidth = ref(0);
-const previewPlaceholderTop = ref(0);
-const previewPlaceholderHeight = ref(0);
-
-// Для инлайн-редактирования
-const editingColumn = ref(null);
-const newColumnType = ref(null);
-
-// Для редактирования ячеек в превью
-const editingCell = ref(null); // { rowIndex, colIndex, value }
-
-// Для загрузки справочников
-const referenceOptions = ref({}); // Хранилище данных справочников
-const loadingReferences = ref(new Set()); // Отслеживаем загружаемые справочники
-const loadedReferences = ref(new Set()); // Отслеживаем загруженные справочники
-
-// Типы колонок
+// === Определения типов и данных ===
 const columnTypes = [
   { value: 'text', label: 'Текст' },
   { value: 'number', label: 'Число' },
@@ -579,712 +489,293 @@ const columnTypes = [
   { value: 'date', label: 'Дата' },
   { value: 'datetime', label: 'Дата и время' },
   { value: 'boolean', label: 'Да/Нет' },
-  { value: 'reference', label: 'Справочник' }
+  { value: 'reference', label: 'Справочник' },
 ];
 
-// Типы данных для текста
 const textDataTypes = [
   { value: 'string', label: 'Строка' },
   { value: 'email', label: 'Email' },
-  { value: 'phone', label: 'Телефон' },
-  { value: 'url', label: 'URL' }
+  { value: 'url', label: 'URL' },
 ];
 
-// Форматы даты
 const dateFormats = [
-  { value: 'YYYY-MM-DD', label: 'Год-Месяц-День', example: '2023-10-15' },
-  { value: 'DD.MM.YYYY', label: 'День.Месяц.Год', example: '15.10.2023' },
-  { value: 'MM/DD/YYYY', label: 'Месяц/День/Год', example: '10/15/2023' },
-  { value: 'DD MMM YYYY', label: 'День Месяц Год', example: '15 Oct 2023' },
-  { value: 'YYYY/MM/DD', label: 'Год/Месяц/День', example: '2023/10/15' },
-  { value: 'DD-MM-YYYY', label: 'День-Месяц-Год', example: '15-10-2023' },
-  { value: 'YYYY-MM-DD HH:mm', label: 'Год-Месяц-День Часы:Минуты', example: '2023-10-15 14:30' },
-  { value: 'HH:mm', label: 'Часы:Минуты', example: '14:30' }
+  { value: 'YYYY-MM-DD', label: 'ГГГГ-ММ-ДД', example: '2023-10-27' },
+  { value: 'DD.MM.YYYY', label: 'ДД.ММ.ГГГГ', example: '27.10.2023' },
+  { value: 'MM/DD/YYYY', label: 'ММ/ДД/ГГГГ', example: '10/27/2023' },
+  { value: 'DD MMM YYYY', label: 'ДД МММ ГГГГ', example: '27 Oct 2023' },
+  { value: 'YYYY-MM-DD HH:mm', label: 'ГГГГ-ММ-ДД ЧЧ:мм', example: '2023-10-27 14:30' },
+  { value: 'DD.MM.YYYY HH:mm', label: 'ДД.ММ.ГГГГ ЧЧ:мм', example: '27.10.2023 14:30' },
 ];
 
-// Типы сущностей для справочника
-const entityTypes = [
-  { value: 'accessory', label: 'Аксессуар' },
-  { value: 'brand', label: 'Бренд' },
-  { value: 'device_type', label: 'Тип устройства' },
-  { value: 'MeasurementCategory', label: 'Категория Единиц измерения' }
-];
-
-// Вычисляемое свойство для данных предпросмотра строк
-// Каждая "строка" предпросмотра получает данные из previewData
-const previewRows = computed(() => {
-  return [
-    {
-      id: 1, // Фиктивный ID для строки предпросмотра
-      data: { ...previewData.value } // Копируем все примерные данные в data строки
-    }
-  ];
+// === Состояния ===
+const route = useRoute();
+const router = useRouter();
+const templateForm = ref(null);
+const template = ref({
+  id: null,
+  name: '',
+  columns: [],
 });
-
-// Вычисляемое свойство для текущей выбранной колонки
+const selectedColumnIndex = ref(null);
+const selectedPreviewColumnIndex = ref(null);
 const selectedColumn = computed(() => {
-  if (selectedColumnIndex.value === null) return null;
+  if (selectedColumnIndex.value === null || !template.value.columns) return null;
   return template.value.columns[selectedColumnIndex.value];
 });
 
-// Проверка, загружены ли данные для справочника
-const hasReferenceData = (column) => {
-  if (column.type !== 'reference' || !column.reference || !column.reference.entityType) {
-    return true;
-  }
+const saving = ref(false);
+// === Состояния для работы со справочниками ===
+const loadingReferenceTypes = ref(false);
+const entityTypes = ref([]);
+const referenceFields = ref({}); // { entityType: [fields...] }
+const loadingReferenceFields = ref(false);
+const referenceFieldLoadError = ref('');
 
-  return loadedReferences.value.has(column.reference.entityType);
+const newColumnType = ref('text');
+const rules = {
+  name: [
+    { required: true, message: 'Пожалуйста, введите название шаблона', trigger: 'blur' },
+    { min: 3, max: 100, message: 'Название должно быть от 3 до 100 символов', trigger: 'blur' }
+  ]
 };
 
-// Проверка, загружается ли справочник
-const isReferenceLoading = (column) => {
-  if (column.type !== 'reference' || !column.reference || !column.reference.entityType) {
-    return false;
-  }
+// --- Inline Edit ---
+const isEditingColumnName = ref(false);
+const editingColumnIndex = ref(null);
+const editingColumnValue = ref('');
+const inlineEditInputRef = ref(null);
 
-  return loadingReferences.value.has(column.reference.entityType);
-};
+// --- Preview Data ---
+// previewRows теперь массив объектов { rowData, order }
+const previewRows = ref([]);
+const previewData = ref({});
+const columnWidths = ref([]);
 
-// Вычисляемое свойство для данных предпросмотра выбранной колонки
-const getFormattedReferencePreview = computed(() => {
-  if (!selectedColumn.value || selectedColumn.value.type !== 'reference' || !selectedColumn.value.reference) {
-    return '';
-  }
+// --- Cell Editing ---
+const editingCell = ref({ rowIndex: null, colIndex: null, value: null });
 
-  const entityType = selectedColumn.value.reference.entityType;
+// --- Drag & Drop состояния ---
+const currentDragIndex = ref(null);
+const dragOverIndex = ref(null);
+const dragDirection = ref(null);
 
-  // Если данные еще не загружены, запускаем загрузку
-  if (!loadedReferences.value.has(entityType) && !loadingReferences.value.has(entityType)) {
-    loadReferenceData(entityType);
-    return 'Загрузка...';
-  }
+// --- Refs ---
+const columnsListRef = ref(null);
+const previewTableContainerRef = ref(null);
+const previewTableRef = ref(null);
+const columnsDraggableRef = ref(null);
 
-  // Если данные загружаются, показываем статус
-  if (loadingReferences.value.has(entityType)) {
-    return 'Загрузка...';
-  }
-
-  // Если данные загружены, но пустые
-  if (loadedReferences.value.has(entityType) && (!referenceOptions.value[entityType] || referenceOptions.value[entityType].length === 0)) {
-    return 'Нет данных';
-  }
-
-  // Берем первый элемент из справочника для примера
-  const item = referenceOptions.value[entityType][0];
-  return formatReferenceDisplay(item, selectedColumn.value);
+// === Вычисляемые свойства ===
+const canSave = computed(() => {
+  return template.value.name.trim() !== '' && template.value.columns.length > 0;
 });
 
-// Вычисляемое свойство для безопасного доступа к настройкам boolean
-const selectedBooleanSettings = computed({
-  get: () => {
-    if (!selectedColumn.value || selectedColumn.value.type !== 'boolean') {
-      return {
-        displayType: 'toggle',
-        trueLabel: 'Да',
-        falseLabel: 'Нет'
-      };
-    }
-
-    return {
-      displayType: getBooleanSetting(selectedColumn.value, 'displayType') || 'toggle',
-      trueLabel: getBooleanSetting(selectedColumn.value, 'trueLabel') || 'Да',
-      falseLabel: getBooleanSetting(selectedColumn.value, 'falseLabel') || 'Нет'
-    };
-  },
-  set: (newSettings) => {
-    if (!selectedColumn.value || selectedColumn.value.type !== 'boolean') {
-      return;
-    }
-
-    // Создаем объект настроек
-    const settings = {
-      displayType: newSettings.displayType || 'toggle',
-      trueLabel: newSettings.trueLabel || 'Да',
-      falseLabel: newSettings.falseLabel || 'Нет'
-    };
-
-    // Устанавливаем настройки в колонку
-    setBooleanSetting(selectedColumn.value, settings);
-  }
+// Сортировка колонок по order перед отображением в превью
+const sortedTemplateColumns = computed(() => {
+  return [...template.value.columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 });
 
-// Вычисляемое свойство для безопасного доступа к значению редактирования
-const editingColumnValue = computed({
-  get: () => {
-    return editingColumn.value ? editingColumn.value.newValue : '';
-  },
-  set: (value) => {
-    if (editingColumn.value) {
-      editingColumn.value.newValue = value;
-    }
-  }
-});
+// === Методы ===
 
-// === ИНТЕГРАЦИЯ TABLECELL: Новые методы и данные ===
-// Получение значения для редактирования ячейки
-const getEditValue = (rowIndex, colIndex) => {
-  if (editingCell.value &&
-      editingCell.value.rowIndex === rowIndex &&
-      editingCell.value.colIndex === colIndex) {
-    return editingCell.value.value;
-  }
-  return null; // или какое-то значение по умолчанию
-};
-
-// Получение данных справочника для конкретной колонки
-const getReferenceDataForColumn = (column) => {
-  if (column.type === 'reference' && column.reference && column.reference.entityType) {
-    return referenceOptions.value[column.reference.entityType] || [];
-  }
-  return [];
-};
-
-// Обработчик события загрузки из ReferenceSelector (и TableCell)
-const handleReferenceLoading = (column, isLoading) => {
-  if (column.type === 'reference' && column.reference && column.reference.entityType) {
-    if (isLoading) {
-      loadingReferences.value.add(column.reference.entityType);
-    } else {
-      loadingReferences.value.delete(column.reference.entityType);
-      loadedReferences.value.add(column.reference.entityType);
-    }
-  }
-};
-
-// Загрузка данных справочника
-const loadReferenceData = async (entityType) => {
-  if (!entityType || loadedReferences.value.has(entityType)) {
-    return;
-  }
-
-  loadingReferences.value.add(entityType);
+// --- Инициализация ---
+const loadTemplate = async () => {
+  const templateId = route.params.id;
+  if (!templateId) return;
 
   try {
-    // Загружаем данные через сервис
-    const response = await dataSource.getReferenceData(entityType);
-
-    console.log('TemplateBuilder loadReferenceData ', response)
-
-    // Сохраняем данные
-    referenceOptions.value[entityType] = response.data || [];;
-    loadedReferences.value.add(entityType);
-  } catch (error) {
-    console.error(`Ошибка загрузки данных справочника (${entityType}):`, error);
-    ElMessage.error(`Не удалось загрузить данные справочника "${entityType}"`);
-
-    // Даже при ошибке помечаем как загруженный, чтобы не пытаться загружать повторно
-    loadedReferences.value.add(entityType);
-  } finally {
-    loadingReferences.value.delete(entityType);
-  }
-};
-
-// Обработчик изменения типа справочника
-const onReferenceTypeChange = () => {
-  // Если тип справочника изменен, загружаем данные
-  if (selectedColumn.value.reference && selectedColumn.value.reference.entityType) {
-    loadReferenceData(selectedColumn.value.reference.entityType);
-  }
-};
-
-// Методы для редактирования ячеек в превью
-const startEditingCell = (rowIndex, colIndex, value) => {
-  editingCell.value = { rowIndex, colIndex, value };
-};
-
-const isCellEditing = (rowIndex, colIndex) => {
-  return editingCell.value &&
-      editingCell.value.rowIndex === rowIndex &&
-      editingCell.value.colIndex === colIndex;
-};
-
-const stopEditingCell = () => {
-  editingCell.value = null;
-};
-
-const cancelEditingCell = () => {
-  editingCell.value = null;
-};
-
-// Обновление значения в previewData при изменении в TableCell
-const updatePreviewCellValue = (newValue) => {
-  if (editingCell.value) {
-    const { rowIndex, colIndex } = editingCell.value;
-    const column = template.value.columns[colIndex];
-    if (column && column.tempId) {
-      previewData.value[column.tempId] = newValue;
-      // Обновляем данные в previewRows
-      // В данном случае previewRows вычисляется из previewData, поэтому достаточно обновить previewData
+    const response = await templateService.get(templateId);
+    template.value = {
+      ...response,
+      columns: response.columns.map(col => ({
+        ...col,
+        tempId: col.tempId || col.id || Date.now() + Math.random(),
+        booleanSettings: col.type === 'boolean' ? (col.booleanSettings || {
+          displayType: 'toggle',
+          trueLabel: 'Да',
+          falseLabel: 'Нет'
+        }) : undefined,
+        reference: col.type === 'reference' ? (col.reference || {
+          entityType: '',
+          displayFormat: ''
+        }) : undefined,
+        options: col.options || [],
+        dataType: col.dataType || 'string',
+        unit: col.unit || '',
+        dateFormat: col.dateFormat || 'DD.MM.YYYY'
+      }))
+    };
+    if (template.value.columns.length > 0) {
+      selectColumn(0);
     }
+    updatePreviewData();
+    ElMessage.success('Шаблон загружен');
+  } catch (error) {
+    let errorMessage = 'Не удалось загрузить шаблон';
+    if (error.response?.status === 404) {
+      errorMessage = 'Шаблон не найден';
+      router.push({ name: 'TemplateList' });
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Ошибка сети: Проверьте подключение или настройки CORS сервера.';
+    }
+    ElMessage.error(errorMessage);
   }
-  stopEditingCell();
-};
-// === КОНЕЦ ИНТЕГРАЦИИ TABLECELL ===
-
-// Методы
-const getColumnTypeName = (type) => {
-  const columnType = columnTypes.find(ct => ct.value === type);
-  return columnType ? columnType.label : 'Неизвестный тип';
 };
 
+const loadEntityTypes = async () => {
+  loadingReferenceTypes.value = true;
+  try {
+    const typesResponse = await referenceService.getTypes();
+    entityTypes.value = typesResponse.data?.map(type => ({
+      value: type.value || type.name,
+      label: type.label || type.name,
+      description: type.description
+    })) || [];
+  } catch (error) {
+    let errorMessage = 'Не удалось загрузить типы справочников';
+    if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Ошибка сети (CORS) при загрузке типов справочников.';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    ElMessage.error(errorMessage);
+    entityTypes.value = [];
+  } finally {
+    loadingReferenceTypes.value = false;
+  }
+};
+
+const generateTempId = () => {
+  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
+
+// --- Работа с колонками ---
 const addColumn = () => {
-  if (!newColumnType.value) return;
-
-  const tempId = Date.now();
+  const type = newColumnType.value || 'text';
   const newColumn = {
-    tempId,
-    type: newColumnType.value,
+    tempId: generateTempId(),
+    type: type,
     label: `Колонка ${template.value.columns.length + 1}`,
-    order: template.value.columns.length
+    order: template.value.columns.length,
+    options: [],
+    dataType: 'string',
+    unit: '',
+    reference: type === 'reference' ? {
+      entityType: '',
+      displayFormat: ''
+    } : null,
+    booleanSettings: type === 'boolean' ? {
+      displayType: 'toggle',
+      trueLabel: 'Да',
+      falseLabel: 'Нет'
+    } : null,
+    dateFormat: type === 'date' ? 'DD.MM.YYYY' : (type === 'datetime' ? 'DD.MM.YYYY HH:mm' : 'DD.MM.YYYY')
   };
-
-  // Инициализация специфичных полей для каждого типа
-  switch (newColumnType.value) {
-    case 'reference':
-      newColumn.reference = {
-        entityType: 'accessory',
-        displayFormat: getExampleFormat('accessory')
-      };
-      // Загружаем данные справочника
-      loadReferenceData('accessory');
-      break;
-
-    case 'boolean':
-      newColumn.booleanSettings = {
-        displayType: 'toggle',
-        trueLabel: 'Да',
-        falseLabel: 'Нет'
-      };
-      break;
-
-    case 'date':
-    case 'datetime':
-      newColumn.dateFormat = newColumnType.value === 'datetime' ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD';
-      break;
-
-    case 'select':
-      newColumn.options = ['Вариант 1', 'Вариант 2'];
-      break;
-
-    case 'number':
-      newColumn.unit = '';
-      break;
-
-    case 'text':
-      newColumn.dataType = 'string';
-      break;
-  }
-
   template.value.columns.push(newColumn);
-
-  // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Инициализируем previewData для новой колонки ===
-  previewData.value[tempId] = '';
-  updatePreviewDataForColumn(newColumn); // Обновляем примерные данные для новой колонки
-  // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
-
-  // Выбираем новую колонку для настройки
   selectColumn(template.value.columns.length - 1);
-
-  // Сбрасываем выбор типа колонки
-  newColumnType.value = null;
+  updatePreviewData();
+  newColumnType.value = 'text';
 };
 
 const removeColumn = (index) => {
-  const column = template.value.columns[index];
-  if (column.tempId && previewData.value[column.tempId] !== undefined) {
-    delete previewData.value[column.tempId];
-  }
-  template.value.columns.splice(index, 1);
-
-  // Сбрасываем выбор колонки, если удаляемая была выбрана
-  if (selectedColumnIndex.value === index) {
-    selectedColumnIndex.value = null;
-  }
-  // Также сбрасываем выбор колонки предпросмотра
-  if (selectedPreviewColumnIndex.value === index) {
-    selectedPreviewColumnIndex.value = null;
-  }
+  ElMessageBox.confirm('Вы уверены, что хотите удалить эту колонку?', 'Подтверждение', {
+    confirmButtonText: 'Да',
+    cancelButtonText: 'Отмена',
+    type: 'warning',
+  }).then(() => {
+    const removedColumn = template.value.columns.splice(index, 1)[0];
+    template.value.columns.forEach((col, i) => {
+      col.order = i;
+    });
+    if (selectedColumnIndex.value >= template.value.columns.length) {
+      selectedColumnIndex.value = template.value.columns.length > 0 ? template.value.columns.length - 1 : null;
+    } else if (selectedColumnIndex.value === index) {
+      selectedColumnIndex.value = template.value.columns.length > 0 ? Math.min(index, template.value.columns.length - 1) : null;
+    }
+    if (selectedPreviewColumnIndex.value >= template.value.columns.length) {
+      selectedPreviewColumnIndex.value = template.value.columns.length > 0 ? template.value.columns.length - 1 : null;
+    } else if (selectedPreviewColumnIndex.value === index) {
+      selectedPreviewColumnIndex.value = template.value.columns.length > 0 ? Math.min(index, template.value.columns.length - 1) : null;
+    }
+    updatePreviewData();
+    ElMessage.success(`Колонка "${removedColumn.label}" удалена`);
+  });
 };
 
 const selectColumn = (index) => {
   selectedColumnIndex.value = index;
   selectedPreviewColumnIndex.value = index;
+  const column = selectedColumn.value;
 
-  // Прокручиваем к выбранной колонке
-  scrollToColumn(index);
+  if (column && column.type === 'reference') {
+    column.reference = column.reference || { entityType: '', displayFormat: '' };
+    const entityType = column.reference.entityType;
+
+    if (entityType && (!referenceFields.value[entityType] || referenceFields.value[entityType].length === 0)) {
+      loadReferenceFields(entityType);
+    }
+  }
 };
 
 const selectPreviewColumn = (index) => {
-  selectedPreviewColumnIndex.value = index;
-  selectedColumnIndex.value = index;
-
-  // Прокручиваем к выбранной колонке в списке
-  scrollToColumn(index);
+  selectColumn(index);
 };
 
-// Инлайн редактирование
-const startInlineEdit = (index) => {
-  const column = template.value.columns[index];
-  editingColumn.value = {
-    index,
-    originalValue: column.label,
-    newValue: column.label
-  };
+const getColumnTypeName = (type) => {
+  const found = columnTypes.find(t => t.value === type);
+  return found ? found.label : type;
+};
 
+// --- Inline Edit ---
+const startInlineEdit = (index) => {
+  isEditingColumnName.value = true;
+  editingColumnIndex.value = index;
+  editingColumnValue.value = template.value.columns[index].label || '';
   nextTick(() => {
-    if (inlineEditInputRef.value && inlineEditInputRef.value[index]) {
-      const input = inlineEditInputRef.value[index];
-      if (input && input.focus) {
-        input.focus();
-        input.select();
-      }
+    if (inlineEditInputRef.value && inlineEditInputRef.value.focus) {
+      inlineEditInputRef.value.focus();
     }
   });
-};
-
-const isEditingColumn = (index) => {
-  return editingColumn.value && editingColumn.value.index === index;
 };
 
 const saveInlineEdit = () => {
-  if (editingColumn.value) {
-    const { index, newValue } = editingColumn.value;
-    template.value.columns[index].label = String(newValue || '');
-    editingColumn.value = null;
-
-    // Обновляем данные предпросмотра
+  if (editingColumnIndex.value !== null && editingColumnValue.value.trim() !== '') {
+    template.value.columns[editingColumnIndex.value].label = editingColumnValue.value.trim();
     updatePreviewData();
   }
+  cancelInlineEdit();
 };
 
 const cancelInlineEdit = () => {
-  if (editingColumn.value) {
-    const { index, originalValue } = editingColumn.value;
-    template.value.columns[index].label = String(originalValue || '');
-    editingColumn.value = null;
-  }
+  isEditingColumnName.value = false;
+  editingColumnIndex.value = null;
+  editingColumnValue.value = '';
 };
 
-// Drag-and-drop методы
-const dragStart = (event) => {
-  // draggable уже управляет моделью, но мы можем добавить дополнительную логику
-  // если нужно. Например, сохранить индекс перетаскиваемого элемента.
-  // event.item - это DOM элемент, который перетаскивается
+const isEditingColumn = (index) => {
+  return isEditingColumnName.value && editingColumnIndex.value === index;
 };
 
-const dragEnd = (event) => {
-  // Сброс состояния DnD после завершения перетаскивания с помощью draggable
-  resetDragState();
-  // Обновляем данные предпросмотра, так как порядок колонок мог измениться
-  updatePreviewData();
-};
+// --- Настройки типа колонки ---
+const onColumnTypeChange = async () => {
+  if (!selectedColumn.value) return;
 
-// Методы для DnD в списке колонок (для событий dragover, dragenter, dragleave, drop)
-const dragOver = (event, index) => {
-  event.preventDefault();
-};
-
-const dragEnter = (event, index) => {
-  event.preventDefault();
-  // Не обрабатываем, если это дочерний элемент
-  const targetRow = event.target.closest('.column-row');
-  if (!targetRow) return;
-
-  const rect = targetRow.getBoundingClientRect();
-  const y = event.clientY - rect.top;
-
-  // Определяем направление вставки (сверху или снизу)
-  if (y < rect.height / 2) {
-    dragDirection.value = 'top';
-  } else {
-    dragDirection.value = 'bottom';
-  }
-
-  dragOverIndex.value = index;
-  updatePlaceholderPositions();
-};
-
-const dragLeave = () => {
-  // dragOverIndex.value = null;
-  // dragDirection.value = null;
-  // updatePlaceholderPositions();
-};
-
-const drop = (event, index) => {
-  event.preventDefault();
-  const draggedIndex = currentDragIndex.value;
-
-  if (draggedIndex === null || draggedIndex === index) {
-    resetDragState();
+  if (selectedColumn.value.type === 'reference') {
     return;
   }
 
-  let targetIndex = index;
-  // Корректируем индекс вставки в зависимости от направления
-  if (dragDirection.value === 'bottom' && index >= draggedIndex) {
-    targetIndex += 1;
-  }
-  if (dragDirection.value === 'top' && index > draggedIndex) {
-    targetIndex -= 1;
-  }
-
-  // Перемещаем колонку
-  const newColumns = [...template.value.columns];
-  const [movedItem] = newColumns.splice(draggedIndex, 1);
-  // Корректируем targetIndex после удаления элемента
-  const adjustedTargetIndex = targetIndex > draggedIndex ? targetIndex - 1 : targetIndex;
-  newColumns.splice(adjustedTargetIndex, 0, movedItem);
-
-  // Обновляем порядок
-  template.value.columns = newColumns.map((col, idx) => ({ ...col, order: idx }));
-
-  // Сбрасываем состояние drag-and-drop
-  resetDragState();
-  // Обновляем данные предпросмотра
-  updatePreviewData();
-};
-
-// Методы для DnD в предварительном просмотре
-const previewDragOver = (event, index) => {
-  event.preventDefault();
-  event.dataTransfer.dropEffect = 'move';
-
-  const targetCell = event.target.closest('th, td');
-  if (!targetCell) return;
-
-  const rect = targetCell.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-
-  // Определяем направление вставки (слева или справа)
-  if (x < rect.width / 2) {
-    previewDragDirection.value = 'left';
-  } else {
-    previewDragDirection.value = 'right';
-  }
-
-  previewDragOverIndex.value = index;
-  updatePreviewPlaceholder();
-
-  // Логика прокрутки
-  if (previewTableContainer.value) {
-    const containerRect = previewTableContainer.value.getBoundingClientRect();
-    const scrollThreshold = 20; // Порог для начала прокрутки
-
-    if (event.clientY < containerRect.top + scrollThreshold) {
-      previewTableContainer.value.scrollTop -= 10; // Прокрутка вверх
-    } else if (event.clientY > containerRect.bottom - scrollThreshold) {
-      previewTableContainer.value.scrollTop += 10; // Прокрутка вниз
-    }
-
-    if (event.clientX < containerRect.left + scrollThreshold) {
-      previewTableContainer.value.scrollLeft -= 10; // Прокрутка влево
-    } else if (event.clientX > containerRect.right - scrollThreshold) {
-      previewTableContainer.value.scrollLeft += 10; // Прокрутка вправо
-    }
-  }
-};
-
-const previewDragEnter = (event, index) => {
-  event.preventDefault();
-  currentPreviewColumn.value = index;
-};
-
-const previewDragLeave = () => {
-  // currentPreviewColumn.value = null;
-};
-
-const previewDrop = (event, index) => {
-  event.preventDefault();
-  const draggedIndex = currentDragIndex.value;
-
-  if (draggedIndex === null || draggedIndex === index) {
-    resetDragState();
-    return;
-  }
-
-  let targetIndex = index;
-  // Корректируем индекс вставки в зависимости от направления
-  if (previewDragDirection.value === 'right' && index >= draggedIndex) {
-    targetIndex += 1;
-  }
-  if (previewDragDirection.value === 'left' && index > draggedIndex) {
-    targetIndex -= 1;
-  }
-
-  // Перемещаем колонку
-  const newColumns = [...template.value.columns];
-  const [movedItem] = newColumns.splice(draggedIndex, 1);
-  // Корректируем targetIndex после удаления элемента
-  const adjustedTargetIndex = targetIndex > draggedIndex ? targetIndex - 1 : targetIndex;
-  newColumns.splice(adjustedTargetIndex, 0, movedItem);
-
-  // Обновляем порядок
-  template.value.columns = newColumns.map((col, idx) => ({ ...col, order: idx }));
-
-  // Сбрасываем состояние drag-and-drop
-  resetDragState();
-  // Обновляем данные предпросмотра
-  updatePreviewData();
-};
-
-// Методы для позиционирования заполнителей
-const updatePlaceholderPositions = () => {
-  if (!columnsList.value || !previewTable.value) return;
-
-  const rows = columnsList.value.querySelectorAll('.column-row');
-  if (rows.length === 0 || dragOverIndex.value === null || dragDirection.value === null) {
-    dragPlaceholderTop.value = 0;
-    return;
-  }
-
-  const targetRow = rows[dragOverIndex.value];
-  if (!targetRow) return;
-
-  const containerRect = columnsList.value.getBoundingClientRect();
-  const rowRect = targetRow.getBoundingClientRect();
-
-  dragPlaceholderTop.value = rowRect.top - containerRect.top;
-  dragPlaceholderHeight.value = 4; // Тонкая линия
-};
-
-const updatePreviewPlaceholder = () => {
-  if (!previewTable.value || previewDragOverIndex.value === null || previewDragDirection.value === null) {
-    previewPlaceholderLeft.value = null;
-    previewPlaceholderTop.value = null;
-    return;
-  }
-
-  const headers = previewTable.value.querySelectorAll('th.preview-th');
-  if (headers.length === 0) return;
-
-  const targetHeader = headers[previewDragOverIndex.value];
-  if (!targetHeader) return;
-
-  const headerRect = targetHeader.getBoundingClientRect();
-  const tableRect = previewTable.value.getBoundingClientRect();
-
-  previewPlaceholderWidth.value = 4; // Тонкая линия
-  previewPlaceholderHeight.value = headerRect.height;
-  previewPlaceholderTop.value = headerRect.top - tableRect.top;
-
-  if (previewDragDirection.value === 'left') {
-    previewPlaceholderLeft.value = headerRect.left - tableRect.left;
-  } else {
-    previewPlaceholderLeft.value = headerRect.right - tableRect.left;
-  }
-};
-
-const resetDragState = () => {
-  currentDragIndex.value = null;
-  dragOverIndex.value = null;
-  dragDirection.value = null;
-  currentPreviewColumn.value = null;
-  previewDragOverIndex.value = null;
-  previewDragDirection.value = null;
-  dragPlaceholderTop.value = 0;
-  previewPlaceholderLeft.value = null;
-  previewPlaceholderTop.value = null;
-};
-
-// Методы для предварительного просмотра данных
-// === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Обновленная функция updatePreviewData ===
-// Обновление previewData для ВСЕХ колонок
-const updatePreviewData = () => {
-  console.log("[TemplateBuilder] updatePreviewData called for ALL columns");
-
-  // Очищаем previewData перед обновлением
-  Object.keys(previewData.value).forEach(key => delete previewData.value[key]);
-
-  // Обновляем данные для каждой колонки
-  template.value.columns.forEach(col => {
-    updatePreviewDataForColumn(col);
-  });
-
-  console.log("[TemplateBuilder] previewData after full update:", previewData.value);
-};
-
-// Обновление previewData для одной конкретной колонки
-const updatePreviewDataForColumn = (column) => {
-  if (!column || !column.tempId) {
-    console.warn("[TemplateBuilder] updatePreviewDataForColumn: Invalid column or missing tempId");
-    return;
-  }
-
-  const tempId = column.tempId;
-  console.log(`[TemplateBuilder] updatePreviewDataForColumn called for: ${column.label} (ID: ${tempId}, Type: ${column.type})`);
-
-  let exampleValue;
-  // Генерируем примерные данные в зависимости от типа
-  switch (column.type) {
-    case 'text':
-      exampleValue = `Пример текста для ${column.label}`;
-      break;
-    case 'number':
-      exampleValue = Math.floor(Math.random() * 1000) + 100;
-      break;
-    case 'select':
-      exampleValue = column.options?.[0] || 'Вариант 1';
-      break;
-    case 'date':
-    case 'datetime':
-      const date = new Date();
-      exampleValue = formatDate(date, column.dateFormat ||
-          (column.type === 'datetime' ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD'));
-      break;
-    case 'boolean':
-      // Убедимся, что сохраняем строго boolean
-      exampleValue = true;
-      break;
-    case 'reference':
-      // Генерируем примерные данные в зависимости от настроек колонки
-      console.log(`[TemplateBuilder] Processing 'reference' type for column: ${column.label}`);
-
-      // Проверяем, загружены ли данные справочника
-      if (column.reference?.entityType && loadedReferences.value.has(column.reference.entityType)) {
-        console.log(`[TemplateBuilder] Reference data for ${column.reference.entityType} is loaded.`);
-        const options = referenceOptions.value[column.reference.entityType];
-        if (options && options.length > 0) {
-          // Берем ID первого элемента из загруженных данных
-          exampleValue = options[0].id;
-          console.log(`[TemplateBuilder] Using first item ID (${exampleValue}) from loaded reference data.`);
-        } else {
-          // Если данные загружены, но пустые
-          console.log(`[TemplateBuilder] Reference data for ${column.reference.entityType} is loaded but empty.`);
-          exampleValue = 1; // Устанавливаем примерный ID
-        }
-      } else {
-        // Если данные справочника еще не загружены или entityType не задан
-        console.log(`[TemplateBuilder] Reference data for ${column.reference?.entityType || 'unknown'} is not loaded or entityType is missing.`);
-        // Устанавливаем примерный ID для отображения в предварительном просмотре
-        exampleValue = 1; // Или другой примерный ID
-      }
-      break;
-    default:
-      exampleValue = 'Пример данных';
-  }
-
-  const oldValue = previewData.value[tempId];
-  previewData.value[tempId] = exampleValue;
-  console.log(`[TemplateBuilder] Set previewData[${tempId}] from`, oldValue, "to", exampleValue, `(type: ${typeof exampleValue})`);
-};
-// === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
-
-// Методы для колонки
-const onColumnTypeChange = () => {
-  // Инициализация специфичных полей для каждого типа
   switch (selectedColumn.value.type) {
     case 'reference':
-      selectedColumn.value.reference = selectedColumn.value.reference || {
-        entityType: 'accessory',
-        displayFormat: getExampleFormat('accessory')
-      };
-
-      // Загружаем данные справочника
-      if (selectedColumn.value.reference.entityType) {
-        loadReferenceData(selectedColumn.value.reference.entityType);
+      if (!selectedColumn.value.reference) {
+        selectedColumn.value.reference = {
+          entityType: '',
+          displayFormat: ''
+        };
       }
       break;
-
     case 'boolean':
       selectedColumn.value.booleanSettings = selectedColumn.value.booleanSettings || {
         displayType: 'toggle',
@@ -1292,136 +783,394 @@ const onColumnTypeChange = () => {
         falseLabel: 'Нет'
       };
       break;
-
     case 'date':
+      selectedColumn.value.dateFormat = selectedColumn.value.dateFormat || 'DD.MM.YYYY';
+      break;
     case 'datetime':
-      selectedColumn.value.dateFormat = selectedColumn.value.dateFormat ||
-          (selectedColumn.value.type === 'datetime' ? 'YYYY-MM-DD HH:mm' : 'YYYY-MM-DD');
+      selectedColumn.value.dateFormat = selectedColumn.value.dateFormat || 'DD.MM.YYYY HH:mm';
       break;
-
-    case 'select':
-      selectedColumn.value.options = selectedColumn.value.options || [];
-      break;
-
-    case 'number':
-      selectedColumn.value.unit = selectedColumn.value.unit || '';
-      break;
-
-    case 'text':
-      selectedColumn.value.dataType = selectedColumn.value.dataType || 'string';
+    default:
       break;
   }
-
-  // Обновляем данные предпросмотра только для выбранной колонки
-  updatePreviewDataForColumn(selectedColumn.value);
+  updatePreviewData();
 };
 
-const addOption = () => {
-  if (selectedColumn.value.type === 'select') {
-    const newOption = `Вариант ${selectedColumn.value.options.length + 1}`;
-    selectedColumn.value.options.push(newOption);
-    updatePreviewDataForColumn(selectedColumn.value); // Обновляем только для этой колонки
+// --- Работа со справочниками ---
+const onReferenceTypeChange = async (newEntityType) => {
+  if (selectedColumn.value && selectedColumn.value.type === 'reference') {
+    selectedColumn.value.reference = selectedColumn.value.reference || { entityType: '', displayFormat: '' };
+    const oldEntityType = selectedColumn.value.reference.entityType;
+    selectedColumn.value.reference.entityType = newEntityType;
+
+    if (oldEntityType !== newEntityType || !selectedColumn.value.reference.displayFormat) {
+      selectedColumn.value.reference.displayFormat = getExampleFormat(newEntityType);
+    }
+
+    if (newEntityType) {
+      await loadReferenceFields(newEntityType);
+    }
+
+    updatePreviewData();
   }
+};
+
+const getExampleFormat = (entityType) => {
+  switch(entityType) {
+    case 'accessory': return '{name} ({model})';
+    case 'brand': return '{name} ({country})';
+    default: return '{id} - {name}';
+  }
+};
+
+const loadReferenceFields = async (entityType) => {
+  if (!entityType) {
+    return;
+  }
+
+  if (referenceFields.value[entityType] && referenceFields.value[entityType].length > 0) {
+    return;
+  }
+
+  loadingReferenceFields.value = true;
+  referenceFieldLoadError.value = '';
+
+  try {
+    const fieldInfoRaw = await referenceService.getFieldInfo(entityType);
+
+    if (!fieldInfoRaw || !fieldInfoRaw.data || !Array.isArray(fieldInfoRaw.data.availableKeys)) {
+      throw new Error(`Invalid response structure from referenceService.getFieldInfo for ${entityType}.`);
+    }
+
+    const fieldInfoData = fieldInfoRaw.data;
+    let fieldsToStore = [];
+    if (Array.isArray(fieldInfoRaw.data.availableKeys) && fieldInfoRaw.data.availableKeys.length > 0) {
+      fieldsToStore = fieldInfoRaw.data.availableKeys.map(key => ({
+        key: key,
+        label: key,
+        type: 'string'
+      }));
+    }
+
+    referenceFields.value[entityType] = fieldsToStore;
+
+    if (selectedColumn.value &&
+        selectedColumn.value.type === 'reference' &&
+        selectedColumn.value.reference?.entityType === entityType) {
+
+      if (!selectedColumn.value.reference.displayFormat || selectedColumn.value.reference.displayFormat.trim() === '') {
+        let formatToSet = fieldInfoData.defaultDisplayFormat;
+        if (!formatToSet) {
+          formatToSet = getExampleFormat(entityType);
+        }
+        selectedColumn.value.reference.displayFormat = formatToSet;
+        updatePreviewData();
+      }
+    }
+  } catch (error) {
+    let errorMessage = 'Unknown error';
+    if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Ошибка сети (CORS) при загрузке полей справочника.';
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    referenceFieldLoadError.value = errorMessage;
+    ElMessage.error(`Ошибка загрузки полей справочника "${entityType}": ${errorMessage}`);
+    referenceFields.value[entityType] = [];
+  } finally {
+    loadingReferenceFields.value = false;
+  }
+};
+
+const cloneReferenceField = (field) => {
+  return `{${field.key}}`;
+};
+
+const dragStartKey = (event, key) => {
+  event.dataTransfer.setData('text/plain', `{${key}}`);
+};
+
+// --- Работа с опциями выбора ---
+const addOption = () => {
+  if (!selectedColumn.value || selectedColumn.value.type !== 'select') return;
+  selectedColumn.value.options = selectedColumn.value.options || [];
+  const newOption = `Вариант ${selectedColumn.value.options.length + 1}`;
+  selectedColumn.value.options.push(newOption);
+  updatePreviewData();
+  ElMessage.success(`Опция "${newOption}" добавлена`);
 };
 
 const removeOption = (index) => {
-  if (selectedColumn.value.type === 'select') {
-    selectedColumn.value.options.splice(index, 1);
-    updatePreviewDataForColumn(selectedColumn.value); // Обновляем только для этой колонки
+  if (!selectedColumn.value || selectedColumn.value.type !== 'select' || !selectedColumn.value.options) return;
+  const removedOption = selectedColumn.value.options.splice(index, 1)[0];
+  updatePreviewData();
+  ElMessage.success(`Опция "${removedOption}" удалена`);
+};
+
+// --- Предпросмотр ---
+const updatePreviewData = () => {
+  const newPreviewRows = [];
+  const newPreviewData = {};
+  // Создаем 10 строк для предпросмотра
+  for (let i = 0; i < 10; i++) {
+    const rowData = {};
+    template.value.columns.forEach(column => {
+      let exampleValue;
+      switch (column.type) {
+        case 'text':
+          exampleValue = `Пример текста ${i+1}`;
+          break;
+        case 'number':
+          exampleValue = 100 + i;
+          break;
+        case 'select':
+          exampleValue = column.options && column.options.length > 0 ? column.options[0] : `Выбор ${i+1}`;
+          break;
+        case 'date':
+          exampleValue = i === 0 ? '2023-10-27' : '2024-01-15';
+          break;
+        case 'datetime':
+          exampleValue = i === 0 ? '2023-10-27 10:30' : '2024-01-15 15:45';
+          break;
+        case 'boolean':
+          exampleValue = i % 2 === 0;
+          break;
+        case 'reference':
+          const entityType = column.reference?.entityType;
+          if (entityType && MOCK_REFERENCE_DATA[entityType]?.[i]) {
+            exampleValue = MOCK_REFERENCE_DATA[entityType][i];
+          } else {
+            exampleValue = MOCK_REFERENCE_DATA[entityType]?.[i] || { id: i+1, name: `Пример ${i+1}` };
+          }
+          break;
+        default:
+          exampleValue = column.type;
+      }
+      rowData[column.tempId] = exampleValue;
+      newPreviewData[column.tempId] = exampleValue;
+    });
+    newPreviewRows.push({ rowData, order: i });
   }
+  previewData.value = newPreviewData;
+  previewRows.value = newPreviewRows;
+  calculateColumnWidths();
 };
 
-const handleBooleanSettingChange = (setting, value) => {
-  const newSettings = { ...selectedBooleanSettings.value };
-  newSettings[setting] = value;
-
-  // Создаем объект настроек
-  const settings = {
-    displayType: newSettings.displayType || 'toggle',
-    trueLabel: newSettings.trueLabel || 'Да',
-    falseLabel: newSettings.falseLabel || 'Нет'
-  };
-
-  // Устанавливаем настройки в колонку
-  setBooleanSetting(selectedColumn.value, settings);
-  updatePreviewDataForColumn(selectedColumn.value); // Обновляем только для этой колонки
+const calculateColumnWidths = () => {
+  const widths = [];
+  sortedTemplateColumns.value.forEach(() => {
+    widths.push(150);
+  });
+  columnWidths.value = widths;
 };
 
-const formatDate = (date, format) => {
-  if (!date) return '';
-
-  // Если это строка, преобразуем в объект Date
-  const dateObj = typeof date === 'string' ? new Date(date) : date;
-
-  // Проверяем валидность даты
-  if (isNaN(dateObj.getTime())) return date;
-
-  const year = dateObj.getFullYear();
-  const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-  const day = dateObj.getDate().toString().padStart(2, '0');
-  const hours = dateObj.getHours().toString().padStart(2, '0');
-  const minutes = dateObj.getMinutes().toString().padStart(2, '0');
-  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const monthNamesFull = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-
-  switch (format) {
-    case 'YYYY-MM-DD':
-      return `${year}-${month}-${day}`;
-    case 'DD.MM.YYYY':
-      return `${day}.${month}.${year}`;
-    case 'MM/DD/YYYY':
-      return `${month}/${day}/${year}`;
-    case 'DD MMM YYYY':
-      return `${day} ${monthNames[dateObj.getMonth()]} ${year}`;
-    case 'DD MMMM YYYY':
-      return `${day} ${monthNamesFull[dateObj.getMonth()]} ${year}`;
-    case 'YYYY/MM/DD':
-      return `${year}/${month}/${day}`;
-    case 'DD-MM-YYYY':
-      return `${day}-${month}-${year}`;
-    case 'YYYY-MM-DD HH:mm':
-      return `${year}-${month}-${day} ${hours}:${minutes}`;
-    case 'HH:mm':
-      return `${hours}:${minutes}`;
-    default:
-      return `${year}-${month}-${day}`;
+// === ИСПРАВЛЕНИЕ: Вычисляемое свойство для отформатированного предпросмотра справочника ===
+const getFormattedReferencePreview = computed(() => {
+  if (!selectedColumn.value || selectedColumn.value.type !== 'reference' || !selectedColumn.value.reference) {
+    return '';
   }
-};
-
-const canSave = computed(() => {
-  return template.value.name.trim() !== '' && template.value.columns.length > 0;
+  const item = previewData.value[selectedColumn.value.tempId];
+  if (!item || !selectedColumn.value.reference.displayFormat) return '...';
+  try {
+    return formatReferenceDisplay(item, selectedColumn.value);
+  } catch (e) {
+    return 'Ошибка формата';
+  }
 });
 
-const rules = {
-  name: [
-    { required: true, message: 'Пожалуйста, введите название шаблона', trigger: 'blur' },
-    { min: 3, max: 50, message: 'Название должно быть от 3 до 50 символов', trigger: 'blur' }
-  ]
+// === ИСПРАВЛЕНИЕ: Получение данных справочника для колонки ===
+const getReferenceDataForColumn = (column) => {
+  if (column.type !== 'reference' || !column.reference?.entityType) return [];
+  return MOCK_REFERENCE_DATA[column.reference.entityType] || [];
+};
+
+// === ИСПРАВЛЕНИЕ: Проверка состояния загрузки справочника ===
+const isReferenceLoading = (column) => {
+  if (column.type !== 'reference' || !column.reference?.entityType) return false;
+  return loadingReferenceFields.value && !referenceFields.value[column.reference.entityType];
+};
+
+// --- Cell Editing ---
+const isCellEditing = (rowIndex, colIndex) => {
+  return editingCell.value.rowIndex === rowIndex && editingCell.value.colIndex === colIndex;
+};
+
+const getEditValue = (rowIndex, colIndex) => {
+  return editingCell.value.value;
+};
+
+const startEditingCell = (rowIndex, colIndex, value) => {
+  editingCell.value = { rowIndex, colIndex, value };
+};
+
+const stopEditingCell = () => {
+  editingCell.value = { rowIndex: null, colIndex: null, value: null };
+};
+
+const updatePreviewCellValue = (value) => {
+  stopEditingCell();
+};
+
+// --- Drag & Drop ---
+const dragEnd = () => {
+  currentDragIndex.value = null;
+  dragOverIndex.value = null;
+  dragDirection.value = null;
+  template.value.columns.forEach((col, index) => {
+    col.order = index;
+  });
+  updatePreviewData();
+};
+
+// --- DnD в списке колонок ---
+const listDragStart = (event, index) => {
+  currentDragIndex.value = index;
+  document.body.classList.add('template-builder-dragging-in-progress');
+  event.dataTransfer.setData('text/plain', `column:${index}`);
+  event.dataTransfer.effectAllowed = 'move';
+};
+
+const listDragEnd = () => {
+  document.body.classList.remove('template-builder-dragging-in-progress');
+};
+
+const listDragOver = (event, index) => {
+  event.preventDefault();
+  const rect = event.currentTarget.getBoundingClientRect();
+  const y = event.clientY - rect.top;
+  const threshold = rect.height * 0.3;
+
+  dragOverIndex.value = index;
+  dragDirection.value = y < threshold ? 'top' : (y > (rect.height - threshold) ? 'bottom' : null);
+};
+
+const listDragEnter = (event, index) => {
+  const targetRow = event.target.closest('.column-row');
+  if (!targetRow) return;
+  listDragOver(event, index);
+};
+
+const listDragLeave = () => {
+  dragOverIndex.value = null;
+  dragDirection.value = null;
+};
+
+const listDrop = (event, index) => {
+  event.preventDefault();
+  const draggedIndex = currentDragIndex.value;
+  if (draggedIndex === null || draggedIndex === index) {
+    return;
+  }
+
+  let targetIndex = index;
+  if (dragDirection.value === 'bottom' && index >= draggedIndex) {
+    targetIndex += 1;
+  }
+  if (dragDirection.value === 'top' && index > draggedIndex) {
+    targetIndex -= 1;
+  }
+
+  const newColumns = [...template.value.columns];
+  const [movedItem] = newColumns.splice(draggedIndex, 1);
+  const adjustedTargetIndex = targetIndex > draggedIndex ? targetIndex - 1 : targetIndex;
+  newColumns.splice(adjustedTargetIndex, 0, movedItem);
+  template.value.columns = newColumns.map((col, idx) => ({ ...col, order: idx }));
+};
+
+// --- Сохранение и управление формой ---
+const saveTemplate = async () => {
+  if (!canSave.value) {
+    ElMessage.warning('Заполните название шаблона и добавьте хотя бы одну колонку');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    await templateForm.value.validate();
+
+    const templateData = {
+      name: template.value.name.trim(),
+      columns: template.value.columns.map((column, index) => ({
+        id: column.id,
+        tempId: column.tempId,
+        type: column.type,
+        label: column.label?.trim() || `Колонка ${index + 1}`,
+        order: index,
+        options: column.type === 'select' ? (column.options || []).filter(opt => opt.trim() !== '') : undefined,
+        data_type: column.type === 'text' ? (column.dataType || 'string') : undefined,
+        unit: column.type === 'number' ? (column.unit || '') : undefined,
+        reference: column.type === 'reference' ? {
+          entity_type: column.reference?.entityType || '',
+          display_format: column.reference?.displayFormat || ''
+        } : undefined,
+        boolean_settings: column.type === 'boolean' ? column.booleanSettings : undefined,
+        date_format: (column.type === 'date' || column.type === 'datetime') ? (column.dateFormat || 'DD.MM.YYYY') : undefined
+      }))
+    };
+
+    let response;
+    if (template.value.id) {
+      response = await templateService.update(template.value.id, templateData);
+      ElNotification.success({
+        title: 'Успех',
+        message: 'Шаблон успешно обновлён',
+        type: 'success'
+      });
+    } else {
+      response = await templateService.create(templateData);
+      ElNotification.success({
+        title: 'Успех',
+        message: 'Шаблон успешно создан',
+        type: 'success'
+      });
+      router.push({ name: 'TemplateEdit', params: { id: response.id } });
+      return;
+    }
+
+    template.value.id = response.id;
+    template.value.name = response.name;
+    template.value.columns = response.columns.map(col => ({
+      ...col,
+      tempId: col.id || col.tempId || generateTempId()
+    }));
+
+    updatePreviewData();
+  } catch (error) {
+    let errorMessage = 'Ошибка при сохранении шаблона';
+    if (error.response?.data) {
+      if (error.response.data.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response.data.errors) {
+        const firstErrorField = Object.keys(error.response.data.errors)[0];
+        const firstErrorMessage = error.response.data.errors[firstErrorField][0];
+        errorMessage = `${firstErrorField}: ${firstErrorMessage}`;
+      }
+    } else if (error.code === 'ERR_NETWORK') {
+      errorMessage = 'Ошибка сети: Проверьте подключение или настройки CORS сервера.';
+    }
+    ElMessage.error(errorMessage);
+  } finally {
+    saving.value = false;
+  }
 };
 
 const resetForm = () => {
-  ElMessageBox.confirm(
-      'Вы уверены, что хотите сбросить все изменения?',
-      'Подтверждение сброса',
-      {
-        confirmButtonText: 'Да, сбросить',
-        cancelButtonText: 'Отмена',
-        type: 'warning',
-      }
-  ).then(() => {
-    if (route.params.id) {
+  ElMessageBox.confirm('Вы уверены, что хотите сбросить форму?', 'Подтверждение', {
+    confirmButtonText: 'Да, сбросить',
+    cancelButtonText: 'Отмена',
+    type: 'warning',
+  }).then(() => {
+    if (template.value.id) {
       loadTemplate();
+      ElMessage.info('Форма сброшена к сохранённому состоянию');
     } else {
-      template.value = {
-        id: null,
-        name: '',
-        columns: []
-      };
-      // Очищаем previewData
-      Object.keys(previewData.value).forEach(key => delete previewData.value[key]);
+      template.value = { id: null, name: '', columns: [] };
+      selectedColumnIndex.value = null;
+      selectedPreviewColumnIndex.value = null;
+      updatePreviewData();
+      ElMessage.info('Форма очищена');
     }
-  }).catch(() => {
-    // Отмена
   });
 };
 
@@ -1429,312 +1178,63 @@ const cancel = () => {
   router.push({ name: 'TemplateList' });
 };
 
-const saveTemplate = async () => {
-  // Используем валидацию формы, как во втором фрагменте
-  const valid = await templateForm.value?.validate();
-  if (!valid) return;
-
-  saving.value = true;
-  try {
-    const templateData = {
-      name: template.value.name,
-      columns: template.value.columns.map(column => ({
-        // Убедитесь, что структура данных соответствует ожидаемой API
-        type: column.type,
-        label: column.label,
-        order: column.order, // Или index, если порядок определяется позицией в массиве
-        options: column.options || [],
-        data_type: column.dataType || '',
-        unit: column.unit || '',
-        reference: column.type === 'reference' ? column.reference : null,
-        boolean_settings: column.type === 'boolean' ? column.booleanSettings : null,
-        date_format: column.type === 'date' || column.type === 'datetime' ? column.dateFormat : null
-        // Добавьте другие поля, если они требуются API
-      }))
-    };
-
-    let response; // <-- Используем response, как в первом фрагменте
-    if (template.value.id) {
-      // ИСПРАВЛЕНИЕ 1: Используем правильный метод templateService
-      // БЫЛО: result = await templateService.updateTemplate(template.value.id, templateData);
-      response = await templateService.update(template.value.id, templateData); // <-- ИСПРАВЛЕНО
-      ElNotification({ // Или ElMessage, как в первом фрагменте
-        title: 'Успех',
-        message: 'Шаблон успешно обновлен',
-        type: 'success'
-      });
-    } else {
-      // ИСПРАВЛЕНИЕ 1: Используем правильный метод templateService
-      // БЫЛО: result = await templateService.createTemplate(templateData);
-      response = await templateService.create(templateData); // <-- ИСПРАВЛЕНО
-      ElNotification({ // Или ElMessage, как в первом фрагменте
-        title: 'Успех',
-        message: 'Шаблон успешно создан',
-        type: 'success'
-      });
-
-      // ИСПРАВЛЕНИЕ 2: Логика перенаправления из первого фрагмента лучше
-      // БЫЛО: router.push({ name: 'TemplateList' });
-      // СТАЛО (как в первом фрагменте):
-      // Если это новый шаблон, перенаправляем на страницу редактирования
-      if (!templateId) { // templateId определяется в setup: const templateId = route.params.id ? parseInt(route.params.id) : null;
-        router.push({ name: 'TemplateEdit', params: { id: response.id } });
-        // ВАЖНО: После push выполнение продолжается, поэтому нужно выйти
-        return; // <-- ВЫХОД, чтобы не выполнять дальнейшую логику обновления состояния дважды
-      }
-      // ИСПРАВЛЕНИЕ 2 (КОНЕЦ)
-    }
-
-    // === НАЧАЛО БЛОКА ОБНОВЛЕНИЯ СОСТОЯНИЯ (из первого фрагмента) ===
-    // Обновляем данные шаблона
-    template.value.id = response.id;
-    template.value.name = response.name;
-
-    // Обновляем колонки (предполагая, что response.columns уже отформатированы)
-    // templateService.formatTemplateResponse (из services/templateService.js) должен это делать
-    template.value.columns = response.columns.map(col => ({
-      ...col,
-      tempId: col.id || col.tempId || Date.now() // Убедитесь в приоритетах ID
-    }));
-
-    // Обновляем previewData
-    // Очищаем старые ключи
-    Object.keys(previewData.value).forEach(key => delete previewData.value[key]);
-    // Создаем новые ключи и устанавливаем пустые значения
-    template.value.columns.forEach(col => {
-      if (col.tempId) {
-        previewData.value[col.tempId] = '';
-      }
-    });
-
-    // Загружаем данные для всех справочников
-    template.value.columns.forEach(column => {
-      if (column.type === 'reference' && column.reference?.entityType) {
-        // loadReferenceData должен быть определен в этом же <script setup>
-        loadReferenceData(column.reference.entityType);
-      }
-    });
-
-    // Обновляем данные предпросмотра
-    updatePreviewData(); // <-- КРИТИЧЕСКИ ВАЖНО
-    // === КОНЕЦ БЛОКА ОБНОВЛЕНИЯ СОСТОЯНИЯ ===
-
-  } catch (error) {
-    console.error('Ошибка сохранения шаблона:', error);
-    ElMessage({ // Используем ElMessage, как в первом фрагменте
-      message: error.response?.data?.message || 'Ошибка при сохранении шаблона',
-      type: 'error'
-    });
-  } finally {
-    saving.value = false;
-  }
-};
-
-const loadTemplate = async () => {
-  const templateId = route.params.id; // Или как у вас определен
-  if (!templateId) return;
-
-  try {
-    // ИСПРАВЛЕНИЕ: Используем templateService
-    // БЫЛО (пример): const response = await dataSource.get(templateId);
-    const response = await templateService.get(templateId); // <-- ИСПРАВЛЕНО
-
-    // Обновляем данные шаблона (используя formatTemplateResponse из templateService)
-    template.value.id = response.id;
-    template.value.name = response.name;
-    template.value.columns = response.columns.map(col => ({
-      ...col,
-      tempId: col.id || col.tempId || Date.now()
-    }));
-
-    // Инициализируем previewData
-    Object.keys(previewData.value).forEach(key => delete previewData.value[key]);
-    template.value.columns.forEach(col => {
-      if (col.tempId) {
-        previewData.value[col.tempId] = '';
-      }
-    });
-
-    // Загружаем данные для всех справочников
-    template.value.columns.forEach(column => {
-      if (column.type === 'reference' && column.reference?.entityType) {
-        loadReferenceData(column.reference.entityType);
-      }
-    });
-
-    // Обновляем данные предпросмотра
-    updatePreviewData(); // <-- КРИТИЧЕСКИ ВАЖНО
-
-  } catch (error) {
-    console.error('Ошибка загрузки шаблона:', error);
-    ElMessage({ message: 'Не удалось загрузить шаблон', type: 'error' });
-    router.push({ name: 'TemplateList' }); // Или другая логика обработки ошибок
-  }
-};
-
-// Прокрутка к колонке
-const scrollToColumn = (index) => {
-  if (!columnsList.value || index === null) return;
-
-  const rows = columnsList.value.querySelectorAll('.column-row');
-  if (rows.length === 0 || index < 0 || index >= rows.length) return;
-
-  const row = rows[index];
-  const rowRect = row.getBoundingClientRect();
-  const containerRect = columnsList.value.getBoundingClientRect();
-
-  // Если строка вне видимой области, прокручиваем
-  if (rowRect.top < containerRect.top || rowRect.bottom > containerRect.bottom) {
-    // Вычисляем позицию прокрутки так, чтобы строка была по центру
-    const scrollTop = row.offsetTop - (containerRect.height / 2) + (rowRect.height / 2);
-    columnsList.value.scrollTo({
-      top: scrollTop,
-      behavior: 'smooth'
-    });
-  }
-};
-
-// Хуки
+// --- Lifecycle ---
 onMounted(async () => {
-  const templateId = route.params.id;
-  if (templateId) {
-    await loadTemplate();
-  } else {
-    // Инициализируем пустой шаблон
-    template.value.id = null;
-    template.value.name = '';
-    template.value.columns = [];
-    // Инициализируем пустой previewData
-    Object.keys(previewData.value).forEach(key => delete previewData.value[key]);
-     updatePreviewData(); // Не нужно для пустого шаблона
+  await Promise.all([loadEntityTypes(), loadTemplate()]);
+  if (template.value.columns.length > 0 && selectedColumnIndex.value === null) {
+    selectColumn(0);
   }
-  // Обновляем ширину колонок при первоначальной загрузке
-  nextTick(adjustColumnWidths);
+  updatePreviewData();
 });
-
-const adjustColumnWidths = () => {
-  console.log("[TemplateBuilder] adjustColumnWidths called");
-
-  // Проверяем, существует ли таблица и есть ли колонки
-  if (!previewTable.value || template.value.columns.length === 0) {
-    console.log("[TemplateBuilder] No preview table or no columns, skipping width adjustment.");
-    // Сбрасываем ширины, если таблицы нет или колонок нет
-    if (columnWidths.value.length > 0) {
-      columnWidths.value = [];
-      console.log("[TemplateBuilder] Reset columnWidths to empty array.");
-    }
-    return;
-  }
-
-  try {
-    // Получаем все <th> элементы из таблицы
-    // querySelectorAll('th') получит все заголовки, включая "Sort Handle"
-    // Поэтому используем более точный селектор, если знаем структуру, или просто пропустим первый
-    // Предположим, первая колонка - это "Sort Handle", остальные - данные колонок
-    const thElementsNodeList = previewTable.value.querySelectorAll('thead th:not(.sort-handle)');
-    console.log(`[TemplateBuilder] Found ${thElementsNodeList.length} data column headers.`);
-
-    // Преобразуем NodeList в массив для удобства
-    const thElements = Array.from(thElementsNodeList);
-
-    // Проверяем соответствие количества заголовков и колонок шаблона
-    if (thElements.length !== template.value.columns.length) {
-      console.warn(`[TemplateBuilder] Mismatch between TH elements (${thElements.length}) and template columns (${template.value.columns.length}). Skipping adjustment.`);
-      // Можно сбросить ширины или оставить текущие
-      columnWidths.value = Array(template.value.columns.length).fill(100); // Значения по умолчанию
-      return;
-    }
-
-    const newWidths = [];
-
-    // Измеряем ширину каждого заголовка
-    for (let i = 0; i < template.value.columns.length; i++) {
-      const th = thElements[i];
-
-      if (th) {
-        // scrollWidth включает padding, но не border/margin
-        // Добавляем немного запаса для padding, иконок, безопасности
-        const measuredWidth = th.scrollWidth + 10;
-
-        // Ограничиваем ширину между минимальной и максимальной
-        const constrainedWidth = Math.min(Math.max(measuredWidth, 100), 200);
-
-        newWidths.push(constrainedWidth);
-        console.log(`[TemplateBuilder] Column ${i} (${template.value.columns[i].label}): measured=${measuredWidth}px, final=${constrainedWidth}px`);
-      } else {
-        // Если th не найден, используем значение по умолчанию
-        newWidths.push(100);
-        console.warn(`[TemplateBuilder] TH element for column ${i} not found, using default width.`);
-      }
-    }
-
-    columnWidths.value = newWidths;
-    console.log("[TemplateBuilder] Updated columnWidths:", newWidths);
-
-  } catch (error) {
-    console.error("[TemplateBuilder] Error in adjustColumnWidths:", error);
-    // В случае ошибки устанавливаем значения по умолчанию
-    columnWidths.value = Array(template.value.columns.length).fill(100);
-  }
-};
-
-// Вызываем при изменении структуры колонок
-watch(() => [
-  template.value.columns.length,
-  ...template.value.columns.map(c => c.label),
-  ...template.value.columns.map(c => c.type)
-], () => {
-  nextTick(adjustColumnWidths);
-}, { deep: true });
-
-// Следим за изменением колонок для обновления предпросмотра
- watch(() => template.value.columns, () => {
-   nextTick(() => {
-     updatePlaceholderPositions();
-     updatePreviewPlaceholder();
-   });
- }, { deep: true });
-
 </script>
 
 <style lang="scss" scoped>
-/* Стили без изменений */
+/* ==== ОСНОВНАЯ СТРУКТУРА ==== */
 .template-builder {
   padding: 10px;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
+  height: calc(100vh - 120px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
   .builder-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 10px;
+    flex-shrink: 0;
+
+    h2 {
+      margin: 0;
+      font-size: 1.5em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
+    }
 
     .builder-actions {
       display: flex;
-      gap: 5px;
+      gap: 8px;
+      flex-shrink: 0;
 
       .el-button {
         height: 32px;
         padding: 0 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        .el-icon {
+          margin-right: 5px;
+        }
 
         &.is-circle {
           padding: 0;
           width: 28px;
           height: 28px;
-
-          .el-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-
-            > svg {
-              width: 16px;
-              height: 16px;
-            }
-          }
         }
       }
     }
@@ -1742,43 +1242,40 @@ watch(() => [
 
   .form-section {
     background-color: #fff;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
     margin-bottom: 10px;
-
-    :deep(.el-form-item--small) {
-      margin-bottom: 2px;
-
-      .el-form-item__content {
-        line-height: 28px;
-
-        .el-input__inner,
-        .el-select .el-input__inner {
-          height: 28px;
-          line-height: 28px;
-          padding: 0 10px;
-        }
-      }
-    }
+    flex-shrink: 0;
   }
 
-  /* Блок предварительного просмотра теперь выше, с margin-bottom вместо margin-top */
   .preview-section {
     background-color: #fff;
-    padding: 10px;
+    padding: 12px;
     border-radius: 8px;
-    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
     margin-bottom: 10px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 
-    .table-preview {
-      margin-top: 10px;
-      overflow-x: auto;
+    h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+    .table-preview-container {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      border: 1px solid #ebeef5;
+      border-radius: 4px;
 
       .preview-empty {
         text-align: center;
-        padding: 10px 0;
-        font-size: 14px;
+        padding: 20px 0;
+        color: #909399;
       }
 
       .preview-table-container {
@@ -1788,12 +1285,16 @@ watch(() => [
         .preview-table {
           width: 100%;
           border-collapse: collapse;
+          table-layout: fixed;
 
           th, td {
-            padding: 2px 6px;
+            padding: 4px 6px;
             border: 1px solid #ebeef5;
             text-align: left;
             font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
 
             .el-icon {
               display: flex;
@@ -1813,97 +1314,47 @@ watch(() => [
             cursor: pointer;
             transition: background-color 0.2s;
             position: relative;
-            height: 20px;
+            height: 30px;
 
             &.active {
               background-color: #ecf5ff;
             }
 
             &.sort-handle {
-              width: 26px;
+              width: 40px;
               cursor: move;
               padding: 0;
-
-              .el-icon {
-                width: 100%;
-                height: 100%;
-              }
-            }
-
-            /* Стили для подсветки при drag-and-drop */
-            &.preview-dragover-left {
-              position: relative;
-
-              &::before {
-                content: '';
-                position: absolute;
-                left: 0;
-                top: 0;
-                bottom: 0;
-                width: 2px;
-                background-color: #409eff;
-              }
-            }
-
-            &.preview-dragover-right {
-              position: relative;
-
-              &::after {
-                content: '';
-                position: absolute;
-                right: 0;
-                top: 0;
-                bottom: 0;
-                width: 2px;
-                background-color: #409eff;
-              }
+              text-align: center;
+              font-weight: bold;
+              font-size: 0.9em;
             }
           }
 
           td {
-            height: 20px;
+            height: 30px;
 
             &.active {
               background-color: #ecf5ff;
             }
 
             &.sort-handle {
-              width: 26px;
+              width: 40px;
               text-align: center;
               cursor: move;
               padding: 0;
-
-              .el-icon {
-                width: 100%;
-                height: 100%;
-              }
+              font-weight: bold;
+              font-size: 0.9em;
             }
 
-            /* Стили для загрузки справочника */
             &.loading-reference {
               background-color: #f5f7fa;
 
               .el-icon.is-loading {
-                animation: rotating 2s linear infinite;
+                animation: rotating 1s linear infinite;
                 margin-right: 5px;
               }
             }
           }
-        }
-
-        .preview-drag-placeholder {
-          position: absolute;
-          background-color: #409eff;
-          color: white;
-          font-size: 11px;
-          padding: 1px 6px;
-          border-radius: 2px;
-          z-index: 1000;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transform: translateY(-50%);
-          box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
         }
       }
     }
@@ -1911,25 +1362,36 @@ watch(() => [
 
   .builder-content {
     display: flex;
-    gap: 5px;
+    gap: 15px;
+    flex: 2;
+    min-height: 0;
 
     .columns-section {
       flex: 1;
       background-color: #fff;
-      padding: 10px;
+      padding: 12px;
       border-radius: 8px;
-      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
 
       .section-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        flex-shrink: 0;
+
+        h3 {
+          margin: 0;
+        }
 
         .column-creation {
           display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 8px;
+          flex-shrink: 0;
 
           .el-select {
             width: 150px;
@@ -1945,36 +1407,69 @@ watch(() => [
             padding: 0 8px;
 
             .el-icon {
-              margin-right: 3px;
+              margin-right: 4px;
             }
           }
         }
       }
 
       .columns-table-container {
-        max-height: 300px;
+        flex: 1;
         overflow-y: auto;
         border: 1px solid #ebeef5;
         border-radius: 4px;
+        padding: 2px;
 
         .columns-table {
           width: 100%;
 
+          .draggable-columns-list {
+            min-height: 50px;
+          }
+
           .column-row {
             display: flex;
             align-items: center;
-            padding: 5px;
+            padding: 6px 8px;
+            border-radius: 4px;
+            border-top: 1px solid #ebeef5;
             border-bottom: 1px solid #ebeef5;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
+            border-left: 3px solid rgba(230, 230, 236, 0.19);
+            border-right: 3px solid rgba(230, 230, 236, 0.19);
+            position: relative;
 
             &:hover {
               background-color: #f5f7fa;
+              border-color: #dcdfe6;
             }
 
             &.active {
               background-color: #ecf5ff;
               border-left: 3px solid #409eff;
+              border-right: 3px solid #409eff;
+            }
+
+            &.drag-over-top::before,
+            &.drag-over-bottom::after {
+              content: '';
+              position: absolute;
+              left: 0;
+              right: 0;
+              height: 3px;
+              background-color: #67c23a;
+              z-index: 10;
+              border-radius: 2px;
+              transition: all 0.2s ease;
+            }
+
+            &.drag-over-top::before {
+              top: 0;
+            }
+
+            &.drag-over-bottom::after {
+              bottom: 0;
             }
 
             &:last-child {
@@ -1983,13 +1478,15 @@ watch(() => [
 
             .sort-handle {
               cursor: move;
-              padding: 0 6px;
+              padding: 2px 4px;
               color: #909399;
               display: flex;
               align-items: center;
               justify-content: center;
-              width: 20px;
-              height: 20px;
+              width: 24px;
+              height: 24px;
+              flex-shrink: 0;
+              margin-right: 6px;
 
               .el-icon {
                 display: flex;
@@ -2006,16 +1503,20 @@ watch(() => [
             .column-name {
               flex: 1;
               padding: 0 6px;
+              margin-right: 4px;
               cursor: pointer;
+              min-width: 0;
 
               .name-header {
                 display: flex;
                 align-items: center;
+                width: 100%;
 
                 .name-display {
                   display: flex;
                   align-items: center;
                   flex: 1;
+                  min-width: 0;
 
                   .name-text {
                     font-weight: 500;
@@ -2023,7 +1524,7 @@ watch(() => [
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
-                    max-width: 300px;
+                    flex: 1;
                     font-size: 13px;
                   }
 
@@ -2036,6 +1537,8 @@ watch(() => [
                     justify-content: center;
                     width: 18px;
                     height: 18px;
+                    flex-shrink: 0;
+                    color: #909399;
 
                     .el-icon {
                       width: 100%;
@@ -2060,8 +1563,8 @@ watch(() => [
                 .column-type {
                   font-size: 11px;
                   margin-left: 6px;
-                  min-width: 60px;
-                  background-color: #f5f7fa;
+                  flex-shrink: 0;
+                  background-color: #f0f2f5;
                   padding: 1px 4px;
                   border-radius: 2px;
                 }
@@ -2070,7 +1573,7 @@ watch(() => [
               .inline-edit {
                 width: 100%;
 
-                .inline-edit-input {
+                .el-input {
                   :deep(.el-input__wrapper) {
                     padding: 1px 4px;
                     border-radius: 2px;
@@ -2093,13 +1596,15 @@ watch(() => [
 
             .column-actions {
               display: flex;
-              gap: 3px;
+              gap: 5px;
+              flex-shrink: 0;
+              margin-left: 6px;
 
               .el-button {
                 padding: 0;
-                width: 24px;
-                height: 24px;
-                border-radius: 2px;
+                width: 28px;
+                height: 28px;
+                border-radius: 4px;
 
                 &.is-circle {
                   .el-icon {
@@ -2123,18 +1628,20 @@ watch(() => [
       width: 340px;
       background-color: #fff;
       border-radius: 8px;
-      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.3);
+      box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      flex-shrink: 0;
 
       .column-settings, .column-settings-placeholder {
-        padding: 10px;
+        padding: 12px;
         flex: 1;
         overflow-y: auto;
 
         h4 {
-          margin-bottom: 10px;
+          margin-top: 0;
+          margin-bottom: 12px;
           color: #303133;
           display: flex;
           align-items: center;
@@ -2155,7 +1662,7 @@ watch(() => [
 
         .settings-form {
           :deep(.el-form-item--small) {
-            margin-bottom: 2px;
+            margin-bottom: 12px;
 
             .el-form-item__content {
               line-height: 26px;
@@ -2170,6 +1677,9 @@ watch(() => [
           }
 
           .options-list {
+            .draggable-options-list {
+              margin-bottom: 8px;
+            }
             .option-item {
               display: flex;
               align-items: center;
@@ -2182,8 +1692,9 @@ watch(() => [
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 20px;
-                height: 20px;
+                width: 24px;
+                height: 24px;
+                flex-shrink: 0;
 
                 .el-icon {
                   > svg {
@@ -2206,19 +1717,10 @@ watch(() => [
 
               .el-button {
                 padding: 0;
-                width: 22px;
-                height: 22px;
-                min-width: 22px;
-
-                .el-icon {
-                  width: 100%;
-                  height: 100%;
-
-                  > svg {
-                    width: 13px;
-                    height: 13px;
-                  }
-                }
+                width: 24px;
+                height: 24px;
+                min-width: 24px;
+                flex-shrink: 0;
               }
             }
 
@@ -2236,8 +1738,9 @@ watch(() => [
 
           .boolean-text-settings {
             display: flex;
-            gap: 10px;
-            margin-top: 4px;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 6px;
 
             .text-input {
               display: flex;
@@ -2265,10 +1768,16 @@ watch(() => [
 
           .reference-settings {
             .format-input {
+              .el-input {
+                margin-bottom: 8px;
+                :deep(.el-input__inner) {
+                  font-size: 12px;
+                }
+              }
               .format-hint {
-                margin-top: 6px;
                 font-size: 12px;
                 color: #606266;
+                line-height: 1.4;
 
                 .format-key {
                   background-color: #e6f7ff;
@@ -2277,7 +1786,13 @@ watch(() => [
                   border-radius: 2px;
                   margin: 0 1px;
                   cursor: move;
-                  font-size: 12px;
+                  font-size: 11px;
+                  border: 1px solid #91d5ff;
+                  display: inline-block;
+                  &:hover {
+                    background-color: #bae7ff;
+                    cursor: pointer;
+                  }
                 }
               }
             }
@@ -2288,6 +1803,9 @@ watch(() => [
               border-radius: 2px;
               font-size: 12px;
               margin-top: 4px;
+              min-height: 24px;
+              border: 1px solid #dcdfe6;
+              white-space: pre-wrap;
             }
           }
         }
@@ -2299,86 +1817,54 @@ watch(() => [
         align-items: center;
         justify-content: center;
         height: 100%;
-        padding: 10px;
+        padding: 20px;
+        text-align: center;
+        color: #909399;
       }
     }
   }
 }
 
-/* Исправление центровки иконок по горизонтали и вертикали */
-.el-button.is-circle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-
-  .el-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-
-    > svg {
-      width: 14px;
-      height: 14px;
-    }
+/* Анимации */
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
   }
-}
-
-/* Уменьшение отступа для маленьких форм */
-.el-form-item--small {
-  margin-bottom: 2px !important;
-
-  .el-form-item__content {
-    line-height: 26px;
-
-    .el-input__inner,
-    .el-select .el-input__inner {
-      height: 26px;
-      line-height: 26px;
-      padding: 0 10px;
-    }
-  }
-}
-
-/* Специфичные стили для настроек колонок */
-.column-settings {
-  .el-form-item {
-    margin-bottom: 5px;
-
-    &.el-form-item--small {
-      margin-bottom: 2px;
-    }
-
-    .el-radio-group {
-      line-height: 26px;
-
-      .el-radio {
-        line-height: 26px;
-
-        .el-radio__label {
-          padding-left: 3px;
-          font-size: 12px;
-        }
-      }
-    }
+  to {
+    transform: rotate(360deg);
   }
 }
 
 /* Стили для drag-and-drop */
 .drag-ghost {
-  opacity: 0.8;
-  background-color: #ecf5ff;
-  border: 1px dashed #409eff;
+  opacity: 0.9 !important;
+  background-color: #f0f9eb !important;
+  border: 1px solid #67c23a !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  user-select: none !important;
+  pointer-events: none !important;
+  z-index: 10000 !important;
+  transform: scale(1.03) !important;
+  transition: all 0.3s ease !important;
+  > * { opacity: 0 !important; }
 }
 
 .drag-chosen {
-  background-color: #ecf5ff;
+  background-color: #f0f9eb;
 }
 
 .drag-class {
   display: none;
+}
+
+/* Плавная анимация при перемещении */
+.column-row {
+  transition: all 0.3s ease;
+
+  &.active {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* Улучшенные стили для превью таблицы */
@@ -2400,13 +1886,63 @@ watch(() => [
   }
 }
 
-@keyframes rotating {
-  from {
-    transform: rotate(0deg);
+/* === НОВЫЕ/ОБНОВЛЕННЫЕ СТИЛИ ДЛЯ DND === */
+.column-row {
+  &.drag-over-top::before,
+  &.drag-over-bottom::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #67c23a;
+    z-index: 10;
+    border-radius: 2px;
+    transition: all 0.2s ease;
   }
 
-  to {
-    transform: rotate(360deg);
+  &.drag-over-top::before {
+    top: 0;
+  }
+
+  &.drag-over-bottom::after {
+    bottom: 0;
+  }
+}
+
+/* Глобально отключаем выделение текста при перетаскивании */
+body.template-builder-dragging-in-progress {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* Стили для перетаскиваемого элемента справочника */
+.format-key {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  padding: 1px 4px;
+  border-radius: 2px;
+  margin: 0 1px;
+  cursor: move;
+  font-size: 11px;
+  border: 1px solid #91d5ff;
+  display: inline-block;
+  &:hover {
+    background-color: #bae7ff;
+    cursor: pointer;
+  }
+}
+
+/* Адаптивность (простой вариант) */
+@media (max-width: 1200px) {
+  .builder-content {
+    flex-direction: column;
+    .column-settings-panel {
+      width: 100%;
+      height: 400px;
+    }
   }
 }
 </style>

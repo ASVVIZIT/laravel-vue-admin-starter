@@ -340,7 +340,8 @@ export class DataSource {
         const labels = {
             'accessory': 'Аксессуары',
             'brand': 'Бренды',
-            'device_type': 'Типы устройств'
+            'device_type': 'Типы устройств',
+            'measurement_category': 'Категория Единиц измерения'
         };
         return labels[type] || type;
     }

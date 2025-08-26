@@ -5,7 +5,10 @@
       <div v-if="!selectedTemplateId" class="tables-list-container">
         <div class="page-header">
           <h1>Список таблиц</h1>
-          <el-button type="primary" icon="el-icon-plus" @click="createNewTemplate">
+          <el-button type="primary" :icon="Plus" @click="createNewTemplate">
+            <el-icon>
+              <Plus></Plus>
+            </el-icon>
             Создать шаблон
           </el-button>
         </div>
@@ -21,17 +24,27 @@
           </div>
 
           <el-table :data="filteredTemplates" style="width: 100%" @row-click="viewTable">
-            <el-table-column prop="name" label="Название" width="300"></el-table-column>
+            <el-table-column prop="name" label="Название" width="200"></el-table-column>
             <el-table-column prop="description" label="Описание"></el-table-column>
-            <el-table-column label="Количество записей" width="150">
+            <el-table-column label="Количество записей" width="120">
               <template #default="scope">
                 {{ scope.row.row_count || 0 }}
               </template>
             </el-table-column>
-            <el-table-column label="Действия" width="200">
+            <el-table-column label="Действия" width="250">
               <template #default="scope">
-                <el-button size="small" @click="editTable(scope.row.id)">Редактировать</el-button>
-                <el-button size="small" type="primary" @click="viewTable(scope.row.id)">Просмотр</el-button>
+                <el-button size="small" @click="editTable(scope.row.id)">
+                  <el-icon>
+                    <Edit></Edit>
+                  </el-icon>
+                  Редактировать
+                </el-button>
+                <el-button size="small" type="primary" @click="viewTable(scope.row.id)">
+                  <el-icon>
+                    <DataLine></DataLine>
+                  </el-icon>
+                  Просмотр
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -57,6 +70,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import {
+  Edit,
+  Plus,
+  DataLine
+} from '@element-plus/icons-vue';
 import DynamicTable from '@/components/DynamicTable/DynamicTable.vue'
 import { dataSource } from '@/components/DynamicTable/services/dataSource'
 

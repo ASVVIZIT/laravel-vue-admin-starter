@@ -5,7 +5,7 @@ class Resource {
         this.uri = uri;
     }
     list(query, path = '') {
-        const url = path ? `/${this.uri}/${path}/` : `/${this.uri}`
+        const url = path ? `/${this.uri}/${path}` : `/${this.uri}`;
         return request({
             url: url,
             method: 'get',
