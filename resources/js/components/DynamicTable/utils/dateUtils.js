@@ -1,15 +1,61 @@
 // resources/js/components/DynamicTable/utils/dateUtils.js
 import dayjs from 'dayjs';
 
+/**
+ * @utils dateUtils
+ *
+ * Вспомогательные функции для работы с датами.
+ *
+ * Основные функции:
+ * - Форматирование отображения дат
+ */
+
+import { dateFormats } from './constants';
+
 // Форматирование отображения даты
-export function formatDateDisplay(value, column) {
-    if (!value || column.type !== 'date') {
-        return value;
+/**
+ * Форматирует отображение даты
+ *
+ * @param {string|Date} date - Дата для форматирования
+ * @param {string} format - Формат отображения
+ * @returns {string} Отформатированная дата
+ */
+export const formatDateDisplay = (date, format) => {
+    if (!date) return '';
+
+    // Создаем объект Date из строки, если нужно
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+
+    if (isNaN(dateObj)) return '';
+
+    // Находим формат в списке
+    const formatObj = dateFormats.find(f => f.value === format);
+    if (!formatObj) return date.toString();
+
+    // Форматируем дату
+    const year = dateObj.getFullYear();
+    const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+    const day = dateObj.getDate().toString().padStart(2, '0');
+    const hours = dateObj.getHours().toString().padStart(2, '0');
+    const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+
+    // Заменяем плейсхолдеры в формате
+    let formatted = format;
+    formatted = formatted.replace('YYYY', year);
+    formatted = formatted.replace('MM', month);
+    formatted = formatted.replace('DD', day);
+    formatted = formatted.replace('HH', hours);
+    formatted = formatted.replace('mm', minutes);
+
+    // Для формата с названием месяца
+    if (format.includes('MMM')) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        formatted = formatted.replace('MMM', months[dateObj.getMonth()]);
     }
 
-    const dateFormat = column.dateFormat || column.date_format || 'YYYY-MM-DD';
-    return dayjs(value).format(convertDateFormat(dateFormat));
-}
+    return formatted;
+};
 
 // Пример отображения даты
 export function formatDateExample(format) {

@@ -1,3 +1,4 @@
+<!-- resources/js/views/DynamicTable/FenixTable.vue -->
 <template>
   <div class="app-container scroll-y">
     <div class="dynamic-table__wrapper">

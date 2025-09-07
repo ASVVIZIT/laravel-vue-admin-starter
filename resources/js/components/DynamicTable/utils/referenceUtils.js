@@ -1,10 +1,21 @@
 // resources/js/components/DynamicTable/utils/referenceUtils.js
+/**
+ * @utils referenceUtils
+ *
+ * Вспомогательные функции для работы со справочниками.
+ *
+ * Основные функции:
+ * - Форматирование отображения справочника
+ * - Получение примера формата
+ * - Получение доступных ключей
+ * - Получение вложенного значения
+ */
 
 /**
  * Форматирование отображения справочника
  * @param {Object} item - Объект данных справочника
  * @param {Object} column - Объект колонки
- * @returns {string} Отформатированное значение
+ * @returns {string} Отформатированная строка
  */
 export function formatReferenceDisplay(item, column) {
     // Убедимся, что column и column.reference существуют
@@ -26,7 +37,9 @@ export function formatReferenceDisplay(item, column) {
 
     // Заменяем все {ключ} на соответствующие значения
     return format.replace(/\{([^}]+)\}/g, (match, key) => {
+        // === ИСПРАВЛЕНИЕ: Используем getNestedValue из этого же файла ===
         const value = getNestedValue(item, key);
+        // === КОНЕЦ ИСПРАВЛЕНИЯ ===
         return value !== undefined && value !== null ? value : match;
     });
 }
@@ -39,7 +52,7 @@ export function formatReferenceDisplay(item, column) {
 export function getExampleFormat(entityType) {
     switch (entityType) {
         case 'accessory': return '{id} {brand.name} {type.name} - ({brand.country}) {model} {series}';
-        case 'brand': return '{name} - ({country})';
+        case 'brand': return '{name} ({country})';
         case 'device_type': return '{name} ({code})';
         case 'measurement_category': return '{name} ({description})';
         default: return '{id} - {name}';

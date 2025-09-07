@@ -1,171 +1,294 @@
-// resources/js/services/referenceService.js
-import Resource from '../api/resource';
+// resources/js/components/DynamicTable/services/referenceService.js
 import { referenceApi } from '../api/referenceApi';
+import { MOCK_REFERENCE_DATA } from './mockData';
 
-const referenceResource = new Resource('references');
+// Кэш для типов справочников
+const entityTypeCache = {
+    data: null,
+    timestamp: null,
+    loading: false
+};
 
-export const referenceService = {
-    /**
-     * Получение списка типов справочников
-     */
-    async getTypes() {
-        try {
-            const response = await referenceResource.list({}, 'types');
-            return response || [];
-        } catch (error) {
-            console.error('Ошибка загрузки типов справочников:', error);
-            // Передаем ошибку дальше, чтобы её мог обработать вызывающий код
-            throw error;
-        }
-    },
+// Кэш для полей справочников
+const referenceFieldsCache = new Map();
 
-    /**
-     * Получение информации о полях модели справочника
-     * @param {string} modelName - Название модели в snake_case (например, 'accessory', 'brand')
-     * @returns {Promise<{ data: { availableKeys: string[] } }>}
-     */
-    async getFieldInfo (modelName) {
-        if (!modelName) {
-            console.warn('referenceService.getInfo: modelName is required');
-            return Promise.resolve({ data: { availableKeys: [] } }); // Возвращаем ожидаемую структуру
-        }
+// Кэш для данных справочников
+const referenceDataCache = new Map();
 
-        try {
-            // === ИСПРАВЛЕНИЕ: Вызываем referenceApi.getFieldInfo ===
-            const response = await referenceApi.getFieldInfo(modelName); // <-- ВАЖНО
+// Время жизни кэша (5 минут)
+const CACHE_TTL = 5 * 60 * 1000;
 
-            // === ИСПРАВЛЕНИЕ: Преобразуем ответ API в ожидаемый фронтендом формат ===
-            // Ожидаем response.data = { modelName: '...', fillable: [...], relations: {...}, ... }
-            const fieldInfoData = response.data; // <-- response.data, а не весь response
+/**
+ * Загружает типы справочников с кэшированием
+ *
+ * @returns {Promise<Array>} Массив типов справочников
+ * @throws {Error} При ошибке загрузки
+ */
+export const getEntityTypes = async () => {
+    // Проверяем кэш
+    const now = Date.now();
 
-            if (!fieldInfoData || !Array.isArray(fieldInfoData.fillable)) {
-                // Если структура неверна, логируем и выбрасываем ошибку с понятным сообщением
-                console.error(`[referenceService.getInfo] Invalid response structure. Expected { data: { fillable: string[], relations: object } }. Got:`, response);
-                throw new Error(`Invalid response structure from referenceApi.getFieldInfo for ${modelName}. Missing or invalid 'fillable'.`);
-            }
+    if (entityTypeCache.data && (now - entityTypeCache.timestamp < CACHE_TTL)) {
+        console.log('[referenceService.getEntityTypes] Returning cached data');
+        return entityTypeCache.data;
+    }
 
-            // 1. Базовые fillable поля
-            let availableKeys = [...fieldInfoData.fillable];
-
-            // 2. Добавляем поля из отношений (если они есть и корректны)
-            if (fieldInfoData.relations && typeof fieldInfoData.relations === 'object') {
-                Object.entries(fieldInfoData.relations).forEach(([relationName, relationInfo]) => {
-                    // relationInfo = { type: 'BelongsTo', related: '...', foreignKey: '...', ... }
-                    // Добавляем ключи в формате 'relationName.fieldKey'
-                    // Для простоты, добавим сам relationName как ключ, чтобы его можно было перетащить
-                    // Более сложная логика может потребоваться, если API будет возвращать поля related модели
-                    availableKeys.push(relationName); // Пример: 'brand', 'type'
-                    // TODO: Если API будет возвращать поля related модели, добавить их как 'brand.name', 'brand.country'
-                });
-            }
-
-            // 3. Убираем служебные поля
-            availableKeys = availableKeys.filter(key =>
-                !['id', 'created_at', 'updated_at', 'deleted_at'].includes(key)
-            );
-
-            // 4. Формируем ожидаемый фронтендом формат
-            const result = {
-                data: {
-                    availableKeys: availableKeys,
-                    // Можно добавить другие поля, если они нужны фронтенду, например:
-                     defaultDisplayFormat: fieldInfoData.defaultDisplayFormat || `{${availableKeys[0] || 'id'}}`,
-                     columnTypes: fieldInfoData.columnTypes || {}
+/*    // Проверяем, идет ли уже загрузка
+    if (entityTypeCache.loading) {
+        console.log('[referenceService.getEntityTypes] Already loading, waiting...');
+        // Ожидаем завершения текущей загрузки
+        return new Promise((resolve, reject) => {
+            const checkInterval = setInterval(() => {
+                if (!entityTypeCache.loading) {
+                    clearInterval(checkInterval);
+                    if (entityTypeCache.data) {
+                        console.log('[referenceService.getEntityTypes] Resolved after wait');
+                        resolve(entityTypeCache.data);
+                    } else {
+                        console.error('[referenceService.getEntityTypes] Rejected after wait');
+                        reject(new Error('Failed to load entity types'));
+                    }
                 }
-            };
+            }, 100);
 
-            console.log(`[referenceService.getInfo] Processed field info for ${modelName}:`, result);
-            return result; // <-- Возвращаем преобразованный результат
+            // Таймаут на случай, если загрузка зависнет
+            setTimeout(() => {
+                clearInterval(checkInterval);
+                console.error('[referenceService.getEntityTypes] Timeout while waiting');
+                reject(new Error('Timeout while loading entity types'));
+            }, 5000);
+        });
+    }*/
 
-        } catch (error) {
-            console.error(`referenceService.getInfo: Error fetching info for "${modelName}":`, error);
+    try {
+        entityTypeCache.loading = true;
+        console.log('[referenceService.getEntityTypes] Starting API call...');
+        const response = await referenceApi.getTypes();
 
-            // Формируем понятное сообщение об ошибке
-            let errorMessage = 'Unknown error';
-            if (error.code === 'ERR_NETWORK') {
-                errorMessage = 'Ошибка сети (CORS) при загрузке информации о полях справочника.';
-            } else if (error.response?.data?.message) {
-                errorMessage = error.response.data.message;
-            } else if (error.message) {
-                errorMessage = error.message;
+        // Правильная обработка ответа API
+        let types;
+        if (response && response.data !== undefined) {
+            // Если ответ приходит в свойстве data
+            types = response.data;
+        } else {
+            // Если ответ приходит напрямую
+            types = response;
+        }
+
+        // Форматируем ответ
+        const formattedTypes = (types || []).map(type => ({
+            value: type.value || type.name,
+            label: type.label || type.name,
+            description: type.description
+        }));
+
+        entityTypeCache.data = formattedTypes;
+        entityTypeCache.timestamp = Date.now();
+        console.log('[referenceService.getEntityTypes] Cache updated:', formattedTypes);
+        return formattedTypes;
+    } catch (error) {
+        console.error('[referenceService.getEntityTypes] Error:', error);
+        let errorMessage = 'Не удалось загрузить типы справочников';
+        if (error.code === 'ERR_NETWORK') {
+            errorMessage = 'Ошибка сети (CORS) при загрузке типов справочников.';
+        } else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        throw new Error(errorMessage);
+    } finally {
+        entityTypeCache.loading = false;
+    }
+};
+
+/**
+ * Загружает информацию о полях справочника с кэшированием
+ *
+ * @param {string} entityType - Тип справочника
+ * @returns {Promise<Object>} Информация о полях справочника
+ * @throws {Error} При ошибке загрузки
+ */
+export const getReferenceFields = async (entityType) => {
+    const cleanEntityType = entityType.replace(/\/$/, '');
+
+    // Проверяем кэш
+    if (referenceFieldsCache.has(cleanEntityType)) {
+        const { data, timestamp } = referenceFieldsCache.get(cleanEntityType);
+
+        if (Date.now() - timestamp < CACHE_TTL) {
+            console.log(`[referenceService.getReferenceFields] Returning cached data for: ${cleanEntityType}`);
+            return data;
+        }
+    }
+
+    try {
+        console.log(`[referenceService.getReferenceFields] Starting API call for: ${cleanEntityType}`);
+        const response = await referenceApi.getFieldInfo(cleanEntityType);
+
+        // Правильная обработка структуры ответа
+        let availableKeys;
+
+        // Проверяем различные возможные структуры ответа
+        if (response && response.data && response.data.availableKeys) {
+            // Структура { data: { data: { availableKeys: [...] } } }
+            availableKeys = response.data.availableKeys;
+        } else if (response && response.data && Array.isArray(response.data)) {
+            // Структура { data: [...] }
+            availableKeys = response.data;
+        } else if (response && response.availableKeys) {
+            // Структура { availableKeys: [...] }
+            availableKeys = response.availableKeys;
+        } else if (Array.isArray(response)) {
+            // Структура [...]
+            availableKeys = response;
+        } else {
+            availableKeys = [];
+        }
+
+        // Форматируем поля
+        const formattedFields = (availableKeys || []).map(key => {
+            // Если key - объект, извлекаем информацию
+            if (typeof key === 'object' && key !== null) {
+                return {
+                    key: key.key || key.name,
+                    label: key.label || key.name,
+                    type: key.type || 'string'
+                };
             }
-            // Передаем ошибку дальше, чтобы её мог обработать вызывающий код
-            throw new Error(`Ошибка загрузки информации о полях справочника "${modelName}": ${errorMessage}`);
-        }
-    },
-
-    /**
-     * УНИВЕРСАЛЬНЫЙ метод для получения данных справочника по типу (модели)
-     * @param {string} modelName - Название модели в snake_case (например, 'accessory', 'brand')
-     * @param {Object} params - Дополнительные параметры запроса (search, for_dropdown, per_page и т.д.)
-     * @returns {Promise<Object>} - Промис с данными справочника
-     */
-    async getData(modelName, params = {}) {
-        if (!modelName) {
-            console.warn('referenceService.getData: modelName is required');
-            return Promise.resolve({ data: [], meta: {} });
-        }
-
-        try {
-            // Делаем запрос к универсальному API: GET /api/references/{modelName}?...
-            // Например, GET /api/references/accessory?search=ABB&for_dropdown=1
-            // ИСПОЛЬЗУЕМ referenceApi.getData для централизованной обработки ошибок
-            const response = await referenceApi.getData(modelName, params); // list(params, entityType)
-            // Предполагаем, что данные находятся в response.data, а метаинформация в response.meta
+            // Если key - строка
             return {
-                data: response.data || [],
-                meta: response.meta || {}
+                key: key,
+                label: key,
+                type: 'string'
             };
-        } catch (error) {
-            console.error(`referenceService.getData: Error fetching data for "${modelName}":`, error);
-            // Передаем ошибку дальше, чтобы её мог обработать вызывающий код
-            throw error;
+        });
+
+        // Сохраняем в кэш
+        referenceFieldsCache.set(cleanEntityType, {
+            data: formattedFields,
+            timestamp: Date.now()
+        });
+        console.log(`[referenceService.getReferenceFields] Cache updated for: ${cleanEntityType}`, formattedFields);
+
+        return formattedFields;
+    } catch (error) {
+        console.error(`[referenceService.getReferenceFields] Error for ${cleanEntityType}:`, error);
+        let errorMessage = 'Ошибка загрузки полей справочника';
+        if (error.code === 'ERR_NETWORK') {
+            errorMessage = 'Ошибка сети (CORS) при загрузке полей справочника.';
+        } else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
         }
-    },
+        throw new Error(errorMessage);
+    }
+};
 
+/**
+ * Загружает данные справочника с кэшированием
+ *
+ * @param {string} entityType - Тип справочника
+ * @returns {Promise<Array>} Данные справочника
+ * @throws {Error} При ошибке загрузки
+ */
+export const getReferenceData = async (entityType) => {
+    const cleanEntityType = entityType.replace(/\/$/, '');
 
-    /**
-     * Получение данных справочника
-     * @param {string} modelName - Название модели в snake_case (например, 'accessory', 'brand')
-     * @returns {Promise<Array>} - Промис с массивом данных справочника
-     */
-    async getReferenceData(modelName) {
-        if (this.source === 'mock') {
-            return this.getMockReferenceData(modelName);
+    // Проверяем кэш
+    if (referenceDataCache.has(cleanEntityType)) {
+        const { data, timestamp } = referenceDataCache.get(cleanEntityType);
+
+        if (Date.now() - timestamp < CACHE_TTL) {
+            console.log(`[referenceService.getReferenceData] Returning cached data for: ${cleanEntityType}`);
+            return data;
+        }
+    }
+
+    try {
+        console.log(`[referenceService.getReferenceData] Starting API call for: ${cleanEntityType}`);
+        const response = await referenceApi.getData(cleanEntityType);
+
+        // Правильная обработка структуры ответа
+        let data;
+
+        // Проверяем различные возможные структуры ответа
+        if (response && response.data !== undefined) {
+            // Если ответ приходит в свойстве data
+            data = response.data;
+        } else {
+            // Если ответ приходит напрямую
+            data = response;
         }
 
-        // ИСПОЛЬЗУЕМ НОВЫЙ УНИВЕРСАЛЬНЫЙ referenceService.getData
-        // Передаем modelName и параметр for_dropdown: true для получения всех записей
-        try {
-            const response = await this.getData(modelName, { for_dropdown: true });
-            return response.data || [];
-        } catch (error) {
-            // Логируем ошибку
-            console.error(`referenceService.getReferenceData: Error fetching data for "${modelName}":`, error);
-            // ВАЖНО: Возвращаем пустой массив вместо того, чтобы "ломать" вызывающий код исключением
-            return [];
+        // Убедимся, что data - это массив
+        if (!Array.isArray(data)) {
+            console.warn(`[referenceService.getReferenceData] Expected array for ${cleanEntityType}, got:`, data);
+            data = [];
         }
-    },
 
-    async getAllReferenceData() {
-        try {
-            const types = await this.getTypes();
-            const referenceData = {};
+        // Сохраняем в кэш
+        referenceDataCache.set(cleanEntityType, {
+            data: data,
+            timestamp: Date.now()
+        });
+        console.log(`[referenceService.getReferenceData] Cache updated for: ${cleanEntityType}`, data);
 
-            for (const type of types) {
-                try {
-                    referenceData[type.value] = await this.getReferenceData(type.value);
-                } catch (error) {
-                    console.error(`referenceService.getAllReferenceData: Error fetching data for "${type.value}":`, error);
-                    // В случае ошибки для одного типа, продолжаем загрузку остальных
-                    referenceData[type.value] = [];
-                }
-            }
-
-            return referenceData;
-        } catch (error) {
-            console.error('Ошибка загрузки всех данных справочников:', error);
-            throw error;
+        return data;
+    } catch (error) {
+        console.error(`[referenceService.getReferenceData] Error for ${cleanEntityType}:`, error);
+        let errorMessage = 'Ошибка загрузки данных справочника';
+        if (error.code === 'ERR_NETWORK') {
+            errorMessage = 'Ошибка сети (CORS) при загрузке данных справочника.';
+        } else if (error.response?.data?.message) {
+            errorMessage = error.response.data.message;
+        } else if (error.message) {
+            errorMessage = error.message;
         }
+        throw new Error(errorMessage);
+    }
+};
+
+/**
+ * Очищает кэш сервиса
+ */
+export const clearCache = () => {
+    console.log('[referenceService.clearCache] Clearing all caches');
+    entityTypeCache.data = null;
+    entityTypeCache.timestamp = null;
+    referenceFieldsCache.clear();
+    referenceDataCache.clear();
+};
+
+/**
+ * Получает пример формата для типа справочника
+ *
+ * @param {string} entityType - Тип справочника
+ * @returns {string} Пример формата
+ */
+export const getExampleFormat = (entityType) => {
+    switch(entityType) {
+        case 'accessory': return '{id} {brand.name} {type.name} - ({brand.country}) {model} {series}';
+        case 'brand': return '{name} ({country})';
+        case 'device_type': return '{name} ({code})';
+        case 'measurement_category': return '{name} ({description})';
+        default: return '{id} - {name}';
+    }
+};
+
+/**
+ * Получает доступные ключи для формата
+ *
+ * @param {string} entityType - Тип справочника
+ * @returns {Array} Массив доступных ключей
+ */
+export const getAvailableKeys = (entityType) => {
+    switch(entityType) {
+        case 'accessory': return ['id', 'name', 'model', 'series', 'brand.name', 'brand.country', 'type.name', 'type.code'];
+        case 'brand': return ['id', 'name', 'country', 'website'];
+        case 'device_type': return ['id', 'name', 'code'];
+        case 'measurement_category': return ['id', 'name', 'description'];
+        default: return ['id', 'name'];
     }
 };

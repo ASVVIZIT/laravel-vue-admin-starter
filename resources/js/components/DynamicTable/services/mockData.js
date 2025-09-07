@@ -1,4 +1,16 @@
 // resources/js/components/DynamicTable/services/mockData.js
+/**
+ * @service mockData
+ *
+ * Сервис моковых данных для динамических таблиц.
+ * Содержит примеры шаблонов, строк и справочников для разработки и тестирования.
+ *
+ * Основные функции:
+ * - Предоставление моковых данных для шаблонов
+ * - Предоставление моковых данных для строк таблицы
+ * - Предоставление моковых данных для справочников
+ * - Вспомогательные функции для работы с моковыми данными
+ */
 
 // === ЕДИНАЯ СТРУКТУРА ДЛЯ ВСЕХ МОКОВЫХ ДАННЫХ СПРАВОЧНИКОВ ===
 export const MOCK_REFERENCE_DATA = {
@@ -13,11 +25,11 @@ export const MOCK_REFERENCE_DATA = {
 
     // === Бренды ===
     brand: [
-        { id: 1, name: 'ABB', country: 'Швейцария', website: 'https://www.abb.com' },
-        { id: 2, name: 'Legrand', country: 'Франция', website: 'https://www.legrand.com' },
-        { id: 3, name: 'IEK', country: 'Россия', website: 'https://www.iek.ru' },
-        { id: 4, name: 'Schneider Electric', country: 'Франция', website: 'https://www.se.com' },
-        { id: 5, name: 'Hager', country: 'Германия', website: 'https://www.hager.com' }
+        { id: 1, name: 'ABB', country: 'Швейцария', website: 'https://www.abb.com  ' },
+        { id: 2, name: 'Legrand', country: 'Франция', website: 'https://www.legrand.com  ' },
+        { id: 3, name: 'IEK', country: 'Россия', website: 'https://www.iek.ru  ' },
+        { id: 4, name: 'Schneider Electric', country: 'Франция', website: 'https://www.se.com  ' },
+        { id: 5, name: 'Hager', country: 'Германия', website: 'https://www.hager.com  ' }
     ],
 
     // === Типы устройств ===
@@ -54,7 +66,198 @@ export const MOCK_REFERENCE_DATA = {
         { id: 3, model: 'КГ', name: 'Кабель гибкий', brand: { name: 'ABB' }, type: { name: 'Гибкий кабель' }, insulation: 'Резина', cores: 3, cross_section: 4, current_rating: 25, temperature_range_min: -40, temperature_range_max: 60 }
     ]
 };
-// === КОНЕЦ ЕДИНОЙ СТРУКТУРЫ ===
+// === КОНЕЦ ЕДИНАЯ СТРУКТУРА ДЛЯ ВСЕХ МОКОВЫХ ДАННЫХ СПРАВОЧНИКОВ ===
+
+// === МОК-ДАННЫЕ ДЛЯ ШАБЛОНОВ ===
+export const MOCK_TEMPLATES = [
+    {
+        id: 1,
+        name: 'Электрооборудование',
+        columns: [
+            {
+                id: 1,
+                tempId: 1,
+                type: 'text',
+                label: 'Наименование',
+                order: 0,
+                dataType: 'string'
+            },
+            {
+                id: 2,
+                tempId: 2,
+                type: 'number',
+                label: 'Количество',
+                order: 1,
+                unit: 'шт.'
+            },
+            {
+                id: 3,
+                tempId: 3,
+                type: 'reference',
+                label: 'Производитель',
+                order: 2,
+                reference: {
+                    entityType: 'brand',
+                    displayFormat: '{name} ({country})'
+                }
+            },
+            {
+                id: 4,
+                tempId: 4,
+                type: 'date',
+                label: 'Дата поставки',
+                order: 3,
+                dateFormat: 'DD.MM.YYYY'
+            },
+            {
+                id: 5,
+                tempId: 5,
+                type: 'boolean',
+                label: 'В наличии',
+                order: 4,
+                booleanSettings: {
+                    displayType: 'toggle',
+                    trueLabel: 'Да',
+                    falseLabel: 'Нет'
+                }
+            }
+        ]
+    },
+    {
+        id: 2,
+        name: 'Аксессуары',
+        columns: [
+            {
+                id: 6,
+                tempId: 6,
+                type: 'text',
+                label: 'Модель',
+                order: 0,
+                dataType: 'string'
+            },
+            {
+                id: 7,
+                tempId: 7,
+                type: 'number',
+                label: 'Цена',
+                order: 1,
+                unit: 'руб.'
+            },
+            {
+                id: 8,
+                tempId: 8,
+                type: 'select',
+                label: 'Тип',
+                order: 2,
+                options: ['Корпус', 'Крепление', 'Доп. оборудование']
+            }
+        ]
+    }
+];
+// === КОНЕЦ МОК-ДАННЫХ ДЛЯ ШАБЛОНОВ ===
+
+// === МОК-ДАННЫЕ ДЛЯ СТРОК ТАБЛИЦЫ ===
+export const MOCK_ROWS = [
+    // Строки для шаблона "Электрооборудование" (id: 1)
+    {
+        id: 1,
+        template_id: 1,
+        parent_id: null,
+        data: {
+            '1': 'Автоматический выключатель',
+            '2': 5,
+            '3': 1, // ID бренда
+            '4': '2023-10-15',
+            '5': true
+        },
+        order: 0,
+        has_children: true
+    },
+    {
+        id: 2,
+        template_id: 1,
+        parent_id: null,
+        data: {
+            '1': 'УЗО',
+            '2': 3,
+            '3': 2, // ID бренда
+            '4': '2023-10-20',
+            '5': true
+        },
+        order: 1,
+        has_children: false
+    },
+    {
+        id: 3,
+        template_id: 1,
+        parent_id: null,
+        data: {
+            '1': 'Дифавтомат',
+            '2': 7,
+            '3': 3, // ID бренда
+            '4': '2023-10-25',
+            '5': false
+        },
+        order: 2,
+        has_children: false
+    },
+    // Дочерние строки для "Автоматический выключатель"
+    {
+        id: 4,
+        template_id: 1,
+        parent_id: 1, // Родитель - строка с id: 1
+        data: {
+            '1': 'ABB SH200',
+            '2': 2,
+            '3': 1, // ID бренда
+            '4': '2023-10-15',
+            '5': true
+        },
+        order: 0,
+        has_children: false
+    },
+    {
+        id: 5,
+        template_id: 1,
+        parent_id: 1, // Родитель - строка с id: 1
+        data: {
+            '1': 'Legrand DX 3',
+            '2': 3,
+            '3': 2, // ID бренда
+            '4': '2023-10-15',
+            '5': true
+        },
+        order: 1,
+        has_children: false
+    },
+
+    // Строки для шаблона "Аксессуары" (id: 2)
+    {
+        id: 6,
+        template_id: 2,
+        parent_id: null,
+        data: {
+            '6': 'Корпус IP44',
+            '7': 150,
+            '8': 'Корпус'
+        },
+        order: 0,
+        has_children: false
+    },
+    {
+        id: 7,
+        template_id: 2,
+        parent_id: null,
+        data: {
+            '6': 'Крепежный комплект',
+            '7': 75,
+            '8': 'Крепление'
+        },
+        order: 1,
+        has_children: false
+    }
+];
+// === КОНЕЦ МОК-ДАННЫХ ДЛЯ СТРОК ТАБЛИЦЫ ===
 
 // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С МОКОВЫМИ ДАННЫМИ ===
 

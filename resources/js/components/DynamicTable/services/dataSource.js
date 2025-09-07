@@ -1,531 +1,711 @@
 // resources/js/components/DynamicTable/services/dataSource.js
+import { ref, computed } from 'vue';
 import { templateApi } from '../api/templateApi';
 import { rowApi } from '../api/rowApi';
 import { referenceApi } from '../api/referenceApi';
+import { MOCK_TEMPLATES, MOCK_ROWS, MOCK_REFERENCE_DATA } from './mockData';
+import { generateTempId } from '../utils/templateBuilderUtils';
 
-// Моковые данные для режима разработки
-const mockDataStore = {
-    templates: [
-        {
-            id: 1,
-            name: 'Электрооборудование',
-            columns: [
-                {
-                    id: 1,
-                    type: 'text',
-                    label: 'Наименование',
-                    order: 0
-                },
-                {
-                    id: 2,
-                    type: 'number',
-                    label: 'Количество',
-                    unit: 'шт.',
-                    order: 1
-                },
-                {
-                    id: 3,
-                    type: 'reference',
-                    label: 'Производитель',
-                    reference: {
-                        entityType: 'brand',
-                        displayFormat: '{name} ({country})'
-                    },
-                    order: 2
-                },
-                {
-                    id: 4,
-                    type: 'date',
-                    label: 'Дата поставки',
-                    dateFormat: 'DD.MM.YYYY',
-                    order: 3
-                },
-                {
-                    id: 5,
-                    type: 'boolean',
-                    label: 'В наличии',
-                    booleanSettings: {
-                        displayType: 'toggle',
-                        trueLabel: 'Да',
-                        falseLabel: 'Нет'
-                    },
-                    order: 4
-                }
-            ]
-        },
-        {
-            id: 2,
-            name: 'Аксессуары',
-            columns: [
-                {
-                    id: 6,
-                    type: 'text',
-                    label: 'Модель',
-                    order: 0
-                },
-                {
-                    id: 7,
-                    type: 'number',
-                    label: 'Цена',
-                    unit: 'руб.',
-                    order: 1
-                },
-                {
-                    id: 8,
-                    type: 'select',
-                    label: 'Тип',
-                    options: ['Корпус', 'Крепление', 'Доп. оборудование'],
-                    order: 2
-                }
-            ]
-        }
-    ],
-    rows: [
-        {
-            id: 1,
-            template_id: 1,
-            parent_id: null,
-            data: {
-                'Наименование': 'Автоматический выключатель',
-                'Количество': 5,
-                'Производитель': 1,
-                'Дата поставки': '2023-10-15',
-                'В наличии': true
-            },
-            order: 0,
-            has_children: true
-        },
-        {
-            id: 2,
-            template_id: 1,
-            parent_id: null,
-            data: {
-                'Наименование': 'УЗО',
-                'Количество': 3,
-                'Производитель': 2,
-                'Дата поставки': '2023-10-20',
-                'В наличии': true
-            },
-            order: 1,
-            has_children: false
-        },
-        {
-            id: 3,
-            template_id: 1,
-            parent_id: null,
-            data: {
-                'Наименование': 'Дифавтомат',
-                'Количество': 7,
-                'Производитель': 3,
-                'Дата поставки': '2023-10-25',
-                'В наличии': false
-            },
-            order: 2,
-            has_children: false
-        },
-        {
-            id: 4,
-            template_id: 1,
-            parent_id: 1,
-            data: {
-                'Наименование': 'ABB SH200',
-                'Количество': 2,
-                'Производитель': 1,
-                'Дата поставки': '2023-10-15',
-                'В наличии': true
-            },
-            order: 0,
-            has_children: false
-        },
-        {
-            id: 5,
-            template_id: 1,
-            parent_id: 1,
-            data: {
-                'Наименование': 'Legrand DX 3',
-                'Количество': 3,
-                'Производитель': 2,
-                'Дата поставки': '2023-10-15',
-                'В наличии': true
-            },
-            order: 1,
-            has_children: false
-        },
-        {
-            id: 6,
-            template_id: 2,
-            parent_id: null,
-            data: {
-                'Модель': 'Корпус IP44',
-                'Цена': 150,
-                'Тип': 'Корпус'
-            },
-            order: 0,
-            has_children: false
-        },
-        {
-            id: 7,
-            template_id: 2,
-            parent_id: null,
-            data: {
-                'Модель': 'Крепежный комплект',
-                'Цена': 75,
-                'Тип': 'Крепление'
-            },
-            order: 1,
-            has_children: false
-        }
-    ],
-    referenceData: {
-        accessory: [
-            { id: 1, brand: { name: 'ABB' }, model: 'SH200', series: 'S200', name: 'ABB SH200' },
-            { id: 2, brand: { name: 'Legrand' }, model: 'DX 3', series: 'DX3', name: 'Legrand DX 3' },
-            { id: 3, brand: { name: 'IEK' }, model: 'VA47-29', series: 'VA47', name: 'IEK VA47-29' }
-        ],
-        brand: [
-            { id: 1, name: 'ABB', country: 'Швейцария', website: 'https://www.se.com  ' },
-            { id: 2, name: 'Legrand', country: 'Франция', website: 'https://www.legrand.com  ' },
-            { id: 3, name: 'IEK', country: 'Россия', website: 'https://www.iek.ru  ' }
-        ],
-        device_type: [
-            { id: 1, name: 'Автоматический выключатель', code: 'ACB' },
-            { id: 2, name: 'УЗО', code: 'RCD' },
-            { id: 3, name: 'Дифавтомат', code: 'RCBO' }
-        ]
-    }
+// === Состояния ===
+const source = ref('api'); // 'api' или 'mock'
+const loading = ref(false);
+const error = ref(null);
+
+// === Геттеры ===
+const currentSource = computed(() => source.value);
+const isLoading = computed(() => loading.value);
+const getError = computed(() => error.value);
+
+// === Сеттеры ===
+const setSource = (newSource) => {
+    console.log(`[dataSource] Switching source to: ${newSource}`);
+    source.value = newSource;
 };
 
-// Класс для управления источником данных
-export class DataSource {
-    constructor() {
-        this.source = 'api'; // По умолчанию используем API
-        this.setSource('api');
-    }
-
-    // Установка источника данных
-    setSource(source) {
-        console.log(`[DataSource] Switching source to: ${source}`); // Опционально, для отладки
-        this.source = source;
-    }
-
-    // Получение списка шаблонов
-    async list(params = {}) {
-        if (this.source === 'mock') {
-            return this.getMockTemplates(params);
-        }
-
+// === Методы API ===
+const api = {
+    // === Шаблоны ===
+    async listTemplates(params = {}) {
         return templateApi.list(params);
-    }
+    },
 
-    // Получение шаблона по ID
-    async get(id) {
-        if (this.source === 'mock') {
-            return this.getMockTemplate(id);
-        }
-
+    async getTemplate(id) {
         return templateApi.get(id);
-    }
+    },
 
-    // Создание нового шаблона
-    async create(data) {
-        if (this.source === 'mock') {
-            return this.createMockTemplate(data);
-        }
-
+    async createTemplate(data) {
         return templateApi.create(data);
-    }
+    },
 
-    // Обновление шаблона
-    async update(id, data) {
-        if (this.source === 'mock') {
-            return this.updateMockTemplate(id, data);
-        }
-
+    async updateTemplate(id, data) {
         return templateApi.update(id, data);
-    }
+    },
 
-    // Удаление шаблона
-    async delete(id) {
-        if (this.source === 'mock') {
-            return this.deleteMockTemplate(id);
-        }
-
+    async deleteTemplate(id) {
         return templateApi.delete(id);
-    }
+    },
 
-    // Загрузка данных таблицы
+    // === Строки таблицы ===
     async fetchTableData(params) {
-        if (this.source === 'mock') {
-            return this.getMockTableData(params);
-        }
-
         return rowApi.list(params);
-    }
+    },
 
-    // Создание новой строки
     async createRow(data) {
-        if (this.source === 'mock') {
-            return this.createMockRow(data);
-        }
-
         return rowApi.create(data);
-    }
+    },
 
-    // Обновление строки
     async updateRow(id, data) {
-        if (this.source === 'mock') {
-            return this.updateMockRow(id, data);
-        }
-
         return rowApi.update(id, data);
-    }
+    },
 
-    // Удаление строки
     async deleteRow(id) {
-        if (this.source === 'mock') {
-            return this.deleteMockRow(id);
-        }
+        return rowApi.destroy(id);
+    },
 
-        return rowApi.delete(id);
-    }
-
-    // Получение дочерних строк
-    async fetchChildRows(parentId, params) {
-        if (this.source === 'mock') {
-            return this.getMockChildRows(parentId, params);
-        }
-
-        return rowApi.list({ ...params, parent_id: parentId });
-    }
-
-    // Получение данных справочника
-    async getReferenceData(entityType) {
-        if (this.source === 'mock') {
-            return this.getMockReferenceData(entityType);
-        }
-
-        return referenceApi.getData(entityType);
-    }
-
-    // НОВЫЙ МЕТОД: Загрузка данных справочника с правильной обработкой ошибок
-    // Этот метод добавлен для решения ошибки "de.loadReferenceData is not a function"
-    async loadReferenceData(entityType) {
-        try {
-            // ИСПРАВЛЕНИЕ: Используем существующий метод getReferenceData
-            const data = await this.getReferenceData(entityType);
-            return data;
-        } catch (error) {
-            console.error(`Ошибка загрузки данных справочника (${entityType}):`, error);
-            // Возвращаем пустой массив в случае ошибки
-            return [];
-        }
-    }
-
-    // НОВЫЙ МЕТОД: Получение типов справочников
+    // === Справочники ===
     async getReferenceTypes() {
-        if (this.source === 'mock') {
-            // В моковых данных типы справочников могут быть получены из ключей referenceData
-            return Object.keys(mockDataStore.referenceData).map(type => ({
-                value: type,
-                label: this.getReferenceTypeLabel(type)
-            }));
-        }
-
-        // Для реального API получаем типы справочников
         return referenceApi.getTypes();
-    }
+    },
 
-    // Вспомогательный метод для получения метки типа справочника
-    getReferenceTypeLabel(type) {
-        const labels = {
-            'accessory': 'Аксессуары',
-            'brand': 'Бренды',
-            'device_type': 'Типы устройств',
-            'measurement_category': 'Категория Единиц измерения'
-        };
-        return labels[type] || type;
-    }
+    async getReferenceData(entityType, params = {}) {
+        return referenceApi.getData(entityType, params);
+    },
 
-    // Моковые методы
-    getMockTemplates(params = {}) {
-        let templates = [...mockDataStore.templates];
+    async getReferenceInfo(entityType) {
+        return referenceApi.getFieldInfo(entityType);
+    },
 
-        // Фильтрация по поиску
-        if (params.search) {
-            const search = params.search.toLowerCase();
-            templates = templates.filter(template =>
-                template.name.toLowerCase().includes(search)
-            );
-        }
+    // Получение только полей справочника ===
+    async getReferenceInfoFields(entityType) {
+        try {
+            console.log(`[dataSource.getReferenceInfoFields] Starting for: ${entityType}`);
+            const info = await this.getReferenceInfo(entityType);
+            console.log(`[dataSource.getReferenceInfoFields] Info loaded for ${entityType}:`, info);
 
-        // Пагинация
-        const page = params.page || 1;
-        const perPage = params.per_page || 15;
-        const total = templates.length;
-        const totalPages = Math.ceil(total / perPage);
+            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Извлекаем availableKeys ===
+            let fields;
 
-        const startIndex = (page - 1) * perPage;
-        const endIndex = startIndex + perPage;
-        const paginatedTemplates = templates.slice(startIndex, endIndex);
-
-        return {
-            data: paginatedTemplates,
-            meta: {
-                current_page: page,
-                per_page: perPage,
-                total: total,
-                last_page: totalPages
+            // Проверяем различные возможные структуры ответа
+            if (info && info.data !== undefined) {
+                // Структура {  {  { availableKeys: [...] } } }
+                fields = info.data.availableKeys || [];
+            } else if (info && info.availableKeys && Array.isArray(info.availableKeys)) {
+                // Структура {  [...] }
+                fields = info.availableKeys;
+            } else {
+                fields = [];
             }
-        };
-    }
+            // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
 
-    getMockTemplate(id) {
-        const template = mockDataStore.templates.find(t => t.id === parseInt(id));
-        if (!template) {
-            throw new Error('Template not found');
+            console.log(`[dataSource.getReferenceInfoFields] Fields extracted for ${entityType}:`, fields);
+            return fields;
+        } catch (error) {
+            console.error(`[dataSource.getReferenceInfoFields] Error for ${entityType}:`, error);
+            throw new Error(`Не удалось загрузить поля справочника "${entityType}": ${error.message}`);
         }
+    },
+};
 
-        // Глубокое клонирование для предотвращения мутаций
-        return JSON.parse(JSON.stringify(template));
-    }
+// === Методы Mock ===
+const mock = {
+    // === Шаблоны ===
+    async listTemplates(params = {}) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                let filteredTemplates = [...MOCK_TEMPLATES];
 
-    createMockTemplate(data) {
-        const newId = Math.max(...mockDataStore.templates.map(t => t.id)) + 1;
-        const newTemplate = {
-            id: newId,
-            ...data,
-            columns: data.columns.map((col, index) => ({
-                ...col,
-                id: Math.max(...mockDataStore.templates.flatMap(t => t.columns).map(c => c.id)) + index + 1,
-                order: index
-            }))
-        };
-
-        mockDataStore.templates.push(newTemplate);
-        return JSON.parse(JSON.stringify(newTemplate));
-    }
-
-    updateMockTemplate(id, data) {
-        const index = mockDataStore.templates.findIndex(t => t.id === parseInt(id));
-        if (index === -1) {
-            throw new Error('Template not found');
-        }
-
-        const updatedTemplate = {
-            ...mockDataStore.templates[index],
-            ...data,
-            columns: data.columns.map((col, index) => ({
-                ...col,
-                id: col.id || Math.max(...mockDataStore.templates.flatMap(t => t.columns).map(c => c.id)) + index + 1,
-                order: index
-            }))
-        };
-
-        mockDataStore.templates[index] = updatedTemplate;
-        return JSON.parse(JSON.stringify(updatedTemplate));
-    }
-
-    deleteMockTemplate(id) {
-        const index = mockDataStore.templates.findIndex(t => t.id === parseInt(id));
-        if (index === -1) {
-            throw new Error('Template not found');
-        }
-
-        mockDataStore.templates.splice(index, 1);
-        return { success: true };
-    }
-
-    getMockTableData(params) {
-        let rows = [...mockDataStore.rows];
-
-        // Фильтрация по шаблону
-        if (params.template_id) {
-            rows = rows.filter(row => row.template_id === parseInt(params.template_id));
-        }
-
-        // Фильтрация по родительской строке
-        if (params.parent_id !== undefined) {
-            rows = rows.filter(row => {
-                if (params.parent_id === null) {
-                    return row.parent_id === null;
+                // Фильтрация по поиску
+                if (params.search) {
+                    const search = params.search.toLowerCase();
+                    filteredTemplates = filteredTemplates.filter(template =>
+                        template.name.toLowerCase().includes(search)
+                    );
                 }
-                return row.parent_id === parseInt(params.parent_id);
-            });
-        }
 
-        // Сортировка
-        rows.sort((a, b) => a.order - b.order);
+                // Пагинация
+                const page = parseInt(params.page) || 1;
+                const perPage = parseInt(params.per_page) || 10;
+                const total = filteredTemplates.length;
+                const totalPages = Math.ceil(total / perPage);
+                const start = (page - 1) * perPage;
+                const end = start + perPage;
 
-        // Пагинация
-        const page = params.page || 1;
-        const perPage = params.per_page || 20;
-        const total = rows.length;
-        const totalPages = Math.ceil(total / perPage);
+                const paginatedData = filteredTemplates.slice(start, end);
 
-        const startIndex = (page - 1) * perPage;
-        const endIndex = startIndex + perPage;
-        const paginatedRows = rows.slice(startIndex, endIndex);
+                resolve({
+                    data: paginatedData.map(template => ({
+                        id: template.id,
+                        name: template.name,
+                        columns_count: template.columns.length
+                    })),
+                    meta: {
+                        current_page: page,
+                        per_page: perPage,
+                        total: total,
+                        last_page: totalPages
+                    }
+                });
+            }, 300);
+        });
+    },
 
-        return {
-            data: paginatedRows,
-            meta: {
-                current_page: page,
-                per_page: perPage,
-                total: total,
-                last_page: totalPages
+    async getTemplate(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const template = MOCK_TEMPLATES.find(t => t.id === parseInt(id));
+
+                if (!template) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                // Форматируем колонки в соответствии с API
+                const formattedTemplate = {
+                    ...template,
+                    columns: template.columns.map(column => ({
+                        id: column.id,
+                        tempId: column.tempId || column.id || generateTempId(),
+                        type: column.type,
+                        label: column.label?.trim() || `Колонка ${column.order + 1}`,
+                        order: column.order,
+                        options: column.type === 'select' ? (column.options || []).filter(opt => opt.trim() !== '') : undefined,
+                        data_type: column.type === 'text' ? (column.dataType || 'string') : undefined,
+                        unit: column.type === 'number' ? (column.unit || '') : undefined,
+                        reference: column.type === 'reference' ? {
+                            entity_type: column.reference?.entityType || '',
+                            display_format: column.reference?.displayFormat || ''
+                        } : undefined,
+                        boolean_settings: column.type === 'boolean' ? column.booleanSettings : undefined,
+                        date_format: (column.type === 'date' || column.type === 'datetime') ? (column.dateFormat || 'DD.MM.YYYY') : undefined
+                    }))
+                };
+
+                resolve(formattedTemplate);
+            }, 200);
+        });
+    },
+
+    async createTemplate(data) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const newTemplate = {
+                    id: Date.now(),
+                    name: data.name,
+                    columns: data.columns.map((column, index) => ({
+                        ...column,
+                        id: Date.now() + index,
+                        tempId: column.tempId || generateTempId(),
+                        order: index
+                    }))
+                };
+
+                MOCK_TEMPLATES.push(newTemplate);
+
+                resolve({
+                    id: newTemplate.id,
+                    name: newTemplate.name,
+                    columns: newTemplate.columns
+                });
+            }, 300);
+        });
+    },
+
+    async updateTemplate(id, data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const index = MOCK_TEMPLATES.findIndex(t => t.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                MOCK_TEMPLATES[index] = {
+                    ...MOCK_TEMPLATES[index],
+                    ...data,
+                    columns: data.columns.map((column, index) => ({
+                        ...column,
+                        id: column.id || Date.now() + index,
+                        tempId: column.tempId || generateTempId(),
+                        order: index
+                    }))
+                };
+
+                resolve(MOCK_TEMPLATES[index]);
+            }, 300);
+        });
+    },
+
+    async deleteTemplate(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const index = MOCK_TEMPLATES.findIndex(t => t.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Template not found'));
+                    return;
+                }
+
+                const template = MOCK_TEMPLATES[index];
+                MOCK_TEMPLATES.splice(index, 1);
+
+                resolve({
+                    message: `Шаблон '${template.name}' успешно удален`,
+                    id: template.id
+                });
+            }, 200);
+        });
+    },
+
+    // === Строки таблицы ===
+    async fetchTableData(params) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const templateId = parseInt(params.template_id);
+                const parentId = params.parent_id !== undefined ? (params.parent_id === 'null' ? null : parseInt(params.parent_id)) : null;
+
+                let rows = MOCK_ROWS.filter(row => row.template_id === templateId);
+
+                // Фильтрация по родительскому ID
+                if (parentId !== undefined) {
+                    if (parentId !== null) {
+                        rows = rows.filter(row => row.parent_id === parentId);
+                    } else {
+                        rows = rows.filter(row => row.parent_id === null);
+                    }
+                } else {
+                    // По умолчанию - корневые элементы
+                    rows = rows.filter(row => row.parent_id === null);
+                }
+
+                // Пагинация
+                const page = parseInt(params.page) || 1;
+                const perPage = parseInt(params.per_page) || 10;
+                const total = rows.length;
+                const totalPages = Math.ceil(total / perPage);
+                const start = (page - 1) * perPage;
+                const end = start + perPage;
+
+                const paginatedData = rows.slice(start, end);
+
+                resolve({
+                    paginatedData,
+                    meta: {
+                        current_page: page,
+                        per_page: perPage,
+                        total: total,
+                        last_page: totalPages
+                    }
+                });
+            }, 300);
+        });
+    },
+
+    async createRow(data) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const newId = Date.now();
+                const newRow = {
+                    id: newId,
+                    template_id: data.template_id,
+                    parent_id: data.parent_id || null,
+                    data: data,
+                    order: data.order !== undefined ? data.order : (MOCK_ROWS.filter(r => r.template_id === data.template_id && r.parent_id === data.parent_id).length || 0),
+                    has_children: false
+                };
+
+                MOCK_ROWS.push(newRow);
+
+                resolve(newRow);
+            }, 300);
+        });
+    },
+
+    async updateRow(id, data) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const index = MOCK_ROWS.findIndex(r => r.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Row not found'));
+                    return;
+                }
+
+                MOCK_ROWS[index] = {
+                    ...MOCK_ROWS[index],
+                    ...data,
+                    order: data.order !== undefined ? data.order : MOCK_ROWS[index].order
+                };
+
+                resolve(MOCK_ROWS[index]);
+            }, 300);
+        });
+    },
+
+    async deleteRow(id) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const index = MOCK_ROWS.findIndex(r => r.id === parseInt(id));
+
+                if (index === -1) {
+                    reject(new Error('Row not found'));
+                    return;
+                }
+
+                // Удаляем дочерние строки
+                const childrenIds = MOCK_ROWS
+                    .filter(r => r.parent_id === parseInt(id))
+                    .map(r => r.id);
+
+                childrenIds.forEach(childId => {
+                    const childIndex = MOCK_ROWS.findIndex(r => r.id === childId);
+                    if (childIndex !== -1) {
+                        MOCK_ROWS.splice(childIndex, 1);
+                    }
+                });
+
+                // Удаляем саму строку
+                const row = MOCK_ROWS[index];
+                MOCK_ROWS.splice(index, 1);
+
+                resolve({
+                    success: true,
+                    message: `Строка ${row.id} успешно удалена`
+                });
+            }, 200);
+        });
+    },
+
+    // === Справочники ===
+    async getReferenceTypes() {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve([
+                    { value: 'accessory', label: 'Аксессуары', description: 'Аксессуары для электрооборудования' },
+                    { value: 'brand', label: 'Бренды', description: 'Производители' },
+                    { value: 'device_type', label: 'Типы устройств', description: 'Категории электрооборудования' },
+                    { value: 'measurement_category', label: 'Категории измерений', description: 'Единицы измерения' }
+                ]);
+            }, 200);
+        });
+    },
+
+    async getReferenceData(entityType, params = {}) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                // Убираем завершающий слэш из entityType
+                const cleanEntityType = entityType.replace(/\/$/, '');
+
+                // Проверяем моковые данные
+                if (MOCK_REFERENCE_DATA[cleanEntityType]?.[0]) {
+                    resolve(MOCK_REFERENCE_DATA[cleanEntityType]);
+                } else {
+                    reject(new Error(`Справочник "${cleanEntityType}" не найден в моковых данных`));
+                }
+            }, 200);
+        });
+    },
+
+    // === ИСПРАВЛЕНИЕ: Добавляем метод getReferenceInfo для mock ===
+    async getReferenceInfo(entityType) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                // Убираем завершающий слэш из entityType
+                const cleanEntityType = entityType.replace(/\/$/, '');
+
+                // Проверяем моковые данные
+                if (MOCK_REFERENCE_DATA[cleanEntityType]?.[0]) {
+                    const exampleItem = MOCK_REFERENCE_DATA[cleanEntityType][0];
+                    const fields = Object.keys(exampleItem).map(key => ({
+                        key: key,
+                        label: key,
+                        type: typeof exampleItem[key]
+                    }));
+
+                    resolve({
+                        modelName: cleanEntityType,
+                        className: cleanEntityType.charAt(0).toUpperCase() + cleanEntityType.slice(1),
+                        tableName: `ep_${cleanEntityType}s`,
+                        fillable: Object.keys(exampleItem),
+                        relations: {}, // Моковые данные не содержат информации о связях
+                        fields: fields,
+                        example: exampleItem,
+                        exampleFormat: '{name}',
+                        availableKeys: fields.map(f => f.key) // <-- Добавляем availableKeys для совместимости
+                    });
+                } else {
+                    reject(new Error(`Справочник "${cleanEntityType}" не найден в моковых данных`));
+                }
+            }, 200);
+        });
+    },
+    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
+
+    // === НОВЫЙ МЕТОД: Получение только полей справочника для mock ===
+    async getReferenceInfoFields(entityType) {
+        try {
+            console.log(`[mock.getReferenceInfoFields] Starting for: ${entityType}`);
+            const info = await this.getReferenceInfo(entityType); // <-- Вызываем getReferenceInfo
+            console.log(`[mock.getReferenceInfoFields] Info loaded for ${entityType}:`, info);
+
+            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Извлекаем availableKeys ===
+            let fields;
+
+            // Проверяем различные возможные структуры ответа
+            if (info && info.data !== undefined) {
+                // Структура {  {  { availableKeys: [...] } } }
+                fields = info.data.availableKeys || [];
+            } else if (info && info.availableKeys && Array.isArray(info.availableKeys)) {
+                // Структура {  [...] }
+                fields = info.availableKeys;
+            } else {
+                fields = [];
             }
-        };
-    }
+            // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
 
-    createMockRow(data) {
-        const newId = Math.max(...mockDataStore.rows.map(r => r.id)) + 1;
-        const newRow = {
-            id: newId,
-            ...data,
-            has_children: false
-        };
-
-        mockDataStore.rows.push(newRow);
-        return JSON.parse(JSON.stringify(newRow));
-    }
-
-    updateMockRow(id, data) {
-        const index = mockDataStore.rows.findIndex(r => r.id === parseInt(id));
-        if (index === -1) {
-            throw new Error('Row not found');
+            console.log(`[mock.getReferenceInfoFields] Fields extracted for ${entityType}:`, fields);
+            return fields;
+        } catch (error) {
+            console.error(`[mock.getReferenceInfoFields] Error for ${entityType}:`, error);
+            throw new Error(`Не удалось загрузить поля справочника "${entityType}": ${error.message}`);
         }
+    },
+    // === КОНЕЦ НОВОГО МЕТОДА ===
+};
 
-        const updatedRow = {
-            ...mockDataStore.rows[index],
-            ...data
-        };
+// === Экспортируемый объект dataSource ===
+export const dataSource = {
+    // Геттеры
+    get currentSource() { return currentSource.value; },
+    get isLoading() { return isLoading.value; },
+    get error() { return getError.value; },
 
-        mockDataStore.rows[index] = updatedRow;
-        return JSON.parse(JSON.stringify(updatedRow));
-    }
+    // Сеттеры
+    setSource,
 
-    deleteMockRow(id) {
-        const index = mockDataStore.rows.findIndex(r => r.id === parseInt(id));
-        if (index === -1) {
-            throw new Error('Row not found');
+    // Методы
+    async listTemplates(params = {}) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.listTemplates(params);
+            } else {
+                return await api.listTemplates(params);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка загрузки списка шаблонов';
+            throw err;
+        } finally {
+            loading.value = false;
         }
+    },
 
-        mockDataStore.rows.splice(index, 1);
-        return { success: true };
-    }
-
-    getMockChildRows(parentId, params) {
-        return this.getMockTableData({ ...params, parent_id: parentId });
-    }
-
-    getMockReferenceData(entityType) {
-        if (!mockDataStore.referenceData[entityType]) {
-            throw new Error(`Reference data for ${entityType} not found`);
+    async getTemplate(id) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.getTemplate(id);
+            } else {
+                return await api.getTemplate(id);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка загрузки шаблона';
+            throw err;
+        } finally {
+            loading.value = false;
         }
+    },
 
-        return [...mockDataStore.referenceData[entityType]];
-    }
-}
+    async createTemplate(data) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.createTemplate(data);
+            } else {
+                return await api.createTemplate(data);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка создания шаблона';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
 
-// Экземпляр dataSource для использования в компонентах
-export const dataSource = new DataSource();
+    async updateTemplate(id, data) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.updateTemplate(id, data);
+            } else {
+                return await api.updateTemplate(id, data);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка обновления шаблона';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async deleteTemplate(id) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.deleteTemplate(id);
+            } else {
+                return await api.deleteTemplate(id);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка удаления шаблона';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async fetchTableData(params) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.fetchTableData(params);
+            } else {
+                return await api.fetchTableData(params);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка загрузки данных таблицы';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async createRow(data) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.createRow(data);
+            } else {
+                return await api.createRow(data);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка создания строки';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async updateRow(id, data) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.updateRow(id, data);
+            } else {
+                return await api.updateRow(id, data);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка обновления строки';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async deleteRow(id) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.deleteRow(id);
+            } else {
+                return await api.deleteRow(id);
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка удаления строки';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async getReferenceTypes() {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.getReferenceTypes();
+            } else {
+                return await api.getReferenceTypes();
+            }
+        } catch (err) {
+            error.value = err.message || 'Ошибка загрузки типов справочников';
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    async getReferenceData(entityType, params = {}) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.getReferenceData(entityType, params);
+            } else {
+                return await api.getReferenceData(entityType, params);
+            }
+        } catch (err) {
+            error.value = err.message || `Ошибка загрузки данных справочника "${entityType}"`;
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+
+    // === ИСПРАВЛЕНИЕ: Экспортируем метод getReferenceInfo ===
+    async getReferenceInfo(entityType) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.getReferenceInfo(entityType);
+            } else {
+                return await api.getReferenceInfo(entityType);
+            }
+        } catch (err) {
+            error.value = err.message || `Ошибка загрузки информации о справочнике "${entityType}"`;
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
+
+    // === НОВЫЙ МЕТОД: Экспортируем метод getReferenceInfoFields ===
+    async getReferenceInfoFields(entityType) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (source.value === 'mock') {
+                return await mock.getReferenceInfoFields(entityType);
+            } else {
+                return await api.getReferenceInfoFields(entityType);
+            }
+        } catch (err) {
+            error.value = err.message || `Ошибка загрузки полей справочника "${entityType}"`;
+            throw err;
+        } finally {
+            loading.value = false;
+        }
+    },
+    // === КОНЕЦ НОВОГО МЕТОДА ===
+};

@@ -1,112 +1,82 @@
-// resources/js/utils/booleanUtils.js
+/**
+ * @utils booleanUtils
+ *
+ * Вспомогательные функции для работы с булевыми колонками.
+ *
+ * Основные функции:
+ * - Получение настроек булевой колонки
+ * - Установка настроек булевой колонки
+ * - Парсинг булевых значений
+ */
 
 /**
- * Безопасное получение настроек boolean
- * @param {Object} column - Объект колонки
+ * Получает значение настройки булевой колонки
+ *
+ * @param {Object} column - Колонка
  * @param {string} setting - Название настройки
- * @returns {*} Значение настройки или значение по умолчанию
+ * @param {*} defaultValue - Значение по умолчанию
+ * @returns {*} Значение настройки
  */
-export function getBooleanSetting(column, setting) {
-    if (!column || column.type !== 'boolean') {
-        return null;
+export const getBooleanSetting = (column, setting, defaultValue = null) => {
+    if (!column || column.type !== 'boolean' || !column.booleanSettings) {
+        return defaultValue;
     }
 
-    // Если booleanSettings - это строка, попробуем распарсить
-    let settings = column.booleanSettings;
-    if (typeof settings === 'string') {
-        try {
-            settings = JSON.parse(settings);
-        } catch (e) {
-            console.warn('Не удалось распарсить настройки boolean:', e);
-            settings = null;
-        }
-    }
-
-    // Если settings не объект, используем значения по умолчанию
-    if (!settings || typeof settings !== 'object') {
-        settings = {
-            displayType: 'toggle',
-            trueLabel: 'Да',
-            falseLabel: 'Нет'
-        };
-    }
-
-    return settings[setting] ||
-        (setting === 'displayType' ? 'toggle' :
-            setting === 'trueLabel' ? 'Да' : 'Нет');
+    return column.booleanSettings[setting] !== undefined
+        ? column.booleanSettings[setting]
+        : defaultValue;
 };
 
 /**
- * Установка значения настройки булевой колонки
- * @param {Object} column - Объект колонки
- * @param {Object} settings - Объект настроек
+ * Устанавливает значение настройки булевой колонки
+ *
+ * @param {Object} column - Колонка
+ * @param {string} setting - Название настройки
+ * @param {*} value - Значение настройки
+ * @returns {Object} Обновленная колонка
  */
-export function setBooleanSetting(column, settings) {
+export const setBooleanSetting = (column, setting, value) => {
     if (!column || column.type !== 'boolean') {
-        return;
+        return column;
     }
 
-    // Инициализируем booleanSettings, если не существует
-    if (!column.booleanSettings || typeof column.booleanSettings === 'string') {
-        try {
-            // Пытаемся распарсить, если это строка
-            column.booleanSettings = typeof column.booleanSettings === 'string'
-                ? JSON.parse(column.booleanSettings)
-                : {};
-        } catch (e) {
-            column.booleanSettings = {};
-        }
-    }
+    // Создаем копию колонки и настроек
+    const updatedColumn = { ...column };
+    updatedColumn.booleanSettings = {
+        ...(updatedColumn.booleanSettings || {}),
+        [setting]: value
+    };
 
-    // Если это не объект, создаем новый объект
-    if (typeof column.booleanSettings !== 'object') {
-        column.booleanSettings = {};
-    }
-
-    // Устанавливаем значения
-    column.booleanSettings.displayType = settings.displayType || 'toggle';
-    column.booleanSettings.trueLabel = settings.trueLabel || 'Да';
-    column.booleanSettings.falseLabel = settings.falseLabel || 'Нет';
-}
+    return updatedColumn;
+};
 
 /**
- * Парсинг различных представлений булевых значений в стандартное булево значение
- * @param {any} value - Значение для парсинга
- * @returns {boolean|null} - Стандартное булево значение или null
+ * Парсит значение в булево значение
+ *
+ * @param {*} value - Значение для парсинга
+ * @returns {boolean|null} Булево значение или null
  */
-export function parseBooleanValue(value) {
-    // Список значений, которые считаются истиной
-    const trueValues = [true, 1, 'true', '1', 'yes', 'да'];
-    // Список значений, которые считаются ложью
-    const falseValues = [false, 0, 'false', '0', 'no', 'нет', null, undefined, ''];
-
-    // Проверяем, является ли значение истиной
-    if (trueValues.some(v => {
-        if (typeof v === 'string' && typeof value === 'string') {
-            return v.toLowerCase() === value.toLowerCase();
-        }
-        return v === value;
-    })) {
-        return true;
+export const parseBooleanValue = (value) => {
+    if (typeof value === 'boolean') {
+        return value;
     }
 
-    // Проверяем, является ли значение ложью
-    if (falseValues.some(v => {
-        if (typeof v === 'string' && typeof value === 'string') {
-            return v.toLowerCase() === value.toLowerCase();
-        }
-        return v === value;
-    })) {
-        return false;
+    if (typeof value === 'string') {
+        const lower = value.toLowerCase();
+        if (lower === 'true' || lower === 'да' || lower === 'yes') return true;
+        if (lower === 'false' || lower === 'нет' || lower === 'no') return false;
     }
 
-    // Если значение не распознано, возвращаем null
+    if (typeof value === 'number') {
+        return value !== 0;
+    }
+
     return null;
-}
+};
 
 /**
- * Форматирование булева значения для отображения
- * @param {*} value - Значение для форматирования
+ * Форматирует отображение булевого значения
+ * @param {any} value - Значение для форматирования
  * @param {Object} column - Объект колонки
  * @returns {string} Отформатированное значение
  */
@@ -122,8 +92,10 @@ export const formatBooleanDisplay = (value, column) => {
     if (parsedValue === null) {
         return '—';
     }
+
     if (settings.displayType === 'text') {
         return parsedValue ? settings.trueLabel : settings.falseLabel;
     }
+
     return parsedValue ? 'Да' : 'Нет';
 };
