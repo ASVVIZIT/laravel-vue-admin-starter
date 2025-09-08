@@ -100,24 +100,23 @@ watch(() => props.isEditing, (newVal) => {
   position: relative;
   cursor: pointer;
   box-sizing: border-box;
-  padding: 0; // Отступы на родителе
-  border: none; // Граница на родителе
+  padding: 0;
+  border: none;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
   .select-display {
     display: block;
     width: 100%;
     height: 100%;
-    padding: 4px 8px; // Отступы внутри отображаемого значения
+    padding: 0 4px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
-    vertical-align: middle;
-    line-height: 24px; // Примерная высота строки
+    display: flex;
+    align-items: center;
+    font-size: 12px;
   }
 
   .select-editing {
@@ -126,47 +125,31 @@ watch(() => props.isEditing, (newVal) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
-    padding: 0; // Нет отступов, input должен заполнить всё
-    margin: 0; // Нет внешних отступов
+    z-index: 10;
+    padding: 0;
     box-sizing: border-box;
-    border: 1px solid #409eff; // Явная рамка редактирования
-    border-radius: 0; // Без скруглений
+    border: 1px solid #409eff;
+    border-radius: 0;
     background-color: #fff;
     overflow: hidden;
-
-    // === ИСПРАВЛЕНИЕ: Принудительное заполнение контейнера ===
-    display: flex; // Flexbox для точного контроля
-    align-items: stretch; // Растягиваем дочерний элемент
-    justify-content: stretch; // Растягиваем дочерний элемент
-    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
     .cell-edit-input {
       width: 100% !important;
       height: 100% !important;
-      min-width: unset !important; // Убираем минимальные размеры
-      min-height: unset !important;
-      max-width: 100% !important; // Ограничиваем максимальные размеры
-      max-height: 100% !important;
-      margin: 0 !important; // Убираем внешние отступы
-      padding: 0 !important; // Убираем внутренние отступы
-      box-sizing: border-box !important; // Включаем padding/border в размеры
-      border: none !important; // Граница на .select-editing
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      border: none !important;
       outline: none !important;
       font-family: inherit !important;
       font-size: inherit !important;
       background-color: transparent !important;
       color: inherit !important;
-      border-radius: 0 !important; // Убираем скругления
-      line-height: normal !important; // Сбрасываем line-height
+      border-radius: 0 !important;
 
       :deep(.el-select) {
         width: 100% !important;
         height: 100% !important;
-        min-width: unset !important;
-        min-height: unset !important;
-        max-width: 100% !important;
-        max-height: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         box-sizing: border-box !important;
@@ -179,10 +162,6 @@ watch(() => props.isEditing, (newVal) => {
         .el-input {
           width: 100% !important;
           height: 100% !important;
-          min-width: unset !important;
-          min-height: unset !important;
-          max-width: 100% !important;
-          max-height: 100% !important;
           margin: 0 !important;
           padding: 0 !important;
           box-sizing: border-box !important;
@@ -195,42 +174,29 @@ watch(() => props.isEditing, (newVal) => {
           .el-input__wrapper {
             width: 100% !important;
             height: 100% !important;
-            min-width: unset !important;
-            min-height: unset !important;
-            max-width: 100% !important;
-            max-height: 100% !important;
             margin: 0 !important;
-            padding: 0 !important; // Убираем padding обертки
+            padding: 0 !important;
             box-sizing: border-box !important;
             border: none !important;
             outline: none !important;
             background-color: transparent !important;
             box-shadow: none !important;
             border-radius: 0 !important;
-            display: flex !important;
-            align-items: stretch !important;
-            justify-content: stretch !important;
           }
 
           .el-input__inner {
             width: 100% !important;
             height: 100% !important;
-            min-width: unset !important;
-            min-height: unset !important;
-            max-width: 100% !important;
-            max-height: 100% !important;
             margin: 0 !important;
-            padding: 4px 8px !important; // Отступы текста внутри input
+            padding: 0 4px !important;
             box-sizing: border-box !important;
             border: none !important;
             outline: none !important;
             font-family: inherit !important;
-            font-size: inherit !important;
+            font-size: 12px !important;
             background-color: transparent !important;
             color: inherit !important;
             border-radius: 0 !important;
-            line-height: 24px !important; // Устанавливаем line-height, соответствующий высоте контейнера
-            flex: 1 !important; // Занимает всё доступное пространство
           }
         }
       }

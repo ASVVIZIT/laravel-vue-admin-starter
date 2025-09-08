@@ -73,7 +73,6 @@ const focusInput = async () => {
     }
     // Проверка 2: rootEl это текстовый узел (#text), ищем родительский HTMLElement
     else if (rootEl.nodeType === Node.TEXT_NODE) {
-      console.log("[DateTimeCell.focusInput] $el is a text node, looking for parent HTMLElement");
       const parentEl = rootEl.parentElement;
       if (parentEl && parentEl instanceof HTMLElement) {
         inputElement = parentEl.querySelector('.el-input__inner') || parentEl.querySelector('input');
@@ -83,7 +82,6 @@ const focusInput = async () => {
     if (inputElement && typeof inputElement.focus === 'function') {
       inputElement.focus();
     } else {
-      console.warn("[DateTimeCell.focusInput] Could not find focusable input or focus() is not a function.", inputElement);
     }
   } catch (error) {
     console.error("[DateTimeCell.focusInput] Error:", error);
@@ -121,13 +119,16 @@ watch(() => props.isEditing, (newVal) => {
     display: block;
     width: 100%;
     height: 100%;
-    padding: 4px 8px;
+    padding: 0 4px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
     vertical-align: middle;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
   }
 
   .datetime-editing {
@@ -199,16 +200,16 @@ watch(() => props.isEditing, (newVal) => {
             width: 100% !important;
             height: 100% !important;
             margin: 0 !important;
-            padding: 4px 8px !important;
+            padding: 0 4px !important;
             box-sizing: border-box !important;
             border: none !important;
             outline: none !important;
             font-family: inherit !important;
-            font-size: inherit !important;
+            font-size: 12px !important;
             background-color: transparent !important;
             color: inherit !important;
             border-radius: 0 !important;
-            line-height: 24px;
+            line-height: 22px; /* Примерная высота строки для 24px ячейки */
           }
         }
       }

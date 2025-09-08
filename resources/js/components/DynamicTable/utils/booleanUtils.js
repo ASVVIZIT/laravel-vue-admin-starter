@@ -1,4 +1,5 @@
 /**
+ * resources/js/components/DynamicTable/utils/booleanUtils.js
  * @utils booleanUtils
  *
  * Вспомогательные функции для работы с булевыми колонками.

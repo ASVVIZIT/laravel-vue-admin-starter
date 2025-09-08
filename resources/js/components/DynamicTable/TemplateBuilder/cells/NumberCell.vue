@@ -21,19 +21,57 @@
 </template>
 
 <script setup>
+/**
+ * @component NumberCell
+ *
+ * Компонент ячейки для отображения и редактирования числовых значений.
+ * Использует el-input-number для ввода чисел с кнопками +/-.
+ *
+ * @props {Object} value - Значение ячейки (число или строка)
+ * @props {Object} column - Объект колонки типа "number"
+ * @props {Boolean} isEditing - Флаг режима редактирования
+ *
+ * @emits {Event} update-value - Событие обновления значения
+ * @param {*} newValue - Новое значение
+ * @emits {Event} start-edit - Событие начала редактирования
+ */
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 
 const props = defineProps({
+  /**
+   * Значение ячейки (число или строка)
+   * @type {Object}
+   */
   value: { type: [String, Number], default: null },
+  /**
+   * Объект колонки типа "number"
+   * @type {Object}
+   */
   column: { type: Object, required: true },
+  /**
+   * Флаг режима редактирования
+   * @type {Boolean}
+   */
   isEditing: { type: Boolean, default: false }
 });
 
-const emit = defineEmits(['update-value', 'start-edit']);
+const emit = defineEmits([
+  /**
+   * Событие обновления значения
+   * @param {*} newValue - Новое значение
+   */
+  'update-value',
+  /**
+   * Событие начала редактирования
+   */
+  'start-edit'
+]);
 
+// === Состояние ===
 const editValue = ref(0);
 const editInput = ref(null);
 
+// === Вычисляемые свойства ===
 const displayValue = computed(() => {
   if (props.value === null || props.value === undefined) return '';
   let formatted = String(props.value);
@@ -43,6 +81,7 @@ const displayValue = computed(() => {
   return formatted;
 });
 
+// === Методы ===
 const handleClick = () => {
   if (!props.isEditing) {
     emit('start-edit');
@@ -88,8 +127,8 @@ watch(() => props.isEditing, (newVal) => {
   position: relative;
   cursor: pointer;
   box-sizing: border-box;
-  padding: 0;
-  border: none;
+  padding: 0; // Отступы на родителе
+  border: none; // Граница на родителе
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -98,13 +137,16 @@ watch(() => props.isEditing, (newVal) => {
     display: block;
     width: 100%;
     height: 100%;
-    padding: 4px 8px;
+    padding: 0 4px; // Отступы внутри отображаемого значения
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
     vertical-align: middle;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
   }
 
   .number-editing {
@@ -113,11 +155,11 @@ watch(() => props.isEditing, (newVal) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
-    padding: 0;
+    z-index: 10;
+    padding: 0; // Нет отступов, input должен заполнить всё
     box-sizing: border-box;
-    border: 1px solid #409eff;
-    border-radius: 0;
+    border: 1px solid #409eff; // Явная рамка редактирования
+    border-radius: 0; // Без скруглений
     background-color: #fff;
     overflow: hidden;
 
@@ -125,9 +167,9 @@ watch(() => props.isEditing, (newVal) => {
       width: 100% !important;
       height: 100% !important;
       margin: 0 !important;
-      padding: 0 !important;
+      padding: 0 !important; // Отступы внутри input
       box-sizing: border-box !important;
-      border: none !important;
+      border: none !important; // Граница на .number-editing
       outline: none !important;
       font-family: inherit !important;
       font-size: inherit !important;
@@ -147,7 +189,7 @@ watch(() => props.isEditing, (newVal) => {
         box-shadow: none !important;
         border-radius: 0 !important;
 
-        // === ИЗМЕНЕНИЕ: Стили для горизонтального расположения кнопок ===
+        // === ИСПРАВЛЕНИЕ: Стили для горизонтального расположения кнопок ===
         .el-input-number__decrease,
         .el-input-number__increase {
           // Убираем вертикальное разделение
@@ -198,7 +240,7 @@ watch(() => props.isEditing, (newVal) => {
         .el-input-number__increase {
           // Кнопка "+" сверху (по умолчанию уже сверху)
         }
-        // === КОНЕЦ ИЗМЕНЕНИЯ ===
+        // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
         .el-input {
           width: calc(100% - 20px) !important; /* Учитываем ширину кнопок */
@@ -229,7 +271,7 @@ watch(() => props.isEditing, (newVal) => {
             width: 100% !important;
             height: 100% !important;
             margin: 0 !important;
-            padding: 4px 8px !important; /* Отступы текста внутри input */
+            padding: 0 4px !important; /* Отступы текста внутри input */
             box-sizing: border-box !important;
             border: none !important;
             outline: none !important;
@@ -238,7 +280,7 @@ watch(() => props.isEditing, (newVal) => {
             background-color: transparent !important;
             color: inherit !important;
             border-radius: 0 !important;
-            line-height: 24px; /* Примерная высота строки */
+            line-height: 22px; /* Примерная высота строки для 24px ячейки */
           }
         }
       }

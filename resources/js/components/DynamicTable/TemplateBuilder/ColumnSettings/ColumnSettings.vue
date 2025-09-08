@@ -249,15 +249,14 @@ watch(() => props.column, (newVal) => {
 
 <style lang="scss" scoped>
 .column-settings {
-  padding: 15px;
+  padding: 5px;
   background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  margin-top: 15px;
   flex: 1;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
 
   .settings-form {
     flex: 1;
@@ -265,7 +264,7 @@ watch(() => props.column, (newVal) => {
     padding-right: 5px;
 
     .el-form-item {
-      margin-bottom: 18px;
+      margin-bottom: 4px;
 
       :deep(.el-form-item__label) {
         font-weight: 500;

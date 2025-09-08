@@ -1,4 +1,5 @@
 /**
+ * resources/js/components/DynamicTable/utils/templateBuilderUtils.js
  * @utils templateBuilderUtils
  *
  * Вспомогательные функции для работы с шаблонами.

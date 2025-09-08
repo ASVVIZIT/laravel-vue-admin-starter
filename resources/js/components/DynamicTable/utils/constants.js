@@ -1,4 +1,5 @@
 /**
+ * resources/js/components/DynamicTable/utils/constants.js
  * @utils constants
  *
  * Константы для работы с шаблонами.

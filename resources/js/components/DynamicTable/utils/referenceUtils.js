@@ -1,5 +1,5 @@
-// resources/js/components/DynamicTable/utils/referenceUtils.js
 /**
+ * resources/js/components/DynamicTable/utils/referenceUtils.js
  * @utils referenceUtils
  *
  * Вспомогательные функции для работы со справочниками.

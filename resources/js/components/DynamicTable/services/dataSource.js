@@ -1,6 +1,6 @@
 // resources/js/components/DynamicTable/services/dataSource.js
 import { ref, computed } from 'vue';
-import { templateApi } from '../api/templateApi';
+import  templateApi  from '../api/tableApi';
 import { rowApi } from '../api/rowApi';
 import { referenceApi } from '../api/referenceApi';
 import { MOCK_TEMPLATES, MOCK_ROWS, MOCK_REFERENCE_DATA } from './mockData';
@@ -34,7 +34,7 @@ const api = {
     },
 
     async createTemplate(data) {
-        return templateApi.create(data);
+        return templateApi.store(data);
     },
 
     async updateTemplate(id, data) {
@@ -42,7 +42,7 @@ const api = {
     },
 
     async deleteTemplate(id) {
-        return templateApi.delete(id);
+        return templateApi.destroy(id);
     },
 
     // === Строки таблицы ===
@@ -71,39 +71,95 @@ const api = {
         return referenceApi.getData(entityType, params);
     },
 
+    // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfo с правильной обработкой ответа ===
     async getReferenceInfo(entityType) {
-        return referenceApi.getFieldInfo(entityType);
-    },
-
-    // Получение только полей справочника ===
-    async getReferenceInfoFields(entityType) {
         try {
-            console.log(`[dataSource.getReferenceInfoFields] Starting for: ${entityType}`);
-            const info = await this.getReferenceInfo(entityType);
-            console.log(`[dataSource.getReferenceInfoFields] Info loaded for ${entityType}:`, info);
+            console.log(`[dataSource.api.getReferenceInfo] Starting API call for: ${entityType}`);
+            const response = await referenceApi.getFieldInfo(entityType);
+            console.log(`[dataSource.api.getReferenceInfo] API call successful for: ${entityType}`, response);
 
-            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Извлекаем availableKeys ===
-            let fields;
+            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Правильная обработка структуры ответа ===
+            // referenceApi.getFieldInfo может возвращать разные структуры ответа
+            let info;
 
             // Проверяем различные возможные структуры ответа
-            if (info && info.data !== undefined) {
-                // Структура {  {  { availableKeys: [...] } } }
-                fields = info.data.availableKeys || [];
-            } else if (info && info.availableKeys && Array.isArray(info.availableKeys)) {
-                // Структура {  [...] }
-                fields = info.availableKeys;
+            if (response && response.data !== undefined) {
+                // Структура {  {  { fields: [...] } } }
+                info = response.data;
             } else {
-                fields = [];
+                // Структура {  [...] }
+                info = response;
             }
             // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
 
-            console.log(`[dataSource.getReferenceInfoFields] Fields extracted for ${entityType}:`, fields);
-            return fields;
+            // Убедимся, что info - это объект
+            if (info && typeof info === 'object' && !Array.isArray(info)) {
+                console.log(`[dataSource.api.getReferenceInfo] Final info for ${entityType}:`, info);
+                return info;
+            } else {
+                console.error(`[dataSource.api.getReferenceInfo] Expected object for ${entityType}, got:`, info);
+                throw new Error(`Некорректная структура данных справочника "${entityType}"`);
+            }
         } catch (error) {
-            console.error(`[dataSource.getReferenceInfoFields] Error for ${entityType}:`, error);
-            throw new Error(`Не удалось загрузить поля справочника "${entityType}": ${error.message}`);
+            console.error(`[dataSource.api.getReferenceInfo] Error for ${entityType}:`, error);
+            let errorMessage = 'Ошибка загрузки информации о справочнике';
+            if (error.code === 'ERR_NETWORK') {
+                errorMessage = 'Ошибка сети (CORS) при загрузке информации о справочнике.';
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            throw new Error(errorMessage);
         }
     },
+    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
+
+    // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfoFields с правильной обработкой ответа ===
+    async getReferenceInfoFields(entityType) {
+        try {
+            console.log(`[dataSource.api.getReferenceInfoFields] Starting API call for: ${entityType}`);
+            const response = await referenceApi.getFieldInfo(entityType);
+            console.log(`[dataSource.api.getReferenceInfoFields] API call successful for: ${entityType}`, response);
+
+            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Правильная обработка структуры ответа ===
+            // referenceApi.getFieldInfo возвращает {  { /* full info object */ } }
+            let infoObject;
+
+            // Проверяем различные возможные структуры ответа
+            if (response && response.data !== undefined) {
+                // Ожидаемая структура от referenceApi.getFieldInfo
+                infoObject = response.data;
+            } else {
+                // Если API вернул объект напрямую (менее вероятно, но на всякий случай)
+                infoObject = response;
+            }
+            // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
+
+            // Убедимся, что infoObject - это объект
+            if (infoObject && typeof infoObject === 'object' && !Array.isArray(infoObject)) {
+                console.log(`[dataSource.api.getReferenceInfoFields] Final info object for ${entityType}:`, infoObject);
+                return infoObject; // Возвращаем весь объект информации
+            } else {
+                console.error(`[dataSource.api.getReferenceInfoFields] Expected object for info of ${entityType}, got:`, infoObject);
+                // Возвращаем пустой объект вместо массива, чтобы вызывающая сторона могла обработать это корректно
+                return {};
+            }
+        } catch (error) {
+            console.error(`[dataSource.api.getReferenceInfoFields] Error for ${entityType}:`, error);
+            let errorMessage = 'Ошибка загрузки информации о справочнике';
+            if (error.code === 'ERR_NETWORK') {
+                errorMessage = 'Ошибка сети (CORS) при загрузке информации о справочнике.';
+            } else if (error.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            throw new Error(errorMessage);
+        }
+    },
+    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
+
 };
 
 // === Методы Mock ===
@@ -188,8 +244,9 @@ const mock = {
     async createTemplate(data) {
         return new Promise((resolve) => {
             setTimeout(() => {
+                const newId = Date.now();
                 const newTemplate = {
-                    id: Date.now(),
+                    id: newId,
                     name: data.name,
                     columns: data.columns.map((column, index) => ({
                         ...column,
@@ -246,6 +303,19 @@ const mock = {
                     return;
                 }
 
+                // Удаляем дочерние строки
+                const childrenIds = MOCK_TEMPLATES
+                    .filter(r => r.parent_id === parseInt(id))
+                    .map(r => r.id);
+
+                childrenIds.forEach(childId => {
+                    const childIndex = MOCK_TEMPLATES.findIndex(r => r.id === childId);
+                    if (childIndex !== -1) {
+                        MOCK_TEMPLATES.splice(childIndex, 1);
+                    }
+                });
+
+                // Удаляем саму строку
                 const template = MOCK_TEMPLATES[index];
                 MOCK_TEMPLATES.splice(index, 1);
 
@@ -309,7 +379,7 @@ const mock = {
                     id: newId,
                     template_id: data.template_id,
                     parent_id: data.parent_id || null,
-                    data: data,
+                    data: data.data,
                     order: data.order !== undefined ? data.order : (MOCK_ROWS.filter(r => r.template_id === data.template_id && r.parent_id === data.parent_id).length || 0),
                     has_children: false
                 };
@@ -333,7 +403,8 @@ const mock = {
 
                 MOCK_ROWS[index] = {
                     ...MOCK_ROWS[index],
-                    ...data,
+                    ...MOCK_ROWS[index].data,
+                    ...data.data,
                     order: data.order !== undefined ? data.order : MOCK_ROWS[index].order
                 };
 
@@ -406,7 +477,7 @@ const mock = {
         });
     },
 
-    // === ИСПРАВЛЕНИЕ: Добавляем метод getReferenceInfo для mock ===
+    // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfo с правильной обработкой ответа ===
     async getReferenceInfo(entityType) {
         return new Promise((resolve, reject) => {
             setTimeout(() => {
@@ -441,33 +512,30 @@ const mock = {
     },
     // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
-    // === НОВЫЙ МЕТОД: Получение только полей справочника для mock ===
+    // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfoFields с правильной обработкой ответа ===
     async getReferenceInfoFields(entityType) {
         try {
-            console.log(`[mock.getReferenceInfoFields] Starting for: ${entityType}`);
-            const info = await this.getReferenceInfo(entityType); // <-- Вызываем getReferenceInfo
-            console.log(`[mock.getReferenceInfoFields] Info loaded for ${entityType}:`, info);
+            console.log(`[dataSource.mock.getReferenceInfoFields] Starting for: ${entityType}`);
+            const info = await this.getReferenceInfo(entityType); // Получаем полную информацию
+            console.log(`[dataSource.mock.getReferenceInfoFields] Info loaded for ${entityType}:`, info);
 
-            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Извлекаем availableKeys ===
-            let fields;
-
-            // Проверяем различные возможные структуры ответа
-            if (info && info.data !== undefined) {
-                // Структура {  {  { availableKeys: [...] } } }
-                fields = info.data.availableKeys || [];
-            } else if (info && info.availableKeys && Array.isArray(info.availableKeys)) {
-                // Структура {  [...] }
-                fields = info.availableKeys;
+            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Правильная обработка структуры ответа ===
+            // dataSource.getReferenceInfo (mock) возвращает объект информации напрямую
+            // Нам нужно просто вернуть его как есть.
+            // Если info уже объект, возвращаем его.
+            if (info && typeof info === 'object' && !Array.isArray(info)) {
+                console.log(`[dataSource.mock.getReferenceInfoFields] Returning info object for ${entityType}:`, info);
+                return info; // Возвращаем весь объект информации
             } else {
-                fields = [];
+                // Если getReferenceInfo вернул что-то не то, возвращаем пустой объект
+                console.error(`[dataSource.mock.getReferenceInfoFields] Expected object for info of ${entityType}, got:`, info);
+                return {};
             }
             // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
 
-            console.log(`[mock.getReferenceInfoFields] Fields extracted for ${entityType}:`, fields);
-            return fields;
         } catch (error) {
-            console.error(`[mock.getReferenceInfoFields] Error for ${entityType}:`, error);
-            throw new Error(`Не удалось загрузить поля справочника "${entityType}": ${error.message}`);
+            console.error(`[dataSource.mock.getReferenceInfoFields] Error for ${entityType}:`, error);
+            throw new Error(`Не удалось загрузить информацию о справочнике "${entityType}": ${error.message}`);
         }
     },
     // === КОНЕЦ НОВОГО МЕТОДА ===
@@ -690,7 +758,7 @@ export const dataSource = {
     },
     // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
-    // === НОВЫЙ МЕТОД: Экспортируем метод getReferenceInfoFields ===
+    // === ИСПРАВЛЕНИЕ: Экспортируем метод getReferenceInfoFields ===
     async getReferenceInfoFields(entityType) {
         loading.value = true;
         error.value = null;
@@ -701,11 +769,11 @@ export const dataSource = {
                 return await api.getReferenceInfoFields(entityType);
             }
         } catch (err) {
-            error.value = err.message || `Ошибка загрузки полей справочника "${entityType}"`;
+            error.value = err.message || `Ошибка загрузки информации о справочнике "${entityType}"`;
             throw err;
         } finally {
             loading.value = false;
         }
     },
-    // === КОНЕЦ НОВОГО МЕТОДА ===
+    // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 };

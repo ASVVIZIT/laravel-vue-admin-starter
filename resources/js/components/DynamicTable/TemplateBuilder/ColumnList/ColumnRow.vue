@@ -62,70 +62,16 @@
 </template>
 
 <script setup>
-/**
- * @component ColumnRow
- *
- * Компонент строки колонки в списке колонок.
- * Отображает информацию о колонке и предоставляет интерфейс для выбора и удаления.
- *
- * @props {Object} column - Объект колонки
- * @props {number} index - Индекс колонки в списке
- * @props {boolean} isActive - Флаг активной (выбранной) колонки
- *
- * @emits {Event} click - Событие клика по колонке
- * @param {number} index - Индекс колонки
- * @emits {Event} remove - Событие удаления колонки
- * @param {number} index - Индекс колонки
- * @emits {Event} update-column - Событие обновления колонки
- * @param {Object} updatedColumn - Объект обновленной колонки
- */
 import { ref, nextTick } from 'vue';
 import { Edit, Delete, Rank, Setting } from '@element-plus/icons-vue';
 
 const props = defineProps({
-  /**
-   * Объект колонки
-   * @type {Object}
-   */
-  column: {
-    type: Object,
-    required: true
-  },
-  /**
-   * Индекс колонки в списке
-   * @type {number}
-   */
-  index: {
-    type: Number,
-    required: true
-  },
-  /**
-   * Флаг активной (выбранной) колонки
-   * @type {boolean}
-   */
-  isActive: {
-    type: Boolean,
-    default: false
-  }
+  column: { type: Object, required: true },
+  index: { type: Number, required: true },
+  isActive: { type: Boolean, default: false }
 });
 
-const emit = defineEmits([
-  /**
-   * Событие клика по колонке
-   * @param {number} index - Индекс колонки
-   */
-  'click',
-  /**
-   * Событие удаления колонки
-   * @param {number} index - Индекс колонки
-   */
-  'remove',
-  /**
-   * Событие обновления колонки
-   * @param {Object} updatedColumn - Объект обновленной колонки
-   */
-  'update-column'
-]);
+const emit = defineEmits(['click', 'remove', 'update-column']);
 
 const columnTypes = [
   { value: 'text', label: 'Текст' },
@@ -147,21 +93,14 @@ const getColumnTypeName = (type) => {
 };
 
 const handleClick = () => {
-  console.log(`[ColumnRow.handleClick] CALLED for index: ${props.index}`);
   emit('click', props.index);
-  console.log(`[ColumnRow.handleClick] EMITTED 'click' event with index: ${props.index}`);
-  console.log(`[ColumnRow.handleClick] FINISHED`);
 };
 
 const handleRemove = () => {
-  console.log(`[ColumnRow.handleRemove] CALLED for index: ${props.index}`);
   emit('remove', props.index);
-  console.log(`[ColumnRow.handleRemove] EMITTED 'remove' event with index: ${props.index}`);
-  console.log(`[ColumnRow.handleRemove] FINISHED`);
 };
 
 const startInlineEdit = () => {
-  console.log(`[ColumnRow.startInlineEdit] CALLED`);
   isEditingName.value = true;
   editingNameValue.value = props.column.label || '';
   nextTick(() => {
@@ -169,29 +108,22 @@ const startInlineEdit = () => {
       inlineEditInputRef.value.focus();
     }
   });
-  console.log(`[ColumnRow.startInlineEdit] FINISHED`);
 };
 
 const saveInlineEdit = () => {
-  console.log(`[ColumnRow.saveInlineEdit] CALLED`);
   if (editingNameValue.value.trim() !== '') {
     const updatedColumn = {
       ...props.column,
       label: editingNameValue.value.trim()
     };
-    console.log(`[ColumnRow.saveInlineEdit] Column label updated to: ${editingNameValue.value.trim()}`);
     emit('update-column', updatedColumn);
-    console.log(`[ColumnRow.saveInlineEdit] EMITTED 'update-column' with updatedColumn`);
   }
   cancelInlineEdit();
-  console.log(`[ColumnRow.saveInlineEdit] FINISHED`);
 };
 
 const cancelInlineEdit = () => {
-  console.log(`[ColumnRow.cancelInlineEdit] CALLED`);
   isEditingName.value = false;
   editingNameValue.value = '';
-  console.log(`[ColumnRow.cancelInlineEdit] FINISHED`);
 };
 </script>
 
@@ -199,15 +131,16 @@ const cancelInlineEdit = () => {
 .column-row {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
-  border-radius: 4px;
+  padding: 4px 6px;
+  border-radius: 3px;
   border-top: 1px solid #ebeef5;
   border-bottom: 1px solid #ebeef5;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-left: 3px solid rgba(230, 230, 236, 0.19);
-  border-right: 3px solid rgba(230, 230, 236, 0.19);
+  border-left: 2px solid rgba(230, 230, 236, 0.19);
+  border-right: 2px solid rgba(230, 230, 236, 0.19);
   position: relative;
+  height: 32px;
 
   &:hover {
     background-color: #f5f7fa;
@@ -216,37 +149,39 @@ const cancelInlineEdit = () => {
 
   &.active {
     background-color: #ecf5ff;
-    border-left: 3px solid #409eff;
-    border-right: 3px solid #409eff;
+    border-left: 2px solid #409eff;
+    border-right: 2px solid #409eff;
   }
 
   .sort-handle {
     cursor: move;
-    padding: 0 4px;
+    padding: 0 3px;
     color: #909399;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
-    margin-right: 6px;
+    margin-right: 4px;
 
     .el-icon {
       display: flex;
       align-items: center;
       justify-content: center;
+      width: 14px;
+      height: 14px;
 
       > svg {
-        width: 16px;
-        height: 16px;
+        width: 14px;
+        height: 14px;
       }
     }
   }
 
   .column-name {
     flex: 1;
-    padding: 0 6px;
+    padding: 0 4px;
     margin-right: 4px;
     cursor: pointer;
     min-width: 0;
@@ -264,12 +199,12 @@ const cancelInlineEdit = () => {
 
         .name-text {
           font-weight: 500;
-          margin-right: 6px;
+          margin-right: 4px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
           flex: 1;
-          font-size: 13px;
+          font-size: 12px;
         }
 
         .edit-icon {
@@ -279,8 +214,8 @@ const cancelInlineEdit = () => {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 18px;
-          height: 18px;
+          width: 16px;
+          height: 16px;
           flex-shrink: 0;
           color: #909399;
 
@@ -289,8 +224,8 @@ const cancelInlineEdit = () => {
             height: 100%;
 
             > svg {
-              width: 14px;
-              height: 14px;
+              width: 12px;
+              height: 12px;
             }
           }
 
@@ -305,12 +240,14 @@ const cancelInlineEdit = () => {
       }
 
       .column-type {
-        font-size: 11px;
-        margin-left: 6px;
+        font-size: 10px;
+        margin-left: 4px;
         flex-shrink: 0;
         background-color: #f0f2f5;
-        padding: 1px 4px;
+        padding: 0 3px;
         border-radius: 2px;
+        height: 18px;
+        line-height: 18px;
       }
     }
 
@@ -319,20 +256,20 @@ const cancelInlineEdit = () => {
 
       .el-input {
         :deep(.el-input__wrapper) {
-          padding: 1px 4px;
+          padding: 0 3px;
           border-radius: 2px;
           border: 1px solid #dcdfe6;
+          height: 20px;
 
           &:hover {
             border-color: #c0c4cc;
           }
         }
-
         :deep(.el-input__inner) {
-          height: 22px;
-          line-height: 22px;
-          padding: 0 4px;
-          font-size: 13px;
+          height: 18px;
+          line-height: 18px;
+          padding: 0 3px;
+          font-size: 12px;
         }
       }
     }
@@ -340,16 +277,26 @@ const cancelInlineEdit = () => {
 
   .column-actions {
     display: flex;
-    gap: 5px;
+    gap: 4px;
     flex-shrink: 0;
-    margin-left: 6px;
+    margin-left: 4px;
 
     .el-button {
       padding: 0;
-      width: 28px;
-      height: 28px;
-      min-width: 28px;
+      width: 24px;
+      height: 24px;
+      min-width: 24px;
       flex-shrink: 0;
+
+      .el-icon {
+        width: 16px;
+        height: 16px;
+
+        > svg {
+          width: 16px;
+          height: 16px;
+        }
+      }
     }
   }
 }

@@ -11,14 +11,14 @@
           @blur="handleUpdateValue"
           @keyup.enter="handleUpdateValue"
           size="small"
-          class="cell-edit-input cell-edit-input--text"
+          class="cell-edit-input"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ref, computed, nextTick, watch } from 'vue';
 
 const props = defineProps({
   value: { type: [String, Number], default: null },
@@ -57,8 +57,6 @@ const focusInput = () => {
       const input = editInput.value.$el.querySelector('input');
       if (input) {
         input.focus();
-        // Не вызываем select для текстовых полей при редактировании, чтобы избежать "прыжков"
-        // input.select();
       }
     }
   });
@@ -79,23 +77,23 @@ watch(() => props.isEditing, (newVal) => {
   position: relative;
   cursor: pointer;
   box-sizing: border-box;
-  padding: 0; // Отступы на родителе
-  border: none; // Граница на родителе
+  padding: 0;
+  border: none;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
   .text-display {
     display: block;
     width: 100%;
     height: 100%;
-    padding: 4px 8px; // Отступы внутри отображаемого значения
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
-    vertical-align: middle;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    font-size: 12px;
   }
 
   .text-editing {
@@ -104,11 +102,11 @@ watch(() => props.isEditing, (newVal) => {
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: 1000;
-    padding: 0; // Нет отступов, input должен заполнить всё
+    z-index: 10;
+    padding: 0;
     box-sizing: border-box;
-    border: 1px solid #409eff; // Явная рамка редактирования
-    border-radius: 0; // Без скруглений
+    border: 1px solid #409eff;
+    border-radius: 0;
     background-color: #fff;
     overflow: hidden;
 
@@ -116,12 +114,12 @@ watch(() => props.isEditing, (newVal) => {
       width: 100% !important;
       height: 100% !important;
       margin: 0 !important;
-      padding: 0 !important; // Отступы внутри input
+      padding: 0 !important;
       box-sizing: border-box !important;
-      border: none !important; // Граница на .text-editing
+      border: none !important;
       outline: none !important;
       font-family: inherit !important;
-      font-size: inherit !important;
+      font-size: 12px !important;
       background-color: transparent !important;
       color: inherit !important;
       border-radius: 0 !important;
@@ -143,16 +141,15 @@ watch(() => props.isEditing, (newVal) => {
         width: 100% !important;
         height: 100% !important;
         margin: 0 !important;
-        padding: 4px 8px !important; // Отступы текста внутри input
+        padding: 0 4px !important;
         box-sizing: border-box !important;
         border: none !important;
         outline: none !important;
         font-family: inherit !important;
-        font-size: inherit !important;
+        font-size: 12px !important;
         background-color: transparent !important;
         color: inherit !important;
         border-radius: 0 !important;
-        line-height: 24px; // Примерная высота строки
       }
     }
   }

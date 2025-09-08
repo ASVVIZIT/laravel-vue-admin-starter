@@ -7,38 +7,45 @@
           :value="value"
           :column="column"
           :reference-data="referenceData"
+          class="cell-component"
       />
       <BooleanCell
           v-else-if="column.type === 'boolean'"
           :value="value"
           :column="column"
+          class="cell-component"
       />
       <SelectCell
           v-else-if="column.type === 'select'"
           :value="value"
           :column="column"
+          class="cell-component"
       />
       <DateCell
           v-else-if="column.type === 'date'"
           :value="value"
           :column="column"
+          class="cell-component"
       />
       <DateTimeCell
           v-else-if="column.type === 'datetime'"
           :value="value"
           :column="column"
+          class="cell-component"
       />
       <NumberCell
           v-else-if="column.type === 'number'"
           :value="value"
           :column="column"
+          class="cell-component"
       />
       <TextCell
           v-else-if="column.type === 'text'"
           :value="value"
           :column="column"
+          class="cell-component"
       />
-      <span v-else>{{ value || '' }}</span>
+      <span v-else class="cell-component">{{ value || '' }}</span>
     </div>
 
     <div v-else class="cell-editing">
@@ -49,6 +56,7 @@
           :reference-data="referenceData"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
       <BooleanCell
           v-else-if="column.type === 'boolean'"
@@ -56,6 +64,7 @@
           :column="column"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
       <SelectCell
           v-else-if="column.type === 'select'"
@@ -63,6 +72,7 @@
           :column="column"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
       <DateCell
           v-else-if="column.type === 'date'"
@@ -70,6 +80,7 @@
           :column="column"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
       <DateTimeCell
           v-else-if="column.type === 'datetime'"
@@ -77,6 +88,7 @@
           :column="column"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
       <NumberCell
           v-else-if="column.type === 'number'"
@@ -84,6 +96,7 @@
           :column="column"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
       <TextCell
           v-else-if="column.type === 'text'"
@@ -91,8 +104,9 @@
           :column="column"
           :is-editing="true"
           @update-value="$emit('update-value', $event)"
+          class="cell-component"
       />
-      <span v-else>{{ value || '' }}</span>
+      <span v-else class="cell-component">{{ value || '' }}</span>
     </div>
   </div>
 </template>
@@ -121,7 +135,6 @@ const emit = defineEmits(['start-edit', 'update-value']);
 onMounted(() => {
   if (props.isEditing) {
     nextTick(() => {
-      // Фокусировка обрабатывается внутри дочерних компонентов
     });
   }
 });
@@ -129,25 +142,32 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .preview-cell {
-  height: 100%;
   width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   position: relative;
   cursor: pointer;
   box-sizing: border-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 
   .cell-content {
+    width: 100%;
     height: 100%;
     display: flex;
     align-items: center;
-    padding: 0 6px;
+    padding: 0 4px;
     box-sizing: border-box;
-    width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+
+    .cell-component {
+      flex: 1;
+      height: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: left;
+      display: block;
+    }
   }
 
   .cell-editing {
@@ -159,6 +179,15 @@ onMounted(() => {
     z-index: 10;
     padding: 0;
     box-sizing: border-box;
+    border: 1px solid #409eff;
+    border-radius: 0;
+    background-color: #fff;
+    overflow: hidden;
+
+    .cell-component {
+      width: 100%;
+      height: 100%;
+    }
 
     :deep(.el-input),
     :deep(.el-select),
@@ -166,23 +195,50 @@ onMounted(() => {
     :deep(.el-input-number),
     :deep(.el-switch),
     :deep(.el-checkbox) {
-      width: 100%;
-      height: 100%;
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      border: none !important;
+      outline: none !important;
+      font-family: inherit !important;
+      font-size: 12px !important;
+      background-color: transparent !important;
+      color: inherit !important;
+      border-radius: 0 !important;
 
       .el-input__wrapper,
-      .el-select__wrapper {
-        width: 100%;
-        height: 100%;
+      .el-select__wrapper,
+      .el-date-editor__wrapper {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        border: none !important;
+        outline: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
       }
 
       .el-input__inner,
       .el-select__inner,
       .el-date-editor__inner {
-        width: 100%;
-        height: 100%;
-        line-height: 24px;
-        padding: 0 5px;
-        box-sizing: border-box;
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 2px 4px !important;
+        box-sizing: border-box !important;
+        border: none !important;
+        outline: none !important;
+        font-family: inherit !important;
+        font-size: 12px !important;
+        background-color: transparent !important;
+        color: inherit !important;
+        border-radius: 0 !important;
+        line-height: 16px;
       }
     }
   }

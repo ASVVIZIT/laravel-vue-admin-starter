@@ -136,7 +136,6 @@ const focusInput = () => {
       const input = editInput.value.$el.querySelector('.el-input__inner');
       if (input) {
         input.focus();
-        // Не вызываем select для select-полей
       }
     }
   });
@@ -158,19 +157,7 @@ const loadReferenceData = async () => {
   }
 };
 
-// === Lifecycle ===
-onMounted(() => {
-  if (props.isEditing) {
-    let value = props.value;
-    if (typeof value === 'object' && value !== null && value.id !== undefined) {
-      value = value.id;
-    }
-    editValue.value = value;
-    focusInput();
-  }
-});
-
-// === Watchers ===
+// === Lifecycle & Watchers ===
 watch(() => props.isEditing, (newVal) => {
   if (newVal) {
     let value = props.value;
@@ -186,6 +173,21 @@ watch(() => props.isEditing, (newVal) => {
     }
   }
 }, { immediate: true });
+
+onMounted(() => {
+  if (props.isEditing) {
+    let value = props.value;
+    if (typeof value === 'object' && value !== null && value.id !== undefined) {
+      value = value.id;
+    }
+    editValue.value = value;
+    focusInput();
+
+    if (props.column.reference?.entityType && (!props.referenceData || props.referenceData.length === 0)) {
+      loadReferenceData();
+    }
+  }
+});
 
 watch(() => props.column.reference?.entityType, (newEntityType) => {
   if (newEntityType && props.isEditing) {
@@ -211,13 +213,16 @@ watch(() => props.column.reference?.entityType, (newEntityType) => {
     display: block;
     width: 100%;
     height: 100%;
-    padding: 4px 8px;
+    padding: 0 4px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     text-align: left;
     vertical-align: middle;
+    display: flex;
+    align-items: center;
+    font-size: 12px;
   }
 
   .reference-editing {
@@ -289,42 +294,16 @@ watch(() => props.column.reference?.entityType, (newEntityType) => {
             width: 100% !important;
             height: 100% !important;
             margin: 0 !important;
-            padding: 4px 8px !important;
+            padding: 0 4px !important;
             box-sizing: border-box !important;
             border: none !important;
             outline: none !important;
             font-family: inherit !important;
-            font-size: inherit !important;
+            font-size: 12px !important;
             background-color: transparent !important;
             color: inherit !important;
             border-radius: 0 !important;
-            line-height: 24px;
-          }
-        }
-
-        .el-select-dropdown {
-          border-radius: 4px !important;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-          border: 1px solid #e4e7ed !important;
-
-          .el-select-dropdown__list {
-            padding: 6px 0 !important;
-
-            .el-select-dropdown__item {
-              padding: 0 12px !important;
-              height: 34px !important;
-              line-height: 34px !important;
-              font-size: 14px !important;
-
-              &:hover {
-                background-color: #f5f7fa !important;
-              }
-
-              &.selected {
-                color: #409eff !important;
-                font-weight: 500 !important;
-              }
-            }
+            line-height: 22px; /* Примерная высота строки для 24px ячейки */
           }
         }
       }

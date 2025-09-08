@@ -122,7 +122,7 @@ watch(() => props.isEditing, (newVal) => {
     display: block;
     width: 100%;
     height: 100%;
-    padding: 4px 8px;
+    padding: 0 4px;
     box-sizing: border-box;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -132,6 +132,7 @@ watch(() => props.isEditing, (newVal) => {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 12px;
   }
 
   .boolean-editing {
@@ -184,10 +185,10 @@ watch(() => props.isEditing, (newVal) => {
         justify-content: center;
 
         .el-switch__core {
-          width: 40px !important;
-          height: 20px !important;
+          width: 36px !important;
+          height: 18px !important;
           margin: 0 auto !important;
-          border-radius: 10px !important;
+          border-radius: 9px !important;
           border: 1px solid #dcdfe6 !important;
           background-color: #dcdfe6 !important;
           position: relative !important;
@@ -214,7 +215,7 @@ watch(() => props.isEditing, (newVal) => {
             background-color: #409eff !important;
 
             .el-switch__action {
-              transform: translateX(20px) !important;
+              transform: translateX(18px) !important;
             }
           }
         }
@@ -249,8 +250,8 @@ watch(() => props.isEditing, (newVal) => {
             border: 1px solid #dcdfe6;
             border-radius: 2px;
             box-sizing: border-box;
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
             background-color: #fff;
             z-index: 1;
             transition: border-color .25s,background-color .25s;
@@ -286,8 +287,8 @@ watch(() => props.isEditing, (newVal) => {
         }
 
         .el-checkbox__label {
-          font-size: 14px;
-          padding-left: 10px;
+          font-size: 12px;
+          padding-left: 6px;
         }
       }
     }
@@ -299,9 +300,9 @@ watch(() => props.isEditing, (newVal) => {
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      padding: 4px 8px;
+      padding: 0 4px;
       box-sizing: border-box;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       color: #409eff;
       background-color: #ecf5ff;
