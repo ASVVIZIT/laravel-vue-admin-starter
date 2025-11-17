@@ -56,7 +56,7 @@
 
             <!-- Панель доступных полей справочника (с прокруткой) -->
             <div class="format-keys-panel">
-              <h5 style="margin: 0 0 3px 0; font-size: 11px; color: #606266;">Доступные поля:</h5>
+              <h5 style="margin: 0 0 3px 0; font-size: 12px; color: #606266;">Доступные поля:</h5>
               <div class="keys-container-scrollable">
                 <div
                     v-for="(field, index) in availableFields"
@@ -556,13 +556,13 @@ watch(() => props.column, (newVal) => {
             max-height: 60px; /* Меньше высота */
 
             .format-key {
-              padding: 0px 1px; /* Ещё меньше padding */
+              padding: 2px 4px; /* Ещё меньше padding */
               background-color: #f0f2f5;
               border-radius: 2px; /* Меньше радиус */
               cursor: move;
               transition: all 0.15s;
-              font-size: 7px; /* Ещё меньше шрифт */
-              border: 1px solid #2b8aac6e; /* Цвет из запроса */
+              font-size: 12px; /* Ещё меньше шрифт */
+              border: 1px solid rgba(43, 138, 172, 0.63); /* Цвет из запроса */
               line-height: 1.2; /* Более плотная строка */
 
               &:hover {

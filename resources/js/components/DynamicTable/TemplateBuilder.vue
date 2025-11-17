@@ -19,8 +19,14 @@
     <TemplatePreview
         :columns="sortedTemplateColumns"
         :rows="previewRows"
-        :selected-column-index="selectedPreviewColumnIndex"
-        @column-select="selectPreviewColumn"
+        :selected-column-index="selectedColumnIndex"
+        :selected-row-index="selectedRowIndex"
+        @column-select="selectColumn"
+        @row-select="selectRow"
+        @update-rows="updateRows"
+        @test-mode-change="onTestModeChange"
+        @reset-test-mode="resetTestMode"
+        @update-manual-test-data="handleUpdateManualTestData"
     />
 
     <div class="builder-content">
@@ -29,9 +35,9 @@
           :selected-column-index="selectedColumnIndex"
           :column-types="columnTypes"
           @column-select="selectColumn"
-          @column-remove="removeColumn"
-          @column-add="addColumn"
-          @column-order-update="handleColumnOrderUpdate"
+          @remove="removeColumn"
+          @add="addColumn"
+          @order-update="handleColumnOrderUpdate"
       />
 
       <ColumnSettings
@@ -43,7 +49,8 @@
           :reference-fields="referenceFields"
           :loading-reference-types="loadingReferenceTypes"
           :loading-reference-fields="loadingReferenceFields"
-          @update:column="updateColumn"
+          :reference-error="referenceError"
+          @update-column="updateColumn"
           @reference-type-change="onReferenceTypeChange"
           @option-add="addOption"
           @option-remove="removeOption"
@@ -53,17 +60,12 @@
 </template>
 
 <script setup>
-/**
- * @component TemplateBuilder
- *
- * Основной компонент для создания и редактирования шаблонов динамических таблиц.
- */
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox, ElNotification } from 'element-plus';
 import TemplateHeader from './TemplateBuilder/TemplateHeader.vue';
 import TemplateNameForm from './TemplateBuilder/TemplateNameForm.vue';
-import TemplatePreview from './TemplateBuilder/TemplatePreview.vue';
+import TemplatePreview from './TemplateBuilder/TablePreview/TemplatePreview.vue';
 import ColumnList from './TemplateBuilder/ColumnList/ColumnList.vue';
 import ColumnSettings from './TemplateBuilder/ColumnSettings/ColumnSettings.vue';
 import { templateService } from './services/templateService';
@@ -82,342 +84,370 @@ import {
   formatReferenceDisplay
 } from './utils/templateBuilderUtils';
 import { MOCK_REFERENCE_DATA } from './services/mockData';
+import { usePreviewStore } from './stores/previewStore';
+import { dataSource } from './services/dataSource';
+
+const props = defineProps({
+  template: { type: Object, required: true, default: () => ({ id: null, name: '', columns: [] }) },
+  rows: { type: Array, required: true, default: () => [] },
+  selectedColumnIndex: { type: Number, default: null },
+  selectedRowIndex: { type: Number, default: null }
+});
+
+const emit = defineEmits([
+  'update:template',
+  'update:rows',
+  'column-select',
+  'row-select',
+  'column-remove',
+  'column-add',
+  'column-update',
+  'column-order-update',
+  'option-add',
+  'option-remove',
+  'reference-type-change',
+  'test-mode-change',
+  'reset-test-mode',
+  'update-manual-test-data'
+]);
 
 // === Состояния ===
 const route = useRoute();
 const router = useRouter();
-const template = ref({
-  id: null,
-  name: '',
-  columns: [],
-});
-const selectedColumnIndex = ref(null);
+const template = ref({ ...props.template });
+const selectedColumnIndex = ref(props.selectedColumnIndex);
+const selectedRowIndex = ref(props.selectedRowIndex);
 const saving = ref(false);
+const loading = ref(false);
+const error = ref(null);
+const previewTableContainer = ref(null);
+const previewTableHeader = ref(null);
+const previewTableBody = ref(null);
+const columnWidths = ref([]);
+const entityTypes = ref([]);
+const referenceData = ref({});
 const loadingReferenceTypes = ref(false);
+const loadingReference = ref(new Set());
+const referenceError = ref(null);
+const formatInput = ref(null);
+const formatBlocksContainer = ref(null);
+const formatBlocks = ref([]);
+const selectedPreviewColumnIndex = ref(null);
+const selectedPreviewRowIndex = ref(null);
+const editingCell = ref(null);
+const previewRows = ref([]);
+const referenceFields = ref([]);
 const loadingReferenceFields = ref(false);
-const referenceFields = ref({}); // { entityType: [fields...] }
-const entityTypes = ref([]); // Типы справочников
-const previewRows = ref([]); // Данные для предпросмотра
+
+const previewStore = usePreviewStore();
+const localTestMode = ref(previewStore.testMode);
+const showTestControls = ref(true);
 
 // === Определение правил валидации ===
 const rules = {
   name: [
-    {
-      required: true,
-      message: 'Пожалуйста, введите название шаблона',
-      trigger: 'blur'
-    },
-    {
-      min: 3,
-      max: 50,
-      message: 'Название должно быть от 3 до 50 символов',
-      trigger: 'blur'
-    }
+    { required: true, message: 'Введите название шаблона', trigger: 'blur' },
+    { min: 1, max: 255, message: 'Название должно быть от 1 до 255 символов', trigger: 'blur' }
   ]
 };
 
+console.log('[TemplateBuilder] Component initializing with props:', props);
+
 // === Вычисляемые свойства ===
 const canSave = computed(() => {
-  return template.value.name.trim() !== '' && template.value.columns.length > 0;
+  const result = template.value.name.trim() !== '' && template.value.columns.length > 0;
+  console.log('[TemplateBuilder.canSave] Computed:', result);
+  return result;
 });
 
 const selectedColumn = computed(() => {
-  if (selectedColumnIndex.value === null || !template.value.columns) return null;
-  return template.value.columns[selectedColumnIndex.value];
-});
-
-const selectedPreviewColumnIndex = computed(() => {
-  return selectedColumnIndex.value;
+  if (selectedColumnIndex.value === null || !template.value.columns) {
+    console.log('[TemplateBuilder.selectedColumn] No column selected or no columns');
+    return null;
+  }
+  const column = template.value.columns[selectedColumnIndex.value];
+  console.log('[TemplateBuilder.selectedColumn] Computed:', column);
+  return column;
 });
 
 const sortedTemplateColumns = computed(() => {
-  return [...template.value.columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const sorted = [...template.value.columns].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  console.log('[TemplateBuilder.sortedTemplateColumns] Computed:', sorted);
+  return sorted;
 });
 
-// === Методы ===
-const loadTemplate = async () => {
-  const templateId = route.params.id;
-  if (!templateId) return;
+// === Вспомогательные функции ===
+const isReferenceLoading = (column) => {
+  console.log('[TemplateBuilder.isReferenceLoading] Checking for column:', column);
+  if (!column || typeof column !== 'object') {
+    console.log('[TemplateBuilder.isReferenceLoading] Invalid column object');
+    return false;
+  }
+  if (column.type !== 'reference') {
+    console.log('[TemplateBuilder.isReferenceLoading] Not a reference column');
+    return false;
+  }
+  const entityType = column.reference?.entityType;
+  if (!entityType) {
+    console.log('[TemplateBuilder.isReferenceLoading] No entity type specified');
+    return false;
+  }
+  const isLoading = loadingReference.value.has(entityType);
+  console.log('[TemplateBuilder.isReferenceLoading] Result:', isLoading);
+  return isLoading;
+};
 
-  try {
-    const response = await templateService.get(templateId);
+const getReferenceDataForColumn = (column) => {
+  console.log('[TemplateBuilder.getReferenceDataForColumn] Getting data for column:', column);
+  if (!column || typeof column !== 'object') {
+    console.log('[TemplateBuilder.getReferenceDataForColumn] Invalid column object');
+    return [];
+  }
+  if (column.type !== 'reference') {
+    console.log('[TemplateBuilder.getReferenceDataForColumn] Not a reference column');
+    return [];
+  }
+  const entityType = column.reference?.entityType;
+  if (!entityType) {
+    console.log('[TemplateBuilder.getReferenceDataForColumn] No entity type specified');
+    return [];
+  }
 
-    // Функция для безопасного парсинга JSON
-    const parseJsonField = (field) => {
-      if (!field) return null;
-      if (typeof field === 'object') return field;
+  if (MOCK_REFERENCE_DATA[entityType]?.[0]) {
+    console.log('[TemplateBuilder.getReferenceDataForColumn] Returning mock data for:', entityType);
+    return MOCK_REFERENCE_DATA[entityType];
+  }
 
-      try {
-        return JSON.parse(field);
-      } catch (e) {
-        console.error('Ошибка парсинга JSON:', e);
-        return null;
-      }
-    };
+  if (referenceData.value[entityType] && Array.isArray(referenceData.value[entityType])) {
+    console.log('[TemplateBuilder.getReferenceDataForColumn] Returning cached data for:', entityType);
+    return referenceData.value[entityType];
+  }
 
-    // Форматируем ответ от API
-    template.value = {
-      ...response,
-      columns: response.columns.map(col => {
-        // Обработка booleanSettings
-        let booleanSettings = null;
-        if (col.type === 'boolean') {
-          booleanSettings = parseJsonField(col.boolean_settings || col.booleanSettings);
+  console.log('[TemplateBuilder.getReferenceDataForColumn] No data found for:', entityType);
+  return [];
+};
 
-          // Если парсинг не удался или данные некорректны, используем значения по умолчанию
-          if (!booleanSettings || typeof booleanSettings !== 'object') {
-            booleanSettings = {
-              displayType: 'toggle',
-              trueLabel: 'Да',
-              falseLabel: 'Нет'
-            };
-          }
-        }
+const isCellEditing = (rowIndex, colIndex) => {
+  const result = editingCell.value &&
+      editingCell.value.rowIndex === rowIndex &&
+      editingCell.value.colIndex === colIndex;
+  console.log('[TemplateBuilder.isCellEditing] Checking [' + rowIndex + '][' + colIndex + ']:', result);
+  return result;
+};
 
-        // Обработка reference
-        let reference = null;
-        if (col.type === 'reference') {
-          reference = parseJsonField(col.reference || col.reference_data);
-
-          // Если парсинг не удался или данные некорректны, используем значения по умолчанию
-          if (!reference || typeof reference !== 'object') {
-            reference = {
-              entityType: '',
-              displayFormat: ''
-            };
-          }
-        }
-
-        // Обработка options для select
-        let options = col.options;
-        if (col.type === 'select') {
-          options = parseJsonField(col.options) || [];
-        }
-
-        return {
-          ...col,
-          tempId: col.tempId || col.id || generateTempId(),
-          booleanSettings: booleanSettings,
-          reference: reference,
-          options: options,
-          dataType: col.dataType || 'string',
-          unit: col.unit || '',
-          dateFormat: col.dateFormat || 'DD.MM.YYYY'
-        };
-      })
-    };
-
-    // Сначала загружаем типы справочников, затем обрабатываем колонки
-    await loadEntityTypes();
-
-    if (template.value.columns.length > 0) {
-      selectColumn(0);
-    }
-
-    // Загружаем типы справочников для колонок
-    template.value.columns.forEach(column => {
-      if (column.type === 'reference' && column.reference?.entityType) {
-        loadReferenceFields(column.reference.entityType);
-      }
-    });
-
-    updatePreviewData();
-    ElMessage.success('Шаблон загружен');
-  } catch (error) {
-    let errorMessage = 'Не удалось загрузить шаблон';
-    if (error.response?.status === 404) {
-      errorMessage = 'Шаблон не найден';
-      router.push({ name: 'TemplateList' });
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.code === 'ERR_NETWORK') {
-      errorMessage = 'Ошибка сети: Проверьте подключение или настройки CORS сервера.';
-    }
-    ElMessage.error(errorMessage);
+const handleBodyScroll = (event) => {
+  console.log('[TemplateBuilder.handleBodyScroll] Scroll event triggered');
+  if (previewTableHeader.value) {
+    const scrollLeft = event.target.scrollLeft;
+    previewTableHeader.value.scrollLeft = scrollLeft;
+    console.log('[TemplateBuilder.handleBodyScroll] Header scrolled to:', scrollLeft);
   }
 };
 
-const loadEntityTypes = async () => {
-  loadingReferenceTypes.value = true;
-  try {
-    const types = await getEntityTypes();
-    console.log('[TemplateBuilder] Типы справочников успешно загружены:', types);
+// === Обработчики событий предпросмотра ===
+const selectRow = (index) => {
+  console.log('[TemplateBuilder.selectRow] Selecting row:', index);
+  selectedPreviewRowIndex.value = index;
+  emit('row-select', index);
+  console.log('[TemplateBuilder.selectRow] Emitted row-select with index:', index);
+};
 
-    // Убедимся, что types - это массив
-    if (Array.isArray(types)) {
-      entityTypes.value = types;
-    } else {
-      console.error('Ожидался массив типов справочников, получен:', types);
-      entityTypes.value = [];
+const startEditingCell = (rowIndex, colIndex) => {
+  console.log('[TemplateBuilder.startEditingCell] Starting edit for [' + rowIndex + '][' + colIndex + ']');
+  editingCell.value = { rowIndex, colIndex };
+  selectRow(rowIndex);
+  selectPreviewColumn(colIndex);
+  console.log('[TemplateBuilder.startEditingCell] Editing cell set:', editingCell.value);
+};
+
+const stopEditingCell = () => {
+  console.log('[TemplateBuilder.stopEditingCell] Stopping cell edit');
+  editingCell.value = null;
+  console.log('[TemplateBuilder.stopEditingCell] Editing cell cleared');
+};
+
+const updateCellValue = async (rowIndex, colIndex, newValue) => {
+  console.log('[TemplateBuilder.updateCellValue] Updating cell [' + rowIndex + '][' + colIndex + '] with value:', newValue);
+
+  const column = template.value.columns[colIndex];
+  if (!column) {
+    console.warn('[TemplateBuilder.updateCellValue] Column not found at index:', colIndex);
+    return;
+  }
+
+  const updatedRows = [...previewRows.value];
+  if (!updatedRows[rowIndex]) {
+    console.warn('[TemplateBuilder.updateCellValue] Row not found at index:', rowIndex);
+    return;
+  }
+
+  // Обработка справочников
+  if (column.type === 'reference' && referenceData.value[column.reference?.entityType]) {
+    try {
+      console.log('[TemplateBuilder.updateCellValue] Loading reference data for:', column.reference.entityType);
+      const data = await dataSource.getReferenceData(column.reference.entityType);
+      const item = data.find(item => item.id == newValue);
+      newValue = item ? item.id : newValue;
+      console.log('[TemplateBuilder.updateCellValue] Reference value resolved to:', newValue);
+    } catch (error) {
+      console.error('[TemplateBuilder.updateCellValue] Error loading reference ', error);
+      ElMessage.error(`Не удалось загрузить данные справочника "${column.reference.entityType}": ${error.message}`);
     }
+  }
 
-    return entityTypes.value;
+  updatedRows[rowIndex] = {
+    ...updatedRows[rowIndex],
+    rowData: {
+      ...updatedRows[rowIndex].rowData,
+      [column.tempId]: newValue
+    }
+  };
+
+  previewRows.value = updatedRows;
+  emit('update-rows', updatedRows);
+  stopEditingCell();
+  console.log('[TemplateBuilder.updateCellValue] Cell updated and edit stopped');
+};
+
+const selectPreviewColumn = (index) => {
+  console.log('[TemplateBuilder.selectPreviewColumn] Selecting preview column:', index);
+  selectedPreviewColumnIndex.value = index;
+  emit('column-select', index);
+  console.log('[TemplateBuilder.selectPreviewColumn] Emitted column-select with index:', index);
+};
+
+const onTestModeChange = (newMode) => {
+  console.log('[TemplateBuilder.onTestModeChange] Test mode changing to:', newMode);
+  previewStore.setTestMode(newMode);
+  localTestMode.value = newMode;
+  emit('test-mode-change', newMode);
+  updatePreviewData(); // Обновляем предпросмотр при смене режима
+  console.log('[TemplateBuilder.onTestModeChange] Test mode changed and preview updated');
+};
+
+const resetTestMode = () => {
+  console.log('[TemplateBuilder.resetTestMode] Resetting manual test data');
+  previewStore.resetManualTestData();
+  emit('reset-test-mode');
+  ElMessage.success('Тестовые данные сброшены');
+  updatePreviewData(); // Обновляем предпросмотр после сброса
+  console.log('[TemplateBuilder.resetTestMode] Manual test data reset and preview updated');
+};
+
+const handleUpdateManualTestData = (rowIndex, colIndex, newValue) => {
+  console.log('[TemplateBuilder.handleUpdateManualTestData] Updating manual data [' + rowIndex + '][' + colIndex + ']:', newValue);
+  previewStore.updateManualTestData(rowIndex, colIndex, newValue);
+  emit('update-manual-test-data', rowIndex, colIndex, newValue);
+  updatePreviewData(); // Обновляем предпросмотр при изменении ручных данных
+  console.log('[TemplateBuilder.handleUpdateManualTestData] Manual data updated and preview refreshed');
+};
+
+// === Загрузка данных справочников ===
+const loadReferenceData = async (entityType) => {
+  console.log('[TemplateBuilder.loadReferenceData] Loading reference data for:', entityType);
+
+  if (!entityType) {
+    console.log('[TemplateBuilder.loadReferenceData] No entity type provided');
+    return;
+  }
+
+  if (loadingReference.value.has(entityType)) {
+    console.log('[TemplateBuilder.loadReferenceData] Already loading, skipping:', entityType);
+    return;
+  }
+
+  if (referenceData.value[entityType] && referenceData.value[entityType].length > 0) {
+    console.log('[TemplateBuilder.loadReferenceData] Data already loaded, skipping:', entityType);
+    return;
+  }
+
+  try {
+    loadingReference.value.add(entityType);
+    console.log('[TemplateBuilder.loadReferenceData] Added to loading set:', entityType);
+
+    referenceData.value = {
+      ...referenceData.value,
+      [entityType]: []
+    };
+
+    console.log('[TemplateBuilder.loadReferenceData] Calling dataSource.getReferenceData for:', entityType);
+    const data = await dataSource.getReferenceData(entityType);
+    console.log('[TemplateBuilder.loadReferenceData] Received data for ' + entityType + ':', data?.length || 0, 'items');
+
+    referenceData.value = {
+      ...referenceData.value,
+      [entityType]: Array.isArray(data) ? data : []
+    };
+
+    console.log('[TemplateBuilder.loadReferenceData] Cached data for:', entityType);
   } catch (error) {
-    console.error('[TemplateBuilder] Ошибка загрузки типов справочников:', error);
-    let errorMessage = 'Не удалось загрузить типы справочников';
+    console.error('[TemplateBuilder.loadReferenceData] Error loading data for ' + entityType + ':', error);
+    let errorMessage = 'Ошибка загрузки данных справочника';
     if (error.code === 'ERR_NETWORK') {
-      errorMessage = 'Ошибка сети (CORS) при загрузке типов справочников.';
+      errorMessage = 'Ошибка сети (CORS) при загрузке данных справочника.';
     } else if (error.response?.data?.message) {
       errorMessage = error.response.data.message;
     } else if (error.message) {
       errorMessage = error.message;
     }
-    ElMessage.error(errorMessage);
-
-    return [];
+    ElMessage.error(`Ошибка загрузки данных справочника "${entityType}": ${errorMessage}`);
+    referenceData.value = {
+      ...referenceData.value,
+      [entityType]: []
+    };
   } finally {
-    loadingReferenceTypes.value = false;
+    loadingReference.value.delete(entityType);
+    console.log('[TemplateBuilder.loadReferenceData] Removed from loading set:', entityType);
   }
 };
 
+// Новый метод для загрузки полей справочника
 const loadReferenceFields = async (entityType) => {
+  console.log('[TemplateBuilder.loadReferenceFields] Loading reference fields for:', entityType);
+
   if (!entityType) {
-    console.log('[TemplateBuilder] Не указан entityType для загрузки полей');
-    return;
-  }
-
-  console.log(`[TemplateBuilder] Запрашиваем поля для справочника: ${entityType}`);
-
-  // Проверяем, не загружены ли уже поля
-  if (referenceFields.value[entityType] && referenceFields.value[entityType].length > 0) {
-    console.log(`[TemplateBuilder] Поля для ${entityType} уже загружены`);
+    console.log('[TemplateBuilder.loadReferenceFields] No entity type provided');
     return;
   }
 
   loadingReferenceFields.value = true;
-  // Используем деструктуризацию для реактивного обновления
-  referenceFields.value = {
-    ...referenceFields.value,
-    [entityType]: [] // Инициализируем как пустой массив
-  };
+  referenceError.value = null;
 
   try {
+    console.log('[TemplateBuilder.loadReferenceFields] Calling getReferenceFields for:', entityType);
     const fields = await getReferenceFields(entityType);
-    console.log(`[TemplateBuilder] Получены поля для ${entityType}:`, fields);
+    console.log('[TemplateBuilder.loadReferenceFields] Received fields for ' + entityType + ':', fields?.length || 0, 'items');
 
-    // Убедимся, что fields - это массив
-    if (Array.isArray(fields)) {
-      // Реактивное обновление
-      referenceFields.value = {
-        ...referenceFields.value,
-        [entityType]: fields
-      };
-      console.log(`[TemplateBuilder] Поля для ${entityType} установлены`);
-    } else {
-      console.error(`Ожидался массив полей для ${entityType}, получен:`, fields);
-      referenceFields.value = {
-        ...referenceFields.value,
-        [entityType]: []
-      };
-    }
-
-    return fields;
-  } catch (error) {
-    console.error(`[TemplateBuilder] Ошибка загрузки полей справочника ${entityType}:`, error);
-    let errorMessage = 'Ошибка загрузки полей справочника';
-    if (error.code === 'ERR_NETWORK') {
-      errorMessage = 'Ошибка сети (CORS) при загрузке полей справочника.';
-    } else if (error.response?.data?.message) {
-      errorMessage = error.response.data.message;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    ElMessage.error(`Ошибка загрузки полей справочника "${entityType}": ${errorMessage}`);
-
-    referenceFields.value = {
-      ...referenceFields.value,
-      [entityType]: []
-    };
-    return [];
+    referenceFields.value = Array.isArray(fields) ? fields : [];
+    console.log('[TemplateBuilder.loadReferenceFields] Reference fields updated');
+  } catch (err) {
+    console.error('[TemplateBuilder.loadReferenceFields] Error loading fields for ' + entityType + ':', err);
+    referenceError.value = err.message || 'Ошибка загрузки полей справочника';
+    referenceFields.value = [];
   } finally {
     loadingReferenceFields.value = false;
+    console.log('[TemplateBuilder.loadReferenceFields] Finished loading fields for:', entityType);
   }
 };
 
-const updatePreviewData = async () => {
-  const rows = [];
-
-  for (let i = 0; i < 10; i++) {
-    const rowData = {};
-
-    for (const column of template.value.columns) {
-      let exampleValue;
-
-      switch (column.type) {
-        case 'text':
-          exampleValue = `Пример текста ${i+1}`;
-          break;
-        case 'number':
-          exampleValue = 100 + i;
-          break;
-        case 'select':
-          exampleValue = column.options && column.options.length > 0 ? column.options[0] : `Выбор ${i+1}`;
-          break;
-        case 'date':
-          exampleValue = i === 0 ? '2023-10-27' : '2024-01-15';
-          break;
-        case 'datetime':
-          exampleValue = i === 0 ? '2023-10-27 10:30' : '2024-01-15 15:45';
-          break;
-        case 'boolean':
-          exampleValue = i % 2 === 0;
-          break;
-        case 'reference':
-          if (column.reference?.entityType) {
-            try {
-              // Сначала проверяем моковые данные
-              if (MOCK_REFERENCE_DATA[column.reference.entityType]?.[i]) {
-                exampleValue = MOCK_REFERENCE_DATA[column.reference.entityType][i];
-              } else {
-                // Если моковых данных нет, пытаемся загрузить реальные данные
-                const referenceData = await getReferenceData(column.reference.entityType);
-                if (referenceData && referenceData.length > 0) {
-                  // ИСПРАВЛЕНО: Проверяем, что данные существуют перед форматированием
-                  const item = referenceData[i] || referenceData[0];
-                  if (item) {
-                    // ИСПРАВЛЕНО: Используем optional chaining для безопасного доступа
-                    exampleValue = formatReferenceDisplay(item, column);
-                  } else {
-                    exampleValue = 'Нет данных';
-                  }
-                } else {
-                  exampleValue = 'Нет данных в справочнике';
-                }
-              }
-            } catch (error) {
-              console.error(`Ошибка загрузки данных справочника ${column.reference.entityType}:`, error);
-              exampleValue = `Ошибка: ${error.message}`;
-            }
-          } else {
-            exampleValue = 'Выберите справочник';
-          }
-          break;
-        default:
-          exampleValue = column.type;
-      }
-
-      rowData[column.tempId] = exampleValue;
-    }
-
-    rows.push({ rowData, order: i });
-  }
-
-  previewRows.value = rows;
-};
-
+// === Основные методы компонента ===
 const saveTemplate = async () => {
+  console.log('[TemplateBuilder.saveTemplate] Starting template save');
+
   if (!canSave.value) {
+    console.log('[TemplateBuilder.saveTemplate] Validation failed');
     ElMessage.warning('Заполните название шаблона и добавьте хотя бы одну колонку');
     return;
   }
 
   saving.value = true;
   try {
+    console.log('[TemplateBuilder.saveTemplate] Preparing template data');
     const templateData = {
       name: template.value.name.trim(),
       columns: template.value.columns.map((column, index) => ({
         id: column.id,
-        tempId: column.tempId,
+        tempId: column.tempId || column.id || generateTempId(),
         type: column.type,
         label: column.label?.trim() || `Колонка ${index + 1}`,
         order: index,
@@ -433,36 +463,41 @@ const saveTemplate = async () => {
       }))
     };
 
+    console.log('[TemplateBuilder.saveTemplate] Template data prepared:', templateData);
+
+    let response;
     if (template.value.id) {
-      const response = await templateService.update(template.value.id, templateData);
-      template.value.id = response.id;
-      template.value.name = response.name;
-      template.value.columns = response.columns.map(col => ({
-        ...col,
-        tempId: col.id || col.tempId || generateTempId()
-      }));
-      ElNotification.success({
-        title: 'Успех',
-        message: 'Шаблон успешно обновлён',
-        type: 'success'
-      });
+      console.log('[TemplateBuilder.saveTemplate] Updating existing template:', template.value.id);
+      response = await templateService.update(template.value.id, templateData);
+      console.log('[TemplateBuilder.saveTemplate] Update response received:', response);
     } else {
-      const response = await templateService.create(templateData);
-      template.value.id = response.id;
-      template.value.name = response.name;
-      template.value.columns = response.columns.map(col => ({
-        ...col,
-        tempId: col.id || col.tempId || generateTempId()
-      }));
+      console.log('[TemplateBuilder.saveTemplate] Creating new template');
+      response = await templateService.create(templateData);
+      console.log('[TemplateBuilder.saveTemplate] Create response received:', response);
+    }
+
+    // Обновляем локальное состояние
+    template.value.id = response.id;
+    template.value.name = response.name;
+    template.value.columns = response.columns.map(col => ({
+      ...col,
+      tempId: col.id || col.tempId || generateTempId(),
+      order: col.order !== undefined ? col.order : 0
+    }));
+
+    if (template.value.id && !props.template.id) {
+      console.log('[TemplateBuilder.saveTemplate] Redirecting to edit page for new template:', response.id);
+      router.push({ name: 'TemplateEdit', params: { id: response.id } });
+    } else {
+      console.log('[TemplateBuilder.saveTemplate] Showing success notification');
       ElNotification.success({
         title: 'Успех',
-        message: 'Шаблон успешно создан',
+        message: template.value.id ? 'Шаблон успешно обновлён' : 'Шаблон успешно создан',
         type: 'success'
       });
-      router.push({ name: 'TemplateEdit', params: { id: response.id } });
-      return;
     }
   } catch (error) {
+    console.error('[TemplateBuilder.saveTemplate] Error saving template:', error);
     let errorMessage = 'Ошибка при сохранении шаблона';
     if (error.response?.data) {
       if (error.response.data.message) {
@@ -473,255 +508,403 @@ const saveTemplate = async () => {
         errorMessage = `${firstErrorField}: ${firstErrorMessage}`;
       }
     } else if (error.code === 'ERR_NETWORK') {
-      errorMessage = 'Ошибка сети: Проверьте подключение или настройки CORS сервера.';
+      errorMessage = 'Ошибка сети (CORS) при сохранении шаблона.';
+    } else if (error.message) {
+      errorMessage = error.message;
     }
     ElMessage.error(errorMessage);
   } finally {
     saving.value = false;
+    console.log('[TemplateBuilder.saveTemplate] Save operation completed');
   }
 };
 
 const resetForm = () => {
+  console.log('[TemplateBuilder.resetForm] Confirming form reset');
   ElMessageBox.confirm('Вы уверены, что хотите сбросить форму?', 'Подтверждение', {
     confirmButtonText: 'Да, сбросить',
     cancelButtonText: 'Отмена',
     type: 'warning',
   }).then(() => {
+    console.log('[TemplateBuilder.resetForm] Form reset confirmed');
     if (template.value.id) {
-      loadTemplate();
+      console.log('[TemplateBuilder.resetForm] Would reload template (function not implemented)');
       ElMessage.info('Форма сброшена к сохранённому состоянию');
     } else {
       template.value = { id: null, name: '', columns: [] };
       selectedColumnIndex.value = null;
       previewRows.value = [];
       updatePreviewData();
+      console.log('[TemplateBuilder.resetForm] Form cleared');
       ElMessage.info('Форма очищена');
     }
+  }).catch(() => {
+    console.log('[TemplateBuilder.resetForm] Form reset cancelled');
   });
 };
 
 const cancel = () => {
+  console.log('[TemplateBuilder.cancel] Navigating to template list');
   router.push({ name: 'TemplateList' });
 };
 
-// === ИСПРАВЛЕНИЕ: Улучшенная логика selectColumn с расширенным логированием ===
 const selectColumn = (index) => {
-  console.log(`[TemplateBuilder.selectColumn] CALLED with index: ${index}`);
-  console.log(`[TemplateBuilder.selectColumn] template.value.columns.length: ${template.value.columns.length}`);
-  console.log(`[TemplateBuilder.selectColumn] template.value.columns:`, JSON.parse(JSON.stringify(template.value.columns)));
+  console.log('[TemplateBuilder.selectColumn] Selecting column at index:', index);
 
   if (index >= 0 && index < template.value.columns.length) {
     selectedColumnIndex.value = index;
-    console.log(`[TemplateBuilder.selectColumn] SUCCESS: selectedColumnIndex.value SET to ${index}`);
-    console.log(`[TemplateBuilder.selectColumn] Selected column object:`, JSON.parse(JSON.stringify(template.value.columns[index])));
+    console.log('[TemplateBuilder.selectColumn] Column selected:', template.value.columns[index]);
 
     const column = selectedColumn.value;
     if (column && column.type === 'reference') {
-      console.log(`[TemplateBuilder.selectColumn] Handling reference column:`, column);
+      console.log('[TemplateBuilder.selectColumn] Handling reference column');
       column.reference = column.reference || { entityType: '', displayFormat: '' };
       const entityType = column.reference.entityType;
-      console.log(`[TemplateBuilder.selectColumn] Reference entityType: ${entityType}`);
 
-      if (entityType && (!referenceFields.value[entityType] || referenceFields.value[entityType].length === 0)) {
-        console.log(`[TemplateBuilder.selectColumn] Loading reference fields for: ${entityType}`);
+      if (entityType) {
+        console.log('[TemplateBuilder.selectColumn] Reference entity type:', entityType);
+        if (!referenceData.value[entityType] || referenceData.value[entityType].length === 0) {
+          console.log('[TemplateBuilder.selectColumn] Loading reference data');
+          loadReferenceData(entityType);
+        }
+        // Загружаем поля справочника при выборе колонки
         loadReferenceFields(entityType);
-      } else {
-        console.log(`[TemplateBuilder.selectColumn] Reference fields already loaded or not needed for: ${entityType}`);
       }
     }
   } else {
-    console.warn(`[TemplateBuilder.selectColumn] INDEX OUT OF BOUNDS or COLUMNS EMPTY. Index: ${index}, Length: ${template.value.columns.length}`);
-    selectedColumnIndex.value = null; // Убедимся, что индекс null, если вне диапазона
+    console.log('[TemplateBuilder.selectColumn] Invalid index or no columns, deselecting');
+    selectedColumnIndex.value = null;
   }
-  console.log(`[TemplateBuilder.selectColumn] FINISHED. Current selectedColumnIndex.value: ${selectedColumnIndex.value}`);
-};
-// === КОНЕЦ ИСПРАВЛЕНИЯ ===
-
-const selectPreviewColumn = (index) => {
-  selectColumn(index);
-};
-
-const removeColumn = (index) => {
-  ElMessageBox.confirm('Вы уверены, что хотите удалить эту колонку?', 'Подтверждение', {
-    confirmButtonText: 'Да',
-    cancelButtonText: 'Отмена',
-    type: 'warning',
-  }).then(() => {
-    template.value.columns.splice(index, 1);
-    // Обновляем порядок
-    template.value.columns.forEach((col, i) => {
-      col.order = i;
-    });
-    // Обновляем индекс выбранной колонки
-    if (selectedColumnIndex.value >= template.value.columns.length) {
-      selectedColumnIndex.value = template.value.columns.length > 0 ? template.value.columns.length - 1 : null;
-    }
-    updatePreviewData();
-    ElMessage.success('Колонка удалена');
-  });
-};
-
-const updateColumn = (updatedColumn) => {
-  const index = template.value.columns.findIndex(col => col.tempId === updatedColumn.tempId);
-  if (index !== -1) {
-    template.value.columns[index] = updatedColumn;
-    updatePreviewData();
-  }
-};
-
-const onReferenceTypeChange = async (entityType) => {
-  if (selectedColumn.value && selectedColumn.value.type === 'reference') {
-    selectedColumn.value.reference.entityType = entityType;
-    await loadReferenceFields(entityType);
-    updatePreviewData();
-  }
-};
-
-const addOption = () => {
-  if (!selectedColumn.value || selectedColumn.value.type !== 'select') return;
-  selectedColumn.value.options = selectedColumn.value.options || [];
-  const newOption = `Вариант ${selectedColumn.value.options.length + 1}`;
-  selectedColumn.value.options.push(newOption);
-  updatePreviewData();
-};
-
-const removeOption = (index) => {
-  if (!selectedColumn.value || selectedColumn.value.type !== 'select' || !selectedColumn.value.options) return;
-  selectedColumn.value.options.splice(index, 1);
-  updatePreviewData();
 };
 
 const addColumn = (columnData) => {
+  console.log('[TemplateBuilder.addColumn] Adding new column:', columnData);
   const newColumn = {
-    tempId: generateTempId(),
     ...columnData,
-    options: columnData.type === 'select' ? ['Вариант 1', 'Вариант 2'] : [],
-    dataType: columnData.type === 'text' ? 'string' : undefined,
-    unit: columnData.type === 'number' ? '' : undefined,
-    reference: columnData.type === 'reference' ? {
-      entityType: '',
-      displayFormat: ''
-    } : null,
-    booleanSettings: columnData.type === 'boolean' ? {
-      displayType: 'toggle',
-      trueLabel: 'Да',
-      falseLabel: 'Нет'
-    } : null,
-    dateFormat: columnData.type === 'date' ? 'DD.MM.YYYY' : (columnData.type === 'datetime' ? 'DD.MM.YYYY HH:mm' : 'DD.MM.YYYY')
+    tempId: generateTempId(),
+    order: template.value.columns.length
   };
   template.value.columns.push(newColumn);
-  selectColumn(template.value.columns.length - 1);
-  updatePreviewData();
+  emit('column-add', newColumn);
+  console.log('[TemplateBuilder.addColumn] Column added, total columns:', template.value.columns.length);
 };
 
-// === ИСПРАВЛЕНИЕ: Новый метод обработки обновления порядка колонок после DnD ===
-const handleColumnOrderUpdate = (newOrderedColumns) => {
-  console.log(`[TemplateBuilder.handleColumnOrderUpdate] CALLED`);
-  console.log(`[TemplateBuilder.handleColumnOrderUpdate] Old columns:`, JSON.parse(JSON.stringify(template.value.columns)));
-  console.log(`[TemplateBuilder.handleColumnOrderUpdate] New ordered columns from DnD:`, JSON.parse(JSON.stringify(newOrderedColumns)));
+const removeColumn = (index) => {
+  console.log('[TemplateBuilder.removeColumn] Removing column at index:', index);
+  const removedColumn = template.value.columns[index];
+  template.value.columns.splice(index, 1);
+  emit('column-remove', index);
 
-  // Создаем карту старых индексов для отслеживания изменений
-  const oldIndexMap = {};
-  template.value.columns.forEach((col, idx) => {
-    oldIndexMap[col.tempId] = idx;
-  });
+  // Обновляем индекс выбранной колонки
+  if (selectedColumnIndex.value === index) {
+    selectedColumnIndex.value = template.value.columns.length > 0 ?
+        Math.min(index, template.value.columns.length - 1) : null;
+    console.log('[TemplateBuilder.removeColumn] Selected column index updated to:', selectedColumnIndex.value);
+  }
 
-  // Обновляем массив колонок в template
-  template.value.columns = newOrderedColumns.map((col, newIndex) => {
-    // Обновляем свойство order
-    const updatedCol = { ...col, order: newIndex };
-    // Проверяем, изменился ли индекс этой колонки
-    const oldIndex = oldIndexMap[col.tempId];
-    if (oldIndex !== undefined && oldIndex !== newIndex) {
-      console.log(`[TemplateBuilder.handleColumnOrderUpdate] Column ${col.tempId} moved from index ${oldIndex} to ${newIndex}`);
+  console.log('[TemplateBuilder.removeColumn] Column removed, total columns:', template.value.columns.length);
+};
+
+const updateColumn = (index, updatedColumn) => {
+  console.log('[TemplateBuilder.updateColumn] Updating column at index ' + index + ':', updatedColumn);
+  template.value.columns.splice(index, 1, updatedColumn);
+  emit('column-update', index, updatedColumn);
+
+  // Если тип колонки изменился на reference, загружаем данные
+  if (updatedColumn.type === 'reference' && updatedColumn.reference?.entityType) {
+    const entityType = updatedColumn.reference.entityType;
+    console.log('[TemplateBuilder.updateColumn] Updated column is reference, loading data for:', entityType);
+    if (!referenceData.value[entityType] || referenceData.value[entityType].length === 0) {
+      loadReferenceData(entityType);
     }
-    return updatedCol;
-  });
+    loadReferenceFields(entityType);
+  }
 
-  console.log(`[TemplateBuilder.handleColumnOrderUpdate] Columns after reorder:`, JSON.parse(JSON.stringify(template.value.columns)));
+  console.log('[TemplateBuilder.updateColumn] Column updated');
+};
 
-  // Если выбранная колонка была перемещена, обновляем selectedColumnIndex
-  if (selectedColumnIndex.value !== null) {
-    const selectedTempId = newOrderedColumns[selectedColumnIndex.value]?.tempId;
-    if (selectedTempId) {
-      const newSelectedIndex = template.value.columns.findIndex(c => c.tempId === selectedTempId);
-      if (newSelectedIndex !== selectedColumnIndex.value) {
-        console.log(`[TemplateBuilder.handleColumnOrderUpdate] Selected column index changed from ${selectedColumnIndex.value} to ${newSelectedIndex}`);
-        selectedColumnIndex.value = newSelectedIndex;
+const handleColumnOrderUpdate = (newColumns) => {
+  console.log('[TemplateBuilder.handleColumnOrderUpdate] Updating column order, new order:', newColumns.map(c => c.tempId));
+  template.value.columns = newColumns;
+  emit('column-order-update', newColumns);
+  console.log('[TemplateBuilder.handleColumnOrderUpdate] Column order updated');
+};
+
+const addOption = (option) => {
+  console.log('[TemplateBuilder.addOption] Adding option:', option);
+  emit('option-add', option);
+  console.log('[TemplateBuilder.addOption] Option added');
+};
+
+const removeOption = (index) => {
+  console.log('[TemplateBuilder.removeOption] Removing option at index:', index);
+  emit('option-remove', index);
+  console.log('[TemplateBuilder.removeOption] Option removed');
+};
+
+const onReferenceTypeChange = (entityType) => {
+  console.log('[TemplateBuilder.onReferenceTypeChange] Reference type changed to:', entityType);
+  emit('reference-type-change', entityType);
+  if (entityType) {
+    console.log('[TemplateBuilder.onReferenceTypeChange] Loading data and fields for:', entityType);
+    loadReferenceData(entityType);
+    loadReferenceFields(entityType);
+  }
+  console.log('[TemplateBuilder.onReferenceTypeChange] Reference type change handled');
+};
+
+// === Генерация данных предпросмотра ===
+const updatePreviewData = async () => {
+  console.log('[TemplateBuilder.updatePreviewData] Starting preview data update');
+
+  try {
+    loading.value = true;
+    error.value = null;
+
+    const rows = [];
+    const columns = template.value.columns;
+    const testMode = previewStore.testMode;
+    const manualTestData = previewStore.manualTestData;
+
+    console.log('[TemplateBuilder.updatePreviewData] Generating data for', columns.length, 'columns in', testMode, 'mode');
+
+    for (let i = 0; i < 10; i++) {
+      const rowData = {};
+
+      for (const [colIndex, column] of columns.entries()) {
+        let exampleValue;
+
+        // Логика в зависимости от режима тестирования
+        if (testMode === 'manual' && manualTestData[i] && manualTestData[i][colIndex] !== undefined) {
+          // Используем ручное значение из хранилища
+          exampleValue = manualTestData[i][colIndex];
+          console.log('[TemplateBuilder.updatePreviewData] Using manual data for [' + i + '][' + colIndex + ']:', exampleValue);
+        } else {
+          // Генерируем автоматическое значение
+          switch (column.type) {
+            case 'text':
+              exampleValue = `Пример текста ${i+1}`;
+              break;
+            case 'number':
+              exampleValue = 100 + i;
+              break;
+            case 'select':
+              exampleValue = column.options && column.options.length > 0 ? column.options[0] : `Выбор ${i+1}`;
+              break;
+            case 'date':
+              exampleValue = i === 0 ? '2023-10-27' : '2024-01-15';
+              break;
+            case 'datetime':
+              exampleValue = i === 0 ? '2023-10-27 10:30' : '2024-01-15 15:45';
+              break;
+            case 'boolean':
+              exampleValue = i % 2 === 0;
+              break;
+            case 'reference':
+              if (column.reference?.entityType) {
+                try {
+                  console.log('[TemplateBuilder.updatePreviewData] Loading reference data for column', colIndex, ':', column.reference.entityType);
+
+                  // Проверяем MOCK_REFERENCE_DATA
+                  if (MOCK_REFERENCE_DATA[column.reference.entityType]?.[i]) {
+                    exampleValue = MOCK_REFERENCE_DATA[column.reference.entityType][i];
+                    console.log('[TemplateBuilder.updatePreviewData] Using mock data for reference');
+                  } else {
+                    // Если моковых данных нет, пытаемся загрузить реальные данные
+                    const referenceData = await dataSource.getReferenceData(column.reference.entityType);
+                    console.log('[TemplateBuilder.updatePreviewData] Loaded', referenceData?.length || 0, 'reference items');
+
+                    if (referenceData && referenceData.length > 0) {
+                      const item = referenceData[i] || referenceData[0];
+                      if (item) {
+                        exampleValue = formatReferenceDisplay(item, column);
+                        console.log('[TemplateBuilder.updatePreviewData] Formatted reference value:', exampleValue);
+                      } else {
+                        exampleValue = 'Нет данных';
+                        console.log('[TemplateBuilder.updatePreviewData] No item found in reference data');
+                      }
+                    } else {
+                      exampleValue = 'Нет данных в справочнике';
+                      console.log('[TemplateBuilder.updatePreviewData] Empty reference data');
+                    }
+                  }
+                } catch (error) {
+                  console.error('[TemplateBuilder.updatePreviewData] Error loading reference ', error);
+                  ElMessage.error(`Не удалось загрузить данные справочника "${column.reference.entityType}": ${error.message}`);
+                }
+              } else {
+                exampleValue = 'Выберите справочник';
+                console.log('[TemplateBuilder.updatePreviewData] No reference entity type specified');
+              }
+              break;
+            default:
+              exampleValue = column.type;
+          }
+        }
+
+        rowData[column.tempId] = exampleValue;
+        console.log('[TemplateBuilder.updatePreviewData] Set value for column', column.tempId, ':', exampleValue);
+      }
+
+      rows.push({ rowData, order: i });
+    }
+
+    previewRows.value = rows;
+    emit('update-rows', rows);
+    console.log('[TemplateBuilder.updatePreviewData] Preview data updated, total rows:', rows.length);
+  } catch (err) {
+    console.error('[TemplateBuilder.updatePreviewData] Error updating preview ', err);
+    error.value = 'Ошибка загрузки данных предпросмотра: ' + (err.response?.data?.message || err.message);
+    ElMessage.error(error.value);
+  } finally {
+    loading.value = false;
+    console.log('[TemplateBuilder.updatePreviewData] Preview data update completed');
+  }
+};
+
+const updateRows = (newRows) => {
+  console.log('[TemplateBuilder.updateRows] Updating rows, new count:', newRows?.length || 0);
+  previewRows.value = newRows;
+  emit('update-rows', newRows);
+  console.log('[TemplateBuilder.updateRows] Rows updated');
+};
+
+// === Lifecycle & Watchers ===
+onMounted(async () => {
+  console.log('[TemplateBuilder.onMounted] Component mounted');
+
+  try {
+    loadingReferenceTypes.value = true;
+    console.log('[TemplateBuilder.onMounted] Loading reference types');
+
+    const types = await dataSource.getReferenceTypes();
+    console.log('[TemplateBuilder.onMounted] Reference types loaded:', types?.length || 0, 'items');
+
+    entityTypes.value = Array.isArray(types) ? types.map(t => ({...t})) : [];
+    console.log('[TemplateBuilder.onMounted] Entity types updated');
+
+    columnWidths.value = new Array(template.value.columns.length).fill(120);
+    console.log('[TemplateBuilder.onMounted] Column widths initialized');
+
+    // Загружаем данные для справочных колонок
+    template.value.columns.forEach((column, index) => {
+      if (column.type === 'reference' && column.reference?.entityType) {
+        console.log('[TemplateBuilder.onMounted] Loading reference data for column', index, ':', column.reference.entityType);
+        loadReferenceData(column.reference.entityType);
+      }
+    });
+
+    // Инициализируем предпросмотр
+    console.log('[TemplateBuilder.onMounted] Initializing preview data');
+    updatePreviewData();
+  } catch (error) {
+    console.error('[TemplateBuilder.onMounted] Error during mount:', error);
+    ElMessage({
+      message: 'Не удалось загрузить типы справочников',
+      type: 'error'
+    });
+  } finally {
+    loadingReferenceTypes.value = false;
+    console.log('[TemplateBuilder.onMounted] Mount process completed');
+  }
+});
+
+watch(() => template.value.columns, (newVal, oldVal) => {
+  console.log('[TemplateBuilder.watch.columns] Columns changed from', oldVal?.length || 0, 'to', newVal?.length || 0);
+
+  columnWidths.value = new Array(newVal.length).fill(120);
+  console.log('[TemplateBuilder.watch.columns] Column widths updated');
+
+  newVal.forEach((column, index) => {
+    if (column.type === 'reference' && column.reference?.entityType) {
+      if (!referenceData.value[column.reference.entityType] || referenceData.value[column.reference.entityType].length === 0) {
+        console.log('[TemplateBuilder.watch.columns] Loading reference data for new column', index);
+        loadReferenceData(column.reference.entityType);
       }
     }
-  }
-  // Если selectedColumnIndex был за пределами нового массива, он может остаться прежним или быть обновлен в watch
-
-  updatePreviewData();
-  console.log(`[TemplateBuilder.handleColumnOrderUpdate] FINISHED. Current selectedColumnIndex.value: ${selectedColumnIndex.value}`);
-};
-// === КОНЕЦ ИСПРАВЛЕНИЯ ===
-
-// === Lifecycle ===
-onMounted(async () => {
-  console.log('[TemplateBuilder] Инициализация компонента');
-  await Promise.all([loadEntityTypes(), loadTemplate()]);
-  console.log(`[TemplateBuilder] Инициализация завершена. Текущее название: "${template.value.name}"`);
-
-  // Проверяем, что значение передается в дочерний компонент
-  nextTick(() => {
-    console.log('[TemplateBuilder] nextTick выполнено');
   });
 
-  if (template.value.columns.length > 0 && selectedColumnIndex.value === null) {
-    selectColumn(0);
-  } else {
-    updatePreviewData();
-  }
-});
-
-// === Watchers ===
-// Следим за изменениями в колонках и обновляем предпросмотр
-watch(() => template.value.name, (newVal, oldVal) => {
-  console.log(`[TemplateBuilder] template.name изменилось: "${oldVal}" → "${newVal}"`);
-});
-
-watch(() => template.value.columns, () => {
+  // Обновляем предпросмотр при изменении колонок
+  console.log('[TemplateBuilder.watch.columns] Updating preview data due to column change');
   updatePreviewData();
 }, { deep: true });
 
-// === ИСПРАВЛЕНИЕ: Watch для template.value.columns, чтобы сбросить выбор ===
-watch(() => template.value.columns, (newColumns) => {
-  console.log(`[TemplateBuilder] template.value.columns changed. New length: ${newColumns?.length}`);
-  if (!newColumns || newColumns.length === 0) {
-    console.log(`[TemplateBuilder] Columns are empty, resetting selectedColumnIndex to null`);
-    selectedColumnIndex.value = null;
-  } else if (selectedColumnIndex.value !== null) {
-    // Если была выбрана колонка, проверим, что индекс всё ещё действителен
-    if (selectedColumnIndex.value >= newColumns.length) {
-      console.log(`[TemplateBuilder] Selected index is out of bounds after columns change, resetting to last column or null`);
-      // Выбираем последнюю колонку или сбрасываем, если не осталось колонок
-      selectedColumnIndex.value = newColumns.length > 0 ? newColumns.length - 1 : null;
-    }
-    // Если индекс действителен, selectedColumnIndex.value остаётся прежним
-  }
-  // Если selectedColumnIndex.value === null, оставляем его null
+watch(() => selectedColumnIndex.value, (newIndex, oldIndex) => {
+  console.log('[TemplateBuilder.watch.selectedColumnIndex] Selected column index changed from', oldIndex, 'to', newIndex);
+  selectedPreviewColumnIndex.value = newIndex;
+});
+
+watch(() => selectedRowIndex.value, (newIndex, oldIndex) => {
+  console.log('[TemplateBuilder.watch.selectedRowIndex] Selected row index changed from', oldIndex, 'to', newIndex);
+  selectedPreviewRowIndex.value = newIndex;
+});
+
+watch(() => previewStore.testMode, (newMode, oldMode) => {
+  console.log('[TemplateBuilder.watch.testMode] Test mode changed from', oldMode, 'to', newMode);
+  localTestMode.value = newMode;
+  updatePreviewData(); // Обновляем предпросмотр при смене режима
+});
+
+// Дополнительное логирование для отладки
+watch(() => template.value, (newVal, oldVal) => {
+  console.log('[TemplateBuilder.watch.template] Template changed, name:', newVal.name, 'columns:', newVal.columns?.length || 0);
 }, { deep: true });
-// === КОНЕЦ ИСПРАВЛЕНИЯ ===
+
+watch(() => previewStore.manualTestData, (newVal, oldVal) => {
+  console.log('[TemplateBuilder.watch.manualTestData] Manual test data changed, keys:', Object.keys(newVal || {}));
+}, { deep: true });
+
+console.log('[TemplateBuilder] Component setup completed');
 </script>
 
 <style lang="scss" scoped>
-/* Основные стили компонента (минимальные) */
 .template-builder {
   padding: 10px;
-  max-width: 1600px;
-  margin: 0 auto;
-  height: calc(100vh - 140px);
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  margin-top: 2px;
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 
   .builder-content {
+    flex: 1;
     display: flex;
     gap: 15px;
-    flex: 2;
     min-height: 0;
+
+    @media (max-width: 992px) {
+      flex-direction: column;
+    }
+
+    .column-list-section {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .column-settings-section {
+      flex: 2;
+      min-width: 0;
+    }
+  }
+
+  .preview-section {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  @keyframes rotating {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 }
 </style>

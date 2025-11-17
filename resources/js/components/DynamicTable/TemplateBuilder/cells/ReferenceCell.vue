@@ -107,16 +107,38 @@ const displayValue = computed(() => {
   }
 
   let value = props.value;
-  if (typeof value === 'object' && value !== null && value.id !== undefined) {
-    value = value.id;
+  // Обрабатываем разные форматы значения
+  if (typeof value === 'object' && value !== null) {
+    if (value.id !== undefined) {
+      value = value.id;
+    } else if (value.value !== undefined) {
+      value = value.value;
+    }
+    // Если это другой объект, пытаемся получить ID
+    else if (Object.keys(value).length === 1 && value[Object.keys(value)[0]] !== undefined) {
+      value = value[Object.keys(value)[0]];
+    } else {
+      // Если объект сложный, возвращаем его как есть (возможно, это ошибка)
+      console.warn('[ReferenceCell.displayValue] Unexpected object value:', value);
+      return `#${JSON.stringify(value)} (не найдено)`;
+    }
   }
 
-  if (value === null || value === undefined) {
+  if (value === null || value === undefined || value === '') {
     return 'Не выбрано';
   }
 
-  const item = props.referenceData.find(item => item.id == value);
-  return item ? formatReferenceDisplay(item, props.column) : `#${value} (не найдено)`;
+  // Ищем элемент в referenceData по ID
+  const item = props.referenceData.find(item =>
+      String(item.id) === String(value) ||
+      String(item.value) === String(value)
+  );
+
+  if (item) {
+    return formatReferenceDisplay(item, props.column);
+  } else {
+    return `#${value} (не найдено)`;
+  }
 });
 
 // === Методы ===
@@ -127,6 +149,9 @@ const handleClick = () => {
 };
 
 const handleUpdateValue = (newValue) => {
+  // === ИЗМЕНЕНИЕ: newValue уже содержит правильное значение (ID) из v-model ===
+  console.log('[ReferenceCell.handleUpdateValue] New value from v-model:', newValue);
+  // Эмитим newValue как есть, это будет ID
   emit('update-value', newValue);
 };
 
@@ -160,17 +185,17 @@ const loadReferenceData = async () => {
 // === Lifecycle & Watchers ===
 watch(() => props.isEditing, (newVal) => {
   if (newVal) {
+    // При начале редактирования устанавливаем editValue в ID
     let value = props.value;
-    if (typeof value === 'object' && value !== null && value.id !== undefined) {
-      value = value.id;
+    if (typeof value === 'object' && value !== null) {
+      if (value.id !== undefined) {
+        value = value.id;
+      } else if (value.value !== undefined) {
+        value = value.value;
+      }
     }
-    editValue.value = value;
+    editValue.value = value !== null && value !== undefined ? value : '';
     focusInput();
-
-    // Загружаем данные справочника при активации редактирования
-    if (props.column.reference?.entityType && (!props.referenceData || props.referenceData.length === 0)) {
-      loadReferenceData();
-    }
   }
 }, { immediate: true });
 

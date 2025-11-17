@@ -1,6 +1,6 @@
 // resources/js/components/DynamicTable/services/dataSource.js
 import { ref, computed } from 'vue';
-import  templateApi  from '../api/tableApi';
+import templateApi from '../api/tableApi';
 import { rowApi } from '../api/rowApi';
 import { referenceApi } from '../api/referenceApi';
 import { MOCK_TEMPLATES, MOCK_ROWS, MOCK_REFERENCE_DATA } from './mockData';
@@ -21,6 +21,18 @@ const setSource = (newSource) => {
     console.log(`[dataSource] Switching source to: ${newSource}`);
     source.value = newSource;
 };
+
+// === ДОБАВЛЕНИЕ: Счетчик запросов ===
+let requestCounter = 0;
+const incrementRequestCounter = () => {
+    requestCounter++;
+    console.log(`[dataSource] Request #${requestCounter} initiated.`);
+    return requestCounter;
+};
+const decrementRequestCounter = (id) => {
+    console.log(`[dataSource] Request #${id} completed.`);
+};
+// === КОНЕЦ ДОБАВЛЕНИЯ ===
 
 // === Методы API ===
 const api = {
@@ -64,19 +76,43 @@ const api = {
 
     // === Справочники ===
     async getReferenceTypes() {
-        return referenceApi.getTypes();
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
+        try {
+            console.log(`[dataSource.api.getReferenceTypes] Starting API call (Request #${requestId})...`);
+            const response = await referenceApi.getTypes();
+            console.log(`[dataSource.api.getReferenceTypes] API call successful (Request #${requestId}):`, response);
+            return response;
+        } catch (error) {
+            console.error(`[dataSource.api.getReferenceTypes] Error (Request #${requestId}):`, error);
+            throw error;
+        } finally {
+            decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+        }
     },
 
     async getReferenceData(entityType, params = {}) {
-        return referenceApi.getData(entityType, params);
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
+        try {
+            console.log(`[dataSource.api.getReferenceData] Starting API call for: ${entityType} (Request #${requestId})...`);
+            const cleanEntityType = entityType.replace(/\/$/, ''); // Убираем завершающий слэш
+            const response = await referenceApi.getData(cleanEntityType, params);
+            console.log(`[dataSource.api.getReferenceData] API call successful for: ${cleanEntityType} (Request #${requestId}):`, response);
+            return response;
+        } catch (error) {
+            console.error(`[dataSource.api.getReferenceData] Error for ${entityType} (Request #${requestId}):`, error);
+            throw error;
+        } finally {
+            decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+        }
     },
 
     // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfo с правильной обработкой ответа ===
     async getReferenceInfo(entityType) {
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
         try {
-            console.log(`[dataSource.api.getReferenceInfo] Starting API call for: ${entityType}`);
+            console.log(`[dataSource.api.getReferenceInfo] Starting API call for: ${entityType} (Request #${requestId})...`);
             const response = await referenceApi.getFieldInfo(entityType);
-            console.log(`[dataSource.api.getReferenceInfo] API call successful for: ${entityType}`, response);
+            console.log(`[dataSource.api.getReferenceInfo] API call successful for: ${entityType} (Request #${requestId}):`, response);
 
             // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Правильная обработка структуры ответа ===
             // referenceApi.getFieldInfo может возвращать разные структуры ответа
@@ -94,14 +130,14 @@ const api = {
 
             // Убедимся, что info - это объект
             if (info && typeof info === 'object' && !Array.isArray(info)) {
-                console.log(`[dataSource.api.getReferenceInfo] Final info for ${entityType}:`, info);
+                console.log(`[dataSource.api.getReferenceInfo] Final info for ${entityType} (Request #${requestId}):`, info);
                 return info;
             } else {
-                console.error(`[dataSource.api.getReferenceInfo] Expected object for ${entityType}, got:`, info);
+                console.error(`[dataSource.api.getReferenceInfo] Expected object for ${entityType}, got (Request #${requestId}):`, info);
                 throw new Error(`Некорректная структура данных справочника "${entityType}"`);
             }
         } catch (error) {
-            console.error(`[dataSource.api.getReferenceInfo] Error for ${entityType}:`, error);
+            console.error(`[dataSource.api.getReferenceInfo] Error for ${entityType} (Request #${requestId}):`, error);
             let errorMessage = 'Ошибка загрузки информации о справочнике';
             if (error.code === 'ERR_NETWORK') {
                 errorMessage = 'Ошибка сети (CORS) при загрузке информации о справочнике.';
@@ -111,16 +147,19 @@ const api = {
                 errorMessage = error.message;
             }
             throw new Error(errorMessage);
+        } finally {
+            decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
         }
     },
     // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 
     // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfoFields с правильной обработкой ответа ===
     async getReferenceInfoFields(entityType) {
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
         try {
-            console.log(`[dataSource.api.getReferenceInfoFields] Starting API call for: ${entityType}`);
+            console.log(`[dataSource.api.getReferenceInfoFields] Starting API call for: ${entityType} (Request #${requestId})...`);
             const response = await referenceApi.getFieldInfo(entityType);
-            console.log(`[dataSource.api.getReferenceInfoFields] API call successful for: ${entityType}`, response);
+            console.log(`[dataSource.api.getReferenceInfoFields] API call successful for: ${entityType} (Request #${requestId}):`, response);
 
             // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Правильная обработка структуры ответа ===
             // referenceApi.getFieldInfo возвращает {  { /* full info object */ } }
@@ -138,15 +177,15 @@ const api = {
 
             // Убедимся, что infoObject - это объект
             if (infoObject && typeof infoObject === 'object' && !Array.isArray(infoObject)) {
-                console.log(`[dataSource.api.getReferenceInfoFields] Final info object for ${entityType}:`, infoObject);
+                console.log(`[dataSource.api.getReferenceInfoFields] Final info object for ${entityType} (Request #${requestId}):`, infoObject);
                 return infoObject; // Возвращаем весь объект информации
             } else {
-                console.error(`[dataSource.api.getReferenceInfoFields] Expected object for info of ${entityType}, got:`, infoObject);
+                console.error(`[dataSource.api.getReferenceInfoFields] Expected object for info of ${entityType}, got (Request #${requestId}):`, infoObject);
                 // Возвращаем пустой объект вместо массива, чтобы вызывающая сторона могла обработать это корректно
                 return {};
             }
         } catch (error) {
-            console.error(`[dataSource.api.getReferenceInfoFields] Error for ${entityType}:`, error);
+            console.error(`[dataSource.api.getReferenceInfoFields] Error for ${entityType} (Request #${requestId}):`, error);
             let errorMessage = 'Ошибка загрузки информации о справочнике';
             if (error.code === 'ERR_NETWORK') {
                 errorMessage = 'Ошибка сети (CORS) при загрузке информации о справочнике.';
@@ -156,10 +195,11 @@ const api = {
                 errorMessage = error.message;
             }
             throw new Error(errorMessage);
+        } finally {
+            decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
         }
     },
     // === КОНЕЦ ИСПРАВЛЕНИЯ ===
-
 };
 
 // === Методы Mock ===
@@ -449,8 +489,11 @@ const mock = {
 
     // === Справочники ===
     async getReferenceTypes() {
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
         return new Promise((resolve) => {
             setTimeout(() => {
+                console.log(`[dataSource.mock.getReferenceTypes] Resolving with mock data (Request #${requestId})`);
+                decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
                 resolve([
                     { value: 'accessory', label: 'Аксессуары', description: 'Аксессуары для электрооборудования' },
                     { value: 'brand', label: 'Бренды', description: 'Производители' },
@@ -462,16 +505,23 @@ const mock = {
     },
 
     async getReferenceData(entityType, params = {}) {
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
         return new Promise((resolve, reject) => {
             setTimeout(() => {
                 // Убираем завершающий слэш из entityType
                 const cleanEntityType = entityType.replace(/\/$/, '');
+                console.log(`[dataSource.mock.getReferenceData] Starting for: ${cleanEntityType} (Request #${requestId})`);
 
                 // Проверяем моковые данные
                 if (MOCK_REFERENCE_DATA[cleanEntityType]?.[0]) {
+                    console.log(`[dataSource.mock.getReferenceData] Resolving with mock data for ${cleanEntityType} (Request #${requestId})`);
+                    decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
                     resolve(MOCK_REFERENCE_DATA[cleanEntityType]);
                 } else {
-                    reject(new Error(`Справочник "${cleanEntityType}" не найден в моковых данных`));
+                    const errorMsg = `Справочник "${cleanEntityType}" не найден в моковых данных`;
+                    console.warn(`[dataSource.mock.getReferenceData] ${errorMsg} (Request #${requestId})`);
+                    decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+                    reject(new Error(errorMsg));
                 }
             }, 200);
         });
@@ -479,10 +529,12 @@ const mock = {
 
     // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfo с правильной обработкой ответа ===
     async getReferenceInfo(entityType) {
+        const requestId = incrementRequestCounter(); // <-- ЛОГИРОВАНИЕ
         return new Promise((resolve, reject) => {
             setTimeout(() => {
                 // Убираем завершающий слэш из entityType
                 const cleanEntityType = entityType.replace(/\/$/, '');
+                console.log(`[dataSource.mock.getReferenceInfo] Starting for: ${cleanEntityType} (Request #${requestId})`);
 
                 // Проверяем моковые данные
                 if (MOCK_REFERENCE_DATA[cleanEntityType]?.[0]) {
@@ -493,7 +545,7 @@ const mock = {
                         type: typeof exampleItem[key]
                     }));
 
-                    resolve({
+                    const result = {
                         modelName: cleanEntityType,
                         className: cleanEntityType.charAt(0).toUpperCase() + cleanEntityType.slice(1),
                         tableName: `ep_${cleanEntityType}s`,
@@ -503,42 +555,66 @@ const mock = {
                         example: exampleItem,
                         exampleFormat: '{name}',
                         availableKeys: fields.map(f => f.key) // <-- Добавляем availableKeys для совместимости
-                    });
+                    };
+
+                    console.log(`[dataSource.mock.getReferenceInfo] Resolving with mock info for ${cleanEntityType} (Request #${requestId}):`, result);
+                    decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+                    resolve(result);
                 } else {
-                    reject(new Error(`Справочник "${cleanEntityType}" не найден в моковых данных`));
+                    const errorMsg = `Справочник "${cleanEntityType}" не найден в моковых данных`;
+                    console.warn(`[dataSource.mock.getReferenceInfo] ${errorMsg} (Request #${requestId})`);
+                    decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+                    reject(new Error(errorMsg));
+                }
+            }, 200);
+        });
+    },
+    //
+
+    // Обновленный getReferenceInfoFields с правильной обработкой ответа ===
+    async getReferenceInfoFields(entityType) {
+        const requestId = incrementRequestCounter(); //
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                // Убираем завершающий слэш из entityType
+                const cleanEntityType = entityType.replace(/\/$/, '');
+                console.log(`[dataSource.mock.getReferenceInfoFields] Starting for: ${cleanEntityType} (Request #${requestId})`);
+
+                // Проверяем моковые данные
+                if (MOCK_REFERENCE_DATA[cleanEntityType]?.[0]) {
+                    const exampleItem = MOCK_REFERENCE_DATA[cleanEntityType][0];
+                    const fields = Object.keys(exampleItem).map(key => ({
+                        key: key,
+                        label: key,
+                        type: typeof exampleItem[key]
+                    }));
+
+                    const result = {
+                        modelName: cleanEntityType,
+                        className: cleanEntityType.charAt(0).toUpperCase() + cleanEntityType.slice(1),
+                        tableName: `ep_${cleanEntityType}s`,
+                        fillable: Object.keys(exampleItem),
+                        relations: {}, // Моковые данные не содержат информации о связях
+                        fields: fields,
+                        example: exampleItem,
+                        exampleFormat: '{name}',
+                        availableKeys: fields.map(f => f.key),
+                        defaultDisplayFormat: '{name}'
+                    };
+
+                    console.log(`[dataSource.mock.getReferenceInfoFields] Resolving with mock info for ${cleanEntityType} (Request #${requestId}):`, result);
+                    decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+                    resolve(result); // Возвращаем весь объект информации
+                } else {
+                    const errorMsg = `Справочник "${cleanEntityType}" не найден в моковых данных`;
+                    console.warn(`[dataSource.mock.getReferenceInfoFields] ${errorMsg} (Request #${requestId})`);
+                    decrementRequestCounter(requestId); // <-- ЛОГИРОВАНИЕ
+                    reject(new Error(errorMsg));
                 }
             }, 200);
         });
     },
     // === КОНЕЦ ИСПРАВЛЕНИЯ ===
-
-    // === ИСПРАВЛЕНИЕ: Обновленный getReferenceInfoFields с правильной обработкой ответа ===
-    async getReferenceInfoFields(entityType) {
-        try {
-            console.log(`[dataSource.mock.getReferenceInfoFields] Starting for: ${entityType}`);
-            const info = await this.getReferenceInfo(entityType); // Получаем полную информацию
-            console.log(`[dataSource.mock.getReferenceInfoFields] Info loaded for ${entityType}:`, info);
-
-            // === КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Правильная обработка структуры ответа ===
-            // dataSource.getReferenceInfo (mock) возвращает объект информации напрямую
-            // Нам нужно просто вернуть его как есть.
-            // Если info уже объект, возвращаем его.
-            if (info && typeof info === 'object' && !Array.isArray(info)) {
-                console.log(`[dataSource.mock.getReferenceInfoFields] Returning info object for ${entityType}:`, info);
-                return info; // Возвращаем весь объект информации
-            } else {
-                // Если getReferenceInfo вернул что-то не то, возвращаем пустой объект
-                console.error(`[dataSource.mock.getReferenceInfoFields] Expected object for info of ${entityType}, got:`, info);
-                return {};
-            }
-            // === КОНЕЦ КЛЮЧЕВОГО ИЗМЕНЕНИЯ ===
-
-        } catch (error) {
-            console.error(`[dataSource.mock.getReferenceInfoFields] Error for ${entityType}:`, error);
-            throw new Error(`Не удалось загрузить информацию о справочнике "${entityType}": ${error.message}`);
-        }
-    },
-    // === КОНЕЦ НОВОГО МЕТОДА ===
 };
 
 // === Экспортируемый объект dataSource ===
@@ -777,3 +853,4 @@ export const dataSource = {
     },
     // === КОНЕЦ ИСПРАВЛЕНИЯ ===
 };
+
