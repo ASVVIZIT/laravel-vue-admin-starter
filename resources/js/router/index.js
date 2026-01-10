@@ -14,6 +14,7 @@ import errorRoutes from './modules/error';
 import entityRoutes from './modules/entity';
 import servicesRoutes from './modules/services.js';
 import dynamicTableRoutes from './modules/dynamicTable.js';
+import smartLightRoutes from './modules/SmartLight/smart-light.js';
 
 // Функции для работы с куками
 function getCookie(name) {
@@ -139,6 +140,7 @@ export const constantRoutes = [
     ],
   },
   ...dynamicTableRoutes,
+  ...smartLightRoutes,
 ];
 
 export const asyncRoutes = [

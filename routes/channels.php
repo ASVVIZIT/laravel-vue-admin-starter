@@ -76,3 +76,14 @@ Broadcast::channel('friends.{userId}', function ($user, $userId) {
 Broadcast::channel('signal.{userId}', function ($user, $userId) {
     return (int)$user->id === (int)$userId;
 });
+
+/*Broadcast::channel('smart-light.device.{deviceId}', function ($user, $deviceId) {
+    return true; // Доступ без аутентификации для устройств
+});*/
+
+Broadcast::channel('smart-light.device.{deviceId}', function ($user, $deviceId) {
+    // Проверяем, имеет ли пользователь доступ к устройству
+    $device = \App\Models\SmartLight\SmartLightDevice::where('device_id', $deviceId)->first();
+    return $device && ($user->id === $device->user_id ||
+            $user->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT));
+});

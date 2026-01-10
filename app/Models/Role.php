@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Spatie\Permission\Models\Permission;
@@ -12,19 +13,10 @@ use Spatie\Permission\Models\Permission;
  */
 class Role extends \Spatie\Permission\Models\Role
 {
-    public $guard_name = 'api';
+    public $guard_name = 'web';
 
     /**
      * Check whether current role is admin
-     * @return bool
-     */
-/*    public function isAdmin(): bool
-    {
-        return $this->name === \App\Models\Acl::ROLE_ADMIN;
-    }*/
-
-    /**
-     * Check whether current role is an admin (either super admin or admin)
      * @return bool
      */
     public function isAdmin(): bool

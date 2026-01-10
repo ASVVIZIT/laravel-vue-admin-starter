@@ -31,6 +31,13 @@ use App\Http\Controllers\TalkStream\ChatController;
 use App\Http\Controllers\TalkStream\CallController;
 use App\Http\Controllers\TalkStream\FriendRequestController;
 use App\Http\Controllers\Video\VideoController;
+
+use App\Http\Controllers\Api\SmartLight\DeviceController;
+use App\Http\Controllers\Api\SmartLight\SettingsController;
+use App\Http\Controllers\Api\SmartLight\TelemetryController;
+use App\Http\Controllers\Api\SmartLight\CommandController;
+use App\Http\Middleware\SmartLight\SmartLightDeviceAuth;
+
 // Импорты фасадов для отладочных маршрутов
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -328,6 +335,56 @@ Route::get('/debug/network', function(Request $request) {
         ]
     ]);
 });
+
+// SmartLight API
+// SmartLight API
+Route::namespace('Api')->group(function() {
+    Route::prefix('smart-light')->name('smart-light.')->group(function () {
+        // Публичные маршруты
+        Route::post('/register', [DeviceController::class, 'register'])
+            ->name('register');
+
+        // Защищённые маршруты
+        Route::middleware('auth:sanctum')->group(function () {
+            Route::get('/devices', [DeviceController::class, 'index'])
+                ->name('devices.index');
+
+            Route::get('/devices/dropdown', [DeviceController::class, 'listForDropdown'])
+                ->name('devices.dropdown');
+
+            Route::get('/settings', [SettingsController::class, 'index'])
+                ->name('settings.index');
+
+            Route::post('/settings', [SettingsController::class, 'update'])
+                ->name('settings.update');
+
+            Route::post('/settings/reset', [SettingsController::class, 'reset'])
+                ->name('settings.reset');
+
+            Route::get('/{device_id}/ownership', [DeviceController::class, 'checkOwnership'])
+                ->name('devices.ownership');
+        });
+
+        // Маршруты с аутентификацией устройств
+        Route::middleware(SmartLightDeviceAuth::class)->group(function () {
+            Route::get('/{device_id}/settings', [DeviceController::class, 'getSettings'])
+                ->name('settings');
+
+            Route::post('/{device_id}/telemetry', [TelemetryController::class, 'store'])
+                ->name('telemetry');
+
+            Route::get('/{device_id}/telemetry', [TelemetryController::class, 'index'])
+                ->name('telemetry.index');
+
+            Route::get('/{device_id}/commands', [CommandController::class, 'getCommand'])
+                ->name('commands');
+
+            Route::post('/{device_id}/sleep', [DeviceController::class, 'forceSleep'])
+                ->name('sleep');
+        });
+    });
+});
+
 
 // ===================================================
 // Регистрация middleware для роутов

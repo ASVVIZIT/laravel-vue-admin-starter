@@ -17,7 +17,7 @@ class SetupRolePermissions extends Migration
     public function up()
     {
         foreach (Acl::roles() as $role) {
-            Role::findOrCreate($role);
+            Role::findOrCreate($role, 'web'); // Явно указываем guard 'web'
         }
 
         $superAdminRole = Role::findByName(Acl::ROLE_SUPER_ADMIN);
@@ -28,7 +28,7 @@ class SetupRolePermissions extends Migration
         $visitorRole = Role::findByName(Acl::ROLE_VISITOR);
 
         foreach (Acl::permissions() as $permission) {
-            Permission::findOrCreate($permission, 'api');
+            Permission::findOrCreate($permission, 'web');
         }
 
         // Setup basic permission

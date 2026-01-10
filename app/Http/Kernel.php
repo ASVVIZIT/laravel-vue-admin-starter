@@ -72,6 +72,7 @@ class Kernel extends HttpKernel
         'permission' => \Spatie\Permission\Middlewares\PermissionMiddleware::class,
         'role_or_permission' => \Spatie\Permission\Middlewares\RoleOrPermissionMiddleware::class,
         'broadcast.auth' => \App\Http\Middleware\BroadcastAuth::class,
+        'smart-light.device-auth' => \App\Http\Middleware\SmartLight\SmartLightDeviceAuth::class,
     ];
 
     protected $middlewareAliases = [

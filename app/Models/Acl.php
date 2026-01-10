@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Support\Arr;
@@ -42,6 +43,11 @@ final class Acl
     const PERMISSION_ARTICLE_MANAGE = 'manage article';
     const PERMISSION_PERMISSION_MANAGE = 'manage permission';
 
+    // ===== ДЛЯ SMARTLIGHT =====
+    const PERMISSION_VIEW_SMART_LIGHT = 'view smart light';
+    const PERMISSION_MANAGE_SMART_LIGHT = 'manage smart light';
+    const PERMISSION_MANAGE_OWN_SMART_LIGHT = 'manage own smart light';
+
     /**
      * @param array $exclusives Exclude some permissions from the list
      * @return array
@@ -52,7 +58,8 @@ final class Acl
             $class = new \ReflectionClass(__CLASS__);
             $constants = $class->getConstants();
             $permissions = Arr::where($constants, function($value, $key) use ($exclusives) {
-                return !in_array($value, $exclusives) && Str::startsWith($key, 'PERMISSION_');
+                return !in_array($value, $exclusives) &&
+                    (Str::startsWith($key, 'PERMISSION_') || Str::startsWith($key, 'SMARTLIGHT_'));
             });
 
             return array_values($permissions);
@@ -84,7 +91,7 @@ final class Acl
         try {
             $class = new \ReflectionClass(__CLASS__);
             $constants = $class->getConstants();
-            $roles =  Arr::where($constants, function($value, $key) {
+            $roles = Arr::where($constants, function($value, $key) {
                 return Str::startsWith($key, 'ROLE_');
             });
 

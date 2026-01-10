@@ -18,7 +18,7 @@ class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles, Filterable;
 
-    protected $guard_name = 'api';
+    public $guard_name = 'web';
 
     const SEX_MAP = [
         0 => 'Male',
@@ -98,6 +98,11 @@ class User extends Authenticatable implements MustVerifyEmail
             }
         }
         return false;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->hasRole(\App\Models\Acl::ROLE_SUPER_ADMIN);
     }
 
     public function friendRequestsSent()
