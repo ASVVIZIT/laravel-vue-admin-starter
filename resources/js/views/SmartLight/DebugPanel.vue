@@ -5,497 +5,354 @@
         <div class="debug-header">
           <h3>
             <el-icon name="bug" class="mr-1" />
-            Панель отладки
+            Отладка
           </h3>
-          <el-tag type="warning">Тестовый режим</el-tag>
+          <el-tag type="warning">Тест</el-tag>
         </div>
       </template>
 
-      <el-tabs v-model="activeTab" class="debug-tabs">
-        <el-tab-pane name="real" label="Реальные устройства" :disabled="realDevices.length === 0">
-          <el-form v-if="realDevices.length > 0" label-width="180px" size="small">
-            <el-form-item label="Выберите устройство">
-              <el-select
-                  v-model="selectedDeviceId"
-                  @change="loadDevice"
-                  class="w-full"
-                  clearable
-              >
-                <el-option
-                    v-for="device in realDevices"
-                    :key="device.device_id"
-                    :value="device.device_id"
-                    :label="`${device.name} (${device.device_id})`"
-                >
-                  <div class="debug-device-option">
-                    <span>{{ device.name }}</span>
-                    <el-tag :type="statusType(device.status)" size="small">
-                      {{ device.status }}
-                    </el-tag>
-                  </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
-
-            <div v-if="currentDevice">
-              <el-form-item label="Статус">
-                <el-radio-group v-model="deviceStatus" @change="updateStatus">
-                  <el-radio-button label="ON">
-                    <el-icon name="light-on" class="mr-1" />
-                    Вкл
-                  </el-radio-button>
-                  <el-radio-button label="OFF">
-                    <el-icon name="light-off" class="mr-1" />
-                    Выкл
-                  </el-radio-button>
-                  <el-radio-button label="SLEEPING">
-                    <el-icon name="moon" class="mr-1" />
-                    Сон
-                  </el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-
-              <el-form-item label="Напряжение">
-                <div class="voltage-control">
-                  <el-slider
-                      v-model="deviceVoltage"
-                      :min="2.5"
-                      :max="4.3"
-                      :step="0.01"
-                      :format-tooltip="formatVoltageTooltip"
-                      class="w-full"
-                  />
-                  <div class="voltage-display">
-                    <div class="battery">
-                      <div
-                          class="battery-fill"
-                          :style="{ width: batteryProgress + '%', backgroundColor: batteryColor }"
-                      ></div>
-                      <div class="battery-cap"></div>
-                    </div>
-                    <span class="voltage-value">{{ deviceVoltage.toFixed(2) }} В</span>
-                  </div>
-                </div>
-              </el-form-item>
-
-              <el-form-item label="Интенсивность">
-                <el-slider
-                    v-model="deviceIntensity"
-                    :min="0"
-                    :max="100"
-                    :disabled="deviceStatus !== 'ON'"
-                />
-              </el-form-item>
-            </div>
-          </el-form>
-          <div v-else class="no-devices">
-            <el-empty description="Нет реальных устройств" />
+      <div v-if="selectedDevice" class="debug-content">
+        <div class="device-info">
+          <div class="device-name">
+            <h4>{{ selectedDevice.name }}</h4>
+            <el-tag :type="statusType" size="small">
+              {{ selectedDevice.status }}
+            </el-tag>
           </div>
-        </el-tab-pane>
-
-        <el-tab-pane name="fake" label="Тестовые устройства" :disabled="fakeDevices.length === 0">
-          <el-form v-if="fakeDevices.length > 0" label-width="180px" size="small">
-            <el-form-item label="Выберите устройство">
-              <el-select
-                  v-model="selectedFakeDeviceId"
-                  @change="loadFakeDevice"
-                  class="w-full"
-                  clearable
-              >
-                <el-option
-                    v-for="device in fakeDevices"
-                    :key="device.device_id"
-                    :value="device.device_id"
-                    :label="`${device.name} (${device.device_id})`"
-                >
-                  <div class="debug-device-option">
-                    <span>{{ device.name }}</span>
-                    <el-tag type="warning" size="small">
-                      <el-icon name="bug" class="mr-1" />
-                      Тест
-                    </el-tag>
-                  </div>
-                </el-option>
-              </el-select>
-            </el-form-item>
-
-            <div v-if="currentFakeDevice">
-              <el-form-item label="Статус">
-                <el-radio-group v-model="fakeDeviceStatus" @change="updateFakeStatus">
-                  <el-radio-button label="ON">
-                    <el-icon name="light-on" class="mr-1" />
-                    Вкл
-                  </el-radio-button>
-                  <el-radio-button label="OFF">
-                    <el-icon name="light-off" class="mr-1" />
-                    Выкл
-                  </el-radio-button>
-                  <el-radio-button label="SLEEPING">
-                    <el-icon name="moon" class="mr-1" />
-                    Сон
-                  </el-radio-button>
-                </el-radio-group>
-              </el-form-item>
-
-              <el-form-item label="Напряжение">
-                <div class="voltage-control">
-                  <el-slider
-                      v-model="fakeDeviceVoltage"
-                      :min="2.5"
-                      :max="4.3"
-                      :step="0.01"
-                      :format-tooltip="formatVoltageTooltip"
-                      class="w-full"
-                  />
-                  <div class="voltage-display">
-                    <div class="battery">
-                      <div
-                          class="battery-fill"
-                          :style="{ width: fakeBatteryProgress + '%', backgroundColor: fakeBatteryColor }"
-                      ></div>
-                      <div class="battery-cap"></div>
-                    </div>
-                    <span class="voltage-value">{{ fakeDeviceVoltage.toFixed(2) }} В</span>
-                  </div>
-                </div>
-              </el-form-item>
-
-              <el-form-item label="Интенсивность">
-                <el-slider
-                    v-model="fakeDeviceIntensity"
-                    :min="0"
-                    :max="100"
-                    :disabled="fakeDeviceStatus !== 'ON'"
-                />
-              </el-form-item>
-
-              <el-form-item label="Критическое напряжение">
-                <el-input-number
-                    v-model="fakeDeviceCriticalVoltage"
-                    :min="2.5"
-                    :max="4.3"
-                    :step="0.01"
-                    :precision="2"
-                />
-              </el-form-item>
-
-              <el-form-item label="Эмуляция событий">
-                <div class="event-buttons">
-                  <el-button size="small" @click="simulateLowVoltage">
-                    <el-icon name="warning" class="mr-1" />
-                    Низкое напряжение
-                  </el-button>
-                  <el-button size="small" @click="simulateEmergency">
-                    <el-icon name="bell" class="mr-1" />
-                    Аварийное событие
-                  </el-button>
-                  <el-button size="small" @click="simulateCommand">
-                    <el-icon name="command" class="mr-1" />
-                    Отправить команду
-                  </el-button>
-                </div>
-              </el-form-item>
-            </div>
-          </el-form>
-          <div v-else class="no-devices">
-            <el-empty description="Нет тестовых устройств" />
+          <div class="device-id">
+            <small>{{ selectedDevice.device_id }}</small>
           </div>
-        </el-tab-pane>
-      </el-tabs>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Статус</label>
+          <el-radio-group v-model="deviceStatus" @change="updateStatus">
+            <el-radio-button label="ON" size="mini">
+              <el-icon name="light-on" class="mr-1" />
+              Вкл
+            </el-radio-button>
+            <el-radio-button label="OFF" size="mini">
+              <el-icon name="light-off" class="mr-1" />
+              Выкл
+            </el-radio-button>
+            <el-radio-button label="SLEEPING" size="mini">
+              <el-icon name="moon" class="mr-1" />
+              Сон
+            </el-radio-button>
+          </el-radio-group>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Напряжение ({{ deviceVoltage.toFixed(2) }} В)</label>
+          <BatterySlider
+              v-model="deviceVoltage"
+              :min="2.5"
+              :max="4.3"
+              :step="0.01"
+              :critical-threshold="selectedDevice.critical_voltage"
+          />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Интенсивность</label>
+          <el-slider
+              v-model="deviceIntensity"
+              :min="0"
+              :max="100"
+              :disabled="deviceStatus !== 'ON'"
+              class="intensity-slider"
+          />
+        </div>
+
+        <!-- Только для фейковых устройств -->
+        <div v-if="selectedDevice.is_fake" class="control-group">
+          <label class="control-label">Крит. напряжение</label>
+          <el-slider
+              v-model="criticalVoltage"
+              :min="2.5"
+              :max="4.3"
+              :step="0.01"
+              :format-tooltip="formatVoltageTooltip"
+              class="critical-slider"
+          />
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Эмуляция</label>
+          <div class="event-buttons">
+            <el-button size="small" @click="simulateLowVoltage" class="full-width">
+              <el-icon name="warning" class="mr-1" />
+              Напряжение
+            </el-button>
+            <el-button size="small" @click="simulateEmergency" class="full-width">
+              <el-icon name="bell" class="mr-1" />
+              Авария
+            </el-button>
+            <el-button size="small" @click="simulateCommand" class="full-width">
+              <el-icon name="command" class="mr-1" />
+              Команда
+            </el-button>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="no-device">
+        <el-empty description="Выберите устройство" />
+      </div>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { computed } from 'vue';
 import { ElNotification } from 'element-plus';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import BatterySlider from '@/components/SmartLight/components/BatterySlider.vue';
 
 const store = useSmartLightStore();
-const activeTab = ref('fake');
-const selectedDeviceId = ref(null);
-const selectedFakeDeviceId = ref(null);
+const selectedDevice = computed(() => store.selectedDevice);
 
-// Реальные устройства
-const realDevices = computed(() => {
-  return store.devices.filter(device => !device.is_fake);
+// Вычисляемые свойства для выбранных устройств
+const deviceStatus = computed({
+  get: () => selectedDevice.value?.status || 'OFF',
+  set: (value) => {
+    if (selectedDevice.value) {
+      store.updateDeviceStatus(selectedDevice.value.device_id, value);
+    }
+  }
 });
 
-// Фейковые устройства
-const fakeDevices = computed(() => {
-  return store.devices.filter(device => device.is_fake);
+const deviceVoltage = computed({
+  get: () => selectedDevice.value?.voltage || 3.7,
+  set: (value) => {
+    if (selectedDevice.value) {
+      store.updateDeviceVoltage(selectedDevice.value.device_id, value);
+    }
+  }
 });
 
-// Текущее реальное устройство
-const currentDevice = computed(() => {
-  return realDevices.value.find(d => d.device_id === selectedDeviceId.value);
+const deviceIntensity = computed({
+  get: () => selectedDevice.value?.intensity || 100,
+  set: (value) => {
+    if (selectedDevice.value) {
+      store.updateDeviceIntensity(selectedDevice.value.device_id, value);
+    }
+  }
 });
 
-// Текущее фейковое устройство
-const currentFakeDevice = computed(() => {
-  return fakeDevices.value.find(d => d.device_id === selectedFakeDeviceId.value);
+const criticalVoltage = computed({
+  get: () => selectedDevice.value?.critical_voltage || 3.2,
+  set: (value) => {
+    if (selectedDevice.value) {
+      store.updateDeviceCriticalVoltage(selectedDevice.value.device_id, value);
+    }
+  }
 });
 
-// Реальные устройства
-const deviceStatus = ref('OFF');
-const deviceVoltage = ref(3.7);
-const deviceIntensity = ref(100);
+// Вычисляем тип статуса
+const statusType = computed(() => {
+  if (!selectedDevice.value) return 'info';
 
-// Фейковые устройства
-const fakeDeviceStatus = ref('OFF');
-const fakeDeviceVoltage = ref(3.7);
-const fakeDeviceIntensity = ref(100);
-const fakeDeviceCriticalVoltage = ref(3.2);
-
-// Цвет батареи для реальных устройств
-const batteryProgress = computed(() => {
-  const voltage = deviceVoltage.value;
-  return Math.min(100, Math.max(0, ((voltage - 2.5) / (4.3 - 2.5)) * 100));
-});
-
-const batteryColor = computed(() => {
-  const voltage = deviceVoltage.value;
-  if (voltage < 3.0) return '#f56c6c';
-  if (voltage < 3.4) return '#e6a23c';
-  return '#67c23a';
-});
-
-// Цвет батареи для фейковых устройств
-const fakeBatteryProgress = computed(() => {
-  const voltage = fakeDeviceVoltage.value;
-  return Math.min(100, Math.max(0, ((voltage - 2.5) / (4.3 - 2.5)) * 100));
-});
-
-const fakeBatteryColor = computed(() => {
-  const voltage = fakeDeviceVoltage.value;
-  if (voltage < 3.0) return '#f56c6c';
-  if (voltage < 3.4) return '#e6a23c';
-  return '#67c23a';
-});
-
-const statusType = (status) => {
-  switch (status) {
+  switch (selectedDevice.value.status) {
     case 'ON': return 'success';
     case 'OFF': return 'info';
     case 'SLEEPING': return 'warning';
     default: return 'danger';
   }
-};
+});
 
 const formatVoltageTooltip = (value) => {
   return Number(value).toFixed(2) + ' В';
 };
 
-// Загрузка реального устройства
-const loadDevice = (deviceId) => {
-  const device = realDevices.value.find(d => d.device_id === deviceId);
-  if (device) {
-    selectedDeviceId.value = deviceId;
-    deviceStatus.value = device.status;
-    deviceVoltage.value = device.voltage;
-    deviceIntensity.value = device.intensity;
-  }
-};
-
-// Обновление реального устройства
-const updateStatus = () => {
-  const device = realDevices.value.find(d => d.device_id === selectedDeviceId.value);
-  if (device) {
-    device.status = deviceStatus.value;
-    device.voltage = deviceVoltage.value;
-    device.intensity = deviceIntensity.value;
-
-    ElNotification({
-      title: 'Устройство',
-      message: `Реальное устройство обновлено`,
-      type: 'success'
-    });
-  }
-};
-
-// Загрузка фейкового устройства
-const loadFakeDevice = (deviceId) => {
-  const device = fakeDevices.value.find(d => d.device_id === deviceId);
-  if (device) {
-    selectedFakeDeviceId.value = deviceId;
-    fakeDeviceStatus.value = device.status;
-    fakeDeviceVoltage.value = device.voltage;
-    fakeDeviceIntensity.value = device.intensity;
-    fakeDeviceCriticalVoltage.value = device.critical_voltage;
-  }
-};
-
-// Обновление фейкового устройства
-const updateFakeStatus = () => {
-  const device = fakeDevices.value.find(d => d.device_id === selectedFakeDeviceId.value);
-  if (device) {
-    device.status = fakeDeviceStatus.value;
-    device.voltage = fakeDeviceVoltage.value;
-    device.intensity = fakeDeviceIntensity.value;
-    device.critical_voltage = fakeDeviceCriticalVoltage.value;
-
-    ElNotification({
-      title: 'Тестовое устройство',
-      message: `Обновлено`,
-      type: 'success'
-    });
-  }
-};
-
 // Эмуляция низкого напряжения
 const simulateLowVoltage = () => {
-  fakeDeviceVoltage.value = 2.9;
-  fakeDeviceStatus.value = 'ON';
+  if (selectedDevice.value) {
+    const criticalVoltage = selectedDevice.value.critical_voltage;
+    store.updateDeviceVoltage(
+        selectedDevice.value.device_id,
+        criticalVoltage - 0.1
+    );
 
-  ElNotification({
-    title: 'Эмуляция',
-    message: 'Низкое напряжение (2.9 В)',
-    type: 'warning',
-    duration: 2000
-  });
+    ElNotification({
+      title: 'Эмуляция',
+      message: `Низкое напряжение`,
+      type: 'warning',
+      duration: 2000
+    });
+  }
 };
 
 // Эмуляция аварийного события
 const simulateEmergency = () => {
-  fakeDeviceVoltage.value = 2.7;
-  fakeDeviceStatus.value = 'SLEEPING';
+  if (selectedDevice.value) {
+    store.updateDeviceVoltage(
+        selectedDevice.value.device_id,
+        2.7
+    );
 
-  ElNotification({
-    title: 'Эмуляция',
-    message: 'Эмуляция аварийного события',
-    type: 'error',
-    duration: 2000
-  });
+    store.updateDeviceStatus(
+        selectedDevice.value.device_id,
+        'SLEEPING'
+    );
+
+    ElNotification({
+      title: 'Эмуляция',
+      message: 'Аварийное событие',
+      type: 'error',
+      duration: 2000
+    });
+  }
 };
 
 // Эмуляция отправки команды
 const simulateCommand = () => {
-  fakeDeviceStatus.value = fakeDeviceStatus.value === 'ON' ? 'OFF' : 'ON';
-  fakeDeviceVoltage.value = fakeDeviceStatus.value === 'ON' ? 3.9 : 3.8;
+  if (selectedDevice.value) {
+    const newStatus = deviceStatus.value === 'ON' ? 'OFF' : 'ON';
+    const newVoltage = newStatus === 'ON'
+        ? Math.min(4.3, deviceVoltage.value + 0.05)
+        : Math.max(2.5, deviceVoltage.value - 0.05);
 
-  ElNotification({
-    title: 'Эмуляция',
-    message: `Команда "${fakeDeviceStatus.value}" отправлена`,
-    type: 'success',
-    duration: 2000
-  });
+    store.updateDeviceStatus(
+        selectedDevice.value.device_id,
+        newStatus
+    );
+
+    store.updateDeviceVoltage(
+        selectedDevice.value.device_id,
+        newVoltage
+    );
+
+    ElNotification({
+      title: 'Эмуляция',
+      message: `Команда "${newStatus}" отправлена`,
+      type: 'success',
+      duration: 2000
+    });
+  }
 };
-
-// Инициализация
-onMounted(() => {
-  store.fetchDevices();
-
-  // Автоматический выбор первого фейкового устройства
-  if (fakeDevices.value.length > 0) {
-    selectedFakeDeviceId.value = fakeDevices.value[0].device_id;
-    loadFakeDevice(selectedFakeDeviceId.value);
-  }
-
-  // Автоматический выбор первого реального устройства
-  if (realDevices.value.length > 0) {
-    selectedDeviceId.value = realDevices.value[0].device_id;
-    loadDevice(selectedDeviceId.value);
-  }
-});
-
-// Следим за изменениями в сторе
-watch(() => store.devices, () => {
-  // Автоматический выбор первого фейкового устройства
-  if (fakeDevices.value.length > 0 && !selectedFakeDeviceId.value) {
-    selectedFakeDeviceId.value = fakeDevices.value[0].device_id;
-    loadFakeDevice(selectedFakeDeviceId.value);
-  }
-
-  // Автоматический выбор первого реального устройства
-  if (realDevices.value.length > 0 && !selectedDeviceId.value) {
-    selectedDeviceId.value = realDevices.value[0].device_id;
-    loadDevice(selectedDeviceId.value);
-  }
-});
 </script>
 
 <style scoped>
 .debug-panel {
-  margin-top: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .debug-card {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .debug-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0.25rem 0.5rem;
 }
 
-.debug-device-option {
+.debug-content {
+  padding: 0.75rem;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  gap: 0.8rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.device-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f5f7fa;
+}
+
+.device-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.device-id {
+  font-size: 0.75rem;
+  color: #909399;
+  margin-left: 1.5rem;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.control-label {
+  font-size: 0.8rem;
+  color: #606266;
+  margin-bottom: 0.15rem;
+}
+
+.intensity-slider {
   width: 100%;
 }
 
-.voltage-control {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.voltage-display {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0;
-}
-
-.battery {
-  position: relative;
-  width: 120px;
-  height: 60px;
-  border: 2px solid #409eff;
-  border-radius: 8px;
-  background: linear-gradient(90deg, #f0f0f0 0%, #f9f9f9 100%);
-  overflow: hidden;
-}
-
-.battery-fill {
-  height: 100%;
-  transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.battery-cap {
-  position: absolute;
-  top: 20px;
-  right: -8px;
-  width: 8px;
-  height: 20px;
-  background: #409eff;
-  border-radius: 0 4px 4px 0;
-}
-
-.voltage-value {
-  font-weight: bold;
-  color: #409eff;
-  font-size: 1.1rem;
-  min-width: 80px;
-  text-align: center;
-}
-
-.debug-tabs {
-  margin-top: 1rem;
-}
-
-.no-devices {
-  padding: 1.5rem;
+.critical-slider {
+  width: 100%;
 }
 
 .event-buttons {
   display: flex;
-  gap: 0.5rem;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.no-device {
+  padding: 1.5rem;
+  text-align: center;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+:deep(.el-radio-group) {
+  display: flex;
   flex-wrap: wrap;
+  gap: 0.3rem;
 }
 
 :deep(.el-radio-button__inner) {
-  width: 80px;
+  padding: 0.3rem;
+  width: auto;
+  min-width: 65px;
+  font-size: 0.75rem;
+  height: 1.2rem;
+  line-height: 1.2rem;
+}
+
+:deep(.el-slider__runway) {
+  height: 2px;
+  margin: 2px 0;
+}
+
+:deep(.el-slider__button) {
+  width: 10px;
+  height: 10px;
+}
+
+:deep(.el-button) {
+  padding: 4px 8px;
+  height: 1.6rem;
+  font-size: 0.8rem;
 }
 </style>

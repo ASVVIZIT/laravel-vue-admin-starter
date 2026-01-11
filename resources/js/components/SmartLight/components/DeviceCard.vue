@@ -1,7 +1,7 @@
 <template>
   <div class="device-card">
     <div class="device-header">
-      <h3>{{ device.name }}</h3>
+      <h3 class="device-name">{{ device.name }}</h3>
       <div class="status-container">
         <el-tag :type="statusType" size="small" class="status-tag">
           <el-icon v-if="device.status === 'ON'" name="light-on" class="status-icon" />
@@ -34,7 +34,7 @@
 
       <div class="runtime-info">
         <el-icon name="timer" class="mr-1" />
-        <strong>Автономность:</strong> {{ estimatedRuntime }}
+        {{ estimatedRuntime }}
       </div>
     </div>
 
@@ -89,7 +89,7 @@
 
     <div v-if="device.is_fake" class="fake-warning">
       <el-icon name="warning" class="mr-1" />
-      <span>Это тестовое устройство. Команды эмулируются в интерфейсе.</span>
+      <span>Тестовое устройство</span>
     </div>
   </div>
 </template>
@@ -149,14 +149,14 @@ const estimatedRuntime = computed(() => {
   const minVoltage = 2.8;
   const maxVoltage = 4.2;
 
-  if (voltage <= minVoltage) return 'КРИТИЧЕСКИЙ ЗАРЯД';
+  if (voltage <= minVoltage) return 'КРИТ';
 
   const percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
   const hours = Math.round(percentage * 10);
 
   if (hours < 1) return `${hours * 60} мин`;
   if (hours < 24) return `${hours} ч`;
-  return `${Math.floor(hours / 24)} дн ${hours % 24} ч`;
+  return `${Math.floor(hours / 24)}дн`;
 });
 
 const toggleDevice = async () => {
@@ -169,7 +169,6 @@ const toggleDevice = async () => {
     if (props.device.is_fake) {
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Обновляем данные локально
       props.device.status = command;
       props.device.intensity = command === 'ON' ? 100 : 0;
 
@@ -181,7 +180,7 @@ const toggleDevice = async () => {
 
       ElNotification({
         title: 'Эмуляция',
-        message: `Команда "${command}" отправлена на фейковое устройство`,
+        message: `Команда "${command}" отправлена`,
         type: 'info',
         duration: 2000
       });
@@ -224,7 +223,7 @@ const updateIntensity = async () => {
 
       ElNotification({
         title: 'Эмуляция',
-        message: 'Изменение интенсивности на фейковом устройстве',
+        message: 'Изменение интенсивности',
         type: 'info',
         duration: 2000
       });
@@ -250,7 +249,7 @@ const sendEmergencySleep = async () => {
 
     ElNotification({
       title: 'Эмуляция',
-      message: 'Команда сна отправлена на фейковое устройство',
+      message: 'Команда сна отправлена',
       type: 'info',
       duration: 2000
     });
@@ -278,69 +277,92 @@ const openDeviceSettings = () => {
 <style scoped>
 .device-card {
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  padding: 1.5rem;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 1rem;
   height: 100%;
   display: flex;
   flex-direction: column;
   transition: all 0.2s ease;
+  overflow: hidden;
 }
 
 .device-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.device-name {
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .status-container {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
 .status-tag {
-  font-weight: bold;
+  font-weight: 500;
+  font-size: 0.8rem;
+  height: 1.4rem;
+  line-height: 1.4rem;
+  padding: 0 0.4rem;
 }
 
 .status-icon {
-  margin-right: 4px;
+  margin-right: 2px;
+  font-size: 0.9rem;
 }
 
 .fake-tag {
-  background-color: #f9f1e8;
-  border-color: #fae1c4;
-  color: #b87333;
+  background-color: #fff7e6;
+  border-color: #fffae6;
+  color: #e6a23c;
+  font-size: 0.8rem;
+  height: 1.4rem;
+  line-height: 1.4rem;
+  padding: 0 0.4rem;
 }
 
 .fake-icon {
-  margin-right: 4px;
+  margin-right: 2px;
+  font-size: 0.9rem;
 }
 
 .voltage-info {
-  margin-bottom: 1rem;
+  margin-bottom: 0.75rem;
 }
 
 .voltage-value {
-  font-weight: bold;
-  margin-bottom: 0.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
   display: block;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .battery-container {
-  height: 10px;
-  border-radius: 5px;
-  background: #f0f0f0;
+  height: 6px;
+  border-radius: 3px;
+  background: #f5f7fa;
   overflow: hidden;
 }
 
 .battery {
   position: relative;
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: #f0f0f0;
+  height: 4px;
+  border-radius: 2px;
+  background: #f5f7fa;
   overflow: hidden;
 }
 
@@ -351,56 +373,65 @@ const openDeviceSettings = () => {
 
 .battery-cap {
   position: absolute;
-  top: -2px;
-  right: -4px;
-  width: 4px;
-  height: 10px;
+  top: -1px;
+  right: -2px;
+  width: 2px;
+  height: 6px;
   background: #409eff;
-  border-radius: 0 2px 2px 0;
+  border-radius: 1px;
 }
 
 .runtime-info {
-  font-size: 0.9rem;
-  color: #666;
+  font-size: 0.8rem;
+  color: #909399;
   display: flex;
   align-items: center;
-}
-
-.runtime-info strong {
-  margin: 0 0.5rem;
+  gap: 0.25rem;
 }
 
 .device-controls {
   margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f2f2f2;
 }
 
 .intensity-slider {
-  margin: 1rem 0;
+  margin: 0.5rem 0;
 }
 
 .control-buttons {
   display: flex;
   justify-content: space-between;
-  gap: 0.5rem;
-  margin-top: 1rem;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
 }
 
 .fake-warning {
-  margin-top: 1rem;
-  padding: 0.5rem;
-  background: #f9f1e8;
-  border: 1px solid #fae1c4;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  color: #b87333;
+  margin-top: 0.75rem;
+  padding: 0.25rem;
+  background: #fff7e6;
+  border: 1px solid #fffae6;
+  border-radius: 2px;
+  font-size: 0.8rem;
+  color: #e6a23c;
   display: flex;
   align-items: center;
+  gap: 0.25rem;
+}
+
+:deep(.el-switch) {
+  height: 1.5rem;
+  font-size: 0.85rem;
 }
 
 :deep(.el-switch.is-disabled) {
   opacity: 0.7;
+}
+
+:deep(.el-button) {
+  padding: 4px 8px;
+  height: 1.6rem;
+  font-size: 0.8rem;
 }
 
 :deep(.el-button.is-disabled) {
@@ -408,12 +439,12 @@ const openDeviceSettings = () => {
 }
 
 :deep(.el-slider__runway) {
-  margin: 8px 0;
-  height: 4px;
+  margin: 4px 0;
+  height: 2px;
 }
 
 :deep(.el-slider__button) {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
 }
 </style>

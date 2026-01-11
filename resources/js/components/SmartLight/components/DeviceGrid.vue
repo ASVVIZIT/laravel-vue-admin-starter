@@ -1,6 +1,6 @@
 <template>
   <div class="device-grid">
-    <el-skeleton v-if="loading" :rows="4" :count="6" animated />
+    <el-skeleton v-if="loading" :rows="3" :count="8" animated />
 
     <div v-if="!loading && devices.length === 0" class="no-devices">
       <el-empty description="Нет устройств" />
@@ -17,6 +17,7 @@
               v-for="device in realDevices"
               :key="device.device_id"
               class="device-col"
+              @click="selectDevice(device)"
           >
             <DeviceCard
                 :device="device"
@@ -35,7 +36,7 @@
       >
         <div class="fake-devices-banner">
           <el-icon name="warning" class="mr-1" />
-          <span>Это тестовые устройства. Команды эмулируются в интерфейсе.</span>
+          <span>Тестовые устройства</span>
         </div>
 
         <div v-if="fakeDevices.length === 0" class="no-devices">
@@ -46,6 +47,7 @@
               v-for="device in fakeDevices"
               :key="device.device_id"
               class="device-col fake-device"
+              @click="selectDevice(device)"
           >
             <DeviceCard
                 :device="device"
@@ -76,7 +78,7 @@ const props = defineProps({
   }
 });
 
-defineEmits(['device-updated', 'emergency-sleep', 'open-settings']);
+const emit = defineEmits(['device-updated', 'emergency-sleep', 'open-settings', 'device-selected']);
 
 // Реальные устройства (is_fake = false)
 const realDevices = computed(() => {
@@ -87,70 +89,77 @@ const realDevices = computed(() => {
 const fakeDevices = computed(() => {
   return props.devices.filter(device => device.is_fake);
 });
+
+// Селектор устройства
+const selectDevice = (device) => {
+  emit('device-selected', device);
+};
 </script>
 
 <style scoped>
 .device-grid {
   width: 100%;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
 }
 
 .device-tabs {
   border: 1px solid #ebeef5;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  padding: 1rem;
+  gap: 1.25rem;
+  padding: 0.75rem;
+  grid-auto-rows: minmax(280px, auto);
 }
 
 .device-col {
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  position: relative;
+  height: 100%;
 }
 
 .device-col:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.fake-device {
-  position: relative;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .fake-device::after {
-  content: "Fake";
+  content: "Тест";
   position: absolute;
-  top: -7px;
+  top: -5px;
   right: 5px;
   background: #cd5454;
   color: #ffedf0;
   border: 1px solid #701f23;
-  border-radius: 15px;
-  padding: 2px 6px;
-  font-size: 12px;
+  border-radius: 10px;
+  padding: 1px 4px;
+  font-size: 10px;
   font-weight: bold;
   z-index: 2;
+  white-space: nowrap;
 }
 
 .fake-devices-banner {
-  background: #f9f1e8;
-  border: 1px solid #fae1c4;
-  border-radius: 4px;
-  padding: 0.75rem;
-  margin-bottom: 1rem;
+  background: #fff7e6;
+  border: 1px solid #fffae6;
+  border-radius: 3px;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
-  color: #b87333;
+  color: #e6a23c;
+  font-size: 0.85rem;
 }
 
 .no-devices {
-  padding: 1.5rem;
+  padding: 1rem;
   text-align: center;
+  font-size: 0.9rem;
 }
 </style>

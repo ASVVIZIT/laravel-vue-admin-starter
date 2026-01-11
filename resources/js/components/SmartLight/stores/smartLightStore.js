@@ -4,6 +4,7 @@ import { SmartLightResource } from '@/components/SmartLight/api/core/SmartLightR
 export const useSmartLightStore = defineStore('smartLight', {
     state: () => ({
         devices: [],
+        selectedDevice: null,
         globalSettings: {
             global_server_url: '',
             default_critical_voltage: 3.2,
@@ -46,7 +47,6 @@ export const useSmartLightStore = defineStore('smartLight', {
 
             this.loading = true;
             this.error = null;
-
             const resource = new SmartLightResource();
 
             try {
@@ -58,17 +58,24 @@ export const useSmartLightStore = defineStore('smartLight', {
                 }
 
                 // Создаем полный объект устройства
-                this.devices = response.data.map(device => {
-                    return {
-                        ...device,
-                        intensity: device.intensity || 100,
-                        voltage: device.voltage || 3.7,
-                        status: device.status || 'OFF',
-                        is_fake: device.is_fake || false,
-                        image_on_url: device.image_on_url || '/images/smart-light-default-on.png',
-                        image_off_url: device.image_off_url || '/images/smart-light-default-off.png'
-                    };
-                });
+                this.devices = response.data.map(device => ({
+                    ...device,
+                    intensity: device.intensity || 100,
+                    voltage: device.voltage || 3.7,
+                    status: device.status || 'OFF',
+                    image_on_url: device.image_on_url || '/images/smart-light-default-on.png',
+                    image_off_url: device.image_off_url || '/images/smart-light-default-off.png'
+                }));
+
+                // Если есть выбранное устройство, обновляем ссылку
+                if (this.selectedDevice) {
+                    const updatedDevice = this.devices.find(
+                        d => d.device_id === this.selectedDevice.device_id
+                    );
+                    if (updatedDevice) {
+                        this.selectedDevice = { ...updatedDevice };
+                    }
+                }
 
                 this.lastCommandTimestamp = now;
                 return {
@@ -226,11 +233,8 @@ export const useSmartLightStore = defineStore('smartLight', {
                     throw new Error('Device not found');
                 }
 
-                // Для фейковых устройств эмулируем ответ
                 if (device.is_fake) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Обновляем данные в сторе
+                    // Эмулируем ответ для фейковых устройств
                     const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
                     if (deviceIndex !== -1) {
                         this.devices[deviceIndex].status = command;
@@ -241,6 +245,11 @@ export const useSmartLightStore = defineStore('smartLight', {
                             this.devices[deviceIndex].voltage = Math.max(2.5, this.devices[deviceIndex].voltage - 0.02);
                         } else {
                             this.devices[deviceIndex].voltage = Math.min(4.3, this.devices[deviceIndex].voltage + 0.02);
+                        }
+
+                        // Обновляем выбранное устройство, если это текущее выбранное
+                        if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                            this.selectedDevice = { ...this.devices[deviceIndex] };
                         }
                     }
 
@@ -256,7 +265,7 @@ export const useSmartLightStore = defineStore('smartLight', {
                     };
                 }
 
-                // Для реальных устройств отправляем реальный запрос
+                // Для реальных устройств
                 const response = await resource.sendCommand(deviceId, command, intensity);
 
                 // Обновляем данные в сторе
@@ -264,6 +273,11 @@ export const useSmartLightStore = defineStore('smartLight', {
                 if (deviceIndex !== -1) {
                     this.devices[deviceIndex].status = command;
                     this.devices[deviceIndex].intensity = intensity;
+
+                    // Обновляем выбранное устройство, если это текущее выбранное
+                    if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                        this.selectedDevice = { ...this.devices[deviceIndex] };
+                    }
                 }
 
                 this.lastCommandTimestamp = now;
@@ -300,15 +314,17 @@ export const useSmartLightStore = defineStore('smartLight', {
                     throw new Error('Device not found');
                 }
 
-                // Для фейковых устройств эмулируем ответ
                 if (device.is_fake) {
-                    await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Обновляем данные в сторе
+                    // Эмуляция для фейковых устройств
                     const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
                     if (deviceIndex !== -1) {
                         this.devices[deviceIndex].status = 'SLEEPING';
                         this.devices[deviceIndex].voltage = 2.9;
+
+                        // Обновляем выбранное устройство, если это текущее выбранное
+                        if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                            this.selectedDevice = { ...this.devices[deviceIndex] };
+                        }
                     }
 
                     this.lastCommandTimestamp = now;
@@ -322,13 +338,18 @@ export const useSmartLightStore = defineStore('smartLight', {
                     };
                 }
 
-                // Для реальных устройств отправляем реальный запрос
+                // Для реальных устройств
                 const response = await resource.forceSleep(deviceId);
 
                 // Обновляем данные в сторе
                 const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
                 if (deviceIndex !== -1) {
                     this.devices[deviceIndex].status = 'SLEEPING';
+
+                    // Обновляем выбранное устройство, если это текущее выбранное
+                    if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                        this.selectedDevice = { ...this.devices[deviceIndex] };
+                    }
                 }
 
                 this.lastCommandTimestamp = now;
@@ -342,6 +363,142 @@ export const useSmartLightStore = defineStore('smartLight', {
                 };
             } finally {
                 this.loading = false;
+            }
+        },
+
+        async wakeUp(deviceId) {
+            const now = Date.now();
+            if (now - this.lastCommandTimestamp < this.COMMAND_DEBOUNCE) {
+                return {
+                    success: false,
+                    message: 'Частые запросы',
+                    error: 'Слишком частые запросы'
+                };
+            }
+
+            this.loading = true;
+            this.error = null;
+            const resource = new SmartLightResource();
+
+            try {
+                const device = this.devices.find(d => d.device_id === deviceId);
+                if (!device) {
+                    throw new Error('Device not found');
+                }
+
+                if (device.is_fake) {
+                    // Эмуляция для фейковых устройств
+                    const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
+                    if (deviceIndex !== -1) {
+                        this.devices[deviceIndex].status = 'ON';
+                        this.devices[deviceIndex].voltage = 3.7;
+
+                        // Обновляем выбранное устройство, если это текущее выбранное
+                        if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                            this.selectedDevice = { ...this.devices[deviceIndex] };
+                        }
+                    }
+
+                    this.lastCommandTimestamp = now;
+                    return {
+                        success: true,
+                        message: 'Устройство пробуждено',
+                        data: {
+                            device_id: deviceId,
+                            status: 'ON'
+                        }
+                    };
+                }
+
+                // Для реальных устройств
+                const response = await resource.wakeUp(deviceId);
+
+                // Обновляем данные в сторе
+                const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
+                if (deviceIndex !== -1) {
+                    this.devices[deviceIndex].status = 'ON';
+
+                    // Обновляем выбранное устройство, если это текущее выбранное
+                    if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                        this.selectedDevice = { ...this.devices[deviceIndex] };
+                    }
+                }
+
+                this.lastCommandTimestamp = now;
+                return response;
+            } catch (err) {
+                this.error = 'Не удалось разбудить устройство';
+                return {
+                    success: false,
+                    message: 'Ошибка пробуждения',
+                    error: err.message
+                };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // Метод для выбора устройства
+        selectDevice(deviceId) {
+            const device = this.devices.find(d => d.device_id === deviceId);
+            if (device) {
+                this.selectedDevice = { ...device };
+                return true;
+            }
+            return false;
+        },
+
+        // Методы для прямого обновления свойств
+        updateDeviceStatus(deviceId, status) {
+            const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
+            if (deviceIndex !== -1) {
+                this.devices[deviceIndex].status = status;
+
+                // Обновляем выбранное устройство, если это текущее
+                if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                    this.selectedDevice = { ...this.devices[deviceIndex] };
+                }
+            }
+        },
+
+        updateDeviceVoltage(deviceId, voltage) {
+            const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
+            if (deviceIndex !== -1) {
+                this.devices[deviceIndex].voltage = voltage;
+
+                // Обновляем статус, если напряжение критическое
+                if (voltage <= this.devices[deviceIndex].critical_voltage) {
+                    this.devices[deviceIndex].status = 'SLEEPING';
+                }
+
+                // Обновляем выбранное устройство, если это текущее
+                if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                    this.selectedDevice = { ...this.devices[deviceIndex] };
+                }
+            }
+        },
+
+        updateDeviceIntensity(deviceId, intensity) {
+            const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
+            if (deviceIndex !== -1) {
+                this.devices[deviceIndex].intensity = intensity;
+
+                // Обновляем выбранное устройство, если это текущее
+                if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                    this.selectedDevice = { ...this.devices[deviceIndex] };
+                }
+            }
+        },
+
+        updateDeviceCriticalVoltage(deviceId, voltage) {
+            const deviceIndex = this.devices.findIndex(d => d.device_id === deviceId);
+            if (deviceIndex !== -1) {
+                this.devices[deviceIndex].critical_voltage = voltage;
+
+                // Обновляем выбранное устройство, если это текущее
+                if (this.selectedDevice && this.selectedDevice.device_id === deviceId) {
+                    this.selectedDevice = { ...this.devices[deviceIndex] };
+                }
             }
         }
     }

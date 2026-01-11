@@ -2,7 +2,7 @@
   <div class="app-container">
     <div class="header">
       <h1>
-        <el-icon name="lightbulb" class="mr-2" />
+        <el-icon name="lightbulb" class="mr-1" />
         Умное освещение
       </h1>
       <div class="header-actions">
@@ -10,6 +10,7 @@
             type="primary"
             @click="loadDevices"
             :loading="loading"
+            size="small"
         >
           <el-icon name="refresh" class="mr-1" />
           Обновить
@@ -18,6 +19,7 @@
             @click="showDebugPanel = !showDebugPanel"
             type="info"
             size="small"
+            :class="{ 'debug-active': showDebugPanel }"
         >
           <el-icon name="bug" class="mr-1" />
           Отладка
@@ -25,25 +27,28 @@
       </div>
     </div>
 
-    <DebugPanel
-        v-if="showDebugPanel"
-        :devices="devices"
-        class="debug-panel"
-        @device-selected="handleDeviceSelected"
-    />
+    <div class="dashboard-layout" :class="{ 'debug-active': showDebugPanel }">
+      <div class="content-container">
+        <DeviceGrid
+            :devices="devices"
+            :loading="loading"
+            @device-updated="refreshDevice"
+            @emergency-sleep="handleEmergencySleep"
+            @open-settings="openDeviceSettings"
+            @device-selected="handleDeviceSelected"
+        />
+      </div>
 
-    <DeviceGrid
-        :devices="devices"
-        :loading="loading"
-        @device-updated="refreshDevice"
-        @emergency-sleep="handleEmergencySleep"
-        @open-settings="openDeviceSettings"
-    />
+      <div class="debug-panel-container" :class="{ 'active': showDebugPanel }">
+        <DebugPanel />
+      </div>
+    </div>
 
     <el-dialog
         v-model="deviceSettingsVisible"
-        title="Индивидуальные настройки устройства"
-        width="600px"
+        title="Настройки устройства"
+        width="550px"
+        :modal="false"
     >
       <DeviceSettings :device="selectedDevice" />
     </el-dialog>
@@ -67,7 +72,6 @@ const selectedDevice = ref(null);
 
 const loadDevices = async () => {
   loading.value = true;
-
   try {
     await store.fetchDevices();
     devices.value = store.devices;
@@ -93,8 +97,7 @@ const handleEmergencySleep = async (deviceId) => {
 };
 
 const handleDeviceSelected = (device) => {
-  selectedDevice.value = device;
-  deviceSettingsVisible.value = true;
+  store.selectDevice(device.device_id);
 };
 
 const openDeviceSettings = (device) => {
@@ -107,28 +110,94 @@ onMounted(loadDevices);
 
 <style scoped>
 .app-container {
-  padding: 1.5rem;
+  padding: 1rem;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-shrink: 0;
 }
 
-.debug-panel {
-  margin-bottom: 1.5rem;
-  animation: fade-in 0.3s ease;
+.header-actions .debug-active {
+  background-color: #e6a23c !important;
+  border-color: #e6a23c !important;
+  color: #fff !important;
 }
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: 1fr 0;
+  height: calc(100vh - 100px);
+  overflow: hidden;
+  transition: grid-template-columns 0.3s ease;
+}
+
+.dashboard-layout.debug-active {
+  grid-template-columns: 1fr 320px;
+}
+
+.content-container {
+  height: 100%;
+  overflow: hidden;
+}
+
+.debug-panel-container {
+  width: 320px;
+  height: 100%;
+  overflow-y: auto;
+  transform: translateX(100%);
+  opacity: 0;
+  pointer-events: none;
+  border-left: 1px solid #ebeef5;
+  background: #fff;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.debug-panel-container.active {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Для мобильных устройств */
+@media (max-width: 1100px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr 0;
+  }
+
+  .dashboard-layout.debug-active {
+    grid-template-rows: 1fr 45vh;
+  }
+
+  .debug-panel-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 45vh;
+    transform: translateY(100%);
+    border-radius: 6px 6px 0 0;
+    box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .debug-panel-container.active {
+    transform: translateY(0);
+  }
 }
 </style>
