@@ -12,7 +12,7 @@
             :loading="loading"
             size="small"
         >
-          <Refresh class="action-icon" />
+          <Refresh v-if="!loading" class="action-icon" />
           Обновить
         </el-button>
         <el-button
@@ -164,15 +164,11 @@ onMounted(loadDevices);
 }
 
 .debug-panel-container {
-  width: 320px;
-  height: 100%;
-  overflow-y: auto;
   transform: translateX(100%);
   opacity: 0;
   pointer-events: none;
   border-left: 1px solid #ebeef5;
   background: #fff;
-  padding: 0.5rem;
   transition: all 0.3s ease;
 }
 
@@ -212,8 +208,8 @@ onMounted(loadDevices);
 
 /* РАЗМЕРЫ ИКОНОК */
 :deep(.header-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 1.2rem;
+  height: 1.2rem;
   margin-right: 0.25rem;
 }
 

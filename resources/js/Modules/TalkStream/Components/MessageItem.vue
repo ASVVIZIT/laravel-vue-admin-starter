@@ -305,7 +305,7 @@ const isWideMessage = computed(() => props.message.content.length < 40)
 
   .status-icon {
     display: inline-block;
-    font-size: 0.7rem;
+    font-size: 0.9rem;
     margin-left: 2px;
   }
 

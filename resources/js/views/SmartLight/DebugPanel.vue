@@ -3,30 +3,28 @@
     <el-card class="debug-card">
       <template #header>
         <div class="debug-header">
-          <h3>
-            <Handbag class="header-icon" />
-            Отладка
-          </h3>
-          <el-tag type="warning">Тест</el-tag>
-        </div>
-      </template>
-
-      <div v-if="selectedDevice" class="debug-content">
-        <div class="device-info">
-          <div class="device-name">
-            <h4>{{ selectedDevice.name }}</h4>
-            <el-tag :type="statusType" size="small">
-              <CircleCheckFilled class="status-icon" v-if="selectedDevice.status === 'ON'" />
-              <CircleClose class="status-icon" v-else-if="selectedDevice.status === 'OFF'" />
-              <Moon class="status-icon" v-else />
-              {{ selectedDevice.status }}
-            </el-tag>
+          <div class="debug-header-content">
+            <Bulb
+                :status="deviceStatus"
+                :intensity="deviceIntensity"
+                class="header-bulb"
+            />
           </div>
-          <div class="device-id">
-            <small>{{ selectedDevice.device_id }}</small>
+          <div class="device-info">
+            <div class="device-name">
+              <h3>{{ selectedDevice.name }}</h3>
+              <el-tag :type="statusType" size="small">
+                <CircleCheckFilled class="status-icon" v-if="device.status === 'ON'" />
+                <CircleCloseFilled class="status-icon" v-else-if="device.status === 'OFF'" />
+                <Moon class="status-icon" v-else-if="device.status === 'SLEEPING'" />
+                {{ selectedDevice.status }}
+              </el-tag>
+            </div>
+            <div class="device-id">
+              <small>{{ selectedDevice.device_id }}</small>
+            </div>
           </div>
         </div>
-
         <div class="control-group">
           <label class="control-label">Статус</label>
           <el-radio-group v-model="deviceStatus" @change="updateStatus">
@@ -35,7 +33,7 @@
               Вкл
             </el-radio-button>
             <el-radio-button label="OFF" size="mini">
-              <CircleClose class="control-icon" />
+              <CircleCloseFilled class="control-icon" />
               Выкл
             </el-radio-button>
             <el-radio-button label="SLEEPING" size="mini">
@@ -44,7 +42,8 @@
             </el-radio-button>
           </el-radio-group>
         </div>
-
+      </template>
+      <div v-if="selectedDevice" class="debug-content">
         <div class="control-group">
           <label class="control-label">Напряжение</label>
           <div class="voltage-control">
@@ -170,15 +169,15 @@
 import { computed } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
-  Handbag,
+  CircleCloseFilled,
   Moon,
   Warning,
   Bell,
   CircleCheck,
-  CircleCheckFilled,
-  CircleClose
+  CircleCheckFilled
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import Bulb from '@/components/SmartLight/components/Bulb.vue';
 
 const store = useSmartLightStore();
 const selectedDevice = computed(() => store.selectedDevice);
@@ -388,16 +387,31 @@ const simulateCommand = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.25rem 0.5rem;
+}
+
+.debug-header-content {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.header-bulb {
+  height: 100%;
+  flex: 0 0 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .debug-content {
-  padding: 0.5rem;
   display: flex;
+  width: 108%;
   flex-direction: column;
   gap: 0.5rem;
   flex: 1;
   overflow-y: auto;
+  height: calc(100vh - 320px);
 }
 
 .device-info {
@@ -423,6 +437,7 @@ const simulateCommand = () => {
 
 .control-group {
   display: flex;
+  width: 85%;
   flex-direction: column;
   gap: 0.2rem;
 }
@@ -647,16 +662,17 @@ const simulateCommand = () => {
 :deep(.el-radio-group) {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.2rem;
 }
 
 :deep(.el-radio-button__inner) {
-  padding: 0.2rem;
-  width: auto;
-  min-width: 60px;
-  font-size: 0.7rem;
-  height: 1.1rem;
-  line-height: 1.1rem;
+  display: inline-flex;
+  vertical-align: middle;
+  padding: .1rem 0.1rem 0.1rem 0.5rem;
+  width: 100%;
+  min-width: 75px;
+  font-size: 0.9rem;
+  height: 1.5rem;
+  line-height: 1.25rem;
 }
 
 :deep(.voltage-slider) {
