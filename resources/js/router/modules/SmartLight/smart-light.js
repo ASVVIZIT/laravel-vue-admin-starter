@@ -4,7 +4,7 @@ export default [
         component: () => import('@/layout/Layout.vue'),
         meta: {
             title: 'SmartLight',
-            icon: 'light',
+            icon: 'Opportunity', // lightning
             permission: 'view_smart_light'
         },
         children: [
@@ -36,7 +36,9 @@ export default [
                     title: 'Настройки устройства',
                     noCache: true,
                     permission: 'manage_own_smart_light'
-                }
+                },
+                hidden: true,
+                props: true
             }
         ]
     }

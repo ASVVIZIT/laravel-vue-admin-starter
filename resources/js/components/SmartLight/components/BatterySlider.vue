@@ -1,25 +1,24 @@
 <template>
   <div class="battery-slider-container">
     <div class="battery-display" v-if="showBattery">
-      <div class="battery">
-        <div
-            class="battery-normal"
-            :style="{ width: normalProgress + '%' }"
-        ></div>
-        <div
-            class="battery-critical"
-            :style="{ width: criticalProgress + '%', backgroundColor: criticalColor }"
-        >
-          <div class="battery-critical-pattern"></div>
+      <div class="battery-18650" :class="`battery-type-${batteryType}`">
+        <div class="battery-cylinder">
+          <div
+              class="battery-fill"
+              :style="{
+              width: batteryProgress + '%',
+              backgroundColor: batteryColor
+            }"
+          ></div>
+          <div class="battery-cap" :style="{ backgroundColor: capColor }"></div>
         </div>
-        <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
-        <div class="battery-cap"></div>
+        <div class="battery-levels">
+          <span class="battery-level" :style="{ left: '0%' }">2.5 В</span>
+          <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ criticalThreshold }} В</span>
+          <span class="battery-level" :style="{ left: '100%' }">4.3 В</span>
+        </div>
       </div>
-      <div class="battery-levels">
-        <span class="battery-level" :style="{ left: '0%' }">2.5 В</span>
-        <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ criticalThreshold }} В</span>
-        <span class="battery-level" :style="{ left: '100%' }">4.3 В</span>
-      </div>
+      <span class="battery-value">{{ formattedValue }}</span>
     </div>
 
     <div class="slider-container">
@@ -44,7 +43,6 @@
             class="custom-input"
             @change="handleChange"
         />
-
         <span v-if="unit" class="unit-label">{{ unit }}</span>
       </div>
     </div>
@@ -90,6 +88,11 @@ const props = defineProps({
   criticalThreshold: {
     type: Number,
     required: true
+  },
+  batteryType: {
+    type: String,
+    default: 'li-ion', // li-ion, li-poly, ni-mh
+    validator: value => ['li-ion', 'li-poly', 'ni-mh'].includes(value)
   }
 });
 
@@ -102,36 +105,28 @@ const criticalThresholdPosition = computed(() => {
   return ((props.criticalThreshold - props.min) / (props.max - props.min)) * 100;
 });
 
-// Нормальный прогресс (от критического порога до max)
-const normalProgress = computed(() => {
-  if (localValue.value <= props.criticalThreshold) {
-    return 0;
-  }
-
-  const normalVoltage = localValue.value - props.criticalThreshold;
-  const maxNormalVoltage = props.max - props.criticalThreshold;
-
-  return Math.min(100, Math.max(0, (normalVoltage / maxNormalVoltage) * 100));
-});
-
-// Критический прогресс (от min до критического порога)
-const criticalProgress = computed(() => {
-  if (localValue.value >= props.criticalThreshold) {
-    return 0;
-  }
-
-  const criticalVoltage = props.criticalThreshold - localValue.value;
-  const criticalVoltageRange = props.criticalThreshold - props.min;
-
-  return Math.min(100, Math.max(0, (criticalVoltage / criticalVoltageRange) * 100));
-});
-
-// Цвет критического уровня
-const criticalColor = computed(() => {
+// Прогресс батареи
+const batteryProgress = computed(() => {
   const voltage = localValue.value;
-  if (voltage < 2.7) return '#f56c6c';
-  if (voltage < 3.0) return '#faa7a7';
-  return '#ffcccb';
+  return Math.min(100, Math.max(0, ((voltage - props.min) / (props.max - props.min)) * 100));
+});
+
+// Цвет батареи в зависимости от напряжения
+const batteryColor = computed(() => {
+  const voltage = localValue.value;
+  if (voltage < 2.8) return '#f56c6c'; // Критический уровень - красный
+  if (voltage < 3.0) return '#faa7a7'; // Низкий уровень - светло-красный
+  if (voltage < 3.4) return '#e6a23c'; // Средний уровень - оранжевый
+  if (voltage < 3.8) return '#67c23a'; // Хороший уровень - зеленый
+  return '#50d776'; // Полный уровень - ярко-зеленый
+});
+
+// Цвет контактного вывода
+const capColor = computed(() => {
+  const voltage = localValue.value;
+  if (voltage < 2.8) return '#d32f2f'; // Критический уровень
+  if (voltage < 3.0) return '#f56c6c'; // Низкий уровень
+  return '#409eff'; // Нормальный/хороший уровень
 });
 
 // Форматированное значение
@@ -163,92 +158,101 @@ watch(() => props.modelValue, (newVal) => {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .battery-display {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 0.5rem;
+  position: relative;
 }
 
-.battery {
+.battery-18650 {
+  position: relative;
+  width: 120px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.battery-type-li-ion {
+  --battery-base-color: #f0f0f0;
+  --battery-border-color: #e0e0e0;
+  --battery-cap-color: #409eff;
+}
+
+.battery-type-li-poly {
+  --battery-base-color: #f0f5ff;
+  --battery-border-color: #d6e4ff;
+  --battery-cap-color: #409eff;
+}
+
+.battery-type-ni-mh {
+  --battery-base-color: #fff8e1;
+  --battery-border-color: #ffecb3;
+  --battery-cap-color: #ff9800;
+}
+
+.battery-cylinder {
   position: relative;
   width: 100%;
-  height: 20px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background: #f5f7fa;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--battery-base-color, #f0f0f0);
+  border: 1px solid var(--battery-border-color, #e0e0e0);
   overflow: hidden;
 }
 
-.battery-normal {
+.battery-fill {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
-  background: linear-gradient(90deg, #67c23a 0%, #95d97b 100%);
-}
-
-.battery-critical {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: linear-gradient(90deg, #f56c6c 0%, #ff9999 100%);
-}
-
-.battery-critical-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: repeating-linear-gradient(
-      -45deg,
-      transparent,
-      transparent 3px,
-      rgba(255, 255, 255, 0.3) 3px,
-      rgba(255, 255, 255, 0.3) 6px
-  );
-}
-
-.battery-mark {
-  position: absolute;
-  top: -5px;
-  bottom: -5px;
-  width: 1px;
-  background-color: #e6a23c;
-  z-index: 10;
-}
-
-.battery-levels {
-  display: flex;
-  justify-content: space-between;
-  position: relative;
-  margin-top: 2px;
-}
-
-.battery-level {
-  position: absolute;
-  font-size: 0.75rem;
-  color: #909399;
+  border-radius: 8px 0 0 8px;
+  transition: width 0.3s ease;
 }
 
 .battery-cap {
   position: absolute;
-  top: 4px;
-  right: -4px;
-  width: 4px;
-  height: 12px;
-  background: #409eff;
-  border-radius: 2px;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 100%;
+  border-radius: 0 8px 8px 0;
+  background: var(--battery-cap-color, #409eff);
+  transition: background-color 0.3s ease;
+}
+
+.battery-levels {
+  position: absolute;
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 8px;
+  font-size: 0.7rem;
+  color: #909399;
+}
+
+.battery-level {
+  position: absolute;
+  font-size: 0.7rem;
+  color: #909399;
+}
+
+.battery-value {
+  font-weight: bold;
+  color: #409eff;
+  font-size: 1.1rem;
+  min-width: 80px;
+  text-align: center;
 }
 
 .slider-container {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .custom-slider {
@@ -258,11 +262,11 @@ watch(() => props.modelValue, (newVal) => {
 .input-container {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .input-container.with-unit {
-  gap: 0.25rem;
+  gap: 0.1rem;
 }
 
 .custom-input {
@@ -271,23 +275,39 @@ watch(() => props.modelValue, (newVal) => {
 
 .unit-label {
   color: #909399;
-  font-size: 0.9rem;
-  min-width: 24px;
+  font-size: 0.85rem;
+  min-width: 20px;
   text-align: center;
 }
 
-:deep(.el-input-number__decrease),
-:deep(.el-input-number__increase) {
-  width: 24px;
+/* Стили для цилиндрической батареи 18650 */
+:deep(.battery-cylinder) {
+  position: relative;
+  width: 100%;
+  height: 16px;
+  border-radius: 8px;
+  background: #f0f0f0;
+  border: 1px solid #e0e0e0;
+  overflow: hidden;
 }
 
-:deep(.el-slider__runway) {
-  height: 4px;
-  margin: 0;
+:deep(.battery-fill) {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+  transition: width 0.3s ease;
 }
 
-:deep(.el-slider__button) {
-  width: 14px;
-  height: 14px;
+:deep(.battery-cap) {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 100%;
+  border-radius: 0 8px 8px 0;
+  background: #409eff;
+  transition: background-color 0.3s ease;
 }
 </style>

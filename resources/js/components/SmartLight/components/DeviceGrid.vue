@@ -17,10 +17,12 @@
               v-for="device in realDevices"
               :key="device.device_id"
               class="device-col"
+              :class="{ 'device-col--selected': selectedDeviceId === device.device_id }"
               @click="selectDevice(device)"
           >
             <DeviceCard
                 :device="device"
+                :is-selected="selectedDeviceId === device.device_id"
                 @command-sent="$emit('device-updated', device.device_id)"
                 @emergency-sleep="$emit('emergency-sleep', device.device_id)"
                 @open-settings="$emit('open-settings', device)"
@@ -35,26 +37,30 @@
           :disabled="fakeDevices.length === 0"
       >
         <div class="fake-devices-banner">
-          <el-icon name="warning" class="mr-1" />
+          <Warning class="banner-icon" />
           <span>Тестовые устройства</span>
         </div>
 
-        <div v-if="fakeDevices.length === 0" class="no-devices">
-          <el-empty description="Нет тестовых устройств" />
-        </div>
-        <div v-else class="grid-container">
-          <div
-              v-for="device in fakeDevices"
-              :key="device.device_id"
-              class="device-col fake-device"
-              @click="selectDevice(device)"
-          >
-            <DeviceCard
-                :device="device"
-                @command-sent="$emit('device-updated', device.device_id)"
-                @emergency-sleep="$emit('emergency-sleep', device.device_id)"
-                @open-settings="$emit('open-settings', device)"
-            />
+        <div class="grid-scroll-container">
+          <div v-if="fakeDevices.length === 0" class="no-devices">
+            <el-empty description="Нет тестовых устройств" />
+          </div>
+          <div class="grid-container">
+            <div
+                v-for="device in fakeDevices"
+                :key="device.device_id"
+                class="device-col fake-device"
+                :class="{ 'device-col--selected': selectedDeviceId === device.device_id }"
+                @click="selectDevice(device)"
+            >
+              <DeviceCard
+                  :device="device"
+                  :is-selected="selectedDeviceId === device.device_id"
+                  @command-sent="$emit('device-updated', device.device_id)"
+                  @emergency-sleep="$emit('emergency-sleep', device.device_id)"
+                  @open-settings="$emit('open-settings', device)"
+              />
+            </div>
           </div>
         </div>
       </el-tab-pane>
@@ -63,7 +69,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
+import { Warning } from '@element-plus/icons-vue';
 import DeviceCard from './DeviceCard.vue';
 
 const props = defineProps({
@@ -90,8 +97,12 @@ const fakeDevices = computed(() => {
   return props.devices.filter(device => device.is_fake);
 });
 
+// ID выбранного устройства
+const selectedDeviceId = ref(null);
+
 // Селектор устройства
 const selectDevice = (device) => {
+  selectedDeviceId.value = device.device_id;
   emit('device-selected', device);
 };
 </script>
@@ -108,6 +119,11 @@ const selectDevice = (device) => {
   overflow: hidden;
 }
 
+.grid-scroll-container {
+  max-height: calc(100vh - 300px);
+  overflow-y: auto;
+}
+
 .grid-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -122,6 +138,8 @@ const selectDevice = (device) => {
   transition: all 0.2s ease;
   position: relative;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .device-col:hover {
@@ -129,20 +147,10 @@ const selectDevice = (device) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-.fake-device::after {
-  content: "Тест";
-  position: absolute;
-  top: -5px;
-  right: 5px;
-  background: #cd5454;
-  color: #ffedf0;
-  border: 1px solid #701f23;
-  border-radius: 10px;
-  padding: 1px 4px;
-  font-size: 10px;
-  font-weight: bold;
-  z-index: 2;
-  white-space: nowrap;
+/* Выделение выбранного устройства */
+.device-col--selected {
+  box-shadow: 0 0 0 2px #409eff;
+  transform: translateY(-1px);
 }
 
 .fake-devices-banner {
@@ -161,5 +169,12 @@ const selectDevice = (device) => {
   padding: 1rem;
   text-align: center;
   font-size: 0.9rem;
+}
+
+/* РАЗМЕРЫ ИКОНОК */
+:deep(.banner-icon) {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
 }
 </style>

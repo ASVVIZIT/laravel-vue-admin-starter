@@ -2,7 +2,7 @@
   <div class="app-container">
     <div class="header">
       <h1>
-        <el-icon name="lightbulb" class="mr-1" />
+        <Opportunity class="header-icon" />
         Умное освещение
       </h1>
       <div class="header-actions">
@@ -12,7 +12,7 @@
             :loading="loading"
             size="small"
         >
-          <el-icon name="refresh" class="mr-1" />
+          <Refresh class="action-icon" />
           Обновить
         </el-button>
         <el-button
@@ -21,7 +21,7 @@
             size="small"
             :class="{ 'debug-active': showDebugPanel }"
         >
-          <el-icon name="bug" class="mr-1" />
+          <Handbag class="action-icon" />
           Отладка
         </el-button>
       </div>
@@ -47,7 +47,7 @@
     <el-dialog
         v-model="deviceSettingsVisible"
         title="Настройки устройства"
-        width="550px"
+        width="520px"
         :modal="false"
     >
       <DeviceSettings :device="selectedDevice" />
@@ -57,10 +57,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElNotification } from 'element-plus';
+import {
+  Opportunity,
+  Refresh,
+  Handbag
+} from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import DeviceGrid from '@/components/SmartLight/components/DeviceGrid.vue';
-import DebugPanel from './DebugPanel.vue';
+import DebugPanel from './DebugPanel.vue';  // ПРАВИЛЬНЫЙ ИМПОРТ
 import DeviceSettings from './DeviceSettings.vue';
 
 const store = useSmartLightStore();
@@ -77,7 +82,11 @@ const loadDevices = async () => {
     devices.value = store.devices;
   } catch (error) {
     console.error('Ошибка загрузки устройств:', error);
-    ElMessage.error('Не удалось загрузить устройства');
+    ElNotification({
+      title: 'Ошибка',
+      message: 'Не удалось загрузить устройства',
+      type: 'error'
+    });
   } finally {
     loading.value = false;
   }
@@ -110,7 +119,7 @@ onMounted(loadDevices);
 
 <style scoped>
 .app-container {
-  padding: 1rem;
+  padding: 0.75rem;
   height: 100vh;
   display: flex;
   flex-direction: column;
@@ -120,14 +129,14 @@ onMounted(loadDevices);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.3rem;
   flex-shrink: 0;
 }
 
@@ -140,7 +149,7 @@ onMounted(loadDevices);
 .dashboard-layout {
   display: grid;
   grid-template-columns: 1fr 0;
-  height: calc(100vh - 100px);
+  height: calc(100vh - 80px);
   overflow: hidden;
   transition: grid-template-columns 0.3s ease;
 }
@@ -163,7 +172,7 @@ onMounted(loadDevices);
   pointer-events: none;
   border-left: 1px solid #ebeef5;
   background: #fff;
-  padding: 0.75rem;
+  padding: 0.5rem;
   transition: all 0.3s ease;
 }
 
@@ -174,14 +183,14 @@ onMounted(loadDevices);
 }
 
 /* Для мобильных устройств */
-@media (max-width: 1100px) {
+@media (max-width: 1000px) {
   .dashboard-layout {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr 0;
   }
 
   .dashboard-layout.debug-active {
-    grid-template-rows: 1fr 45vh;
+    grid-template-rows: 1fr 40vh;
   }
 
   .debug-panel-container {
@@ -190,14 +199,27 @@ onMounted(loadDevices);
     left: 0;
     right: 0;
     width: 100%;
-    height: 45vh;
+    height: 40vh;
     transform: translateY(100%);
-    border-radius: 6px 6px 0 0;
+    border-radius: 4px 4px 0 0;
     box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.08);
   }
 
   .debug-panel-container.active {
     transform: translateY(0);
   }
+}
+
+/* РАЗМЕРЫ ИКОНОК */
+:deep(.header-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.action-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.25rem;
 }
 </style>

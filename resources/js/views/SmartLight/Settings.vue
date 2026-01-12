@@ -11,7 +11,7 @@
                 :loading="loading"
                 size="small"
             >
-              <el-icon name="refresh" class="mr-1" />
+              <IconWrapper :icon="Refresh" size="small" class="mr-1" />
               Сбросить
             </el-button>
             <el-button
@@ -20,13 +20,12 @@
                 :loading="loading"
                 size="small"
             >
-              <el-icon name="check" class="mr-1" />
+              <IconWrapper :icon="Check" size="small" class="mr-1" />
               Сохранить
             </el-button>
           </div>
         </div>
       </template>
-
       <el-alert
           v-if="error"
           :title="error"
@@ -35,12 +34,10 @@
           class="mb-4"
           closable
       />
-
       <el-skeleton v-if="loading" :rows="6" animated class="skeleton-container" />
-
       <div v-else class="scrollable-content">
         <el-form
-            :model="localSettings"
+            model="localSettings"
             label-width="220px"
             label-position="left"
             class="settings-form"
@@ -75,7 +72,6 @@
                 </div>
                 <span class="battery-value">{{ formattedCriticalVoltage }}</span>
               </div>
-
               <el-slider
                   v-model="localSettings.default_critical_voltage"
                   :min="2.5"
@@ -84,7 +80,6 @@
                   :format-tooltip="formatVoltageTooltip"
                   class="custom-slider"
               />
-
               <el-input-number
                   v-model="localSettings.default_critical_voltage"
                   :min="2.5"
@@ -124,10 +119,7 @@
           </el-form-item>
 
           <!-- Экстренный интервал сна -->
-          <el-form-item
-              label="Экстренный интервал сна (сек)"
-              prop="default_emergency_sleep_interval"
-          >
+          <el-form-item label="Экстренный интервал сна (сек)" prop="default_emergency_sleep_interval">
             <div class="range-input-container">
               <el-input-number
                   v-model="localSettings.default_emergency_sleep_interval"
@@ -194,10 +186,7 @@
             </el-select>
           </el-form-item>
 
-          <el-form-item
-              label="Хранение телеметрии (дней)"
-              prop="telemetry_retention_days"
-          >
+          <el-form-item label="Хранение телеметрии (дней)" prop="telemetry_retention_days">
             <div class="range-input-container">
               <el-input-number
                   v-model="localSettings.telemetry_retention_days"
@@ -225,14 +214,18 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
+import {
+  Check,
+  Refresh
+} from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import IconWrapper from '@/components/SmartLight/components/IconWrapper.vue';
 
 const store = useSmartLightStore();
-const loading = computed(() => store.loading);
-const error = computed(() => store.error);
-
+const loading = ref(false);
+const error = ref(null);
 const localSettings = ref({
   global_server_url: '',
   default_critical_voltage: 3.2,
@@ -249,9 +242,8 @@ const localSettings = ref({
 onMounted(async () => {
   try {
     const response = await store.fetchGlobalSettings();
-
     if (response.success) {
-      // Используем response.data для обновления
+      // Объединяем настройки
       localSettings.value = {
         ...localSettings.value,
         ...response.data
@@ -274,19 +266,15 @@ const saveSettings = async () => {
   try {
     loading.value = true;
     error.value = null;
-
     const response = await store.updateGlobalSettings(localSettings.value);
 
-    if (response.success) {
-      // Обновляем локальные настройки
-      localSettings.value = {
-        ...localSettings.value,
-        ...response.data
-      };
-      ElMessage.success('Настройки успешно сохранены');
-    } else {
-      throw new Error(response.message || 'Ошибка сохранения настроек');
-    }
+    // Объединяем настройки
+    localSettings.value = {
+      ...localSettings.value,
+      ...response.data
+    };
+
+    ElMessage.success('Настройки успешно сохранены');
   } catch (err) {
     error.value = 'Ошибка сохранения настроек: ' + (err.message || err);
     ElMessage.error('Ошибка сохранения настроек');
@@ -300,19 +288,15 @@ const resetToDefaults = async () => {
   try {
     loading.value = true;
     error.value = null;
-
     const response = await store.resetGlobalSettings();
 
-    if (response.success) {
-      // Обновляем локальные настройки
-      localSettings.value = {
-        ...localSettings.value,
-        ...response.data
-      };
-      ElMessage.success('Настройки успешно сброшены');
-    } else {
-      throw new Error(response.message || 'Ошибка сброса настроек');
-    }
+    // Объединяем настройки
+    localSettings.value = {
+      ...localSettings.value,
+      ...response.data
+    };
+
+    ElMessage.success('Настройки успешно сброшены');
   } catch (err) {
     error.value = 'Ошибка сброса настроек: ' + (err.message || err);
     ElMessage.error('Ошибка сброса настроек');
@@ -345,12 +329,13 @@ const formatVoltageTooltip = (value) => {
 
 <style scoped>
 .settings-container {
-  padding: 1.5rem;
+  padding: 0.75rem;
+  height: 100%;
 }
 
 .settings-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .header-container {
@@ -358,25 +343,25 @@ const formatVoltageTooltip = (value) => {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.5rem;
 }
 
 .header-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
   color: #303133;
 }
 
 .header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.3rem;
 }
 
 .scrollable-content {
-  max-height: calc(100vh - 320px);
+  max-height: calc(100vh - 250px);
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 .settings-form {
@@ -384,8 +369,7 @@ const formatVoltageTooltip = (value) => {
   max-width: 100%;
 }
 
-.compact-input,
-.compact-select {
+.compact-input {
   width: 100%;
   max-width: 400px;
 }
@@ -402,24 +386,6 @@ const formatVoltageTooltip = (value) => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-}
-
-.skeleton-container {
-  padding: 1rem;
-}
-
-:deep(.el-form-item__content) {
-  align-items: flex-start;
-}
-
-:deep(.el-divider) {
-  margin: 1.5rem 0;
-}
-
-:deep(.el-divider__text) {
-  font-size: 14px;
-  font-weight: 500;
-  color: #606266;
 }
 
 .battery-slider-container {
@@ -469,9 +435,23 @@ const formatVoltageTooltip = (value) => {
   text-align: center;
 }
 
+:deep(.el-form-item__content) {
+  align-items: flex-start;
+}
+
+:deep(.el-divider) {
+  margin: 1.5rem 0;
+}
+
+:deep(.el-divider__text) {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #606266;
+}
+
 :deep(.el-slider__runway) {
-  margin: 8px 0;
   height: 4px;
+  margin: 0;
 }
 
 :deep(.el-slider__button) {
@@ -481,6 +461,6 @@ const formatVoltageTooltip = (value) => {
 
 :deep(.el-input-number__decrease),
 :deep(.el-input-number__increase) {
-  width: 24px;
+  width: 20px;
 }
 </style>

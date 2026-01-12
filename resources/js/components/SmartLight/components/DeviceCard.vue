@@ -1,16 +1,21 @@
 <template>
-  <div class="device-card">
+  <div
+      class="device-card"
+      :class="{
+      'device-card--selected': isSelected
+    }"
+  >
     <div class="device-header">
       <h3 class="device-name">{{ device.name }}</h3>
       <div class="status-container">
         <el-tag :type="statusType" size="small" class="status-tag">
-          <el-icon v-if="device.status === 'ON'" name="light-on" class="status-icon" />
-          <el-icon v-else name="light-off" class="status-icon" />
+          <CircleCheckFilled class="status-icon" v-if="device.status === 'ON'" />
+          <CircleClose class="status-icon" v-else />
           {{ device.status }}
         </el-tag>
         <el-tag v-if="device.is_fake" type="warning" size="small" class="fake-tag">
-          <el-icon name="bug" class="fake-icon" />
-          Демо
+          <Handbag class="fake-icon" />
+          Тест
         </el-tag>
       </div>
     </div>
@@ -21,19 +26,37 @@
         <div class="battery-container">
           <div class="battery">
             <div
-                class="battery-fill"
+                class="battery-normal"
                 :style="{
-                width: batteryProgress + '%',
+                width: batteryNormalProgress + '%',
                 backgroundColor: batteryColor
               }"
             ></div>
+            <div
+                class="battery-critical"
+                :style="{
+                width: batteryCriticalProgress + '%',
+                backgroundColor: criticalColor
+              }"
+            >
+              <div class="battery-critical-pattern"></div>
+            </div>
+            <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
+            <div class="battery-mark current-level" :style="{ left: currentLevelPosition + '%' }"></div>
             <div class="battery-cap"></div>
+            <div class="battery-plus">+</div>
+            <div class="battery-minus">-</div>
+          </div>
+          <div class="battery-levels">
+            <span class="battery-level" :style="{ left: '0%' }">2.5 В</span>
+            <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ device.critical_voltage.toFixed(2) }} В</span>
+            <span class="battery-level" :style="{ left: '100%' }">4.3 В</span>
           </div>
         </div>
       </div>
 
       <div class="runtime-info">
-        <el-icon name="timer" class="mr-1" />
+        <Timer class="runtime-icon" />
         {{ estimatedRuntime }}
       </div>
     </div>
@@ -48,11 +71,11 @@
           :disabled="device.is_fake"
       >
         <template #active>
-          <el-icon name="light-on" class="mr-1" />
+          <CircleCheckFilled class="switch-icon" />
           Вкл
         </template>
         <template #inactive>
-          <el-icon name="light-off" class="mr-1" />
+          <CircleClose class="switch-icon" />
           Выкл
         </template>
       </el-switch>
@@ -73,7 +96,7 @@
             @click="sendEmergencySleep"
             type="info"
         >
-          <el-icon name="moon" class="mr-1" />
+          <Moon class="control-icon" />
           Сон
         </el-button>
         <el-button
@@ -81,14 +104,14 @@
             @click="openDeviceSettings"
             type="primary"
         >
-          <el-icon name="setting" class="mr-1" />
+          <Setting class="control-icon" />
           Настройки
         </el-button>
       </div>
     </div>
 
     <div v-if="device.is_fake" class="fake-warning">
-      <el-icon name="warning" class="mr-1" />
+      <Warning class="warning-icon" />
       <span>Тестовое устройство</span>
     </div>
   </div>
@@ -97,12 +120,25 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { ElNotification } from 'element-plus';
+import {
+  Handbag,
+  Moon,
+  Warning,
+  Setting,
+  CircleCheckFilled,
+  CircleClose,
+  Timer
+} from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 
 const props = defineProps({
   device: {
     type: Object,
     required: true
+  },
+  isSelected: {
+    type: Boolean,
+    default: false
   }
 });
 
@@ -120,6 +156,10 @@ if (!props.device.voltage) {
   props.device.voltage = 3.7;
 }
 
+if (!props.device.critical_voltage) {
+  props.device.critical_voltage = 3.2;
+}
+
 const statusType = computed(() => {
   switch (props.device.status) {
     case 'ON': return 'success';
@@ -129,19 +169,66 @@ const statusType = computed(() => {
   }
 });
 
-const batteryProgress = computed(() => {
-  const voltage = props.device.voltage || 3.7;
+// Вычисляем позицию критического порога в процентах
+const criticalThresholdPosition = computed(() => {
+  const minVoltage = 2.5;
+  const maxVoltage = 4.3;
+  const criticalVoltage = props.device.critical_voltage;
+
+  return ((criticalVoltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
+});
+
+// Нормальный прогресс (от критического порога до max)
+const batteryNormalProgress = computed(() => {
   const minVoltage = 2.5;
   const maxVoltage = 4.3;
 
-  return Math.min(100, Math.max(0, ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100));
+  if (props.device.voltage <= props.device.critical_voltage) {
+    return 0;
+  }
+
+  const normalVoltage = props.device.voltage - props.device.critical_voltage;
+  const maxNormalVoltage = maxVoltage - props.device.critical_voltage;
+
+  return Math.min(100, Math.max(0, (normalVoltage / maxNormalVoltage) * 100));
 });
 
+// Критический прогресс (от min до критического порога)
+const batteryCriticalProgress = computed(() => {
+  const minVoltage = 2.5;
+  const maxVoltage = 4.3;
+
+  if (props.device.voltage >= props.device.critical_voltage) {
+    return 0;
+  }
+
+  const criticalVoltage = props.device.critical_voltage - props.device.voltage;
+  const criticalVoltageRange = props.device.critical_voltage - minVoltage;
+
+  return Math.min(100, Math.max(0, (criticalVoltage / criticalVoltageRange) * 100));
+});
+
+// Цвет критического уровня
+const criticalColor = computed(() => {
+  const voltage = props.device.voltage || 3.7;
+  if (voltage < 2.7) return '#f56c6c';
+  if (voltage < 3.0) return '#faa7a7';
+  return '#ffcccb';
+});
+
+// Цвет нормального уровня
 const batteryColor = computed(() => {
   const voltage = props.device.voltage || 3.7;
   if (voltage < 3.0) return '#f56c6c';
   if (voltage < 3.4) return '#e6a23c';
   return '#67c23a';
+});
+
+// Позиция текущего уровня
+const currentLevelPosition = computed(() => {
+  const minVoltage = 2.5;
+  const maxVoltage = 4.3;
+  return ((props.device.voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
 });
 
 const estimatedRuntime = computed(() => {
@@ -279,7 +366,7 @@ const openDeviceSettings = () => {
   background: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-  padding: 1rem;
+  padding: 0.75rem;
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -287,16 +374,22 @@ const openDeviceSettings = () => {
   overflow: hidden;
 }
 
+.device-card--selected {
+  box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      0 0 0 2px #409eff;
+}
+
 .device-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
   flex-wrap: wrap;
 }
 
 .device-name {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -306,53 +399,44 @@ const openDeviceSettings = () => {
 
 .status-container {
   display: flex;
-  gap: 0.4rem;
+  gap: 0.3rem;
   flex-shrink: 0;
 }
 
 .status-tag {
   font-weight: 500;
-  font-size: 0.8rem;
-  height: 1.4rem;
-  line-height: 1.4rem;
-  padding: 0 0.4rem;
-}
-
-.status-icon {
-  margin-right: 2px;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  height: 1.2rem;
+  line-height: 1.2rem;
+  padding: 0 0.3rem;
 }
 
 .fake-tag {
   background-color: #fff7e6;
   border-color: #fffae6;
   color: #e6a23c;
-  font-size: 0.8rem;
-  height: 1.4rem;
-  line-height: 1.4rem;
-  padding: 0 0.4rem;
-}
-
-.fake-icon {
-  margin-right: 2px;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
+  height: 1.2rem;
+  line-height: 1.2rem;
+  padding: 0 0.3rem;
 }
 
 .voltage-info {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .voltage-value {
   font-weight: 600;
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.15rem;
   display: block;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   white-space: nowrap;
+  text-align: center;
 }
 
 .battery-container {
-  height: 6px;
-  border-radius: 3px;
+  height: 20px;
+  border-radius: 10px;
   background: #f5f7fa;
   overflow: hidden;
 }
@@ -360,68 +444,185 @@ const openDeviceSettings = () => {
 .battery {
   position: relative;
   width: 100%;
-  height: 4px;
-  border-radius: 2px;
+  height: 100%;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
   background: #f5f7fa;
   overflow: hidden;
 }
 
-.battery-fill {
+.battery-normal {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
-  transition: width 0.3s ease, background-color 0.3s ease;
+  border-radius: 8px 0 0 8px;
+  background: linear-gradient(90deg, #67c23a 0%, #95d97b 100%);
+}
+
+.battery-critical {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 8px 0 0 8px;
+  background: linear-gradient(90deg, #f56c6c 0%, #ff9999 100%);
+}
+
+.battery-critical-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.3) 3px,
+      rgba(255, 255, 255, 0.3) 6px
+  );
+}
+
+.battery-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background-color: #e6a23c;
+  z-index: 10;
+}
+
+.battery-mark.critical-threshold {
+  border-left: 1px dashed #e6a23c;
+}
+
+.battery-mark.current-level {
+  border-left: 1px solid #409eff;
 }
 
 .battery-cap {
   position: absolute;
   top: -1px;
-  right: -2px;
-  width: 2px;
-  height: 6px;
+  right: -1px;
+  width: 1px;
+  height: 4px;
   background: #409eff;
   border-radius: 1px;
 }
 
-.runtime-info {
+.battery-plus {
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #409eff;
   font-size: 0.8rem;
+  z-index: 10;
+}
+
+.battery-minus {
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #409eff;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+.battery-levels {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 1px;
+}
+
+.battery-level {
+  position: absolute;
+  font-size: 0.7rem;
+  color: #909399;
+}
+
+.runtime-info {
+  font-size: 0.75rem;
   color: #909399;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
 .device-controls {
   margin-top: auto;
-  padding-top: 0.75rem;
-  border-top: 1px solid #f2f2f2;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f5f7fa;
 }
 
 .intensity-slider {
-  margin: 0.5rem 0;
+  margin: 0.3rem 0;
 }
 
 .control-buttons {
   display: flex;
   justify-content: space-between;
-  gap: 0.4rem;
-  margin-top: 0.75rem;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
 }
 
 .fake-warning {
-  margin-top: 0.75rem;
-  padding: 0.25rem;
+  margin-top: 0.5rem;
+  padding: 0.2rem;
   background: #fff7e6;
   border: 1px solid #fffae6;
   border-radius: 2px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #e6a23c;
   display: flex;
   align-items: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
+/* РАЗМЕРЫ ИКОНОК */
+:deep(.status-icon) {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.fake-icon) {
+  width: 1rem;
+  height: 1rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.runtime-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+:deep(.switch-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.control-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.warning-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+/* Стили для компонентов Element Plus */
 :deep(.el-switch) {
-  height: 1.5rem;
-  font-size: 0.85rem;
+  height: 1.3rem;
+  font-size: 0.8rem;
 }
 
 :deep(.el-switch.is-disabled) {
@@ -429,9 +630,9 @@ const openDeviceSettings = () => {
 }
 
 :deep(.el-button) {
-  padding: 4px 8px;
-  height: 1.6rem;
-  font-size: 0.8rem;
+  padding: 2px 6px;
+  height: 1.4rem;
+  font-size: 0.75rem;
 }
 
 :deep(.el-button.is-disabled) {
@@ -439,12 +640,12 @@ const openDeviceSettings = () => {
 }
 
 :deep(.el-slider__runway) {
-  margin: 4px 0;
-  height: 2px;
+  margin: 2px 0;
+  height: 1px;
 }
 
 :deep(.el-slider__button) {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 </style>
