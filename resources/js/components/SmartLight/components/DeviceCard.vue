@@ -11,11 +11,12 @@
         <Bulb
             :status="device.status"
             :intensity="device.intensity"
+            v-if="device"
         />
       </div>
 
       <!-- Основное содержимое карточки -->
-      <div class="content-container">
+      <div class="content-container" v-if="device">
         <div class="device-header">
           <h3 class="device-name">{{ device.name }}</h3>
           <div class="status-container">
@@ -23,7 +24,7 @@
               <CircleCheckFilled class="status-icon" v-if="device.status === 'ON'" />
               <CircleCloseFilled class="status-icon" v-else-if="device.status === 'OFF'" />
               <Moon class="status-icon" v-else-if="device.status === 'SLEEPING'" />
-              {{ device.status }}
+              <span>{{ device.status }}</span>
             </el-tag>
             <div v-if="device.is_fake" class="fake-warning">
               <Warning class="warning-icon" />
@@ -55,42 +56,57 @@
         </div>
 
         <div class="device-controls">
-          <el-switch
-              v-model="device.status"
-              active-value="ON"
-              inactive-value="OFF"
-              @change="toggleDevice"
-              :loading="loading"
-              :disabled="device.is_fake"
-          >
-            <template #active>
-              <CircleCheckFilled class="switch-icon" />
-              Вкл
-            </template>
-            <template #inactive>
-              <CircleCloseFilled class="switch-icon" />
-              Выкл
-            </template>
-          </el-switch>
+          <!-- Исправленный переключатель -->
+          <div class="switch-container">
+            <el-switch
+                v-model="isDeviceOn"
+                @change="handleSwitchChange"
+                :loading="loading"
+                :disabled="device.status === 'SLEEPING'"
+                class="status-switch"
+            >
+              <template #active>
+                <CircleCheckFilled class="switch-icon" />
+                Вкл
+              </template>
+              <template #inactive>
+                <CircleCloseFilled class="switch-icon" />
+                Выкл
+              </template>
+            </el-switch>
+            <div class="switch-label">
+              {{ isDeviceOn ? 'Включено' : 'Выключено' }}
+            </div>
+          </div>
 
+          <!-- Слайдер интенсивности (всегда виден, но неактивен при выключенном состоянии) -->
           <el-slider
-              v-if="device.status === 'ON'"
               v-model="device.intensity"
               :min="0"
               :max="100"
               @change="updateIntensity"
               class="intensity-slider"
-              :disabled="device.is_fake"
+              :disabled="!isDeviceOn || device.status === 'SLEEPING'"
           />
 
           <div class="control-buttons">
             <el-button
+                v-if="device.status !== 'SLEEPING'"
                 size="small"
                 @click="sendEmergencySleep"
                 type="info"
             >
               <Moon class="control-icon" />
               Сон
+            </el-button>
+            <el-button
+                v-else
+                size="small"
+                @click="wakeDevice"
+                type="success"
+            >
+              <Sunny class="control-icon" />
+              Разбудить
             </el-button>
             <el-button
                 size="small"
@@ -108,10 +124,11 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
   Moon,
+  Sunny,
   Warning,
   Setting,
   CircleCheckFilled,
@@ -146,6 +163,15 @@ if (!props.device.voltage) {
   props.device.voltage = 3.7;
 }
 
+// Вычисляемое свойство для переключателя
+const isDeviceOn = computed({
+  get: () => props.device.status === 'ON',
+  set: (value) => {
+    // Ничего не делаем здесь, обработка в handleSwitchChange
+  }
+});
+
+// Статус
 const statusType = computed(() => {
   switch (props.device.status) {
     case 'ON': return 'success';
@@ -155,6 +181,7 @@ const statusType = computed(() => {
   }
 });
 
+// Прогресс батареи
 const batteryProgress = computed(() => {
   const voltage = props.device.voltage || 3.7;
   const minVoltage = 2.5;
@@ -170,6 +197,7 @@ const batteryColor = computed(() => {
   return '#67c23a';
 });
 
+// Расчет времени работы
 const estimatedRuntime = computed(() => {
   const voltage = props.device.voltage || 3.7;
   const minVoltage = 2.8;
@@ -185,23 +213,31 @@ const estimatedRuntime = computed(() => {
   return `${Math.floor(hours / 24)}дн`;
 });
 
-const toggleDevice = async () => {
+// Обработчик изменения переключателя
+const handleSwitchChange = async (value) => {
   loading.value = true;
+  const command = value ? 'ON' : 'OFF';
 
   try {
-    const command = props.device.status === 'ON' ? 'OFF' : 'ON';
-
     // Для фейковых устройств эмулируем ответ
     if (props.device.is_fake) {
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      props.device.status = command;
-      props.device.intensity = command === 'ON' ? 100 : 0;
+      // Используем стор для обновления
+      store.updateDeviceStatus(props.device.device_id, command);
+      store.updateDeviceIntensity(props.device.device_id, command === 'ON' ? 100 : 0);
 
+      // Для фейковых устройств обновляем напряжение
       if (command === 'ON') {
-        props.device.voltage = Math.min(4.3, props.device.voltage + 0.05);
+        store.updateDeviceVoltage(
+            props.device.device_id,
+            Math.min(4.3, props.device.voltage + 0.05)
+        );
       } else {
-        props.device.voltage = Math.max(2.5, props.device.voltage - 0.05);
+        store.updateDeviceVoltage(
+            props.device.device_id,
+            Math.max(2.5, props.device.voltage - 0.05)
+        );
       }
 
       ElNotification({
@@ -212,7 +248,11 @@ const toggleDevice = async () => {
       });
     } else {
       // Для реальных устройств
-      const response = await store.sendCommand(props.device.device_id, command, props.device.intensity);
+      const response = await store.sendCommand(
+          props.device.device_id,
+          command,
+          props.device.intensity
+      );
 
       if (response.success) {
         ElNotification({
@@ -227,10 +267,6 @@ const toggleDevice = async () => {
 
     emit('command-sent', props.device.device_id);
   } catch (error) {
-    // Откат статуса при ошибке
-    props.device.status = props.device.status === 'ON' ? 'OFF' : 'ON';
-    props.device.intensity = props.device.status === 'ON' ? 100 : 0;
-
     ElNotification({
       title: 'Ошибка',
       message: 'Ошибка управления светильником',
@@ -241,6 +277,7 @@ const toggleDevice = async () => {
   }
 };
 
+// Изменение интенсивности
 const updateIntensity = async () => {
   if (props.device.status === 'ON') {
     if (props.device.is_fake) {
@@ -268,6 +305,7 @@ const updateIntensity = async () => {
   }
 };
 
+// Перевод в спящий режим
 const sendEmergencySleep = async () => {
   if (props.device.is_fake) {
     // Эмуляция для фейковых устройств
@@ -280,9 +318,8 @@ const sendEmergencySleep = async () => {
       duration: 2000
     });
 
-    // Эмулируем изменение статуса
-    props.device.status = 'SLEEPING';
-    props.device.voltage = 2.9;
+    // Используем стор для обновления
+    store.updateDeviceStatus(props.device.device_id, 'SLEEPING');
   } else {
     // Для реальных устройств
     const response = await store.forceSleep(props.device.device_id);
@@ -291,6 +328,33 @@ const sendEmergencySleep = async () => {
       emit('emergency-sleep', props.device.device_id);
     } else {
       throw new Error(response.message || 'Ошибка отправки команды сна');
+    }
+  }
+};
+
+// Пробуждение устройства
+const wakeDevice = async () => {
+  if (props.device.is_fake) {
+    // Эмуляция для фейковых устройств
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    ElNotification({
+      title: 'Эмуляция',
+      message: 'Устройство пробуждено',
+      type: 'success',
+      duration: 2000
+    });
+
+    // Используем стор для обновления
+    store.wakeDevice(props.device.device_id);
+  } else {
+    // Для реальных устройств
+    const response = await store.wakeDevice(props.device.device_id);
+
+    if (response.success) {
+      emit('command-sent', props.device.device_id);
+    } else {
+      throw new Error(response.message || 'Ошибка пробуждения устройства');
     }
   }
 };
@@ -333,7 +397,6 @@ const openDeviceSettings = () => {
 
 .content-container {
   flex: 1;
-  width: 50%;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -368,19 +431,7 @@ const openDeviceSettings = () => {
   font-size: 1rem;
   height: 1.5rem;
   line-height: 1.2rem;
-  padding: 0.5rem .5rem;
-}
-
-.fake-tag {
-  background-color: #fff7e6;
-  border-color: #fffae6;
-  color: #e6a23c;
-  display: inline-flex;
-  font-weight: 500;
-  font-size: 1rem;
-  height: 1.5rem;
-  line-height: 1.2rem;
-  padding: 0.5rem .5rem;
+  padding: 0.5rem 0.5rem;
 }
 
 .voltage-info {
@@ -445,6 +496,18 @@ const openDeviceSettings = () => {
   margin-top: auto;
   padding-top: 0.5rem;
   border-top: 1px solid #f5f7fa;
+}
+
+/* Исправленный переключатель */
+.switch-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.switch-label {
+  font-size: 0.85rem;
+  color: #606266;
 }
 
 .intensity-slider {

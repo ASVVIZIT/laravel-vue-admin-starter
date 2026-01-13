@@ -65,7 +65,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import DeviceGrid from '@/components/SmartLight/components/DeviceGrid.vue';
-import DebugPanel from './DebugPanel.vue';  // ПРАВИЛЬНЫЙ ИМПОРТ
+import DebugPanel from './DebugPanel.vue';
 import DeviceSettings from './DeviceSettings.vue';
 
 const store = useSmartLightStore();
@@ -107,6 +107,7 @@ const handleEmergencySleep = async (deviceId) => {
 
 const handleDeviceSelected = (device) => {
   store.selectDevice(device.device_id);
+  selectedDevice.value = device;
 };
 
 const openDeviceSettings = (device) => {

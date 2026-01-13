@@ -8,16 +8,17 @@
                 :status="deviceStatus"
                 :intensity="deviceIntensity"
                 class="header-bulb"
+                v-if="selectedDevice"
             />
           </div>
-          <div class="device-info">
+          <div class="device-info" v-if="selectedDevice">
             <div class="device-name">
               <h3>{{ selectedDevice.name }}</h3>
               <el-tag :type="statusType" size="small">
-                <CircleCheckFilled class="status-icon" v-if="device.status === 'ON'" />
-                <CircleCloseFilled class="status-icon" v-else-if="device.status === 'OFF'" />
-                <Moon class="status-icon" v-else-if="device.status === 'SLEEPING'" />
-                {{ selectedDevice.status }}
+                <CircleCheckFilled class="status-icon" v-if="deviceStatus === 'ON'" />
+                <CircleCloseFilled class="status-icon" v-else-if="deviceStatus === 'OFF'" />
+                <Moon class="status-icon" v-else-if="deviceStatus === 'SLEEPING'" />
+                <span>{{ selectedDevice.status }}</span>
               </el-tag>
             </div>
             <div class="device-id">
@@ -30,15 +31,15 @@
           <el-radio-group v-model="deviceStatus" @change="updateStatus">
             <el-radio-button label="ON" size="mini">
               <CircleCheckFilled class="control-icon" />
-              Вкл
+              <span>Вкл</span>
             </el-radio-button>
             <el-radio-button label="OFF" size="mini">
               <CircleCloseFilled class="control-icon" />
-              Выкл
+              <span>Выкл</span>
             </el-radio-button>
             <el-radio-button label="SLEEPING" size="mini">
               <Moon class="control-icon" />
-              Сон
+              <span>Сон</span>
             </el-radio-button>
           </el-radio-group>
         </div>
@@ -140,19 +141,55 @@
         </div>
 
         <div class="control-group">
-          <label class="control-label">Эмуляция</label>
+          <label class="control-label">Управление</label>
+          <div class="event-buttons">
+            <el-button
+                v-if="deviceStatus !== 'SLEEPING'"
+                size="small"
+                @click="sendEmergencySleep"
+                type="info"
+                class="full-width"
+            >
+              <Moon class="control-icon" />
+              <span>Перевести в сон</span>
+            </el-button>
+            <el-button
+                v-else
+                size="small"
+                @click="wakeDevice"
+                type="success"
+                class="full-width"
+            >
+              <Sunny class="control-icon" />
+              <span>Разбудить</span>
+            </el-button>
+            <el-button
+                size="small"
+                @click="openDeviceSettings"
+                type="primary"
+                class="full-width"
+            >
+              <Setting class="control-icon" />
+              <span>Настройки</span>
+            </el-button>
+          </div>
+        </div>
+
+        <!-- Кнопки эмуляции событий (только для фейковых устройств) -->
+        <div v-if="selectedDevice.is_fake" class="control-group">
+          <label class="control-label">Эмуляция событий</label>
           <div class="event-buttons">
             <el-button size="small" @click="simulateLowVoltage" class="full-width">
               <Warning class="control-icon" />
-              Напряжение
+              <span>Низкое напряжение</span>
             </el-button>
             <el-button size="small" @click="simulateEmergency" class="full-width">
               <Bell class="control-icon" />
-              Авария
+              <span>Аварийное событие</span>
             </el-button>
             <el-button size="small" @click="simulateCommand" class="full-width">
               <CircleCheck class="control-icon" />
-              Команда
+              <span>Сменить статус</span>
             </el-button>
           </div>
         </div>
@@ -169,12 +206,14 @@
 import { computed } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
+  CircleCheckFilled,
   CircleCloseFilled,
+  Sunny,
   Moon,
   Warning,
   Bell,
   CircleCheck,
-  CircleCheckFilled
+  Setting
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import Bulb from '@/components/SmartLight/components/Bulb.vue';
@@ -295,19 +334,104 @@ const currentLevelPosition = computed(() => {
 
 // Цвет критического уровня
 const criticalColor = computed(() => {
+  if (!selectedDevice.value) return '#ffcccb';
+
   const voltage = deviceVoltage.value;
   if (voltage < 2.7) return '#f56c6c';
   if (voltage < 3.0) return '#faa7a7';
   return '#ffcccb';
 });
 
+// Обработчик изменения статуса
+const updateStatus = (value) => {
+  // Обновление через стор
+  if (selectedDevice.value) {
+    store.updateDeviceStatus(selectedDevice.value.device_id, value);
+  }
+};
+
+// Перевод в спящий режим
+const sendEmergencySleep = async () => {
+  if (selectedDevice.value) {
+    if (selectedDevice.value.is_fake) {
+      // Эмуляция для фейковых устройств
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      store.updateDeviceStatus(selectedDevice.value.device_id, 'SLEEPING');
+
+      ElNotification({
+        title: 'Эмуляция',
+        message: 'Устройство переведено в сон',
+        type: 'info',
+        duration: 2000
+      });
+    } else {
+      // Для реальных устройств
+      const response = await store.forceSleep(selectedDevice.value.device_id);
+
+      if (response.success) {
+        ElNotification({
+          title: 'Устройство',
+          message: 'Устройство переведено в спящий режим',
+          type: 'success',
+          duration: 2000
+        });
+      } else {
+        ElNotification({
+          title: 'Ошибка',
+          message: 'Не удалось перевести устройство в спящий режим',
+          type: 'error',
+          duration: 2000
+        });
+      }
+    }
+  }
+};
+
+// Пробуждение устройства
+const wakeDevice = async () => {
+  if (selectedDevice.value) {
+    if (selectedDevice.value.is_fake) {
+      // Эмуляция для фейковых устройств
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      store.wakeDevice(selectedDevice.value.device_id);
+
+      ElNotification({
+        title: 'Эмуляция',
+        message: 'Устройство пробуждено',
+        type: 'success',
+        duration: 2000
+      });
+    } else {
+      // Для реальных устройств
+      const response = await store.wakeDevice(selectedDevice.value.device_id);
+
+      if (response.success) {
+        ElNotification({
+          title: 'Устройство',
+          message: 'Устройство пробуждено',
+          type: 'success',
+          duration: 2000
+        });
+      } else {
+        ElNotification({
+          title: 'Ошибка',
+          message: 'Не удалось пробудить устройство',
+          type: 'error',
+          duration: 2000
+        });
+      }
+    }
+  }
+};
+
 // Эмуляция низкого напряжения
 const simulateLowVoltage = () => {
   if (selectedDevice.value) {
-    const criticalVoltageValue = criticalVoltage.value;
     store.updateDeviceVoltage(
         selectedDevice.value.device_id,
-        criticalVoltageValue - 0.1
+        criticalVoltage.value - 0.1
     );
 
     ElNotification({
@@ -387,6 +511,7 @@ const simulateCommand = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 0.25rem 0.5rem;
 }
 
 .debug-header-content {
@@ -405,13 +530,13 @@ const simulateCommand = () => {
 }
 
 .debug-content {
+  padding: 0.5rem;
   display: flex;
-  width: 108%;
   flex-direction: column;
   gap: 0.5rem;
   flex: 1;
   overflow-y: auto;
-  height: calc(100vh - 320px);
+  height: 360px;
 }
 
 .device-info {
@@ -437,7 +562,6 @@ const simulateCommand = () => {
 
 .control-group {
   display: flex;
-  width: 85%;
   flex-direction: column;
   gap: 0.2rem;
 }
@@ -667,11 +791,11 @@ const simulateCommand = () => {
 :deep(.el-radio-button__inner) {
   display: inline-flex;
   vertical-align: middle;
-  padding: .1rem 0.1rem 0.1rem 0.5rem;
+  padding: .5rem .2rem .4rem .8rem;
   width: 100%;
   min-width: 75px;
   font-size: 0.9rem;
-  height: 1.5rem;
+  height: 2rem;
   line-height: 1.25rem;
 }
 

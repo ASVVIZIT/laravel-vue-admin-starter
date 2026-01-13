@@ -110,6 +110,7 @@ const selectDevice = (device) => {
 <style scoped>
 .device-grid {
   width: 100%;
+  margin-top: 0.5rem;
 }
 
 .device-tabs {
@@ -156,7 +157,8 @@ const selectDevice = (device) => {
   background: #fff7e6;
   border: 1px solid #fffae6;
   border-radius: 3px;
-  margin-bottom: 0.85rem;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   color: #e6a23c;
