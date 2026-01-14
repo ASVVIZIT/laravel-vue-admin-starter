@@ -1,17 +1,7 @@
 <template>
-  <div
-      class="light-bulb"
-      :class="statusClass"
-      :device-id="deviceId"
-  >
-    <!-- 3D визуализация, если поддерживается -->
-    <div v-if="webGLSupported && show3D" class="bulb-3d-container">
-      <div class="three-scene-container" ref="container"></div>
-    </div>
-
+  <div class="bulb-renderer" :style="{ width: width, height: height }">
     <!-- CSS-визуализация как fallback -->
-    <div v-if="!webGLSupported || !show3D" class="css-bulb-container">
-      <!-- Стеклянная колба -->
+    <div class="css-bulb-container" v-if="!webGLSupported || !show3D">
       <div class="bulb-glass">
         <div class="bulb-glass-inner">
           <!-- Нить накаливания -->
@@ -49,7 +39,6 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
-import { checkWebGLSupport, initWhenReady } from '@/components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
   status: {
@@ -65,29 +54,22 @@ const props = defineProps({
     type: String,
     required: true
   },
+  width: {
+    type: String,
+    default: '100%'
+  },
+  height: {
+    type: String,
+    default: '100%'
+  },
   show3D: {
     type: Boolean,
-    default: true
+    default: false
   }
 });
 
-const container = ref(null);
-let scene = null;
-let camera = null;
-let renderer = null;
-let bulb = null;
-let filament = null;
-let bulbLight = null;
-let animationFrame = null;
-
 const store = useSmartLightStore();
-const webGLCheck = checkWebGLSupport();
-const webGLSupported = webGLCheck.isSupported;
-
-// Вычисляем класс состояния
-const statusClass = computed(() => {
-  return `bulb-status-${props.status.toLowerCase()}`;
-});
+const webGLSupported = ref(false); // Для простоты, пока используем только CSS
 
 // Вычисляем интенсивность свечения
 const glowIntensity = computed(() => {
@@ -103,188 +85,16 @@ const glowGradient = computed(() => {
   }
   return 'radial-gradient(circle, rgba(255, 220, 150, 0.9) 0%, rgba(255, 200, 100, 0) 40%, rgba(255, 180, 80, 0) 70%)';
 });
-
-// Создаем 3D-модель лампочки
-const createBulbModel = () => {
-  // Создаем сферу для лампочки
-  const bulbGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-
-  // Создаем материалы
-  const bulbMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.9,
-    roughness: 0.1,
-    metalness: 0.1,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.1
-  });
-
-  bulb = new THREE.Mesh(bulbGeometry, bulbMaterial);
-  bulb.position.z = 0;
-  scene.add(bulb);
-
-  // Создаем нить накаливания
-  const filamentGeometry = new THREE.TorusGeometry(0.1, 0.05, 16, 32, Math.PI * 0.8);
-  const filamentMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    emissive: 0xffff00,
-    emissiveIntensity: 0.8
-  });
-
-  filament = new THREE.Mesh(filamentGeometry, filamentMaterial);
-  filament.rotation.x = Math.PI / 2;
-  filament.position.y = 0.2;
-  scene.add(filament);
-
-  // Создаем свет
-  bulbLight = new THREE.PointLight(0xffffcc, 1, 10);
-  bulbLight.position.copy(bulb.position);
-  scene.add(bulbLight);
-};
-
-// Обработка изменения размера окна
-const onWindowResize = () => {
-  if (!container.value || !camera || !renderer) return;
-
-  camera.aspect = container.value.clientWidth / container.value.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
-};
-
-// Анимация
-const animate = () => {
-  animationFrame = requestAnimationFrame(animate);
-  renderer.render(scene, camera);
-};
-
-// Очистка ресурсов
-const cleanup = () => {
-  if (animationFrame) {
-    cancelAnimationFrame(animationFrame);
-    animationFrame = null;
-  }
-
-  if (renderer) {
-    renderer.dispose();
-    renderer.forceContextLoss();
-    renderer = null;
-  }
-
-  if (container.value && container.value.firstChild) {
-    container.value.removeChild(container.value.firstChild);
-  }
-
-  if (scene) {
-    scene.traverse((object) => {
-      if (object.geometry) object.geometry.dispose();
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach(m => m.dispose());
-        } else {
-          object.material.dispose();
-        }
-      }
-    });
-    scene = null;
-  }
-
-  window.removeEventListener('resize', onWindowResize);
-};
-
-// Инициализация 3D-сцены
-const init = () => {
-  if (!webGLSupported) return;
-
-  // Создаем сцену
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf5f7fa);
-
-  // Создаем камеру
-  camera = new THREE.PerspectiveCamera(
-      75,
-      container.value.clientWidth / container.value.clientHeight,
-      0.1,
-      1000
-  );
-  camera.position.z = 5;
-
-  // Создаем рендерер
-  renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true
-  });
-  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.shadowMap.enabled = true;
-
-  // Добавляем в DOM
-  container.value.appendChild(renderer.domElement);
-
-  // Добавляем освещение
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  scene.add(ambientLight);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1, 1, 1);
-  directionalLight.castShadow = true;
-  scene.add(directionalLight);
-
-  // Создаем модель лампочки
-  createBulbModel();
-
-  // Обработка изменения размера
-  window.addEventListener('resize', onWindowResize);
-};
-
-// Инициализация при монтировании
-onMounted(() => {
-  if (webGLSupported && props.show3D) {
-    // Инициализируем с проверкой готовности контейнера
-    const { ready } = initWhenReady(container.value, init);
-
-    ready.then(isReady => {
-      if (isReady) {
-        animate();
-      }
-    });
-  }
-});
-
-// Очистка при размонтировании
-onUnmounted(() => {
-  cleanup();
-});
-
-// Следим за изменениями
-watch(() => props.status, updateBulbStatus);
-watch(() => props.intensity, updateBulbStatus);
 </script>
 
 <style scoped>
-.light-bulb {
+.bulb-renderer {
   width: 100%;
   height: 100%;
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.bulb-3d-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
-.three-scene-container {
-  width: 100%;
-  height: 100%;
-  min-width: 80px;
-  min-height: 120px;
-  position: relative;
-  overflow: hidden;
 }
 
 .css-bulb-container {

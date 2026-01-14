@@ -50,23 +50,10 @@
           <div class="voltage-control">
             <div class="battery-visualization">
               <div class="battery-container">
-                <div class="battery">
-                  <div
-                      class="battery-normal"
-                      :style="{ width: batteryNormalProgress + '%' }"
-                  ></div>
-                  <div
-                      class="battery-critical"
-                      :style="{ width: batteryCriticalProgress + '%', backgroundColor: criticalColor }"
-                  >
-                    <div class="battery-critical-pattern"></div>
-                  </div>
-                  <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
-                  <div class="battery-mark current-level" :style="{ left: currentLevelPosition + '%' }"></div>
-                  <div class="battery-cap"></div>
-                  <div class="battery-plus">+</div>
-                  <div class="battery-minus">-</div>
-                </div>
+                <BatteryRenderer
+                    :voltage="deviceVoltage"
+                    :critical-voltage="criticalVoltage"
+                />
                 <div class="battery-levels">
                   <span class="battery-level" :style="{ left: '0%' }">2.5 В</span>
                   <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ formattedCriticalThreshold }}</span>
@@ -75,30 +62,30 @@
                 <div class="voltage-value">{{ deviceVoltage.toFixed(2) }} В</div>
               </div>
             </div>
+          </div>
 
-            <div class="voltage-input-container">
-              <div class="voltage-input">
-                <el-input-number
-                    v-model="deviceVoltage"
-                    :min="2.5"
-                    :max="4.3"
-                    :step="0.01"
-                    :precision="2"
-                    :controls="true"
-                    class="voltage-input-field"
-                />
-                <span class="voltage-unit">В</span>
-              </div>
-
-              <el-slider
+          <div class="voltage-input-container">
+            <div class="voltage-input">
+              <el-input-number
                   v-model="deviceVoltage"
                   :min="2.5"
                   :max="4.3"
                   :step="0.01"
-                  :format-tooltip="formatVoltageTooltip"
-                  class="voltage-slider"
+                  :precision="2"
+                  :controls="true"
+                  class="voltage-input-field"
               />
+              <span class="voltage-unit">В</span>
             </div>
+
+            <el-slider
+                v-model="deviceVoltage"
+                :min="2.5"
+                :max="4.3"
+                :step="0.01"
+                :format-tooltip="formatVoltageTooltip"
+                class="voltage-slider"
+            />
           </div>
         </div>
 
@@ -203,7 +190,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
   CircleCheckFilled,
@@ -217,6 +204,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import Bulb from '@/components/SmartLight/components/Bulb.vue';
+import BatteryRenderer from '@/components/SmartLight/components/BatteryRenderer.vue';
 
 const store = useSmartLightStore();
 const selectedDevice = computed(() => store.selectedDevice);
@@ -289,62 +277,8 @@ const criticalThresholdPosition = computed(() => {
   return ((criticalVoltageValue - min) / (max - min)) * 100;
 });
 
-// Нормальный прогресс (от критического порога до max)
-const batteryNormalProgress = computed(() => {
-  if (!selectedDevice.value) return 0;
-
-  const min = 2.5;
-  const max = 4.3;
-
-  if (deviceVoltage.value <= criticalVoltage.value) {
-    return 0;
-  }
-
-  const normalVoltage = deviceVoltage.value - criticalVoltage.value;
-  const maxNormalVoltage = max - criticalVoltage.value;
-
-  return Math.min(100, Math.max(0, (normalVoltage / maxNormalVoltage) * 100));
-});
-
-// Критический прогресс (от min до критического порога)
-const batteryCriticalProgress = computed(() => {
-  if (!selectedDevice.value) return 0;
-
-  const min = 2.5;
-  const max = 4.3;
-
-  if (deviceVoltage.value >= criticalVoltage.value) {
-    return 0;
-  }
-
-  const criticalVoltageValue = criticalVoltage.value - deviceVoltage.value;
-  const criticalVoltageRange = criticalVoltage.value - min;
-
-  return Math.min(100, Math.max(0, (criticalVoltageValue / criticalVoltageRange) * 100));
-});
-
-// Позиция текущего уровня
-const currentLevelPosition = computed(() => {
-  if (!selectedDevice.value) return 0;
-
-  const min = 2.5;
-  const max = 4.3;
-  return ((deviceVoltage.value - min) / (max - min)) * 100;
-});
-
-// Цвет критического уровня
-const criticalColor = computed(() => {
-  if (!selectedDevice.value) return '#ffcccb';
-
-  const voltage = deviceVoltage.value;
-  if (voltage < 2.7) return '#f56c6c';
-  if (voltage < 3.0) return '#faa7a7';
-  return '#ffcccb';
-});
-
 // Обработчик изменения статуса
 const updateStatus = (value) => {
-  // Обновление через стор
   if (selectedDevice.value) {
     store.updateDeviceStatus(selectedDevice.value.device_id, value);
   }
@@ -354,7 +288,6 @@ const updateStatus = (value) => {
 const sendEmergencySleep = async () => {
   if (selectedDevice.value) {
     if (selectedDevice.value.is_fake) {
-      // Эмуляция для фейковых устройств
       await new Promise(resolve => setTimeout(resolve, 300));
 
       store.updateDeviceStatus(selectedDevice.value.device_id, 'SLEEPING');
@@ -366,7 +299,6 @@ const sendEmergencySleep = async () => {
         duration: 2000
       });
     } else {
-      // Для реальных устройств
       const response = await store.forceSleep(selectedDevice.value.device_id);
 
       if (response.success) {
@@ -392,7 +324,6 @@ const sendEmergencySleep = async () => {
 const wakeDevice = async () => {
   if (selectedDevice.value) {
     if (selectedDevice.value.is_fake) {
-      // Эмуляция для фейковых устройств
       await new Promise(resolve => setTimeout(resolve, 300));
 
       store.wakeDevice(selectedDevice.value.device_id);
@@ -404,7 +335,6 @@ const wakeDevice = async () => {
         duration: 2000
       });
     } else {
-      // Для реальных устройств
       const response = await store.wakeDevice(selectedDevice.value.device_id);
 
       if (response.success) {

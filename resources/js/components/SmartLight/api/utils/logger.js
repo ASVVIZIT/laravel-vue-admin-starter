@@ -1,4 +1,9 @@
-// resources/js/components/SmartLight/api/utils/logger.js
+/**
+ * Утилита для логирования событий
+ * Поддерживает разные уровни логирования
+ * Работает в режиме отладки
+ */
+
 class SmartLightLogger {
     constructor(enabled = true) {
         this.enabled = enabled;
@@ -47,4 +52,5 @@ class SmartLightLogger {
 }
 
 // Создаем экземпляр с включенным логированием в режиме разработки
-export const logger = new SmartLightLogger(true);
+const isDebugEnabled = import.meta.env.VITE_APP_DEBUG === 'true';
+export const logger = new SmartLightLogger(isDebugEnabled);

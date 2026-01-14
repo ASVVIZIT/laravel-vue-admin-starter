@@ -11,6 +11,7 @@
         <Bulb
             :status="device.status"
             :intensity="device.intensity"
+            :device-id="device.device_id"
             v-if="device"
         />
       </div>
@@ -36,21 +37,17 @@
         <div class="device-info">
           <div class="voltage-info">
             <div class="battery-container">
-              <div class="battery">
-                <div
-                    class="battery-fill"
-                    :style="{
-                    width: batteryProgress + '%',
-                    backgroundColor: batteryColor
-                  }"
-                ></div>
-                <div class="battery-cap"></div>
-              </div>
+              <BatteryRenderer
+                  :device-id="device.device_id"
+                  :voltage="device.voltage"
+                  :critical-voltage="device.critical_voltage"
+                  :show3D="show3D"
+              />
             </div>
             <span class="voltage-value">{{ device.voltage?.toFixed(2) || '3.70' }} В</span>
             <span class="runtime-info">
               <Timer class="runtime-icon" />
-              {{ estimatedRuntime }}
+              {{ deviceRuntime }}
             </span>
           </div>
         </div>
@@ -62,7 +59,7 @@
                 v-model="isDeviceOn"
                 @change="handleSwitchChange"
                 :loading="loading"
-                :disabled="device.status === 'SLEEPING'"
+                :disabled="device.is_fake || device.status === 'SLEEPING'"
                 class="status-switch"
             >
               <template #active>
@@ -79,14 +76,14 @@
             </div>
           </div>
 
-          <!-- Слайдер интенсивности (всегда виден, но неактивен при выключенном состоянии) -->
+          <!-- Исправленный слайдер интенсивности -->
           <el-slider
               v-model="device.intensity"
-              :min="0"
-              :max="100"
+              :min="safeIntensity.min"
+              :max="safeIntensity.max"
               @change="updateIntensity"
               class="intensity-slider"
-              :disabled="!isDeviceOn || device.status === 'SLEEPING'"
+              :disabled="!isDeviceOn || device.is_fake || device.status === 'SLEEPING'"
           />
 
           <div class="control-buttons">
@@ -137,6 +134,7 @@ import {
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import Bulb from '@/components/SmartLight/components/Bulb.vue';
+import BatteryRenderer from '@/components/SmartLight/components/BatteryRenderer.vue';
 
 const props = defineProps({
   device: {
@@ -153,25 +151,17 @@ const emit = defineEmits(['command-sent', 'emergency-sleep', 'open-settings']);
 
 const store = useSmartLightStore();
 const loading = ref(false);
-
-// Инициализация значений, если их нет
-if (!props.device.intensity) {
-  props.device.intensity = 100;
-}
-
-if (!props.device.voltage) {
-  props.device.voltage = 3.7;
-}
+const show3D = ref(true);
 
 // Вычисляемое свойство для переключателя
 const isDeviceOn = computed({
   get: () => props.device.status === 'ON',
   set: (value) => {
-    // Ничего не делаем здесь, обработка в handleSwitchChange
+    // Ничего не делаем здесь
   }
 });
 
-// Статус
+// Тип статуса
 const statusType = computed(() => {
   switch (props.device.status) {
     case 'ON': return 'success';
@@ -183,34 +173,22 @@ const statusType = computed(() => {
 
 // Прогресс батареи
 const batteryProgress = computed(() => {
-  const voltage = props.device.voltage || 3.7;
-  const minVoltage = 2.5;
-  const maxVoltage = 4.3;
-
-  return Math.min(100, Math.max(0, ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100));
+  return store.deviceBatteryProgress(props.device.device_id);
 });
 
+// Цвет батареи
 const batteryColor = computed(() => {
-  const voltage = props.device.voltage || 3.7;
-  if (voltage < 3.0) return '#f56c6c';
-  if (voltage < 3.4) return '#e6a23c';
-  return '#67c23a';
+  return store.deviceBatteryColor(props.device.device_id);
 });
 
 // Расчет времени работы
-const estimatedRuntime = computed(() => {
-  const voltage = props.device.voltage || 3.7;
-  const minVoltage = 2.8;
-  const maxVoltage = 4.2;
+const deviceRuntime = computed(() => {
+  return store.deviceRuntime(props.device.device_id);
+});
 
-  if (voltage <= minVoltage) return 'КРИТ';
-
-  const percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
-  const hours = Math.round(percentage * 10);
-
-  if (hours < 1) return `${hours * 60} мин`;
-  if (hours < 24) return `${hours} ч`;
-  return `${Math.floor(hours / 24)}дн`;
+// Безопасный диапазон интенсивности
+const safeIntensity = computed(() => {
+  return store.deviceSafeIntensityRange(props.device.device_id);
 });
 
 // Обработчик изменения переключателя
@@ -219,7 +197,6 @@ const handleSwitchChange = async (value) => {
   const command = value ? 'ON' : 'OFF';
 
   try {
-    // Для фейковых устройств эмулируем ответ
     if (props.device.is_fake) {
       await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -227,7 +204,6 @@ const handleSwitchChange = async (value) => {
       store.updateDeviceStatus(props.device.device_id, command);
       store.updateDeviceIntensity(props.device.device_id, command === 'ON' ? 100 : 0);
 
-      // Для фейковых устройств обновляем напряжение
       if (command === 'ON') {
         store.updateDeviceVoltage(
             props.device.device_id,
@@ -247,7 +223,6 @@ const handleSwitchChange = async (value) => {
         duration: 2000
       });
     } else {
-      // Для реальных устройств
       const response = await store.sendCommand(
           props.device.device_id,
           command,
@@ -281,9 +256,7 @@ const handleSwitchChange = async (value) => {
 const updateIntensity = async () => {
   if (props.device.status === 'ON') {
     if (props.device.is_fake) {
-      // Для фейковых устройств эмуляция
       await new Promise(resolve => setTimeout(resolve, 300));
-
       ElNotification({
         title: 'Эмуляция',
         message: 'Изменение интенсивности',
@@ -291,7 +264,6 @@ const updateIntensity = async () => {
         duration: 2000
       });
     } else {
-      // Для реальных устройств
       const response = await store.sendCommand(
           props.device.device_id,
           props.device.status,
@@ -308,20 +280,16 @@ const updateIntensity = async () => {
 // Перевод в спящий режим
 const sendEmergencySleep = async () => {
   if (props.device.is_fake) {
-    // Эмуляция для фейковых устройств
     await new Promise(resolve => setTimeout(resolve, 300));
-
     ElNotification({
       title: 'Эмуляция',
       message: 'Команда сна отправлена',
       type: 'info',
       duration: 2000
     });
-
     // Используем стор для обновления
     store.updateDeviceStatus(props.device.device_id, 'SLEEPING');
   } else {
-    // Для реальных устройств
     const response = await store.forceSleep(props.device.device_id);
 
     if (response.success) {
@@ -335,20 +303,16 @@ const sendEmergencySleep = async () => {
 // Пробуждение устройства
 const wakeDevice = async () => {
   if (props.device.is_fake) {
-    // Эмуляция для фейковых устройств
     await new Promise(resolve => setTimeout(resolve, 300));
-
     ElNotification({
       title: 'Эмуляция',
       message: 'Устройство пробуждено',
       type: 'success',
       duration: 2000
     });
-
     // Используем стор для обновления
     store.wakeDevice(props.device.device_id);
   } else {
-    // Для реальных устройств
     const response = await store.wakeDevice(props.device.device_id);
 
     if (response.success) {
@@ -362,6 +326,14 @@ const wakeDevice = async () => {
 const openDeviceSettings = () => {
   emit('open-settings', props.device);
 };
+
+// Следим за изменениями в сторе
+watch(() => store.devices, (newDevices) => {
+  const device = newDevices.find(d => d.device_id === props.device.device_id);
+  if (device) {
+    props.device = { ...device };
+  }
+}, { deep: true });
 </script>
 
 <style scoped>
@@ -390,9 +362,12 @@ const openDeviceSettings = () => {
 
 .bulb-container {
   width: 80px;
+  height: 120px;
   display: flex;
   justify-content: center;
   margin-right: 0.75rem;
+  min-width: 80px;
+  min-height: 120px;
 }
 
 .content-container {
@@ -454,6 +429,7 @@ const openDeviceSettings = () => {
   border-radius: 3px;
   background: #f5f7fa;
   overflow: hidden;
+  position: relative;
 }
 
 .battery {
