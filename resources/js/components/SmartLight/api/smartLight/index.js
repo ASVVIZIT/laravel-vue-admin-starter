@@ -3,3 +3,4 @@ export * from './SettingsApi.js';
 export * from './DevicesApi.js';
 export * from './CommandsApi.js';
 export * from './SmartLightApi.js';
+export * from './TypesApi.js';

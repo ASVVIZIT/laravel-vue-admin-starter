@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/batteryTypes/BatteryTypeApi.js
 import { BATTERY_TYPES } from '@/components/SmartLight/stores/batteryTypes.js';
 import { logger } from '@/components/SmartLight/api/utils/logger.js';
 import { ApiUtils } from '@/components/SmartLight/api/utils/types.js';

@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/core/PowerSupplyResource.js
 import { BaseResource } from './BaseResource.js';
 
 export class PowerSupplyResource extends BaseResource {

@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/core/BulbTypeResource.js
 import { BaseResource } from './BaseResource.js';
 
 export class BulbTypeResource extends BaseResource {

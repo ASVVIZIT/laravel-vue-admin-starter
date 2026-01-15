@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/smartLight/SettingsApi.js
 import { SmartLightResource } from '../core/SmartLightResource.js';
 
 const resource = new SmartLightResource();

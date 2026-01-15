@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/core/BatteryTypeResource.js
 import { BaseResource } from './BaseResource.js';
 
 export class BatteryTypeResource extends BaseResource {

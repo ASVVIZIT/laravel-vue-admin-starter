@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/powerSupplies/PowerSupplyApi.js
 import { POWER_SUPPLY_TYPES } from '@/components/SmartLight/stores/powerSupplyTypes.js';
 import { logger } from '@/components/SmartLight/api/utils/logger.js';
 import { ApiUtils } from '@/components/SmartLight/api/utils/types.js';

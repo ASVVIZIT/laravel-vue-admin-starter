@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/core/BaseResource.js
 import request from '@/utils/request.js';
 
 export class BaseResource {

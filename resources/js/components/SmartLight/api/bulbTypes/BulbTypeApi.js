@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/bulbTypes/BulbTypeApi.js
 import { BULB_TYPES } from '@/components/SmartLight/stores/bulbTypes.js';
 import { logger } from '@/components/SmartLight/api/utils/logger.js';
 import { ApiUtils } from '@/components/SmartLight/api/utils/types.js';
