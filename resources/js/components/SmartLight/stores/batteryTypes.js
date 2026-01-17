@@ -1,6 +1,30 @@
 /**
- * Данные о типах аккумуляторов
- * Вынесены из стора для улучшения поддержки
+ * Единая точка входа для типов аккумуляторов
+ * Все данные о типах аккумуляторов определены здесь
+ *
+ * Структура данных:
+ * - id: уникальный идентификатор типа
+ * - name: название
+ * - category: категория (cylindrical, rectangular)
+ * - chemistry: химический состав
+ * - nominalVoltage: номинальное напряжение
+ * - minVoltage: минимальное напряжение
+ * - maxVoltage: максимальное напряжение
+ * - criticalVoltage: критическое напряжение
+ * - nominalCapacity: номинальная емкость
+ * - dimensions: габариты
+ * - shape: форма
+ * - chargeCycles: количество циклов заряда
+ * - weight: вес
+ * - energyDensity: энергетическая плотность
+ * - temperatureRange: диапазон температур
+ * - safetyFeatures: функции безопасности
+ * - visualFeatures: визуальные свойства
+ * - groupSupport: поддерживаемые типы группировки
+ * - groupVisualization: визуализация группировки
+ * - defaultSettings: настройки по умолчанию
+ * - degradation: деградация
+ * - selfDischarge: саморазряд
  */
 
 export const BATTERY_TYPES = [
@@ -37,9 +61,9 @@ export const BATTERY_TYPES = [
             fluidEffect: true,
             liquidColor: '#67c23a',
             criticalColor: '#f56c6c',
-            baseColor: '#ebeef5',
+            baseColor: '#f5f7fa',
             capColor: '#ffa640',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: true,
@@ -112,7 +136,7 @@ export const BATTERY_TYPES = [
             criticalColor: '#f56c6c',
             baseColor: '#ebeef5',
             capColor: '#ffa640',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: true,
@@ -185,7 +209,7 @@ export const BATTERY_TYPES = [
             criticalColor: '#f56c6c',
             baseColor: '#f5f7fa',
             capColor: '#ffcc00',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: true,
@@ -258,7 +282,7 @@ export const BATTERY_TYPES = [
             criticalColor: '#f56c6c',
             baseColor: '#ebeef5',
             capColor: '#c0c0c0',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: false,
@@ -297,15 +321,3 @@ export const BATTERY_TYPES = [
         }
     }
 ];
-
-export const getBatteryTypeById = (id) => {
-    return BATTERY_TYPES.find(type => type.id === id);
-};
-
-export const getBatteryTypeByCategory = (category) => {
-    return BATTERY_TYPES.filter(type => type.category === category);
-};
-
-export const getBatteryTypeByChemistry = (chemistry) => {
-    return BATTERY_TYPES.filter(type => type.chemistry === chemistry);
-};

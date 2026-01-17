@@ -1,127 +1,130 @@
 <template>
-  <div
-      class="device-card"
-      :class="{
-      'device-card--selected': isSelected
-    }"
-  >
-    <div class="device-card-content">
-      <!-- Вертикальная лампочка слева -->
-      <div class="bulb-container">
-        <Bulb
-            :status="device.status"
-            :intensity="device.intensity"
-            :device-id="device.device_id"
-            v-if="device"
-        />
+  <div class="device-card" :class="{
+    'device-card--selected': isSelected,
+    'device-card--3d': show3D
+  }">
+    <!-- Шапка -->
+    <div class="device-header">
+      <h3 class="device-name">{{ device.name }}</h3>
+      <div class="header-actions">
+        <el-switch
+            v-model="show3D"
+            size="small"
+            active-text="3D"
+            inactive-text="2D"
+        >
+          <template #active>
+            <Eleme class="mode-icon" />
+          </template>
+          <template #inactive>
+            <Grid class="mode-icon" />
+          </template>
+        </el-switch>
+      </div>
+    </div>
+
+    <!-- Тело карточки -->
+    <div class="device-content">
+      <!-- Линия 1: Визуализация и информация -->
+      <div class="device-main">
+        <!-- Блок с лампочкой -->
+        <div class="bulb-block">
+          <div class="bulb-container">
+            <Bulb
+                :device-id="device.device_id"
+                :show-3d="show3D"
+            />
+          </div>
+        </div>
+
+        <!-- Блок с информацией об аккумуляторе -->
+        <div class="battery-block">
+          <div class="battery-info">
+            <BatteryRenderer
+                :device-id="device.device_id"
+                :show-3d="show3D"
+            />
+          </div>
+        </div>
       </div>
 
-      <!-- Основное содержимое карточки -->
-      <div class="content-container" v-if="device">
-        <div class="device-header">
-          <h3 class="device-name">{{ device.name }}</h3>
-          <div class="status-container">
-            <el-tag :type="statusType" size="small" class="status-tag">
-              <CircleCheckFilled class="status-icon" v-if="device.status === 'ON'" />
-              <CircleCloseFilled class="status-icon" v-else-if="device.status === 'OFF'" />
-              <Moon class="status-icon" v-else-if="device.status === 'SLEEPING'" />
-              <span>{{ device.status }}</span>
-            </el-tag>
-            <div v-if="device.is_fake" class="fake-warning">
-              <Warning class="warning-icon" />
-              <span>Тестовое устройство</span>
-            </div>
-          </div>
+      <!-- Линия 2: Кнопки управления -->
+      <div class="device-controls">
+        <!-- Переключатель состояния -->
+        <div class="status-control">
+          <el-switch
+              v-model="isDeviceOn"
+              @change="handleSwitchChange"
+              :loading="loading"
+              :disabled="device.is_fake || device.status === 'SLEEPING'"
+              class="status-switch"
+          >
+            <template #active>
+              <CircleCheckFilled class="switch-icon" />
+              Вкл
+            </template>
+            <template #inactive>
+              <CircleCloseFilled class="switch-icon" />
+              Выкл
+            </template>
+          </el-switch>
         </div>
 
-        <div class="device-info">
-          <div class="voltage-info">
-            <div class="battery-container">
-              <BatteryRenderer
-                  :device-id="device.device_id"
-                  :voltage="device.voltage"
-                  :critical-voltage="device.critical_voltage"
-                  :show3D="show3D"
-              />
-            </div>
-            <span class="voltage-value">{{ device.voltage?.toFixed(2) || '3.70' }} В</span>
-            <span class="runtime-info">
-              <Timer class="runtime-icon" />
-              {{ deviceRuntime }}
-            </span>
-          </div>
-        </div>
-
-        <div class="device-controls">
-          <!-- Исправленный переключатель -->
-          <div class="switch-container">
-            <el-switch
-                v-model="isDeviceOn"
-                @change="handleSwitchChange"
-                :loading="loading"
-                :disabled="device.is_fake || device.status === 'SLEEPING'"
-                class="status-switch"
-            >
-              <template #active>
-                <CircleCheckFilled class="switch-icon" />
-                Вкл
-              </template>
-              <template #inactive>
-                <CircleCloseFilled class="switch-icon" />
-                Выкл
-              </template>
-            </el-switch>
-            <div class="switch-label">
-              {{ isDeviceOn ? 'Включено' : 'Выключено' }}
-            </div>
-          </div>
-
-          <!-- Исправленный слайдер интенсивности -->
+        <!-- Слайдер интенсивности -->
+        <div class="intensity-control">
           <el-slider
               v-model="device.intensity"
-              :min="safeIntensity.min"
-              :max="safeIntensity.max"
+              :min="0"
+              :max="100"
               @change="updateIntensity"
               class="intensity-slider"
               :disabled="!isDeviceOn || device.is_fake || device.status === 'SLEEPING'"
           />
+        </div>
 
-          <div class="control-buttons">
-            <el-button
-                v-if="device.status !== 'SLEEPING'"
-                size="small"
-                @click="sendEmergencySleep"
-                type="info"
-            >
-              <Moon class="control-icon" />
-              Сон
-            </el-button>
-            <el-button
-                v-else
-                size="small"
-                @click="wakeDevice"
-                type="success"
-            >
-              <Sunny class="control-icon" />
-              Разбудить
-            </el-button>
-            <el-button
-                size="small"
-                @click="openDeviceSettings"
-                type="primary"
-            >
-              <Setting class="control-icon" />
-              Настройки
-            </el-button>
-          </div>
+        <!-- Основные кнопки управления -->
+        <div class="action-buttons">
+          <el-button
+              v-if="device.status !== 'SLEEPING'"
+              size="small"
+              @click="sendEmergencySleep"
+              type="info"
+          >
+            <Moon class="control-icon" />
+            <span>Сон</span>
+          </el-button>
+          <el-button
+              v-else
+              size="small"
+              @click="wakeDevice"
+              type="success"
+          >
+            <Sunny class="control-icon" />
+            <span>Разбудить</span>
+          </el-button>
+
+          <el-button
+              size="small"
+              @click="openDeviceSettings"
+              type="primary"
+          >
+            <Setting class="control-icon" />
+            <span>Настройки</span>
+          </el-button>
         </div>
       </div>
+    </div>
+
+    <!-- Футер -->
+    <div v-if="device.is_fake" class="device-footer">
+      <Warning class="footer-icon" />
+      <span>Тестовое устройство</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
   Moon,
@@ -130,7 +133,9 @@ import {
   Setting,
   CircleCheckFilled,
   CircleCloseFilled,
-  Timer
+  Timer,
+  Eleme,
+  Grid
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import Bulb from '@/components/SmartLight/components/Bulb.vue';
@@ -151,44 +156,21 @@ const emit = defineEmits(['command-sent', 'emergency-sleep', 'open-settings']);
 
 const store = useSmartLightStore();
 const loading = ref(false);
-const show3D = ref(true);
+
+// Определяем режим отображения для этого устройства
+const show3D = computed({
+  get: () => store.getDevice3DMode(props.device.device_id),
+  set: (value) => {
+    store.setDevice3DMode(props.device.device_id, value);
+  }
+});
 
 // Вычисляемое свойство для переключателя
 const isDeviceOn = computed({
   get: () => props.device.status === 'ON',
   set: (value) => {
-    // Ничего не делаем здесь
+    // Ничего не делаем здесь - реактивность обрабатывается через handleSwitchChange
   }
-});
-
-// Тип статуса
-const statusType = computed(() => {
-  switch (props.device.status) {
-    case 'ON': return 'success';
-    case 'OFF': return 'info';
-    case 'SLEEPING': return 'warning';
-    default: return 'danger';
-  }
-});
-
-// Прогресс батареи
-const batteryProgress = computed(() => {
-  return store.deviceBatteryProgress(props.device.device_id);
-});
-
-// Цвет батареи
-const batteryColor = computed(() => {
-  return store.deviceBatteryColor(props.device.device_id);
-});
-
-// Расчет времени работы
-const deviceRuntime = computed(() => {
-  return store.deviceRuntime(props.device.device_id);
-});
-
-// Безопасный диапазон интенсивности
-const safeIntensity = computed(() => {
-  return store.deviceSafeIntensityRange(props.device.device_id);
 });
 
 // Обработчик изменения переключателя
@@ -199,7 +181,6 @@ const handleSwitchChange = async (value) => {
   try {
     if (props.device.is_fake) {
       await new Promise(resolve => setTimeout(resolve, 300));
-
       // Используем стор для обновления
       store.updateDeviceStatus(props.device.device_id, command);
       store.updateDeviceIntensity(props.device.device_id, command === 'ON' ? 100 : 0);
@@ -334,13 +315,18 @@ watch(() => store.devices, (newDevices) => {
     props.device = { ...device };
   }
 }, { deep: true });
+
+// Инициализация
+onMounted(() => {
+  store.initInterfaceSettings();
+});
 </script>
 
 <style scoped>
 .device-card {
   background: #fff;
   border-radius: 4px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 1px 3px 14px 6px #00000040;
   padding: 0.75rem;
   height: 100%;
   display: flex;
@@ -355,34 +341,20 @@ watch(() => store.devices, (newDevices) => {
       0 0 0 2px #409eff;
 }
 
-.device-card-content {
-  display: flex;
-  height: 100%;
+.device-card--3d {
+  box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      0 0 0 2px #ff9800;
 }
 
-.bulb-container {
-  width: 80px;
-  height: 120px;
-  display: flex;
-  justify-content: center;
-  margin-right: 0.75rem;
-  min-width: 80px;
-  min-height: 120px;
-}
-
-.content-container {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
+/* Шапка */
 .device-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
-  flex-wrap: wrap;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f5f7fa;
 }
 
 .device-name {
@@ -394,138 +366,125 @@ watch(() => store.devices, (newDevices) => {
   max-width: 100%;
 }
 
-.status-container {
+.header-actions {
   display: flex;
   gap: 0.3rem;
   flex-shrink: 0;
 }
 
-.status-tag {
-  display: inline-flex;
-  font-weight: 500;
-  font-size: 1rem;
-  height: 1.5rem;
-  line-height: 1.2rem;
-  padding: 0.5rem 0.5rem;
+/* Тело карточки */
+.device-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
-.voltage-info {
-  margin-bottom: 0.5rem;
+/* Основной блок с лампочкой и аккумулятором */
+.device-main {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 0.2rem;
+  margin-bottom: 0.7rem;
+}
+
+.bulb-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  border-radius: 4px;
+  background: #f9fafb;
+  border: 1px solid #f5f7fa;
+}
+
+.bulb-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Блок информации об аккумуляторе */
+.battery-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+}
+
+.battery-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
 }
 
 .voltage-value {
-  position: relative;
-  top: -35px;
-  z-index: 2;
-  font-weight: 600;
-  display: block;
-  font-size: 1.25rem;
-  white-space: nowrap;
-  text-align: center;
-}
-
-.battery-container {
-  height: 50px;
-  border-radius: 3px;
-  background: #f5f7fa;
-  overflow: hidden;
-  position: relative;
-}
-
-.battery {
-  position: relative;
-  height: 46px;
-  border: 2px solid rgba(66, 154, 220, 0.71);
-  border-radius: 3px;
-  background: #f5f7fa;
-  overflow: hidden;
-}
-
-.battery-fill {
-  height: 100%;
-  transition: width 0.3s ease, background-color 0.3s ease;
-}
-
-.battery-cap {
-  position: absolute;
-  top: 0px;
-  right: 0px;
-  width: 2px;
-  height: 50px;
-  background: #ffa640;
-  border-radius: 1px;
+  font-weight: bold;
+  color: #409eff;
+  font-size: 1.1rem;
+  margin-top: 0.2rem;
 }
 
 .runtime-info {
-  position: relative;
-  top: -53px;
-  right: -10px;
-  z-index: 1;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: #545864;
   display: flex;
   align-items: center;
   gap: 0.2rem;
 }
 
+/* Блок управления */
 .device-controls {
-  margin-top: auto;
-  padding-top: 0.5rem;
-  border-top: 1px solid #f5f7fa;
-}
-
-/* Исправленный переключатель */
-.switch-container {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.switch-label {
-  font-size: 0.85rem;
-  color: #606266;
+.status-control {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.2rem;
+}
+
+.intensity-control {
+  margin-bottom: 0.3rem;
 }
 
 .intensity-slider {
-  margin: 0.3rem 0;
+  width: 100%;
 }
 
-.control-buttons {
+.action-buttons {
   display: flex;
   justify-content: space-between;
   gap: 0.3rem;
-  margin-top: 0.5rem;
 }
 
-.fake-warning {
-  margin-top: 0.5rem;
-  padding: 0.2rem;
-  background: #fff7e6;
-  border: 1px solid #fffae6;
-  border-radius: 2px;
-  font-size: 0.75rem;
-  color: #e6a23c;
+/* Футер */
+.device-footer {
+  margin-top: auto;
+  padding-top: 0.5rem;
+  border-top: 1px solid #f5f7fa;
   display: flex;
   align-items: center;
   gap: 0.2rem;
+  color: #e6a23c;
+  font-size: 0.75rem;
 }
 
-/* РАЗМЕРЫ ИКОНОК */
-:deep(.status-icon) {
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.25rem;
-}
-
-:deep(.fake-icon) {
-  width: 1rem;
-  height: 1rem;
-  margin-right: 0.25rem;
-}
-
-:deep(.runtime-icon) {
+.footer-icon {
   width: 0.9rem;
   height: 0.9rem;
+}
+
+/* Размеры иконок */
+:deep(.mode-icon) {
+  width: 0.8rem;
+  height: 0.8rem;
 }
 
 :deep(.switch-icon) {
@@ -540,12 +499,16 @@ watch(() => store.devices, (newDevices) => {
   margin-right: 0.25rem;
 }
 
-:deep(.warning-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
+:deep(.runtime-icon) {
+  width: 0.8rem;
+  height: 0.8rem;
 }
 
 /* Стили для компонентов Element Plus */
+:deep(.status-switch) {
+  width: 100%;
+}
+
 :deep(.el-switch) {
   height: 1.3rem;
   font-size: 0.8rem;
@@ -559,6 +522,10 @@ watch(() => store.devices, (newDevices) => {
   padding: 2px 6px;
   height: 1.4rem;
   font-size: 0.75rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 :deep(.el-button.is-disabled) {
@@ -566,8 +533,8 @@ watch(() => store.devices, (newDevices) => {
 }
 
 :deep(.el-slider__runway) {
-  margin: 2px 0;
   height: 1px;
+  margin: 2px 0;
 }
 
 :deep(.el-slider__button) {

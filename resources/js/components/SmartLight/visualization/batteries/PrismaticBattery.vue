@@ -31,16 +31,21 @@ const props = defineProps({
 </script>
 
 <style scoped>
-/* Специфичные стили для цилиндрического аккумулятора */
+/* Специфичные стили для призматического аккумулятора */
 .battery-container {
-  border-radius: 12px;
+  height: 50px;
 }
 
 .battery {
-  border-radius: 12px;
+  height: 40px;
+  border-radius: 4px;
 }
 
-.battery-cap {
-  border-radius: 0 0 0 1px;
+.battery-normal {
+  border-radius: 4px 0 0 4px;
+}
+
+.battery-critical {
+  border-radius: 4px 0 0 4px;
 }
 </style>

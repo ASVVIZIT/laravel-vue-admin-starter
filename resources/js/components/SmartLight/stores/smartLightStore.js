@@ -1,10 +1,16 @@
 import { defineStore } from 'pinia';
 import { SmartLightResource } from '@/components/SmartLight/api/core/SmartLightResource.js';
+import { BATTERY_TYPES } from '@/components/SmartLight/stores/batteryTypes.js';
+import { BULB_TYPES } from '@/components/SmartLight/stores/bulbTypes.js';
 
 export const useSmartLightStore = defineStore('smartLight', {
     state: () => ({
         devices: [],
         selectedDevice: null,
+        types: {
+            batteryTypes: BATTERY_TYPES,
+            bulbTypes: BULB_TYPES
+        },
         globalSettings: {
             global_server_url: '',
             default_critical_voltage: 3.2,
@@ -14,25 +20,42 @@ export const useSmartLightStore = defineStore('smartLight', {
             default_wifi_password: '',
             timezone: 'Europe/Moscow',
             log_level: 'info',
-            telemetry_retention_days: 30,
-            voltageWarningThreshold: 0.15,
-            voltageCriticalThreshold: 0.10
+            telemetry_retention_days: 30
+        },
+        interfaceSettings: {
+            global3DMode: false,
+            device3DSettings: {}
         },
         loading: false,
         error: null,
         lastCommandTimestamp: 0,
         COMMAND_DEBOUNCE: 1000
     }),
-
     getters: {
         realDevices: state => state.devices.filter(device => !device.is_fake),
         fakeDevices: state => state.devices.filter(device => device.is_fake),
         hasFakeDevices: state => state.fakeDevices.length > 0,
-        selectedDeviceId: state => state.selectedDevice ? state.selectedDevice.device_id : null,
+        selectedDeviceId: state => state.selectedDevice ? state.selectedDevice : null,
 
-        // Геттеры для работы с аккумулятором
+        getDevice: state => deviceId => {
+            return state.devices.find(d => d.device_id === deviceId);
+        },
+
+        getSelectedDevice: state => {
+            if (!state.selectedDevice) return null;
+            return state.getDevice(state.selectedDevice);
+        },
+
+        getBatteryType: state => batteryTypeId => {
+            return state.types.batteryTypes.find(type => type.id === batteryTypeId) || state.types.batteryTypes[0];
+        },
+
+        getBulbType: state => bulbTypeId => {
+            return state.types.bulbTypes.find(type => type.id === bulbTypeId) || state.types.bulbTypes[0];
+        },
+
         deviceBatteryProgress: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return 0;
 
             const minVoltage = state.calculateGroupMinVoltage(deviceId);
@@ -44,7 +67,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceCriticalProgress: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return 0;
 
             const minVoltage = state.calculateGroupMinVoltage(deviceId);
@@ -61,7 +84,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceNormalProgress: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return 0;
 
             const criticalVoltage = state.calculateGroupCriticalVoltage(deviceId);
@@ -78,7 +101,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceCurrentLevelPosition: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return 0;
 
             const minVoltage = state.calculateGroupMinVoltage(deviceId);
@@ -88,7 +111,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceCriticalThresholdPosition: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return 0;
 
             const minVoltage = state.calculateGroupMinVoltage(deviceId);
@@ -99,7 +122,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceBatteryColor: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return '#67c23a';
 
             const voltage = device.voltage;
@@ -109,7 +132,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceCriticalColor: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return '#ffcccb';
 
             const voltage = device.voltage;
@@ -119,7 +142,7 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         deviceRuntime: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return 'N/A';
 
             const minVoltage = state.calculateGroupMinVoltage(deviceId);
@@ -136,75 +159,80 @@ export const useSmartLightStore = defineStore('smartLight', {
             return `${Math.floor(hours / 24)}дн`;
         },
 
-        deviceVoltageWarning: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
-            if (!device) return false;
-
-            const minVoltage = state.calculateGroupMinVoltage(deviceId);
-            const maxVoltage = state.calculateGroupMaxVoltage(deviceId);
-            const criticalVoltage = state.calculateGroupCriticalVoltage(deviceId);
-
-            const voltage = device.voltage;
-            const voltageRange = maxVoltage - minVoltage;
-            const criticalLevel = criticalVoltage;
-            const warningLevel = criticalLevel + (voltageRange * state.globalSettings.voltageWarningThreshold);
-
-            return voltage <= warningLevel && voltage > minVoltage;
-        },
-
-        deviceVoltageCritical: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
-            if (!device) return false;
-
-            const criticalVoltage = state.calculateGroupCriticalVoltage(deviceId);
-            return device.voltage <= criticalVoltage;
-        },
-
         deviceSafeIntensityRange: state => deviceId => {
-            const device = state.devices.find(d => d.device_id === deviceId);
+            const device = state.getDevice(deviceId);
             if (!device) return { min: 0, max: 100 };
 
-            // Типы лампочек и их параметры
-            const bulbTypes = {
-                classic: { min: 0, max: 100 },
-                led: { min: 10, max: 100 },
-                halogen: { min: 20, max: 100 },
-                smart_led: { min: 1, max: 100 }
-            };
-
-            const bulbType = device.bulb_type_id || 'classic';
-            const typeParams = bulbTypes[bulbType] || bulbTypes.classic;
+            const bulbType = state.getBulbType(device.bulb_type_id);
 
             return {
-                min: typeParams.min,
-                max: typeParams.max
+                min: bulbType.minIntensity,
+                max: bulbType.maxIntensity
             };
         }
     },
-
     actions: {
-        selectDevice(deviceId) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (device) {
-                this.selectedDevice = { ...device };
+        initInterfaceSettings() {
+            try {
+                const settingsJson = localStorage.getItem('smartlight_interface_settings');
+                if (settingsJson) {
+                    const settings = JSON.parse(settingsJson);
+                    this.interfaceSettings.global3DMode = settings.global3DMode || false;
+                    this.interfaceSettings.device3DSettings = settings.device3DSettings || {};
+                } else {
+                    this.interfaceSettings.global3DMode = false;
+                    this.interfaceSettings.device3DSettings = {};
+                    this.saveInterfaceSettings();
+                }
+            } catch (e) {
+                console.error('Ошибка загрузки настроек интерфейса:', e);
+                this.interfaceSettings.global3DMode = false;
+                this.interfaceSettings.device3DSettings = {};
             }
         },
 
+        saveInterfaceSettings() {
+            const settings = {
+                global3DMode: this.interfaceSettings.global3DMode,
+                device3DSettings: this.interfaceSettings.device3DSettings
+            };
+            localStorage.setItem('smartlight_interface_settings', JSON.stringify(settings));
+        },
+
+        setGlobal3DMode(value) {
+            this.interfaceSettings.global3DMode = value;
+            this.saveInterfaceSettings();
+        },
+
+        getDevice3DMode(deviceId) {
+            if (deviceId && this.interfaceSettings.device3DSettings[deviceId] !== undefined) {
+                return this.interfaceSettings.device3DSettings[deviceId];
+            }
+            return this.interfaceSettings.global3DMode;
+        },
+
+        setDevice3DMode(deviceId, value) {
+            this.interfaceSettings.device3DSettings = {
+                ...this.interfaceSettings.device3DSettings,
+                [deviceId]: value
+            };
+            this.saveInterfaceSettings();
+        },
+
+        selectDevice(deviceId) {
+            this.selectedDevice = deviceId;
+        },
+
         updateDeviceVoltage(deviceId, voltage) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+            const device = this.getDevice(deviceId);
             if (!device) return;
 
-            // Определение минимального и максимального напряжения
             const minVoltage = this.calculateGroupMinVoltage(deviceId);
             const maxVoltage = this.calculateGroupMaxVoltage(deviceId);
 
-            // Ограничиваем напряжение допустимым диапазоном
             const clampedVoltage = Math.min(maxVoltage, Math.max(minVoltage, voltage));
-
-            // Обновляем напряжение
             device.voltage = clampedVoltage;
 
-            // Проверяем переход в спящий режим
             const criticalVoltage = this.calculateGroupCriticalVoltage(deviceId);
             if (clampedVoltage <= criticalVoltage && device.status !== 'SLEEPING') {
                 device.status = 'SLEEPING';
@@ -213,14 +241,24 @@ export const useSmartLightStore = defineStore('smartLight', {
             }
         },
 
-        updateDeviceIntensity(deviceId, intensity) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+        updateDeviceCriticalVoltage(deviceId, criticalVoltage) {
+            const device = this.getDevice(deviceId);
             if (!device) return;
 
-            // Получаем безопасный диапазон для типа лампочки
-            const safeIntensity = this.deviceSafeIntensityRange(deviceId);
+            const minVoltage = this.calculateGroupMinVoltage(deviceId);
+            const maxVoltage = this.calculateGroupMaxVoltage(deviceId);
 
-            // Ограничиваем интенсивность допустимым диапазоном
+            device.critical_voltage = Math.min(
+                maxVoltage * 0.95,
+                Math.max(minVoltage * 1.1, criticalVoltage)
+            );
+        },
+
+        updateDeviceIntensity(deviceId, intensity) {
+            const device = this.getDevice(deviceId);
+            if (!device) return;
+
+            const safeIntensity = this.deviceSafeIntensityRange(deviceId);
             device.intensity = Math.min(
                 safeIntensity.max,
                 Math.max(safeIntensity.min, intensity)
@@ -228,13 +266,11 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         updateDeviceStatus(deviceId, status) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+            const device = this.getDevice(deviceId);
             if (!device || device.status === status) return;
 
-            // Обновляем статус
             device.status = status;
 
-            // Для фейковых устройств обновляем напряжение
             if (device.is_fake) {
                 if (status === 'SLEEPING' && device.status !== 'SLEEPING') {
                     device.voltage = 2.9;
@@ -245,59 +281,52 @@ export const useSmartLightStore = defineStore('smartLight', {
             }
         },
 
-        updateDeviceCriticalVoltage(deviceId, criticalVoltage) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+        updateDeviceBatteryType(deviceId, batteryTypeId) {
+            const device = this.getDevice(deviceId);
             if (!device) return;
 
-            // Определение минимального и максимального напряжения
-            const minVoltage = this.calculateGroupMinVoltage(deviceId);
-            const maxVoltage = this.calculateGroupMaxVoltage(deviceId);
+            device.battery_type_id = batteryTypeId;
 
-            // Ограничиваем критическое напряжение
-            device.critical_voltage = Math.min(
-                maxVoltage,
-                Math.max(minVoltage, criticalVoltage)
+            // Обновляем параметры в соответствии с новым типом
+            const batteryType = this.getBatteryType(batteryTypeId);
+            device.min_voltage = batteryType.minVoltage;
+            device.max_voltage = batteryType.maxVoltage;
+            device.critical_voltage = batteryType.criticalVoltage;
+            device.capacity = batteryType.nominalCapacity;
+
+            // Пересчитываем текущее напряжение
+            device.voltage = batteryType.nominalVoltage;
+        },
+
+        updateDeviceBulbType(deviceId, bulbTypeId) {
+            const device = this.getDevice(deviceId);
+            if (!device) return;
+
+            device.bulb_type_id = bulbTypeId;
+
+            // Обновляем параметры в соответствии с новым типом
+            const bulbType = this.getBulbType(bulbTypeId);
+            device.min_intensity = bulbType.minIntensity;
+            device.max_intensity = bulbType.maxIntensity;
+
+            // Пересчитываем текущую интенсивность
+            device.intensity = Math.min(
+                bulbType.maxIntensity,
+                Math.max(bulbType.minIntensity, device.intensity)
             );
         },
 
         updateDeviceBatteryGroup(deviceId, groupConfig) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (!device) return;
-
-            // Определение типа аккумулятора
-            const batteryTypes = {
-                'li-ion-18650': {
-                    maxInGroup: 10,
-                    series: true,
-                    parallel: true,
-                    series_parallel: true
-                },
-                'li-ion-21700': {
-                    maxInGroup: 8,
-                    series: true,
-                    parallel: true,
-                    series_parallel: true
-                },
-                'li-po': {
-                    maxInGroup: 6,
-                    series: true,
-                    parallel: true,
-                    series_parallel: false
-                },
-                'lead-acid': {
-                    maxInGroup: 4,
-                    series: true,
-                    parallel: true,
-                    series_parallel: true
-                }
+            const device = this.getDevice(deviceId);
+            if (!device) return {
+                success: false,
+                message: 'Устройство не найдено'
             };
 
-            const batteryType = device.battery_type_id || 'li-ion-18650';
-            const typeConfig = batteryTypes[batteryType];
-
-            // Проверка поддержки конфигурации
-            if (!typeConfig || !typeConfig[groupConfig.type]) {
-                console.error(`Конфигурация ${groupConfig.type} не поддерживается для типа ${batteryType}`);
+            // Проверка типа аккумулятора
+            const batteryType = this.getBatteryType(device.battery_type_id);
+            if (!batteryType.groupSupport[groupConfig.type]) {
+                console.error(`Конфигурация ${groupConfig.type} не поддерживается для типа ${device.battery_type_id}`);
                 return {
                     success: false,
                     message: `Конфигурация ${groupConfig.type} не поддерживается`
@@ -305,11 +334,11 @@ export const useSmartLightStore = defineStore('smartLight', {
             }
 
             // Проверка максимального количества
-            if (groupConfig.count > typeConfig.maxInGroup) {
-                console.error(`Максимальное количество: ${typeConfig.maxInGroup}`);
+            if (groupConfig.count > batteryType.groupSupport.maxInGroup) {
+                console.error(`Максимальное количество: ${batteryType.groupSupport.maxInGroup}`);
                 return {
                     success: false,
-                    message: `Максимальное количество: ${typeConfig.maxInGroup}`
+                    message: `Максимальное количество: ${batteryType.groupSupport.maxInGroup}`
                 };
             }
 
@@ -330,97 +359,22 @@ export const useSmartLightStore = defineStore('smartLight', {
             } else if (device.voltage > device.max_voltage) {
                 device.voltage = device.max_voltage;
             }
-        },
 
-        updateDeviceBulbType(deviceId, bulbTypeId) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (!device) return;
-
-            device.bulb_type_id = bulbTypeId;
-
-            // Обновляем параметры
-            const bulbTypes = {
-                classic: { minIntensity: 0, maxIntensity: 100 },
-                led: { minIntensity: 10, maxIntensity: 100 },
-                halogen: { minIntensity: 20, maxIntensity: 100 },
-                smart_led: { minIntensity: 1, maxIntensity: 100 }
+            return {
+                success: true,
+                message: 'Конфигурация батареи обновлена'
             };
-
-            const bulbType = bulbTypes[bulbTypeId] || bulbTypes.classic;
-            device.min_intensity = bulbType.minIntensity;
-            device.max_intensity = bulbType.maxIntensity;
-
-            // Корректируем интенсивность
-            device.intensity = Math.min(
-                device.max_intensity,
-                Math.max(device.min_intensity, device.intensity)
-            );
-        },
-
-        updateDeviceBatteryType(deviceId, batteryTypeId) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (!device) return;
-
-            device.battery_type_id = batteryTypeId;
-
-            // Параметры для разных типов аккумуляторов
-            const batteryTypes = {
-                'li-ion-18650': {
-                    nominalVoltage: 3.7,
-                    criticalVoltage: 3.0,
-                    minVoltage: 2.5,
-                    maxVoltage: 4.2,
-                    capacity: 3500
-                },
-                'li-ion-21700': {
-                    nominalVoltage: 3.7,
-                    criticalVoltage: 3.0,
-                    minVoltage: 2.5,
-                    maxVoltage: 4.2,
-                    capacity: 5000
-                },
-                'li-po': {
-                    nominalVoltage: 3.7,
-                    criticalVoltage: 3.2,
-                    minVoltage: 2.8,
-                    maxVoltage: 4.35,
-                    capacity: 2500
-                },
-                'lead-acid': {
-                    nominalVoltage: 12.0,
-                    criticalVoltage: 11.0,
-                    minVoltage: 10.5,
-                    maxVoltage: 14.4,
-                    capacity: 50000
-                }
-            };
-
-            const batteryType = batteryTypes[batteryTypeId] || batteryTypes['li-ion-18650'];
-
-            device.voltage = batteryType.nominalVoltage;
-            device.critical_voltage = batteryType.criticalVoltage;
-            device.capacity = batteryType.capacity;
-            device.min_voltage = batteryType.minVoltage;
-            device.max_voltage = batteryType.maxVoltage;
         },
 
         calculateGroupMinVoltage(deviceId) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+            const device = this.getDevice(deviceId);
             if (!device) return 2.5;
 
-            const batteryTypes = {
-                'li-ion-18650': { minVoltage: 2.5 },
-                'li-ion-21700': { minVoltage: 2.5 },
-                'li-po': { minVoltage: 2.8 },
-                'lead-acid': { minVoltage: 10.5 }
-            };
-
-            const batteryType = device.battery_type_id || 'li-ion-18650';
-            const minVoltage = batteryTypes[batteryType].minVoltage;
+            const batteryType = this.getBatteryType(device.battery_type_id);
+            const minVoltage = batteryType.minVoltage;
 
             if (device.battery_group_config?.enabled) {
                 const { type, count } = device.battery_group_config;
-
                 switch (type) {
                     case 'series':
                         return minVoltage * count;
@@ -437,22 +391,14 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         calculateGroupMaxVoltage(deviceId) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+            const device = this.getDevice(deviceId);
             if (!device) return 4.3;
 
-            const batteryTypes = {
-                'li-ion-18650': { maxVoltage: 4.2 },
-                'li-ion-21700': { maxVoltage: 4.2 },
-                'li-po': { maxVoltage: 4.35 },
-                'lead-acid': { maxVoltage: 14.4 }
-            };
-
-            const batteryType = device.battery_type_id || 'li-ion-18650';
-            const maxVoltage = batteryTypes[batteryType].maxVoltage;
+            const batteryType = this.getBatteryType(device.battery_type_id);
+            const maxVoltage = batteryType.maxVoltage;
 
             if (device.battery_group_config?.enabled) {
                 const { type, count } = device.battery_group_config;
-
                 switch (type) {
                     case 'series':
                         return maxVoltage * count;
@@ -469,22 +415,14 @@ export const useSmartLightStore = defineStore('smartLight', {
         },
 
         calculateGroupCriticalVoltage(deviceId) {
-            const device = this.devices.find(d => d.device_id === deviceId);
+            const device = this.getDevice(deviceId);
             if (!device) return 3.2;
 
-            const batteryTypes = {
-                'li-ion-18650': { criticalVoltage: 3.0 },
-                'li-ion-21700': { criticalVoltage: 3.0 },
-                'li-po': { criticalVoltage: 3.2 },
-                'lead-acid': { criticalVoltage: 11.0 }
-            };
-
-            const batteryType = device.battery_type_id || 'li-ion-18650';
-            const criticalVoltage = batteryTypes[batteryType].criticalVoltage;
+            const batteryType = this.getBatteryType(device.battery_type_id);
+            const criticalVoltage = batteryType.criticalVoltage;
 
             if (device.battery_group_config?.enabled) {
                 const { type, count } = device.battery_group_config;
-
                 switch (type) {
                     case 'series':
                         return criticalVoltage * count;
@@ -516,22 +454,20 @@ export const useSmartLightStore = defineStore('smartLight', {
 
             try {
                 const response = await resource.getDevices();
-
                 if (!response.data) {
                     throw new Error('Invalid devices response structure');
                 }
 
-                // Создаем полный объект устройства
                 this.devices = response.data.map(device => ({
                     ...device,
                     intensity: device.intensity || 100,
                     voltage: device.voltage || 3.7,
                     status: device.status || 'OFF',
-                    battery_type_id: device.battery_type_id || 'li-ion-18650',
-                    bulb_type_id: device.bulb_type_id || 'classic',
+                    battery_type_id: device.battery_type_id || this.types.batteryTypes[0].id,
+                    bulb_type_id: device.bulb_type_id || this.types.bulbTypes[0].id,
                     min_intensity: device.min_intensity || 0,
                     max_intensity: device.max_intensity || 100,
-                    capacity: device.capacity || 3500,
+                    capacity: device.capacity || this.getBatteryType(device.battery_type_id).nominalCapacity,
                     chargeCycles: device.chargeCycles || 0,
                     battery_group_config: device.battery_group_config || {
                         enabled: false,
@@ -541,13 +477,12 @@ export const useSmartLightStore = defineStore('smartLight', {
                     }
                 }));
 
-                // Обновляем выбранное устройство
                 if (this.selectedDevice) {
                     const updatedDevice = this.devices.find(
-                        d => d.device_id === this.selectedDevice.device_id
+                        d => d.device_id === this.selectedDevice
                     );
                     if (updatedDevice) {
-                        this.selectedDevice = { ...updatedDevice };
+                        this.selectedDevice = updatedDevice.device_id;
                     }
                 }
 
@@ -562,6 +497,112 @@ export const useSmartLightStore = defineStore('smartLight', {
                 return {
                     success: false,
                     message: 'Ошибка загрузки устройств',
+                    error: err.message
+                };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchGlobalSettings() {
+            this.loading = true;
+            this.error = null;
+            const resource = new SmartLightResource();
+
+            try {
+                const response = await resource.getGlobalSettings();
+
+                if (response.success) {
+                    this.globalSettings = {
+                        ...this.globalSettings,
+                        ...response.data
+                    };
+
+                    return {
+                        success: true,
+                        message: 'Глобальные настройки загружены',
+                        data: this.globalSettings
+                    };
+                } else {
+                    throw new Error(response.message || 'Некорректный ответ от сервера');
+                }
+            } catch (err) {
+                this.error = 'Не удалось загрузить глобальные настройки';
+                return {
+                    success: false,
+                    message: 'Ошибка загрузки глобальных настроек',
+                    error: err.message
+                };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async updateGlobalSettings(settings) {
+            this.loading = true;
+            this.error = null;
+            const resource = new SmartLightResource();
+
+            try {
+                if (typeof settings !== 'object' || Array.isArray(settings)) {
+                    throw new Error('Неверный формат настроек');
+                }
+
+                const response = await resource.updateGlobalSettings({ settings });
+
+                if (response.success) {
+                    this.globalSettings = {
+                        ...this.globalSettings,
+                        ...response.data
+                    };
+
+                    return {
+                        success: true,
+                        message: 'Глобальные настройки сохранены',
+                        data: this.globalSettings
+                    };
+                } else {
+                    throw new Error(response.message || 'Ошибка сохранения глобальных настроек');
+                }
+            } catch (err) {
+                this.error = 'Не удалось сохранить глобальные настройки';
+                return {
+                    success: false,
+                    message: 'Ошибка сохранения глобальных настроек',
+                    error: err.message
+                };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async resetGlobalSettings() {
+            this.loading = true;
+            this.error = null;
+            const resource = new SmartLightResource();
+
+            try {
+                const response = await resource.resetGlobalSettings();
+
+                if (response.success) {
+                    this.globalSettings = {
+                        ...this.globalSettings,
+                        ...response.data
+                    };
+
+                    return {
+                        success: true,
+                        message: 'Глобальные настройки сброшены',
+                        data: this.globalSettings
+                    };
+                } else {
+                    throw new Error(response.message || 'Ошибка сброса глобальных настроек');
+                }
+            } catch (err) {
+                this.error = 'Не удалось сбросить глобальные настройки';
+                return {
+                    success: false,
+                    message: 'Ошибка сброса глобальных настроек',
                     error: err.message
                 };
             } finally {
@@ -584,23 +625,20 @@ export const useSmartLightStore = defineStore('smartLight', {
             const resource = new SmartLightResource();
 
             try {
-                if (this.devices.find(d => d.device_id === deviceId)?.is_fake) {
+                if (this.getDevice(deviceId)?.is_fake) {
                     await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Обновляем состояние в сторе
                     this.updateDeviceStatus(deviceId, status);
                     this.updateDeviceIntensity(deviceId, status === 'ON' ? 100 : 0);
 
-                    // Для фейковых устройств обновляем напряжение
                     if (status === 'ON') {
                         this.updateDeviceVoltage(
                             deviceId,
-                            Math.min(4.3, this.devices.find(d => d.device_id === deviceId)?.voltage + 0.05)
+                            Math.min(4.3, this.getDevice(deviceId)?.voltage + 0.05)
                         );
                     } else {
                         this.updateDeviceVoltage(
                             deviceId,
-                            Math.max(2.5, this.devices.find(d => d.device_id === deviceId)?.voltage - 0.05)
+                            Math.max(2.5, this.getDevice(deviceId)?.voltage - 0.05)
                         );
                     }
 
@@ -610,14 +648,13 @@ export const useSmartLightStore = defineStore('smartLight', {
                         message: `Команда "${status}" отправлена`,
                         data: {
                             status,
-                                intensity,
-                                voltage: this.devices.find(d => d.device_id === deviceId)?.voltage
+                            intensity: status === 'ON' ? 100 : 0,
+                            voltage: this.getDevice(deviceId)?.voltage
                         }
                     };
                 }
 
                 const response = await resource.sendCommand(deviceId, status, intensity);
-
                 if (response.success) {
                     this.lastCommandTimestamp = now;
                     return {
@@ -646,18 +683,13 @@ export const useSmartLightStore = defineStore('smartLight', {
             const resource = new SmartLightResource();
 
             try {
-                if (this.devices.find(d => d.device_id === deviceId)?.is_fake) {
+                if (this.getDevice(deviceId)?.is_fake) {
                     await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Обновляем статус в сторе
                     this.updateDeviceStatus(deviceId, 'SLEEPING');
-
-                    // Для фейковых устройств
-                    const device = this.devices.find(d => d.device_id === deviceId);
+                    const device = this.getDevice(deviceId);
                     if (device) {
                         device.voltage = 2.9;
                     }
-
                     return {
                         success: true,
                         message: 'Устройство переведено в спящий режим'
@@ -665,14 +697,11 @@ export const useSmartLightStore = defineStore('smartLight', {
                 }
 
                 const response = await resource.forceSleep(deviceId);
-
                 if (response.success) {
-                    // Обновляем статус в сторе
-                    const device = this.devices.find(d => d.device_id === deviceId);
+                    const device = this.getDevice(deviceId);
                     if (device) {
                         device.status = 'SLEEPING';
                     }
-
                     return {
                         success: true,
                         message: 'Устройство переведено в спящий режим'
@@ -698,16 +727,11 @@ export const useSmartLightStore = defineStore('smartLight', {
             const resource = new SmartLightResource();
 
             try {
-                if (this.devices.find(d => d.device_id === deviceId)?.is_fake) {
+                if (this.getDevice(deviceId)?.is_fake) {
                     await new Promise(resolve => setTimeout(resolve, 300));
-
-                    // Восстанавливаем емкость аккумулятора
                     this.updateDeviceVoltage(deviceId, 3.7);
-
-                    // Переключаем в режим ON
                     this.updateDeviceStatus(deviceId, 'ON');
                     this.updateDeviceIntensity(deviceId, 100);
-
                     this.lastCommandTimestamp = Date.now();
                     return {
                         success: true,
@@ -716,16 +740,13 @@ export const useSmartLightStore = defineStore('smartLight', {
                 }
 
                 const response = await resource.wakeDevice(deviceId);
-
                 if (response.success) {
-                    // Восстанавливаем емкость аккумулятора
-                    const device = this.devices.find(d => d.device_id === deviceId);
+                    const device = this.getDevice(deviceId);
                     if (device) {
                         this.updateDeviceVoltage(deviceId, 3.7);
                         this.updateDeviceStatus(deviceId, 'ON');
                         this.updateDeviceIntensity(deviceId, 100);
                     }
-
                     this.lastCommandTimestamp = Date.now();
                     return {
                         success: true,
@@ -744,88 +765,6 @@ export const useSmartLightStore = defineStore('smartLight', {
             } finally {
                 this.loading = false;
             }
-        },
-
-        calculateRealVoltage(deviceId, chargeCycles) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (!device) return 3.7;
-
-            // Типы аккумуляторов и их деградация
-            const degradation = {
-                'li-ion-18650': {
-                    capacityLossPerCycle: 0.0005,
-                    voltageLossPerCycle: 0.0001
-                },
-                'li-ion-21700': {
-                    capacityLossPerCycle: 0.0004,
-                    voltageLossPerCycle: 0.00008
-                },
-                'li-po': {
-                    capacityLossPerCycle: 0.0006,
-                    voltageLossPerCycle: 0.00012
-                },
-                'lead-acid': {
-                    capacityLossPerCycle: 0.001,
-                    voltageLossPerCycle: 0.0002
-                }
-            };
-
-            const batteryType = device.battery_type_id || 'li-ion-18650';
-            const typeDegradation = degradation[batteryType] || degradation['li-ion-18650'];
-
-            // Рассчитываем деградацию
-            const voltageLoss = chargeCycles * typeDegradation.voltageLossPerCycle;
-            const realMaxVoltage = 4.2 * (1 - voltageLoss);
-
-            return Math.min(realMaxVoltage, device.voltage);
-        },
-
-        simulateBatteryDegradation(deviceId, cycles) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (!device) return;
-
-            device.chargeCycles = (device.chargeCycles || 0) + cycles;
-            device.voltage = this.calculateRealVoltage(deviceId, device.chargeCycles);
-        },
-
-        simulateSelfDischarge(deviceId, hours, temperature = 25) {
-            const device = this.devices.find(d => d.device_id === deviceId);
-            if (!device) return;
-
-            // Типы аккумуляторов и их саморазряд
-            const selfDischarge = {
-                'li-ion-18650': {
-                    rate: 5,
-                    temperatureFactor: 0.1
-                },
-                'li-ion-21700': {
-                    rate: 4.5,
-                    temperatureFactor: 0.08
-                },
-                'li-po': {
-                    rate: 6,
-                    temperatureFactor: 0.12
-                },
-                'lead-acid': {
-                    rate: 15,
-                    temperatureFactor: 0.05
-                }
-            };
-
-            const batteryType = device.battery_type_id || 'li-ion-18650';
-            const typeDischarge = selfDischarge[batteryType] || selfDischarge['li-ion-18650'];
-
-            // Расчет разряда
-            const monthlyDischarge = typeDischarge.rate;
-            const temperatureDelta = Math.max(0, temperature - 25);
-            const temperatureDischarge = temperatureDelta * typeDischarge.temperatureFactor;
-            const totalDischarge = monthlyDischarge + temperatureDischarge;
-
-            // % в час
-            const dischargeRate = totalDischarge / (30 * 24);
-            const voltageDrop = device.voltage * (dischargeRate * hours) / 100;
-
-            this.updateDeviceVoltage(deviceId, device.voltage - voltageDrop);
         }
     }
 });

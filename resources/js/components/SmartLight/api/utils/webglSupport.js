@@ -24,15 +24,19 @@ export const checkWebGLSupport = () => {
             };
         }
 
-        // Проверяем поддержку WebGL 2
-        const webgl2Supported = !!window.WebGL2RenderingContext && canvas.getContext('webgl2');
+        // Проверка поддержки текстур
+        const textureSupport = gl.getExtension('OES_texture_float');
+        if (!textureSupport) {
+            return {
+                isSupported: false,
+                reason: 'Отсутствует поддержка текстур'
+            };
+        }
 
         return {
             isSupported: true,
             reason: null,
-            webgl1: true,
-            webgl2: webgl2Supported,
-            version: webgl2Supported ? 'WebGL 2' : 'WebGL 1'
+            version: 'WebGL 1'
         };
     } catch (e) {
         return {

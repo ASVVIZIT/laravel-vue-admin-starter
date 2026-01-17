@@ -2,40 +2,62 @@
   <div class="battery-renderer" :style="{ width: width, height: height }">
     <!-- CSS-визуализация как fallback -->
     <div class="battery-css-container" v-if="!webGLSupported || !show3D">
-      <div class="battery">
-        <div class="battery-fill" :style="{
-          height: `${batteryProgress}%`,
-          backgroundColor: batteryColor
-        }"></div>
-        <div class="battery-critical" :style="{
-          height: `${criticalProgress}%`,
-          backgroundColor: criticalColor,
-          background: fluidPattern
-        }"></div>
-        <div class="battery-mark critical-threshold" :style="{ left: `${criticalThresholdPosition}%` }"></div>
-        <div class="battery-mark current-level" :style="{ left: `${currentLevelPosition}%` }"></div>
-        <div class="battery-cap"></div>
+      <div class="battery-container">
+        <div class="battery-wrapper">
+          <div class="battery-plus">+</div>
+          <div class="battery-body">
+            <div class="battery">
+            <div
+                class="battery-normal"
+                :style="{
+                width: batteryNormalProgress + '%',
+                backgroundColor: batteryColor
+              }"
+            ></div>
+            <div
+                class="battery-critical"
+                :style="{
+                width: batteryCriticalProgress + '%',
+                backgroundColor: criticalColor
+              }"
+            >
+              <div class="battery-critical-pattern"></div>
+            </div>
+            <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
+            <div class="battery-mark current-level" :style="{ left: currentLevelPosition + '%' }"></div>
+            <div class="battery-cap"></div>
+            <div class="battery-plus">+</div>
+            <div class="battery-minus">-</div>
+          </div>
+          </div>
+          <div class="battery-levels">
+            <span class="battery-level" :style="{ left: '0%' }">{{ formattedMinVoltage }} В</span>
+            <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ formattedCriticalThreshold }} В</span>
+            <span class="battery-level" :style="{ left: '100%' }">{{ formattedMaxVoltage }} В</span>
+          </div>
+          <div class="battery-minus">-</div>
+        </div>
+      </div>
+      <div class="battery-info-container">
+        <div class="battery-type-info">
+          <span class="battery-type-label">Тип:</span>
+          <span class="battery-type-value">{{ batteryTypeName }}</span>
+        </div>
+        <div class="voltage-value">{{ formattedVoltage }}</div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { computed } from 'vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import { checkWebGLSupport } from '@/components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
   deviceId: {
     type: String,
     required: true
-  },
-  voltage: {
-    type: Number,
-    default: 3.7
-  },
-  criticalVoltage: {
-    type: Number,
-    default: 3.2
   },
   width: {
     type: String,
@@ -52,108 +74,149 @@ const props = defineProps({
 });
 
 const store = useSmartLightStore();
-const webGLSupported = ref(false); // Для простоты, пока используем только CSS
+const webGLCheck = checkWebGLSupport();
+const webGLSupported = webGLCheck.isSupported;
 
-// Вычисляем прогресс батареи
-const batteryProgress = computed(() => {
-  const minVoltage = store.calculateGroupMinVoltage(props.deviceId);
-  const maxVoltage = store.calculateGroupMaxVoltage(props.deviceId);
+// Получаем данные устройства
+const device = computed(() => store.getDevice(props.deviceId));
+const voltage = computed(() => device.value?.voltage || 3.7);
+const criticalVoltage = computed(() => store.calculateGroupCriticalVoltage(props.deviceId));
 
-  return Math.min(100, Math.max(0,
-      ((props.voltage - minVoltage) / (maxVoltage - minVoltage)) * 100
-  ));
-});
-
-const criticalProgress = computed(() => {
-  const minVoltage = store.calculateGroupMinVoltage(props.deviceId);
-  const criticalVoltage = store.calculateGroupCriticalVoltage(props.deviceId);
-
-  if (props.voltage >= criticalVoltage) {
-    return 0;
-  }
-
-  const criticalVoltageValue = criticalVoltage - props.voltage;
-  const criticalVoltageRange = criticalVoltage - minVoltage;
-
-  return Math.min(100, Math.max(0, (criticalVoltageValue / criticalVoltageRange) * 100));
-});
-
+// Вычисляем позицию критического порога в процентах
 const criticalThresholdPosition = computed(() => {
-  const minVoltage = store.calculateGroupMinVoltage(props.deviceId);
-  const maxVoltage = store.calculateGroupMaxVoltage(props.deviceId);
-  const criticalVoltage = store.calculateGroupCriticalVoltage(props.deviceId);
-
-  return ((criticalVoltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
+  return store.deviceCriticalThresholdPosition(props.deviceId);
 });
 
+// Нормальный прогресс (от критического порога до max)
+const batteryNormalProgress = computed(() => {
+  return store.deviceNormalProgress(props.deviceId);
+});
+
+// Критический прогресс (от min до критического порога)
+const batteryCriticalProgress = computed(() => {
+  return store.deviceCriticalProgress(props.deviceId);
+});
+
+// Позиция текущего уровня
 const currentLevelPosition = computed(() => {
-  const minVoltage = store.calculateGroupMinVoltage(props.deviceId);
-  const maxVoltage = store.calculateGroupMaxVoltage(props.deviceId);
-
-  return ((props.voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
+  return store.deviceCurrentLevelPosition(props.deviceId);
 });
 
-// Цвета и эффекты
-const batteryColor = computed(() => {
-  if (props.voltage < 2.7) return '#f56c6c';
-  if (props.voltage < 3.0) return '#e6a23c';
-  return '#67c23a';
-});
-
+// Цвет критического уровня
 const criticalColor = computed(() => {
-  return batteryColor.value;
+  return store.deviceCriticalColor(props.deviceId);
 });
 
-const fluidPattern = computed(() => {
-  return 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px';
+// Цвет нормального уровня
+const batteryColor = computed(() => {
+  return store.deviceBatteryColor(props.deviceId);
+});
+
+// Отформатированное значение критического напряжения
+const formattedCriticalThreshold = computed(() => {
+  return store.calculateGroupCriticalVoltage(props.deviceId).toFixed(2);
+});
+
+// Минимальное напряжение
+const formattedMinVoltage = computed(() => {
+  return store.calculateGroupMinVoltage(props.deviceId).toFixed(1);
+});
+
+// Максимальное напряжение
+const formattedMaxVoltage = computed(() => {
+  return store.calculateGroupMaxVoltage(props.deviceId).toFixed(1);
+});
+
+// Отформатированное значение напряжения
+const formattedVoltage = computed(() => {
+  return voltage.value.toFixed(2) + ' В';
+});
+
+// Название типа аккумулятора
+const batteryTypeName = computed(() => {
+  const device = store.getDevice(props.deviceId);
+  const batteryType = store.getBatteryType(device?.battery_type_id);
+  return batteryType.name || 'Неизвестный тип';
 });
 </script>
 
 <style scoped>
 .battery-renderer {
-  position: relative;
   width: 100%;
   height: 100%;
   min-width: 100px;
   min-height: 50px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
 }
 
 .battery-css-container {
   height: 100%;
-  border-radius: 3px;
-  background: #f5f7fa;
-  overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.battery-wrapper {
+  width: 100%;
+}
+
+.battery-container {
+  position: relative;
+  height: 70px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .battery {
   position: relative;
-  height: 100%;
-  border: 2px solid rgba(66, 154, 220, 0.71);
-  border-radius: 3px;
-  background: #f5f7fa;
+  width: 100%;
+  height: 45px;
+  border: 2px solid #9eb0be;
+  border-radius: 8px;
+  background: #dadbe7;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
-.battery-fill {
+.battery-normal {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  height: 100%;
   background: linear-gradient(90deg, #67c23a 0%, #95d97b 100%);
-  transition: height 0.3s ease, background-color 0.3s ease;
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 
 .battery-critical {
   position: absolute;
   top: 0;
   left: 0;
-  width: 100%;
+  height: 100%;
   background: linear-gradient(90deg, #f56c6c 0%, #ff9999 100%);
-  background-size: 100% 100%;
-  background-image: v-bind('fluidPattern');
-  background-repeat: no-repeat;
-  background-size: cover;
+  overflow: hidden;
+}
+
+.battery-critical-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.3) 3px,
+      rgba(255, 255, 255, 0.3) 6px
+  );
 }
 
 .battery-mark {
@@ -165,12 +228,12 @@ const fluidPattern = computed(() => {
   z-index: 10;
 }
 
-.critical-threshold {
-  border-left: dashed;
+.battery-mark.critical-threshold {
+  border-left: 1px dashed #e6a23c;
 }
 
-.current-level {
-  border-left: solid;
+.battery-mark.current-level {
+  border-left: 1px solid #409eff;
 }
 
 .battery-cap {
@@ -181,5 +244,77 @@ const fluidPattern = computed(() => {
   height: 4px;
   background: #409eff;
   border-radius: 1px;
+}
+
+.battery-plus {
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #409eff;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+.battery-minus {
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #409eff;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+.battery-levels {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 1px;
+  font-size: 0.7rem;
+  color: #909399;
+  width: 100%;
+}
+
+.battery-level {
+  position: absolute;
+  font-size: 0.7rem;
+  color: #909399;
+  width: 30px;
+}
+
+.battery-info-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  width: 100%;
+}
+
+.battery-type-info {
+  position: absolute;
+  display: block;
+  font-size: 0.75rem;
+  color: #606266;
+  width: 100%;
+  text-align: center;
+  top: 15px;
+}
+
+.battery-type-label {
+  font-weight: bold;
+}
+
+.voltage-value {
+  text-align: center;
+  font-weight: bold;
+  color: #409eff;
+  font-size: 1.2rem;
+  margin-top: 0.2rem;
+  line-height: 1.2;
+  position: absolute;
+  top: 28px;
 }
 </style>

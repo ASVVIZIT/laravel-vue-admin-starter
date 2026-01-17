@@ -1,14 +1,9 @@
 <template>
-  <component
-      :is="icon"
-      :size="iconSize"
-      class="icon-wrapper"
-      v-bind="$attrs"
-  />
+  <component :is="icon" v-bind="iconProps" />
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed, useAttrs } from 'vue';
 
 const props = defineProps({
   icon: {
@@ -18,29 +13,42 @@ const props = defineProps({
   size: {
     type: String,
     default: 'default',
-    validator: value => ['mini', 'small', 'default', 'large'].includes(value)
+    validator: value => ['small', 'default', 'large'].includes(value)
   }
 });
 
-// Маппинг размеров иконок
-const sizeMap = {
-  mini: 12,
-  small: 16,
-  default: 20,
-  large: 24
-};
-
-// Вычисляем числовое значение размера
-const iconSize = computed(() => {
-  return sizeMap[props.size] || sizeMap.default;
+const iconProps = computed(() => {
+  const attrs = useAttrs();
+  return {
+    ...attrs,
+    class: [
+      'icon',
+      props.size !== 'default' ? `icon-${props.size}` : '',
+      attrs.class || ''
+    ]
+  };
 });
 </script>
 
 <style scoped>
-.icon-wrapper {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.icon {
+  display: inline-block;
   vertical-align: middle;
+  fill: currentColor;
+  stroke: currentColor;
+  width: 1em;
+  height: 1em;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.icon-small {
+  width: 0.75em;
+  height: 0.75em;
+}
+
+.icon-large {
+  width: 1.25em;
+  height: 1.25em;
 }
 </style>

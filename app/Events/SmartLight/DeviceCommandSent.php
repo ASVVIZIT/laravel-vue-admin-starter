@@ -12,8 +12,6 @@ use Illuminate\Queue\SerializesModels;
 
 class DeviceCommandSent implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
-
     public $deviceId;
     public $command;
     public $timestamp;

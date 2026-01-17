@@ -41,7 +41,7 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: value => ['ON', 'OFF', 'FULL_ON'].includes(value)
+    validator: value => ['ON', 'OFF', 'SLEEPING', 'FULL_ON'].includes(value)
   },
   intensity: {
     type: Number,

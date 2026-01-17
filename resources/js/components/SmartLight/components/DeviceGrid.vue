@@ -2,7 +2,7 @@
   <div class="device-grid">
     <el-skeleton v-if="loading" :rows="3" :count="8" animated />
 
-    <div v-if="!loading && devices.length === 0" class="no-devices">
+    <div v-if="!loading && realDevices.length === 0 && fakeDevices.length === 0" class="no-devices">
       <el-empty description="Нет устройств" />
     </div>
 
@@ -23,9 +23,9 @@
             <DeviceCard
                 :device="device"
                 :is-selected="selectedDeviceId === device.device_id"
-                @command-sent="$emit('device-updated', device.device_id)"
-                @emergency-sleep="$emit('emergency-sleep', device.device_id)"
-                @open-settings="$emit('open-settings', device)"
+                @command-sent="refreshDevice"
+                @emergency-sleep="handleEmergencySleep"
+                @open-settings="openDeviceSettings"
             />
           </div>
         </div>
@@ -41,26 +41,25 @@
           <span>Тестовые устройства</span>
         </div>
 
-        <div class="grid-scroll-container">
-          <div v-if="fakeDevices.length === 0" class="no-devices">
-            <el-empty description="Нет тестовых устройств" />
-          </div>
-          <div class="grid-container">
-            <div
-                v-for="device in fakeDevices"
-                :key="device.device_id"
-                class="device-col fake-device"
-                :class="{ 'device-col--selected': selectedDeviceId === device.device_id }"
-                @click="selectDevice(device)"
-            >
-              <DeviceCard
-                  :device="device"
-                  :is-selected="selectedDeviceId === device.device_id"
-                  @command-sent="$emit('device-updated', device.device_id)"
-                  @emergency-sleep="$emit('emergency-sleep', device.device_id)"
-                  @open-settings="$emit('open-settings', device)"
-              />
-            </div>
+        <div v-if="fakeDevices.length === 0 && !loading" class="no-devices">
+          <el-empty description="Нет тестовых устройств" />
+        </div>
+
+        <div class="grid-container">
+          <div
+              v-for="device in fakeDevices"
+              :key="device.device_id"
+              class="device-col fake-device"
+              :class="{ 'device-col--selected': selectedDeviceId === device.device_id }"
+              @click="selectDevice(device)"
+          >
+            <DeviceCard
+                :device="device"
+                :is-selected="selectedDeviceId === device.device_id"
+                @command-sent="refreshDevice"
+                @emergency-sleep="handleEmergencySleep"
+                @open-settings="openDeviceSettings"
+            />
           </div>
         </div>
       </el-tab-pane>
@@ -69,112 +68,130 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { Warning } from '@element-plus/icons-vue';
-import DeviceCard from './DeviceCard.vue';
+import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import DeviceCard from '@/components/SmartLight/components/DeviceCard.vue';
 
-const props = defineProps({
-  devices: {
-    type: Array,
-    required: true,
-    default: () => []
-  },
-  loading: {
-    type: Boolean,
-    default: false
-  }
-});
-
-const emit = defineEmits(['device-updated', 'emergency-sleep', 'open-settings', 'device-selected']);
+const store = useSmartLightStore();
+const loading = ref(true);
+const selectedDeviceId = computed(() => store.selectedDeviceId);
 
 // Реальные устройства (is_fake = false)
 const realDevices = computed(() => {
-  return props.devices.filter(device => !device.is_fake);
+  return store.realDevices;
 });
 
 // Фейковые устройства (is_fake = true)
 const fakeDevices = computed(() => {
-  return props.devices.filter(device => device.is_fake);
+  return store.fakeDevices;
 });
-
-// ID выбранного устройства
-const selectedDeviceId = ref(null);
 
 // Селектор устройства
 const selectDevice = (device) => {
-  selectedDeviceId.value = device.device_id;
-  emit('device-selected', device);
+  store.selectDevice(device.device_id);
 };
+
+// Загрузка устройств
+const loadDevices = async () => {
+  loading.value = true;
+  try {
+    await store.fetchDevices();
+  } catch (error) {
+    console.error('Ошибка загрузки устройств:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Обновление устройства
+const refreshDevice = (deviceId) => {
+  loadDevices();
+};
+
+// Обработка перевода в сон
+const handleEmergencySleep = (deviceId) => {
+  refreshDevice(deviceId);
+};
+
+// Открытие настроек устройства
+const openDeviceSettings = (device) => {
+  emit('open-settings', device);
+};
+
+onMounted(() => {
+  loadDevices();
+});
+
+// Следим за изменениями в сторе
+watch(() => store.devices, (newDevices, oldDevices) => {
+  // Компонент будет автоматически обновляться через реактивность Pinia
+});
+
+// Следим за выбранным устройством
+watch(() => store.selectedDevice, (newDevice, oldDevice) => {
+  // Компонент будет автоматически обновляться через реактивность Pinia
+});
 </script>
 
 <style scoped>
 .device-grid {
-  width: 100%;
-  margin-top: 0.5rem;
-}
-
-.device-tabs {
-  border: 1px solid #ebeef5;
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.grid-scroll-container {
-  max-height: calc(100vh - 300px);
-  overflow-y: auto;
-}
-
-.grid-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.25rem;
-  padding: 0.75rem;
-  grid-auto-rows: minmax(280px, auto);
-}
-
-.device-col {
-  margin-bottom: 0.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  position: relative;
-  height: 280px;
-  display: flex;
-  flex-direction: column;
-}
-
-.device-col:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-/* Выделение выбранного устройства */
-.device-col--selected {
-  box-shadow: 0 0 0 2px #409eff;
-  transform: translateY(-1px);
-}
-
-.fake-devices-banner {
-  background: #fff7e6;
-  border: 1px solid #fffae6;
-  border-radius: 3px;
-  padding: 0.5rem;
-  margin-bottom: 0.75rem;
-  display: flex;
-  align-items: center;
-  color: #e6a23c;
-  font-size: 0.85rem;
+  height: 100%;
+  width:  device-grid;
 }
 
 .no-devices {
   padding: 1rem;
   text-align: center;
-  font-size: 0.9rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-/* РАЗМЕРЫ ИКОНОК */
-:deep(.banner-icon) {
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 2fr));
+  grid-gap: 2rem 1.2rem;
+  padding: 1rem 1rem 3rem 1rem;
+  overflow-y: auto;
+  max-height: calc(100vh - 320px)
+}
+
+.device-col {
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  background: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.device-col--selected {
+  box-shadow:
+      0 2px 6px rgba(0, 0, 0, 0.08),
+      0 0 0 2px #409eff;
+}
+
+.fake-device {
+  background: #f9fafb;
+}
+
+.fake-devices-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: #f5f7fa;
+  border-radius: 4px;
+  margin-top: 0.1rem;
+  font-weight: 500;
+  color: #606266;
+}
+
+.banner-icon {
   width: 1rem;
   height: 1rem;
-  margin-right: 0.25rem;
 }
 </style>

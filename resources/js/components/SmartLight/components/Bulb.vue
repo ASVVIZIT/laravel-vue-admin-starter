@@ -48,19 +48,12 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import { checkWebGLSupport, initWhenReady } from '@/components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
-  status: {
-    type: String,
-    required: true,
-    validator: value => ['ON', 'OFF', 'SLEEPING', 'FULL_ON'].includes(value)
-  },
-  intensity: {
-    type: Number,
-    default: 100
-  },
   deviceId: {
     type: String,
     required: true
@@ -75,6 +68,7 @@ const container = ref(null);
 let scene = null;
 let camera = null;
 let renderer = null;
+let controls = null;
 let bulb = null;
 let filament = null;
 let bulbLight = null;
@@ -84,21 +78,26 @@ const store = useSmartLightStore();
 const webGLCheck = checkWebGLSupport();
 const webGLSupported = webGLCheck.isSupported;
 
+// Получаем данные устройства
+const device = computed(() => store.getDevice(props.deviceId));
+const status = computed(() => device.value?.status || 'OFF');
+const intensity = computed(() => device.value?.intensity || 100);
+
 // Вычисляем класс состояния
 const statusClass = computed(() => {
-  return `bulb-status-${props.status.toLowerCase()}`;
+  return `bulb-status-${status.value.toLowerCase()}`;
 });
 
 // Вычисляем интенсивность свечения
 const glowIntensity = computed(() => {
-  if (props.status === 'OFF') return 0;
-  if (props.status === 'SLEEPING') return 0.3 * (props.intensity / 100);
-  return 0.8 * (props.intensity / 100);
+  if (status.value === 'OFF') return 0;
+  if (status.value === 'SLEEPING') return 0.3 * (intensity.value / 100);
+  return 0.8 * (intensity.value / 100);
 });
 
 const glowGradient = computed(() => {
-  if (props.status === 'OFF') return 'none';
-  if (props.status === 'SLEEPING') {
+  if (status.value === 'OFF') return 'none';
+  if (status.value === 'SLEEPING') {
     return 'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 40%, rgba(255, 180, 80, 0) 70%)';
   }
   return 'radial-gradient(circle, rgba(255, 220, 150, 0.9) 0%, rgba(255, 200, 100, 0) 40%, rgba(255, 180, 80, 0) 70%)';
@@ -141,6 +140,29 @@ const createBulbModel = () => {
   bulbLight = new THREE.PointLight(0xffffcc, 1, 10);
   bulbLight.position.copy(bulb.position);
   scene.add(bulbLight);
+};
+
+// Обновляем 3D-модель при изменении статуса или интенсивности
+const updateBulbStatus = () => {
+  if (!bulb || !filament || !bulbLight) return;
+
+  // Обновляем интенсивность свечения
+  if (status.value === 'OFF') {
+    bulbLight.intensity = 0;
+    filament.material.emissiveIntensity = 0;
+  } else {
+    bulbLight.intensity = 1 * (intensity.value / 100);
+    filament.material.emissiveIntensity = 0.8 * (intensity.value / 100);
+  }
+
+  // Обновляем цвет в зависимости от статуса
+  if (status.value === 'SLEEPING') {
+    filament.material.color.set(0xff9800);
+    bulbLight.color.set(0xff9800);
+  } else {
+    filament.material.color.set(0xffff00);
+    bulbLight.color.set(0xffffcc);
+  }
 };
 
 // Обработка изменения размера окна
@@ -189,6 +211,11 @@ const cleanup = () => {
     scene = null;
   }
 
+  if (controls) {
+    controls.dispose();
+    controls = null;
+  }
+
   window.removeEventListener('resize', onWindowResize);
 };
 
@@ -233,6 +260,13 @@ const init = () => {
   // Создаем модель лампочки
   createBulbModel();
 
+  // Добавляем управление
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.rotateSpeed = 0.5;
+  controls.zoomSpeed = 1.0;
+
   // Обработка изменения размера
   window.addEventListener('resize', onWindowResize);
 };
@@ -257,8 +291,8 @@ onUnmounted(() => {
 });
 
 // Следим за изменениями
-watch(() => props.status, updateBulbStatus);
-watch(() => props.intensity, updateBulbStatus);
+watch(status, updateBulbStatus);
+watch(intensity, updateBulbStatus);
 </script>
 
 <style scoped>
@@ -426,47 +460,17 @@ watch(() => props.intensity, updateBulbStatus);
   bottom: 0;
 }
 
-/* Стили для состояния ON */
-.bulb-status-on .bulb-filament-inner {
-  background: linear-gradient(to top, #ffcc00 0%, #ffffff 100%);
-  box-shadow: 0 0 15px #ffcc00;
-}
-
-/* Стили для состояния OFF */
-.bulb-status-off .bulb-glass-inner {
-  background: linear-gradient(135deg, #e6e6e6 0%, #d1d1d1 100%);
-  box-shadow: none;
-}
-
-.bulb-status-off .bulb-filament-inner {
-  background: linear-gradient(to top, #666 0%, #333 100%);
-  box-shadow: none;
-}
-
-.bulb-status-off .bulb-glow {
-  opacity: 0;
-}
-
-/* Стили для состояния SLEEPING */
-.bulb-status-sleeping .bulb-glass-inner {
-  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
-}
-
-.bulb-status-sleeping .bulb-filament-inner {
-  background: linear-gradient(to top, #ff9800 0%, #ffcc99 100%);
-  box-shadow: 0 0 15px #ff9800;
-}
-
-.bulb-status-sleeping .bulb-glow {
-  background: radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 70%);
-  box-shadow:
-      0 0 30px 15px rgba(255, 165, 0, 0.7),
-      0 0 60px 30px rgba(255, 165, 0, 0.4);
-}
-
 /* Анимация свечения */
 @keyframes filament-glow {
-  0% { opacity: 0.7; }
-  100% { opacity: 1; }
+  0% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+.bulb-status-on .bulb-filament-inner {
+  animation: filament-glow 2s infinite alternate;
 }
 </style>

@@ -33,7 +33,7 @@ class SmartLightDeviceAuth
         }
 
         // Проверка критического напряжения
-        if ($device->critical_voltage > 0 && $device->voltage < $device->critical_voltage) {
+        if ($device->voltage < $device->critical_voltage) {
             return response()->json([
                 'error' => 'Critical voltage',
                 'message' => 'Device is in emergency mode due to low battery',

@@ -13,7 +13,7 @@
             size="small"
         >
           <Refresh v-if="!loading" class="action-icon" />
-          Обновить
+          <span>Обновить</span>
         </el-button>
         <el-button
             @click="showDebugPanel = !showDebugPanel"
@@ -22,25 +22,37 @@
             :class="{ 'debug-active': showDebugPanel }"
         >
           <Handbag class="action-icon" />
-          Отладка
+          <span>Отладка</span>
+        </el-button>
+        <el-button
+            @click="toggle3DMode"
+            type="warning"
+            size="small"
+            :class="{ 'mode-3d': store.interfaceSettings.global3DMode }"
+        >
+          <Eleme v-if="store.interfaceSettings.global3DMode" class="mode-icon" />
+          <Grid v-else class="mode-icon" />
+          <span>{{ store.interfaceSettings.global3DMode ? '3D режим' : '2D режим' }}</span>
         </el-button>
       </div>
     </div>
 
-    <div class="dashboard-layout" :class="{ 'debug-active': showDebugPanel }">
+    <div class="dashboard-layout"
+         :class="{
+           'debug-active': showDebugPanel,
+           'mode-3d': store.interfaceSettings.global3DMode
+         }">
       <div class="content-container">
         <DeviceGrid
-            :devices="devices"
-            :loading="loading"
             @device-updated="refreshDevice"
             @emergency-sleep="handleEmergencySleep"
             @open-settings="openDeviceSettings"
             @device-selected="handleDeviceSelected"
+            :show-3d="store.interfaceSettings.global3DMode"
         />
       </div>
-
       <div class="debug-panel-container" :class="{ 'active': showDebugPanel }">
-        <DebugPanel />
+        <DebugPanel :show-3d="store.interfaceSettings.global3DMode" />
       </div>
     </div>
 
@@ -50,23 +62,25 @@
         width="520px"
         :modal="false"
     >
-      <DeviceSettings :device="selectedDevice" />
+      <DeviceSettings :device="selectedDevice" :show-3d="store.interfaceSettings.global3DMode" />
     </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { ElMessage, ElNotification } from 'element-plus';
+import { ElNotification } from 'element-plus';
 import {
   Opportunity,
   Refresh,
-  Handbag
+  Handbag,
+  Eleme,
+  Grid
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import DeviceGrid from '@/components/SmartLight/components/DeviceGrid.vue';
-import DebugPanel from './DebugPanel.vue';
-import DeviceSettings from './DeviceSettings.vue';
+import DebugPanel from '@/views/SmartLight/DebugPanel.vue';
+import DeviceSettings from '@/views/SmartLight/DeviceSettings.vue';
 
 const store = useSmartLightStore();
 const devices = ref([]);
@@ -75,6 +89,7 @@ const showDebugPanel = ref(false);
 const deviceSettingsVisible = ref(false);
 const selectedDevice = ref(null);
 
+// Загрузка устройств
 const loadDevices = async () => {
   loading.value = true;
   try {
@@ -92,30 +107,52 @@ const loadDevices = async () => {
   }
 };
 
+// Обработчик переключения режима отображения
+const toggle3DMode = () => {
+  store.setGlobal3DMode(!store.interfaceSettings.global3DMode);
+
+  ElNotification({
+    title: 'Режим отображения',
+    message: store.interfaceSettings.global3DMode ? 'Включен 3D режим' : 'Включен 2D режим',
+    type: store.interfaceSettings.global3DMode ? 'success' : 'info'
+  });
+};
+
+// Обновление устройства
 const refreshDevice = async (deviceId) => {
   await loadDevices();
 };
 
+// Обработка перевода в сон
 const handleEmergencySleep = async (deviceId) => {
   try {
     await store.forceSleep(deviceId);
     refreshDevice(deviceId);
   } catch (error) {
-    ElMessage.error('Ошибка отправки команды сна');
+    ElNotification({
+      title: 'Ошибка',
+      message: 'Ошибка отправки команды сна',
+      type: 'error'
+    });
   }
 };
 
+// Выбор устройства
 const handleDeviceSelected = (device) => {
   store.selectDevice(device.device_id);
   selectedDevice.value = device;
 };
 
+// Открытие настроек устройства
 const openDeviceSettings = (device) => {
   selectedDevice.value = device;
   deviceSettingsVisible.value = true;
 };
 
-onMounted(loadDevices);
+onMounted(() => {
+  store.initInterfaceSettings();
+  loadDevices();
+});
 </script>
 
 <style scoped>
@@ -141,9 +178,32 @@ onMounted(loadDevices);
   flex-shrink: 0;
 }
 
+:deep(.header-icon) {
+  width: 1.2rem;
+  height: 1.2rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.action-icon) {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin-right: 0.25rem;
+}
+
+:deep(.mode-icon) {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
 .header-actions .debug-active {
   background-color: #e6a23c !important;
   border-color: #e6a23c !important;
+  color: #fff !important;
+}
+
+.header-actions .mode-3d {
+  background-color: #ff9800 !important;
+  border-color: #ff9800 !important;
   color: #fff !important;
 }
 
@@ -157,6 +217,10 @@ onMounted(loadDevices);
 
 .dashboard-layout.debug-active {
   grid-template-columns: 1fr 320px;
+}
+
+.dashboard-layout.mode-3d {
+  grid-template-rows: 1fr 0;
 }
 
 .content-container {
@@ -205,18 +269,5 @@ onMounted(loadDevices);
   .debug-panel-container.active {
     transform: translateY(0);
   }
-}
-
-/* РАЗМЕРЫ ИКОНОК */
-:deep(.header-icon) {
-  width: 1.2rem;
-  height: 1.2rem;
-  margin-right: 0.25rem;
-}
-
-:deep(.action-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
-  margin-right: 0.25rem;
 }
 </style>

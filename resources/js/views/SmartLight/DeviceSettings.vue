@@ -1,97 +1,152 @@
 <template>
-  <div class="device-settings-container" v-if="deviceLoaded">
-    <el-page-header @back="$router.back" content="Настройки устройства" />
-    <el-card class="settings-card" shadow="never" style="margin-top: 20px">
+  <div class="device-settings">
+    <el-card class="settings-card">
       <template #header>
-        <div class="device-header">
-          <h3>{{ device.name }}</h3>
-          <div class="header-tags">
-            <el-tag :type="statusType" size="small">{{ device.status }}</el-tag>
-            <el-tag v-if="device.is_fake" type="warning" size="small">
-              <Handbag class="status-icon" />
-              Демо
-            </el-tag>
-            <el-tag v-else type="info" size="small">
-              <User class="status-icon" />
-              Ручное
-            </el-tag>
+        <div class="header-container">
+          <h2 class="header-title">Настройки устройства {{ device.name }}</h2>
+          <div class="header-actions">
+            <el-button
+                @click="resetToDefaults"
+                type="warning"
+                :loading="loading"
+                size="small"
+            >
+              <IconWrapper :icon="Refresh" size="small" class="mr-1" />
+              Сбросить
+            </el-button>
+            <el-button
+                @click="saveSettings"
+                type="primary"
+                :loading="loading"
+                size="small"
+            >
+              <IconWrapper :icon="Check" size="small" class="mr-1" />
+              Сохранить
+            </el-button>
           </div>
         </div>
       </template>
+
       <el-alert
           v-if="error"
           :title="error"
           type="error"
           show-icon
-          class="mb-4"
+          class="mb-1"
           closable
       />
-      <el-skeleton v-if="loading" :rows="6" animated />
+
+      <el-skeleton v-if="loading" :rows="6" animated class="skeleton-container" />
+
       <div v-else class="scrollable-content">
         <el-form
-            model="localDevice"
+            :model="localSettings"
             label-width="220px"
             label-position="left"
             class="settings-form"
             size="small"
         >
-          <el-tabs type="border-card">
+          <el-tabs type="border-card" v-model="activeTab">
             <el-tab-pane label="Основные настройки" name="main">
+              <!-- Тип аккумулятора -->
+              <el-form-item label="Тип аккумулятора" prop="battery_type_id">
+                <el-select v-model="localSettings.battery_type_id" class="compact-select">
+                  <el-option value="li-ion-18650" label="Li-ion 18650" />
+                  <el-option value="li-ion-21700" label="Li-ion 21700" />
+                  <el-option value="li-po" label="Li-Po" />
+                  <el-option value="lead-acid" label="Свинцово-кислотный" />
+                </el-select>
+              </el-form-item>
+
+              <!-- Группировка аккумуляторов -->
+              <el-form-item label="Группировка аккумуляторов" prop="battery_group_config">
+                <el-switch
+                    v-model="localSettings.battery_group_config.enabled"
+                    @change="updateBatteryGroupConfig"
+                />
+                <div class="group-config-container" v-if="localSettings.battery_group_config.enabled">
+                  <el-form-item label="Тип группировки" prop="battery_group_config.type">
+                    <el-select v-model="localSettings.battery_group_config.type" class="compact-select">
+                      <el-option value="series" label="Последовательное" />
+                      <el-option value="parallel" label="Параллельное" />
+                      <el-option value="series_parallel" label="Последовательно-параллельное" />
+                    </el-select>
+                  </el-form-item>
+
+                  <el-form-item label="Количество аккумуляторов" prop="battery_group_config.count">
+                    <el-input-number
+                        v-model="localSettings.battery_group_config.count"
+                        :min="1"
+                        :max="10"
+                        :controls="false"
+                        class="compact-number-input"
+                    />
+                  </el-form-item>
+                </div>
+              </el-form-item>
+
               <!-- Критическое напряжение -->
-              <el-form-item label="Критическое напряжение (В)">
+              <el-form-item label="Критическое напряжение (В)" prop="critical_voltage">
                 <div class="battery-slider-container">
-                  <div class="battery-container">
-                    <div class="battery">
-                      <div
-                          class="battery-normal"
-                          :style="{
-                          width: batteryNormalProgress + '%',
-                          backgroundColor: batteryColor
-                        }"
-                      ></div>
-                      <div
-                          class="battery-critical"
-                          :style="{
-                          width: batteryCriticalProgress + '%',
-                          backgroundColor: criticalColor
-                        }"
-                      >
-                        <div class="battery-critical-pattern"></div>
+                  <div class="battery-visualization">
+                    <div class="battery-container">
+                      <div class="battery">
+                        <div
+                            class="battery-normal"
+                            :style="{
+                            width: batteryNormalProgress + '%',
+                            backgroundColor: batteryColor
+                          }"
+                        ></div>
+                        <div
+                            class="battery-critical"
+                            :style="{
+                            width: batteryCriticalProgress + '%',
+                            backgroundColor: criticalColor
+                          }"
+                        >
+                          <div class="battery-critical-pattern"></div>
+                        </div>
+                        <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
+                        <div class="battery-mark current-level" :style="{ left: currentLevelPosition + '%' }"></div>
+                        <div class="battery-cap"></div>
+                        <div class="battery-plus">+</div>
+                        <div class="battery-minus">-</div>
                       </div>
-                      <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
-                      <div class="battery-mark current-level" :style="{ left: currentLevelPosition + '%' }"></div>
-                      <div class="battery-cap"></div>
-                      <div class="battery-plus">+</div>
-                      <div class="battery-minus">-</div>
+                      <div class="battery-levels">
+                        <span class="battery-level" :style="{ left: '0%' }">{{ formattedMinVoltage }} В</span>
+                        <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ formattedCriticalThreshold }} В</span>
+                        <span class="battery-level" :style="{ left: '100%' }">{{ formattedMaxVoltage }} В</span>
+                      </div>
                     </div>
-                    <div class="battery-levels">
-                      <span class="battery-level" :style="{ left: '0%' }">2.5 В</span>
-                      <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ localDevice.critical_voltage.toFixed(2) }} В</span>
-                      <span class="battery-level" :style="{ left: '100%' }">4.3 В</span>
+                    <div class="battery-type-info">
+                      <span class="battery-type-label">Тип:</span>
+                      <span class="battery-type-value">{{ batteryTypeName }}</span>
                     </div>
+                    <div class="voltage-value">{{ formattedVoltage }}</div>
                   </div>
-                  <div class="voltage-control">
-                    <div class="voltage-input">
-                      <el-input-number
-                          v-model="localDevice.critical_voltage"
-                          :min="2.5"
-                          :max="4.3"
-                          :step="0.01"
-                          :precision="2"
-                          :controls="true"
-                          class="voltage-input-field"
-                      />
-                      <span class="voltage-unit">В</span>
-                    </div>
-                    <el-slider
-                        v-model="localDevice.critical_voltage"
+                </div>
+                <div class="voltage-control">
+                  <div class="voltage-input">
+                    <el-input-number
+                        v-model="localSettings.critical_voltage"
                         :min="2.5"
                         :max="4.3"
                         :step="0.01"
-                        :format-tooltip="formatVoltageTooltip"
-                        class="voltage-slider"
+                        :precision="2"
+                        :controls="true"
+                        class="voltage-input-field"
                     />
+                    <span class="voltage-unit">В</span>
                   </div>
+                  <el-slider
+                      v-model="localSettings.critical_voltage"
+                      :min="2.5"
+                      :max="4.3"
+                      :step="0.01"
+                      :format-tooltip="formatVoltageTooltip"
+                      class="voltage-slider"
+                  />
                 </div>
                 <template #help>
                   <div class="help-content">
@@ -101,111 +156,45 @@
                 </template>
               </el-form-item>
 
-              <!-- Интервал сна -->
-              <el-form-item label="Интервал сна (сек)">
-                <div class="range-input-container">
-                  <el-input-number
-                      v-model="localDevice.sleep_interval"
-                      :min="60"
-                      :max="86400"
-                      :step="60"
-                      :controls="false"
-                      class="compact-number-input"
-                  />
-                  <el-slider
-                      v-model="localDevice.sleep_interval"
-                      :min="60"
-                      :max="3600"
-                      :step="60"
-                      class="compact-slider"
-                  />
-                </div>
-                <template #help>
-                  <div class="help-content">
-                    <Timer class="help-icon" />
-                    <span>Интервал проверки команд в нормальном режиме. 600 = 10 минут</span>
-                  </div>
-                </template>
-              </el-form-item>
-
-              <!-- Экстренный интервал сна -->
-              <el-form-item label="Экстренный интервал (сек)">
-                <div class="range-input-container">
-                  <el-input-number
-                      v-model="localDevice.emergency_sleep_interval"
-                      :min="300"
-                      :max="86400"
-                      :step="300"
-                      :controls="false"
-                      class="compact-number-input"
-                  />
-                  <el-slider
-                      v-model="localDevice.emergency_sleep_interval"
-                      :min="300"
-                      :max="7200"
-                      :step="300"
-                      class="compact-slider"
-                  />
-                </div>
-                <template #help>
-                  <div class="help-content">
-                    <Moon class="help-icon" />
-                    <span>Интервал сна при критическом заряде. 3600 = 1 час</span>
-                  </div>
-                </template>
+              <!-- Тип лампочки -->
+              <el-form-item label="Тип лампочки" prop="bulb_type_id">
+                <el-select v-model="localSettings.bulb_type_id" class="compact-select">
+                  <el-option value="classic" label="Классическая" />
+                  <el-option value="led" label="LED" />
+                  <el-option value="halogen" label="Галогенная" />
+                  <el-option value="smart_led" label="Smart LED" />
+                </el-select>
               </el-form-item>
             </el-tab-pane>
 
             <el-tab-pane label="Wi-Fi настройки" name="wifi">
               <!-- SSID Wi-Fi -->
-              <el-form-item label="SSID Wi-Fi">
+              <el-form-item label="SSID Wi-Fi" prop="wifi_ssid">
                 <el-input
-                    v-model="localDevice.wifi_ssid"
+                    v-model="localSettings.wifi_ssid"
                     placeholder="MyHomeWiFi"
                     clearable
+                    class="compact-input"
                 />
               </el-form-item>
 
               <!-- Пароль Wi-Fi -->
-              <el-form-item label="Пароль Wi-Fi">
+              <el-form-item label="Пароль Wi-Fi" prop="wifi_password">
                 <el-input
-                    v-model="localDevice.wifi_password"
+                    v-model="localSettings.wifi_password"
                     type="password"
                     show-password
                     placeholder="Введите пароль"
                     clearable
+                    class="compact-input"
                 />
-              </el-form-item>
-
-              <!-- MAC-адрес -->
-              <el-form-item label="MAC-адрес">
-                <el-input v-model="localDevice.mac_address" readonly>
-                  <template #append>
-                    <el-button @click="copyMacAddress">
-                      <CopyDocument class="button-icon" />
-                    </el-button>
-                  </template>
-                </el-input>
               </el-form-item>
             </el-tab-pane>
 
             <el-tab-pane label="Системные настройки" name="system">
-              <!-- Тип устройства -->
-              <el-form-item label="Тип устройства">
-                <el-select v-model="localDevice.device_type" class="w-full" disabled>
-                  <el-option value="node_mcu_v3" label="NodeMCU V3" />
-                  <el-option value="esp8266" label="ESP8266" />
-                  <el-option value="esp32" label="ESP32" />
-                  <el-option value="custom" label="Другое устройство" />
-                </el-select>
-                <template #help>
-                  Тип устройства не может быть изменен
-                </template>
-              </el-form-item>
-
               <!-- Часовой пояс -->
-              <el-form-item label="Часовой пояс">
-                <el-select v-model="localDevice.timezone" class="w-64">
+              <el-form-item label="Часовой пояс" prop="timezone">
+                <el-select v-model="localSettings.timezone" class="compact-select">
                   <el-option value="Asia/Tokyo" label="Токио (UTC+9)" />
                   <el-option value="Asia/Yekaterinburg" label="Уфа (UTC+5)" />
                   <el-option value="Europe/Moscow" label="Москва (UTC+3)" />
@@ -215,8 +204,8 @@
               </el-form-item>
 
               <!-- Уровень логирования -->
-              <el-form-item label="Уровень логирования">
-                <el-select v-model="localDevice.log_level" class="w-32">
+              <el-form-item label="Уровень логирования" prop="log_level">
+                <el-select v-model="localSettings.log_level" class="w-32">
                   <el-option value="debug" label="Debug" />
                   <el-option value="info" label="Info" />
                   <el-option value="warning" label="Warning" />
@@ -226,17 +215,17 @@
               </el-form-item>
 
               <!-- Хранение телеметрии -->
-              <el-form-item label="Хранение телеметрии (дней)">
+              <el-form-item label="Хранение телеметрии (дней)" prop="telemetry_retention_days">
                 <div class="range-input-container">
                   <el-input-number
-                      v-model="localDevice.telemetry_retention_days"
+                      v-model="localSettings.telemetry_retention_days"
                       :min="1"
                       :max="365"
                       :controls="false"
                       class="compact-number-input"
                   />
                   <el-slider
-                      v-model="localDevice.telemetry_retention_days"
+                      v-model="localSettings.telemetry_retention_days"
                       :min="1"
                       :max="180"
                       :step="1"
@@ -249,292 +238,301 @@
               </el-form-item>
             </el-tab-pane>
           </el-tabs>
-          <div class="form-actions">
-            <el-button type="primary" @click="saveDevice">
-              <Check class="action-icon" />
-              Сохранить
-            </el-button>
-            <el-button @click="resetToDefault">Сбросить</el-button>
-          </div>
         </el-form>
       </div>
     </el-card>
   </div>
-  <div v-else class="loading-container">
-    <el-skeleton :rows="6" animated />
-  </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { ElMessage, ElNotification } from 'element-plus';
 import {
-  Handbag,
-  User,
-  Moon,
-  Timer,
-  Warning,
-  CopyDocument,
-  Check
+  Check,
+  Refresh,
+  Warning
 } from '@element-plus/icons-vue';
-import { useRoute, useRouter } from 'vue-router';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import IconWrapper from '@/components/SmartLight/components/IconWrapper.vue';
 
-const route = useRoute();
-const router = useRouter();
+const props = defineProps({
+  device: {
+    type: Object,
+    required: true
+  },
+  show3D: {
+    type: Boolean,
+    default: true
+  }
+});
+
 const store = useSmartLightStore();
 const loading = ref(false);
 const error = ref(null);
-const deviceLoaded = ref(false);
-
-// Получаем устройство по ID из URL
-const deviceId = computed(() => route.params.id);
-const device = computed(() => {
-  return store.devices.find(d => d.device_id === deviceId.value);
-});
-
-const localDevice = ref({
-  name: '',
-  device_id: '',
-  status: 'OFF',
-  voltage: 3.7,
-  intensity: 100,
+const activeTab = ref('main');
+const localSettings = ref({
+  battery_type_id: 'li-ion-18650',
+  battery_group_config: {
+    enabled: false,
+    type: 'series',
+    count: 1,
+    connections: []
+  },
   critical_voltage: 3.2,
+  bulb_type_id: 'classic',
   sleep_interval: 600,
   emergency_sleep_interval: 3600,
-  device_type: 'node_mcu_v3',
   wifi_ssid: '',
   wifi_password: '',
-  mac_address: '',
   timezone: 'Europe/Moscow',
   log_level: 'info',
   telemetry_retention_days: 30
 });
 
-// Загрузка настроек при монтировании
-onMounted(async () => {
-  try {
-    // Сначала загружаем устройства, если они не загружены
-    if (store.devices.length === 0) {
-      await store.fetchDevices();
-    }
-    syncLocalDevice();
-  } catch (err) {
-    error.value = 'Ошибка загрузки настроек: ' + err.message;
-    router.push({ name: 'SmartLightDashboard' });
-  }
-});
-
-// Синхронизация локальных настроек со стором
-const syncLocalDevice = () => {
-  if (device.value) {
-    localDevice.value = {
-      ...localDevice.value,
-      ...device.value,
-      wifi_ssid: device.value.wifi_ssid || '',
-      wifi_password: device.value.wifi_password || '',
-      mac_address: device.value.is_fake
-          ? `FAKE-${device.value.device_id}`
-          : `SL-${device.value.device_id}`,
-      timezone: device.value.timezone || 'Europe/Moscow',
-      log_level: device.value.log_level || 'info',
-      telemetry_retention_days: device.value.telemetry_retention_days || 30
-    };
-    deviceLoaded.value = true;
+// Загрузка активного таба из localStorage
+const loadActiveTab = () => {
+  const tab = localStorage.getItem(`smartlight_device_settings_${props.device.device_id}_active_tab`);
+  if (tab && ['main', 'wifi', 'system'].includes(tab)) {
+    activeTab.value = tab;
   } else {
-    deviceLoaded.value = false;
-    error.value = 'Устройство не найдено';
+    activeTab.value = 'main';
   }
 };
 
-// Следим за изменениями в сторе
-watch(() => store.devices, syncLocalDevice);
-watch(route, syncLocalDevice);
+// Сохранение активного таба в localStorage
+const saveActiveTab = () => {
+  localStorage.setItem(`smartlight_device_settings_${props.device.device_id}_active_tab`, activeTab.value);
+};
 
-const statusType = computed(() => {
-  if (!device.value) return 'info';
+// Загрузка настроек
+const loadSettings = () => {
+  try {
+    // Загружаем активный таб
+    loadActiveTab();
 
-  switch (device.value.status) {
-    case 'ON': return 'success';
-    case 'OFF': return 'info';
-    case 'SLEEPING': return 'warning';
-    default: return 'danger';
+    // Загружаем настройки из пропсов
+    localSettings.value = {
+      ...localSettings.value,
+      ...props.device
+    };
+
+    // Загружаем настройки из локального хранилища
+    const settingsJson = localStorage.getItem(`smartlight_device_settings_${props.device.device_id}`);
+    if (settingsJson) {
+      const settings = JSON.parse(settingsJson);
+      localSettings.value = {
+        ...localSettings.value,
+        ...settings
+      };
+    }
+  } catch (e) {
+    console.error('Ошибка загрузки настроек устройства:', e);
+    error.value = 'Ошибка загрузки настроек';
   }
-});
+};
 
-// Вычисляем позицию критического порога в процентах
-const criticalThresholdPosition = computed(() => {
-  const minVoltage = 2.5;
-  const maxVoltage = 4.3;
-  const criticalVoltage = localDevice.value.critical_voltage;
+// Сохранение настроек
+const saveSettings = async () => {
+  loading.value = true;
+  error.value = null;
 
-  return ((criticalVoltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
-});
+  try {
+    // Проверяем допустимые значения
+    localSettings.value.critical_voltage = Math.min(4.3, Math.max(2.5, localSettings.value.critical_voltage));
+    localSettings.value.sleep_interval = Math.min(86400, Math.max(60, localSettings.value.sleep_interval));
+    localSettings.value.emergency_sleep_interval = Math.min(7200, Math.max(300, localSettings.value.emergency_sleep_interval));
+    localSettings.value.telemetry_retention_days = Math.min(180, Math.max(1, localSettings.value.telemetry_retention_days));
 
-// Нормальный прогресс (от критического порога до max)
+    // Сохраняем в локальное хранилище
+    localStorage.setItem(
+        `smartlight_device_settings_${props.device.device_id}`,
+        JSON.stringify(localSettings.value)
+    );
+
+    // Сохраняем активный таб
+    saveActiveTab();
+
+    // Обновляем критическое напряжение в Store
+    store.updateDeviceCriticalVoltage(props.device.device_id, localSettings.value.critical_voltage);
+
+    // Обновляем тип аккумулятора в Store
+    store.updateDeviceBatteryType(props.device.device_id, localSettings.value.battery_type_id);
+
+    // Обновляем тип лампочки в Store
+    store.updateDeviceBulbType(props.device.device_id, localSettings.value.bulb_type_id);
+
+    // Обновляем конфигурацию группировки в Store
+    store.updateDeviceBatteryGroup(props.device.device_id, localSettings.value.battery_group_config);
+
+    ElMessage.success('Настройки устройства сохранены');
+  } catch (err) {
+    error.value = 'Не удалось сохранить настройки: ' + (err.message || err);
+    ElMessage.error('Ошибка сохранения настроек');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Сброс настроек
+const resetToDefaults = () => {
+  // Сбрасываем критическое напряжение
+  localSettings.value.critical_voltage = store.calculateGroupCriticalVoltage(props.device.device_id);
+
+  ElMessage.success('Настройки устройства сброшены');
+};
+
+// Обновление конфигурации группировки
+const updateBatteryGroupConfig = () => {
+  // При включении группировки устанавливаем значения по умолчанию
+  if (localSettings.value.battery_group_config.enabled) {
+    localSettings.value.battery_group_config.type = 'series';
+    localSettings.value.battery_group_config.count = 2;
+    saveSettings();
+  } else {
+    // При отключении группировки сбрасываем настройки
+    localSettings.value.battery_group_config = {
+      enabled: false,
+      type: 'series',
+      count: 1,
+      connections: []
+    };
+    saveSettings();
+  }
+};
+
+// Вычисляемые свойства
 const batteryNormalProgress = computed(() => {
-  const minVoltage = 2.5;
-  const maxVoltage = 4.3;
+  const min = 2.5;
+  const max = 4.3;
+  const critical = 3.2;
 
-  if (localDevice.value.voltage <= localDevice.value.critical_voltage) {
+  if (localSettings.value.critical_voltage <= critical) {
     return 0;
   }
 
-  const normalVoltage = localDevice.value.voltage - localDevice.value.critical_voltage;
-  const maxNormalVoltage = maxVoltage - localDevice.value.critical_voltage;
-
+  const normalVoltage = localSettings.value.critical_voltage - critical;
+  const maxNormalVoltage = max - critical;
   return Math.min(100, Math.max(0, (normalVoltage / maxNormalVoltage) * 100));
 });
 
-// Критический прогресс (от min до критического порога)
 const batteryCriticalProgress = computed(() => {
-  const minVoltage = 2.5;
-  const maxVoltage = 4.3;
+  const min = 2.5;
+  const max = 4.3;
+  const critical = 3.2;
 
-  if (localDevice.value.voltage >= localDevice.value.critical_voltage) {
+  if (localSettings.value.critical_voltage >= critical) {
     return 0;
   }
 
-  const criticalVoltage = localDevice.value.critical_voltage - localDevice.value.voltage;
-  const criticalVoltageRange = localDevice.value.critical_voltage - minVoltage;
-
+  const criticalVoltage = critical - localSettings.value.critical_voltage;
+  const criticalVoltageRange = critical - min;
   return Math.min(100, Math.max(0, (criticalVoltage / criticalVoltageRange) * 100));
 });
 
-// Позиция текущего уровня
-const currentLevelPosition = computed(() => {
-  const minVoltage = 2.5;
-  const maxVoltage = 4.3;
-  return ((localDevice.value.voltage - minVoltage) / (maxVoltage - minVoltage)) * 100;
+const criticalThresholdPosition = computed(() => {
+  const min = 2.5;
+  const max = 4.3;
+  const critical = 3.2;
+  return ((critical - min) / (max - min)) * 100;
 });
 
-// Цвет критического уровня
+const currentLevelPosition = computed(() => {
+  const min = 2.5;
+  const max = 4.3;
+  return ((localSettings.value.critical_voltage - min) / (max - min)) * 100;
+});
+
+const batteryColor = computed(() => {
+  const voltage = localSettings.value.critical_voltage;
+  if (voltage < 2.7) return '#f56c6c';
+  if (voltage < 3.0) return '#e6a23c';
+  return '#67c23a';
+});
+
 const criticalColor = computed(() => {
-  const voltage = localDevice.value.voltage;
+  const voltage = localSettings.value.critical_voltage;
   if (voltage < 2.7) return '#f56c6c';
   if (voltage < 3.0) return '#faa7a7';
   return '#ffcccb';
 });
 
-// Цвет нормального уровня
-const batteryColor = computed(() => {
-  const voltage = localDevice.value.voltage;
-  if (voltage < 3.0) return '#f56c6c';
-  if (voltage < 3.4) return '#e6a23c';
-  return '#67c23a';
+const formattedCriticalThreshold = computed(() => {
+  return Number(3.2).toFixed(2);
+});
+
+const formattedMinVoltage = computed(() => {
+  return Number(2.5).toFixed(1);
+});
+
+const formattedMaxVoltage = computed(() => {
+  return Number(4.3).toFixed(1);
+});
+
+const formattedVoltage = computed(() => {
+  return Number(localSettings.value.critical_voltage).toFixed(2) + ' В';
+});
+
+const batteryTypeName = computed(() => {
+  const voltage = localSettings.value.critical_voltage;
+  if (voltage < 3.0) return 'Критический режим';
+  if (voltage < 3.4) return 'Внимание';
+  return 'Нормальный режим';
 });
 
 const formatVoltageTooltip = (value) => {
   return Number(value).toFixed(2) + ' В';
 };
 
-const saveDevice = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-    const updatedDevice = {
-      ...device.value,
-      critical_voltage: localDevice.value.critical_voltage,
-      sleep_interval: localDevice.value.sleep_interval,
-      emergency_sleep_interval: localDevice.value.emergency_sleep_interval,
-      wifi_ssid: localDevice.value.wifi_ssid,
-      wifi_password: localDevice.value.wifi_password
-    };
+// Инициализация
+onMounted(() => {
+  loadSettings();
+});
 
-    // Для реальных устройств отправляем обновление
-    if (!device.value.is_fake) {
-      const response = await store.updateDevice(updatedDevice);
-      if (response.success) {
-        ElMessage.success('Настройки сохранены');
-      } else {
-        throw new Error(response.message || 'Ошибка сохранения настроек');
-      }
-    } else {
-      // Для фейковых устройств - только локальное обновление
-      const deviceIndex = store.devices.findIndex(d => d.device_id === device.value.device_id);
-      if (deviceIndex !== -1) {
-        store.devices[deviceIndex] = {
-          ...store.devices[deviceIndex],
-          ...updatedDevice
-        };
-      }
-      ElNotification({
-        title: 'Эмуляция',
-        message: 'Настройки фейкового устройства обновлены',
-        type: 'info',
-        duration: 2000
-      });
-    }
-
-    syncLocalDevice();
-  } catch (err) {
-    error.value = 'Ошибка сохранения настроек: ' + (err.message || err);
-    ElMessage.error('Не удалось сохранить настройки');
-  } finally {
-    loading.value = false;
-  }
-};
-
-const resetToDefault = async () => {
-  try {
-    loading.value = true;
-    error.value = null;
-    localDevice.value.critical_voltage = 3.2;
-    localDevice.value.sleep_interval = 600;
-    localDevice.value.emergency_sleep_interval = 3600;
-
-    ElNotification({
-      title: 'Сброс',
-      message: 'Настройки сброшены к значениям по умолчанию',
-      type: 'success'
-    });
-  } catch (err) {
-    error.value = 'Ошибка сброса настроек: ' + (err.message || err);
-    ElMessage.error('Не удалось сбросить настройки');
-  } finally {
-    loading.value = false;
-  }
-};
-
-const copyMacAddress = () => {
-  navigator.clipboard.writeText(localDevice.value.mac_address);
-  ElNotification({
-    title: 'Скопировано',
-    message: 'MAC-адрес скопирован в буфер обмена',
-    type: 'success'
-  });
-};
+// Следим за изменением активного таба
+watch(activeTab, (newValue) => {
+  saveActiveTab();
+});
 </script>
 
 <style scoped>
-.device-settings-container {
-  padding: 1.5rem;
+.device-settings {
+  padding: 0.75rem;
+  height: 100%;
 }
 
 .settings-card {
-  border-radius: 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
-.device-header {
+.header-container {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 1rem;
-}
-
-.header-tags {
-  display: flex;
-  gap: 0.5rem;
   flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.loading-container {
-  padding: 1.5rem;
+.header-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #303133;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.skeleton-container {
+  padding: 0.5rem;
 }
 
 .scrollable-content {
-  max-height: calc(100vh - 320px);
+  height: calc(100vh - 250px);
   overflow-y: auto;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
 .settings-form {
@@ -568,16 +566,26 @@ const copyMacAddress = () => {
   gap: 0.5rem;
 }
 
-.battery-container {
-  height: 20px;
+.battery-visualization {
   display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.battery-container {
+  position: relative;
+  height: 40px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
 }
 
 .battery {
   position: relative;
   width: 100%;
-  height: 100%;
+  height: 30px;
   border: 1px solid #ebeef5;
   border-radius: 8px;
   background: #f5f7fa;
@@ -598,6 +606,7 @@ const copyMacAddress = () => {
   left: 0;
   height: 100%;
   background: linear-gradient(90deg, #f56c6c 0%, #ff9999 100%);
+  overflow: hidden;
 }
 
 .battery-critical-pattern {
@@ -667,14 +676,43 @@ const copyMacAddress = () => {
 .battery-levels {
   display: flex;
   justify-content: space-between;
-  position: relative;
+  position: absolute;
+  bottom: 5px;
   margin-top: 1px;
+  font-size: 0.8rem;
+  color: #909399;
+  width: 100%;
 }
 
 .battery-level {
   position: absolute;
   font-size: 0.7rem;
   color: #909399;
+}
+
+.battery-type-info {
+  position: absolute;
+  display: flex;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #606266;
+  top: 3px;
+}
+
+.battery-type-label {
+  font-weight: bold;
+}
+
+.voltage-value {
+  text-align: center;
+  font-weight: 700;
+  color: #409eff;
+  font-size: 1.85rem;
+  margin-top: .2rem;
+  line-height: 1.2;
+  display: block;
+  position: absolute;
+  top: 8px;
 }
 
 .voltage-control {
@@ -704,6 +742,11 @@ const copyMacAddress = () => {
   width: 100%;
 }
 
+.compact-select {
+  width: 100%;
+  max-width: 400px;
+}
+
 :deep(.el-form-item__content) {
   align-items: flex-start;
 }
@@ -730,52 +773,17 @@ const copyMacAddress = () => {
 
 :deep(.el-input-number__decrease),
 :deep(.el-input-number__increase) {
-  width: 24px;
+  width: 20px;
 }
 
-:deep(.el-button) {
-  display: inline-flex;
+.help-content {
+  display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
+  gap: 0.2rem;
 }
 
-:deep(.el-button > svg) {
+.help-icon {
   width: 0.9rem;
   height: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 0.25rem;
-}
-
-:deep(.el-button > svg:last-child) {
-  margin-right: 0;
-}
-
-:deep(.help-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
-  margin-right: 0.25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.button-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.action-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
-  margin-right: 0.25rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 </style>

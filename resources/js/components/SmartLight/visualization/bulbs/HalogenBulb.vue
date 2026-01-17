@@ -17,9 +17,6 @@
         <div class="bulb-glass-inner">
           <!-- Нить накаливания -->
           <div class="bulb-filament-container">
-            <div class="bulb-filament-support">
-              <div class="bulb-filament-support-inner"></div>
-            </div>
             <div class="bulb-filament">
               <div class="bulb-filament-inner"></div>
             </div>
@@ -99,19 +96,19 @@ const glowIntensity = computed(() => {
 const glowGradient = computed(() => {
   if (props.status === 'OFF') return 'none';
   if (props.status === 'SLEEPING') {
-    return 'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 40%, rgba(255, 180, 80, 0) 70%)';
+    return 'radial-gradient(circle, rgba(255, 215, 100, 0.8) 0%, rgba(255, 180, 50, 0) 40%, rgba(255, 160, 20, 0) 70%)';
   }
-  return 'radial-gradient(circle, rgba(255, 220, 150, 0.9) 0%, rgba(255, 200, 100, 0) 40%, rgba(255, 180, 80, 0) 70%)';
+  return 'radial-gradient(circle, rgba(255, 235, 180, 0.9) 0%, rgba(255, 220, 100, 0) 40%, rgba(255, 200, 80, 0) 70%)';
 });
 
-// Создаем 3D-модель лампочки
+// Создаем 3D-модель галогенной лампочки
 const createBulbModel = () => {
   // Создаем сферу для лампочки
   const bulbGeometry = new THREE.SphereGeometry(0.5, 32, 32);
 
   // Создаем материалы
   const bulbMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
+    color: 0xffffcc,
     transparent: true,
     opacity: 0.9,
     roughness: 0.1,
@@ -138,7 +135,7 @@ const createBulbModel = () => {
   scene.add(filament);
 
   // Создаем свет
-  bulbLight = new THREE.PointLight(0xffffcc, 1, 10);
+  bulbLight = new THREE.PointLight(0xffe0b2, 1, 10);
   bulbLight.position.copy(bulb.position);
   scene.add(bulbLight);
 };
@@ -158,11 +155,11 @@ const updateBulbStatus = () => {
 
   // Обновляем цвет в зависимости от статуса
   if (props.status === 'SLEEPING') {
-    filament.material.color.set(0xff9800);
-    bulbLight.color.set(0xff9800);
+    filament.material.color.set(0xffd796);
+    bulbLight.color.set(0xffd796);
   } else {
     filament.material.color.set(0xffff00);
-    bulbLight.color.set(0xffffcc);
+    bulbLight.color.set(0xffe0b2);
   }
 };
 
@@ -307,6 +304,16 @@ watch(() => props.show3D, (newVal, oldVal) => {
 </script>
 
 <style scoped>
+.css-bulb-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 /* Стеклянная колба */
 .bulb-glass {
   width: 100%;
@@ -321,7 +328,7 @@ watch(() => props.show3D, (newVal, oldVal) => {
   width: 100%;
   height: 100%;
   border-radius: 50% 50% 0 0;
-  background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
   box-shadow:
       0 0 5px 1px rgba(255, 255, 255, 0.7) inset,
       0 0 15px rgba(255, 255, 255, 0.5);
@@ -342,20 +349,6 @@ watch(() => props.show3D, (newVal, oldVal) => {
   justify-content: space-between;
 }
 
-.bulb-filament-support {
-  width: 100%;
-  height: 20%;
-  border-radius: 4px;
-  background: linear-gradient(to bottom, #888, #333);
-}
-
-.bulb-filament-support-inner {
-  width: 100%;
-  height: 40%;
-  background: linear-gradient(to bottom, #aaa, #666);
-  border-radius: 2px;
-}
-
 .bulb-filament {
   width: 100%;
   height: 20%;
@@ -369,7 +362,7 @@ watch(() => props.show3D, (newVal, oldVal) => {
   position: absolute;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to top, #ffcc00 0%, #ffffff 100%);
+  background: linear-gradient(to top, #ffcc00 0%, #ff9900 100%);
   border-radius: 4px;
   box-shadow: 0 0 15px #ffcc00;
   animation: filament-glow 2s infinite alternate;
@@ -384,10 +377,6 @@ watch(() => props.show3D, (newVal, oldVal) => {
   top: 5%;
   left: 5%;
   z-index: 1;
-  background: radial-gradient(circle, rgba(255, 255, 100, 0.9) 0%, rgba(255, 200, 100, 0) 70%);
-  box-shadow:
-      0 0 30px 15px rgba(255, 255, 100, 0.8),
-      0 0 60px 30px rgba(255, 255, 100, 0.5);
   transition: opacity 0.5s ease;
 }
 
@@ -436,6 +425,38 @@ watch(() => props.show3D, (newVal, oldVal) => {
   bottom: 0;
 }
 
+/* Стили для состояния OFF */
+.bulb-status-off .bulb-glass-inner {
+  background: linear-gradient(135deg, #e6e6e6 0%, #d1d1d1 100%);
+  box-shadow: none;
+}
+
+.bulb-status-off .bulb-filament-inner {
+  background: linear-gradient(to top, #666 0%, #333 100%);
+  box-shadow: none;
+}
+
+.bulb-status-off .bulb-glow {
+  opacity: 0;
+}
+
+/* Стили для состояния SLEEPING */
+.bulb-status-sleeping .bulb-glass-inner {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+}
+
+.bulb-status-sleeping .bulb-filament-inner {
+  background: linear-gradient(to top, #ff9800 0%, #ffcc99 100%);
+  box-shadow: 0 0 15px #ff9800;
+}
+
+.bulb-status-sleeping .bulb-glow {
+  background: radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 70%);
+  box-shadow:
+      0 0 30px 15px rgba(255, 165, 0, 0.7),
+      0 0 60px 30px rgba(255, 165, 0, 0.4);
+}
+
 /* Анимация свечения */
 @keyframes filament-glow {
   0% {
@@ -447,7 +468,6 @@ watch(() => props.show3D, (newVal, oldVal) => {
 }
 
 .bulb-status-on .bulb-filament-inner {
-  background: linear-gradient(to top, #ffcc00 0%, #ffffff 100%);
-  box-shadow: 0 0 15px #ffcc00;
+  animation: filament-glow 2s infinite alternate;
 }
 </style>

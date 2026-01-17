@@ -1,6 +1,28 @@
 /**
- * Данные о типах лампочек
- * Вынесены из стора для улучшения поддержки
+ * Единая точка входа для типов лампочек
+ * Все данные о типах лампочек определены здесь
+ *
+ * Структура данных:
+ * - id: уникальный идентификатор типа
+ * - name: название
+ * - category: категория (incandescent, led, halogen, smart-led)
+ * - shape: форма
+ * - baseType: тип цоколя
+ * - nominalVoltage: номинальное напряжение
+ * - minVoltage: минимальное напряжение
+ * - maxVoltage: максимальное напряжение
+ * - minIntensity: минимальная интенсивность
+ * - maxIntensity: максимальная интенсивность
+ * - nominalIntensity: номинальная интенсивность
+ * - colorTemperature: цветовая температура
+ * - colorRange: диапазон цветовой температуры
+ * - lightEfficiency: световая эффективность
+ * - filamentMaterial: материал нити
+ * - lifespan: срок службы
+ * - dimensions: габариты
+ * - visualFeatures: визуальные свойства
+ * - groupSupport: поддержка группировки
+ * - smartFeatures: умные функции
  */
 
 export const BULB_TYPES = [
@@ -317,56 +339,3 @@ export const BULB_TYPES = [
         }
     }
 ];
-
-export const getBulbTypeById = (id) => {
-    return BULB_TYPES.find(type => type.id === id);
-};
-
-export const getBulbTypeByCategory = (category) => {
-    return BULB_TYPES.filter(type => type.category === category);
-};
-
-export const getBulbTypeByShape = (shape) => {
-    return BULB_TYPES.filter(type => type.shape === shape);
-};
-
-/**
- * Возвращает безопасный диапазон интенсивности для типа лампочки
- * @param {string} bulbTypeId - ID типа лампочки
- * @returns {Object} Объект с min и max
- */
-export const getSafeIntensityRange = (bulbTypeId) => {
-    const bulbType = BULB_TYPES.find(type => type.id === bulbTypeId);
-
-    if (!bulbType) {
-        return {
-            min: 0,
-            max: 100
-        };
-    }
-
-    return {
-        min: bulbType.minIntensity,
-        max: bulbType.maxIntensity
-    };
-};
-
-/**
- * Возвращает данные о лампочке для визуализации
- * @param {Object} bulbType - Тип лампочки
- * @param {Object} device - Данные устройства
- * @returns {Object} Данные для визуализации
- */
-export const getBulbVisualData = (bulbType, device) => {
-    if (!bulbType) {
-        bulbType = BULB_TYPES.find(type => type.id === 'classic');
-    }
-
-    return {
-        ...bulbType,
-        status: device.status,
-        intensity: device.intensity,
-        colorTemperature: device.color_temperature || bulbType.colorTemperature,
-        voltage: device.voltage
-    };
-};

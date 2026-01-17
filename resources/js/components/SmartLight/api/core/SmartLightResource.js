@@ -1,4 +1,3 @@
-// resources/js/components/SmartLight/api/core/SmartLightResource.js
 import { BaseResource } from './BaseResource.js';
 
 export class SmartLightResource extends BaseResource {
@@ -11,7 +10,7 @@ export class SmartLightResource extends BaseResource {
     }
 
     async updateGlobalSettings(settings) {
-        return this.post('settings', { settings });
+        return this.post('settings', settings);
     }
 
     async resetGlobalSettings() {
@@ -26,14 +25,6 @@ export class SmartLightResource extends BaseResource {
         return this.get(`${deviceId}/settings`);
     }
 
-    async sendTelemetry(deviceId, data) {
-        return this.post(`${deviceId}/telemetry`, data);
-    }
-
-    async getCommands(deviceId) {
-        return this.get(`${deviceId}/commands`);
-    }
-
     async sendCommand(deviceId, command, intensity = 100) {
         return this.post(`${deviceId}/commands`, {
             command,
@@ -45,11 +36,7 @@ export class SmartLightResource extends BaseResource {
         return this.post(`${deviceId}/sleep`);
     }
 
-    async getDropdownList() {
-        return this.get('devices/dropdown');
-    }
-
-    async checkOwnership(deviceId) {
-        return this.get(`${deviceId}/ownership`);
+    async wakeDevice(deviceId) {
+        return this.get(`${deviceId}/wake`);
     }
 }

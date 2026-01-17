@@ -15,21 +15,12 @@
       <!-- Стеклянная колба -->
       <div class="bulb-glass">
         <div class="bulb-glass-inner">
-          <!-- Нить накаливания -->
-          <div class="bulb-filament-container">
-            <div class="bulb-filament-support">
-              <div class="bulb-filament-support-inner"></div>
-            </div>
-            <div class="bulb-filament">
-              <div class="bulb-filament-inner"></div>
+          <!-- Светодиодная плата -->
+          <div class="led-board">
+            <div class="led-dots">
+              <div v-for="i in 8" :key="i" class="led-dot"></div>
             </div>
           </div>
-
-          <!-- Свечение -->
-          <div class="bulb-glow" :style="{
-            opacity: glowIntensity,
-            background: glowGradient
-          }"></div>
         </div>
       </div>
 
@@ -81,7 +72,7 @@ let camera = null;
 let renderer = null;
 let controls = null;
 let bulb = null;
-let filament = null;
+let ledBoard = null;
 let bulbLight = null;
 let animationFrame = null;
 
@@ -99,17 +90,15 @@ const glowIntensity = computed(() => {
 const glowGradient = computed(() => {
   if (props.status === 'OFF') return 'none';
   if (props.status === 'SLEEPING') {
-    return 'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 40%, rgba(255, 180, 80, 0) 70%)';
+    return 'radial-gradient(circle, rgba(144, 255, 255, 0.8) 0%, rgba(144, 200, 200, 0) 40%, rgba(144, 180, 180, 0) 70%)';
   }
-  return 'radial-gradient(circle, rgba(255, 220, 150, 0.9) 0%, rgba(255, 200, 100, 0) 40%, rgba(255, 180, 80, 0) 70%)';
+  return 'radial-gradient(circle, rgba(144, 220, 255, 0.9) 0%, rgba(144, 200, 255, 0) 40%, rgba(144, 180, 255, 0) 70%)';
 });
 
-// Создаем 3D-модель лампочки
+// Создаем 3D-модель LED лампочки
 const createBulbModel = () => {
-  // Создаем сферу для лампочки
-  const bulbGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-
-  // Создаем материалы
+  // Создаем цилиндр для корпуса лампочки
+  const bulbGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.8, 32);
   const bulbMaterial = new THREE.MeshPhysicalMaterial({
     color: 0xffffff,
     transparent: true,
@@ -121,48 +110,42 @@ const createBulbModel = () => {
   });
 
   bulb = new THREE.Mesh(bulbGeometry, bulbMaterial);
-  bulb.position.z = 0;
+  bulb.rotation.x = Math.PI / 2;
   scene.add(bulb);
 
-  // Создаем нить накаливания
-  const filamentGeometry = new THREE.TorusGeometry(0.1, 0.05, 16, 32, Math.PI * 0.8);
-  const filamentMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    emissive: 0xffff00,
-    emissiveIntensity: 0.8
+  // Создаем плату со светодиодами
+  const boardGeometry = new THREE.PlaneGeometry(0.7, 0.1);
+  const boardMaterial = new THREE.MeshBasicMaterial({
+    color: 0x333333,
+    side: THREE.DoubleSide
   });
 
-  filament = new THREE.Mesh(filamentGeometry, filamentMaterial);
-  filament.rotation.x = Math.PI / 2;
-  filament.position.y = 0.2;
-  scene.add(filament);
+  ledBoard = new THREE.Mesh(boardGeometry, boardMaterial);
+  ledBoard.position.z = 0.3;
+  scene.add(ledBoard);
 
   // Создаем свет
-  bulbLight = new THREE.PointLight(0xffffcc, 1, 10);
-  bulbLight.position.copy(bulb.position);
+  bulbLight = new THREE.PointLight(0x90e0ff, 1, 10);
+  bulbLight.position.z = 0.3;
   scene.add(bulbLight);
 };
 
 // Обновляем 3D-модель при изменении статуса или интенсивности
 const updateBulbStatus = () => {
-  if (!bulb || !filament || !bulbLight) return;
+  if (!bulb || !ledBoard || !bulbLight) return;
 
   // Обновляем интенсивность свечения
   if (props.status === 'OFF') {
     bulbLight.intensity = 0;
-    filament.material.emissiveIntensity = 0;
   } else {
     bulbLight.intensity = 1 * (props.intensity / 100);
-    filament.material.emissiveIntensity = 0.8 * (props.intensity / 100);
   }
 
   // Обновляем цвет в зависимости от статуса
   if (props.status === 'SLEEPING') {
-    filament.material.color.set(0xff9800);
-    bulbLight.color.set(0xff9800);
+    bulbLight.color.set(0x90c0e0);
   } else {
-    filament.material.color.set(0xffff00);
-    bulbLight.color.set(0xffffcc);
+    bulbLight.color.set(0x90e0ff);
   }
 };
 
@@ -307,6 +290,16 @@ watch(() => props.show3D, (newVal, oldVal) => {
 </script>
 
 <style scoped>
+.css-bulb-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 /* Стеклянная колба */
 .bulb-glass {
   width: 100%;
@@ -321,7 +314,7 @@ watch(() => props.show3D, (newVal, oldVal) => {
   width: 100%;
   height: 100%;
   border-radius: 50% 50% 0 0;
-  background: linear-gradient(135deg, #e6f7ff 0%, #ffffff 100%);
+  background: linear-gradient(135deg, #e0f7ff 0%, #ffffff 100%);
   box-shadow:
       0 0 5px 1px rgba(255, 255, 255, 0.7) inset,
       0 0 15px rgba(255, 255, 255, 0.5);
@@ -329,50 +322,30 @@ watch(() => props.show3D, (newVal, oldVal) => {
   overflow: hidden;
 }
 
-/* Нить накаливания */
-.bulb-filament-container {
+/* Светодиодная плата */
+.led-board {
+  width: 100%;
+  height: 25%;
   position: absolute;
-  top: 30%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60%;
-  height: 30%;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.bulb-filament-support {
-  width: 100%;
-  height: 20%;
+  top: 70%;
+  background: #333;
   border-radius: 4px;
-  background: linear-gradient(to bottom, #888, #333);
 }
 
-.bulb-filament-support-inner {
-  width: 100%;
-  height: 40%;
-  background: linear-gradient(to bottom, #aaa, #666);
-  border-radius: 2px;
-}
-
-.bulb-filament {
-  width: 100%;
-  height: 20%;
-  border-radius: 4px;
+.led-dots {
   display: flex;
   justify-content: center;
-  position: relative;
+  align-items: center;
+  height: 100%;
+  gap: 4px;
 }
 
-.bulb-filament-inner {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to top, #ffcc00 0%, #ffffff 100%);
-  border-radius: 4px;
-  box-shadow: 0 0 15px #ffcc00;
-  animation: filament-glow 2s infinite alternate;
+.led-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #90e0ff;
+  box-shadow: 0 0 8px #90e0ff;
 }
 
 /* Свечение */
@@ -384,10 +357,6 @@ watch(() => props.show3D, (newVal, oldVal) => {
   top: 5%;
   left: 5%;
   z-index: 1;
-  background: radial-gradient(circle, rgba(255, 255, 100, 0.9) 0%, rgba(255, 200, 100, 0) 70%);
-  box-shadow:
-      0 0 30px 15px rgba(255, 255, 100, 0.8),
-      0 0 60px 30px rgba(255, 255, 100, 0.5);
   transition: opacity 0.5s ease;
 }
 
@@ -434,20 +403,5 @@ watch(() => props.show3D, (newVal, oldVal) => {
   border-radius: 0 0 2px 2px;
   position: absolute;
   bottom: 0;
-}
-
-/* Анимация свечения */
-@keyframes filament-glow {
-  0% {
-    opacity: 0.7;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-.bulb-status-on .bulb-filament-inner {
-  background: linear-gradient(to top, #ffcc00 0%, #ffffff 100%);
-  box-shadow: 0 0 15px #ffcc00;
 }
 </style>

@@ -1,162 +1,223 @@
 <template>
-  <div class="battery-container" :class="containerClass">
-    <!-- Индикатор загрузки -->
-    <div v-if="loading" class="battery-loader">
-      <div class="loader-spinner"></div>
-      <span>Загрузка аккумулятора...</span>
+  <div class="battery-container" :style="{ height: height }">
+    <div class="battery-wrapper">
+      <div class="battery-plus">+</div>
+      <div class="battery-body">
+        <div class="battery">
+          <div
+              class="battery-normal"
+              :style="{
+              width: batteryNormalProgress + '%',
+              backgroundColor: batteryColor
+            }"
+          ></div>
+          <div
+              class="battery-critical"
+              :style="{
+              width: batteryCriticalProgress + '%',
+              backgroundColor: criticalColor
+            }"
+          >
+            <div class="battery-critical-pattern"></div>
+          </div>
+          <div class="battery-mark critical-threshold" :style="{ left: criticalThresholdPosition + '%' }"></div>
+          <div class="battery-mark current-level" :style="{ left: currentLevelPosition + '%' }"></div>
+          <div class="battery-cap"></div>
+        </div>
+      </div>
+      <div class="battery-levels">
+        <span class="battery-level" :style="{ left: '0%' }">2.5 В</span>
+        <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">{{ formattedCriticalThreshold }} В</span>
+        <span class="battery-level" :style="{ left: '100%' }">4.3 В</span>
+      </div>
     </div>
-
-    <!-- Индикатор ошибки -->
-    <div v-else-if="error" class="battery-error">
-      <Warning class="error-icon" />
-      <span>{{ error }}</span>
-    </div>
-
-    <!-- Основной контент -->
-    <div v-else class="battery-content">
-      <slot name="visualization"></slot>
-      <slot name="controls"></slot>
-    </div>
-
-    <!-- Fallback на CSS-версию -->
-    <div v-if="fallbackVisible" class="battery-css-fallback">
-      <slot name="fallback"></slot>
-    </div>
+    <div class="battery-minus">-</div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { Warning } from '@element-plus/icons-vue';
+import { computed, inject } from 'vue';
+import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 
 const props = defineProps({
+  deviceId: {
+    type: String,
+    required: true
+  },
   voltage: {
     type: Number,
-    required: true,
     default: 3.7
   },
   criticalVoltage: {
     type: Number,
-    required: true,
     default: 3.2
   },
-  batteryType: {
+  height: {
     type: String,
-    default: 'cylindrical'
-  },
-  isGroup: {
-    type: Boolean,
-    default: false
-  },
-  groupConfiguration: {
-    type: Object,
-    default: () => ({
-      type: 'single',
-      count: 1,
-      connections: []
-    })
-  },
-  webGLSupported: {
-    type: Boolean,
-    default: true
+    default: '40px'
   }
 });
 
-const loading = ref(true);
-const error = ref(null);
-const fallbackVisible = computed(() => {
-  return !props.webGLSupported || !props.webGLReady || !!error.value;
+const store = inject('smartLightStore') || useSmartLightStore();
+
+// Вычисляем позицию критического порога в процентах
+const criticalThresholdPosition = computed(() => {
+  return store.deviceCriticalThresholdPosition(props.deviceId);
 });
 
-// Вычисляем класс контейнера
-const containerClass = computed(() => {
-  const classes = [];
-
-  if (props.isGroup) {
-    classes.push('battery-group');
-    classes.push(`battery-group-${props.groupConfiguration.type}`);
-  } else {
-    classes.push('battery-single');
-  }
-
-  return classes.join(' ');
+// Нормальный прогресс (от критического порога до max)
+const batteryNormalProgress = computed(() => {
+  return store.deviceNormalProgress(props.deviceId);
 });
 
-// Инициализация
-onMounted(() => {
-  loading.value = true;
+// Критический прогресс (от min до критического порога)
+const batteryCriticalProgress = computed(() => {
+  return store.deviceCriticalProgress(props.deviceId);
+});
 
-  // Симулируем время инициализации
-  setTimeout(() => {
-    loading.value = false;
-    error.value = null;
+// Позиция текущего уровня
+const currentLevelPosition = computed(() => {
+  return store.deviceCurrentLevelPosition(props.deviceId);
+});
 
-    // Симулируем ошибку инициализации (для тестирования)
-    if (Math.random() > 0.99) {
-      loading.value = false;
-      error.value = 'Ошибка загрузки 3D-модели';
-    }
-  }, 500);
+// Цвет критического уровня
+const criticalColor = computed(() => {
+  return store.deviceCriticalColor(props.deviceId);
+});
+
+// Цвет нормального уровня
+const batteryColor = computed(() => {
+  return store.deviceBatteryColor(props.deviceId);
+});
+
+// Отформатированное значение критического напряжения
+const formattedCriticalThreshold = computed(() => {
+  return store.calculateGroupCriticalVoltage(props.deviceId).toFixed(2);
 });
 </script>
 
 <style scoped>
-.battery-container {
+.battery-wrapper {
   width: 100%;
-  height: 100%;
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-width: 100px;
-  min-height: 50px;
 }
 
-.battery-loader {
+.battery-container {
+  position: relative;
+  height: 40px;
+  width: 90%;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  gap: 0.5rem;
-  color: #606266;
 }
 
-.loader-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid #f0f0f0;
-  border-top: 2px solid #e6a23c;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.battery-error {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  color: #f56c6c;
-  padding: 0.5rem;
-  border: 1px solid #f56c6c;
-  border-radius: 4px;
-}
-
-.error-icon {
-  width: 1.2rem;
-  height: 1.2rem;
-}
-
-.battery-content {
-  width: 100%;
-  height: 100%;
+.battery {
   position: relative;
+  width: 100%;
+  height: 30px;
+  border: 1px solid #ebeef5;
+  border-radius: 8px;
+  background: #f5f7fa;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.battery-css-fallback {
-  width: 100%;
+.battery-normal {
+  position: absolute;
+  top: 0;
+  left: 0;
   height: 100%;
+  background: linear-gradient(90deg, #67c23a 0%, #95d97b 100%);
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.battery-critical {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #f56c6c 0%, #ff9999 100%);
+  overflow: hidden;
+}
+
+.battery-critical-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 3px,
+      rgba(255, 255, 255, 0.3) 3px,
+      rgba(255, 255, 255, 0.3) 6px
+  );
+}
+
+.battery-mark {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background-color: #e6a23c;
+  z-index: 10;
+}
+
+.battery-mark.critical-threshold {
+  border-left: 1px dashed #e6a23c;
+}
+
+.battery-mark.current-level {
+  border-left: 1px solid #409eff;
+}
+
+.battery-cap {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 1px;
+  height: 4px;
+  background: #409eff;
+  border-radius: 1px;
+}
+
+.battery-plus {
+  position: absolute;
+  top: 50%;
+  left: -10px;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #409eff;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+.battery-minus {
+  position: absolute;
+  top: 50%;
+  right: -10px;
+  transform: translateY(-50%);
+  font-weight: bold;
+  color: #409eff;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+.battery-levels {
+  display: flex;
+  justify-content: space-between;
+  position: relative;
+  margin-top: 1px;
+  font-size: 0.7rem;
+  color: #909399;
+  width: 100%;
+}
+
+.battery-level {
+  position: absolute;
+  font-size: 0.7rem;
+  color: #909399;
+  width: 30px;
 }
 </style>

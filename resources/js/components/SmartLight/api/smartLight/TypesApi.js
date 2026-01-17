@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/api/smartLight/TypesApi.js
 import { BatteryTypeApi } from '../batteryTypes/BatteryTypeApi.js';
 import { BulbTypeApi } from '../bulbTypes/BulbTypeApi.js';
 import { PowerSupplyApi } from '../powerSupplies/PowerSupplyApi.js';
