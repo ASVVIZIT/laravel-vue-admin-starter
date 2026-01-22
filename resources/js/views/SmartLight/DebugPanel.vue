@@ -7,6 +7,8 @@
             <Bulb
                 :device-id="selectedDevice?.device_id"
                 :show-3d="show3D"
+                @init-complete="handleInitComplete"
+                @visibility-change="force3DInit"
             />
           </div>
           <div class="device-info" v-if="selectedDevice">
@@ -43,7 +45,18 @@
         </div>
       </template>
 
-      <div v-if="selectedDevice" class="debug-content">
+      <el-alert
+          v-if="error"
+          :title="error"
+          type="error"
+          show-icon
+          class="mb-1"
+          closable
+      />
+
+      <el-skeleton v-if="loading" :rows="6" animated class="skeleton-container" />
+
+      <div v-if="selectedDevice" class="scrollable-content">
         <div class="control-group">
           <label class="control-label">Напряжение</label>
           <div class="voltage-control">
@@ -111,40 +124,46 @@
 
         <div class="control-group">
           <label class="control-label">Интенсивность</label>
-          <el-slider
-              v-model="deviceIntensity"
-              :min="0"
-              :max="100"
-              :disabled="deviceStatus !== 'ON'"
-              class="intensity-slider"
-          />
+          <div class="intensity-control">
+            <el-input-number
+                v-model="deviceIntensity"
+                :min="0"
+                :max="100"
+                :disabled="deviceStatus !== 'ON'"
+                class="compact-number-input"
+            />
+            <el-slider
+                v-model="deviceIntensity"
+                :min="0"
+                :max="100"
+                :disabled="deviceStatus !== 'ON'"
+                class="intensity-slider"
+            />
+          </div>
         </div>
 
         <!-- Только для фейковых устройств -->
-        <div v-if="selectedDevice.is_fake" class="control-group">
+        <div v-if="selectedDevice?.is_fake" class="control-group">
           <label class="control-label">Крит. напряжение</label>
-          <div class="critical-voltage-control">
-            <div class="voltage-input">
-              <el-input-number
-                  v-model="criticalVoltage"
-                  :min="minVoltage"
-                  :max="maxVoltage"
-                  :step="0.01"
-                  :precision="2"
-                  :controls="true"
-                  class="critical-input"
-              />
-              <span class="voltage-unit">В</span>
-            </div>
-            <el-slider
+          <div class="critical-input">
+            <el-input-number
                 v-model="criticalVoltage"
                 :min="minVoltage"
                 :max="maxVoltage"
                 :step="0.01"
-                :format-tooltip="formatVoltageTooltip"
-                class="critical-slider"
+                :precision="2"
+                :controls="true"
+                class="critical-input"
             />
           </div>
+          <el-slider
+              v-model="criticalVoltage"
+              :min="minVoltage"
+              :max="maxVoltage"
+              :step="0.01"
+              :format-tooltip="formatVoltageTooltip"
+              class="critical-slider"
+          />
         </div>
 
         <div class="control-group">
@@ -170,7 +189,6 @@
               <Sunny class="control-icon" />
               <span>Разбудить</span>
             </el-button>
-
             <el-button
                 size="small"
                 @click="openDeviceSettings"
@@ -184,7 +202,7 @@
         </div>
 
         <!-- Кнопки эмуляции событий (только для фейковых устройств) -->
-        <div v-if="selectedDevice.is_fake" class="control-group">
+        <div v-if="selectedDevice?.is_fake" class="control-group">
           <label class="control-label">Эмуляция событий</label>
           <div class="event-buttons">
             <el-button size="small" @click="simulateLowVoltage" class="full-width">
@@ -210,7 +228,7 @@
 </template>
 
 <script setup>
-import { computed, defineEmits } from 'vue';
+import { computed, defineEmits, watch, onMounted, onUnmounted, ref, nextTick } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
   CircleCheckFilled,
@@ -223,20 +241,67 @@ import {
   Setting
 } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
-import Bulb from '@/components/SmartLight/components/Bulb.vue';
+import { logDebug, checkWebGLSupport } from '@/components/SmartLight/api/utils/webglSupport.js';
+import {
+  calculateMinVoltage,
+  calculateMaxVoltage,
+  calculateCriticalVoltage,
+  calculateCriticalThresholdPosition,
+  calculateBatteryNormalProgress,
+  calculateBatteryCriticalProgress,
+  calculateCurrentLevelPosition
+} from '@/components/SmartLight/api/utils/deviceUtils.js';
 
 const emit = defineEmits(['open-settings']);
 
 const store = useSmartLightStore();
-const selectedDevice = computed(() => store.getSelectedDevice);
+const webGLCheck = checkWebGLSupport();
+const webGLSupported = webGLCheck.isSupported;
+
+// Добавляем переменные для отслеживания состояния
+const loading = ref(false);
+const error = ref(null);
+const containerCheckAttempts = ref(0);
+const maxContainerCheckAttempts = 30;
+
+const selectedDevice = computed(() => {
+  const dev = store.selectedDevice;
+  logDebug('DebugPanel', 'Получение выбранного устройства', {
+    selectedDevice: dev ? dev.device_id : null
+  });
+  return dev;
+});
+
 const show3D = computed(() => {
-  return store.getDevice3DMode(selectedDevice.value?.device_id);
+  const mode = store.getDevice3DMode(selectedDevice.value?.device_id);
+  logDebug('DebugPanel', 'Получение режима отображения', {
+    deviceId: selectedDevice.value?.device_id,
+    mode
+  });
+  return mode;
+});
+
+logDebug('DebugPanel', 'Компонент DebugPanel создан', {
+  selectedDeviceId: store.selectedDeviceId,
+  interfaceSettings: store.interfaceSettings,
+  webGLSupported
 });
 
 // Вычисляемые свойства для выбранных устройств
 const deviceStatus = computed({
-  get: () => selectedDevice.value?.status || 'OFF',
+  get: () => {
+    const status = selectedDevice.value?.status || 'OFF';
+    logDebug('DebugPanel', 'Получение статуса', {
+      deviceId: selectedDevice.value?.device_id,
+      status
+    });
+    return status;
+  },
   set: (value) => {
+    logDebug('DebugPanel', 'Установка статуса', {
+      deviceId: selectedDevice.value?.device_id,
+      value
+    });
     if (selectedDevice.value) {
       store.updateDeviceStatus(selectedDevice.value.device_id, value);
     }
@@ -244,8 +309,19 @@ const deviceStatus = computed({
 });
 
 const deviceVoltage = computed({
-  get: () => selectedDevice.value?.voltage || 3.7,
+  get: () => {
+    const voltage = selectedDevice.value?.voltage || 3.7;
+    logDebug('DebugPanel', 'Получение напряжения', {
+      deviceId: selectedDevice.value?.device_id,
+      voltage
+    });
+    return voltage;
+  },
   set: (value) => {
+    logDebug('DebugPanel', 'Установка напряжения', {
+      deviceId: selectedDevice.value?.device_id,
+      value
+    });
     if (selectedDevice.value) {
       store.updateDeviceVoltage(selectedDevice.value.device_id, value);
     }
@@ -253,8 +329,19 @@ const deviceVoltage = computed({
 });
 
 const deviceIntensity = computed({
-  get: () => selectedDevice.value?.intensity || 100,
+  get: () => {
+    const intensity = selectedDevice.value?.intensity || 100;
+    logDebug('DebugPanel', 'Получение интенсивности', {
+      deviceId: selectedDevice.value?.device_id,
+      intensity
+    });
+    return intensity;
+  },
   set: (value) => {
+    logDebug('DebugPanel', 'Установка интенсивности', {
+      deviceId: selectedDevice.value?.device_id,
+      value
+    });
     if (selectedDevice.value) {
       store.updateDeviceIntensity(selectedDevice.value.device_id, value);
     }
@@ -262,8 +349,19 @@ const deviceIntensity = computed({
 });
 
 const criticalVoltage = computed({
-  get: () => selectedDevice.value?.critical_voltage || store.calculateGroupCriticalVoltage(selectedDevice.value?.device_id),
+  get: () => {
+    const critical = selectedDevice.value?.critical_voltage || calculateCriticalVoltage(selectedDevice.value?.device_id);
+    logDebug('DebugPanel', 'Получение критического напряжения', {
+      deviceId: selectedDevice.value?.device_id,
+      critical
+    });
+    return critical;
+  },
   set: (value) => {
+    logDebug('DebugPanel', 'Установка критического напряжения', {
+      deviceId: selectedDevice.value?.device_id,
+      value
+    });
     if (selectedDevice.value) {
       store.updateDeviceCriticalVoltage(selectedDevice.value.device_id, value);
     }
@@ -272,109 +370,242 @@ const criticalVoltage = computed({
 
 // Вычисляем тип статуса
 const statusType = computed(() => {
-  if (!selectedDevice.value) return 'info';
-  switch (selectedDevice.value.status) {
-    case 'ON': return 'success';
-    case 'OFF': return 'info';
-    case 'SLEEPING': return 'warning';
-    default: return 'danger';
-  }
+  const type = !selectedDevice.value ? 'info' : {
+    'ON': 'success',
+    'OFF': 'info',
+    'SLEEPING': 'warning'
+  }[selectedDevice.value.status] || 'danger';
+
+  logDebug('DebugPanel', 'Получение типа статуса', {
+    deviceId: selectedDevice.value?.device_id,
+    status: selectedDevice.value?.status,
+    type
+  });
+
+  return type;
 });
 
 const formatVoltageTooltip = (value) => {
-  return Number(value).toFixed(2) + ' В';
+  const formatted = Number(value).toFixed(2) + ' В';
+  logDebug('DebugPanel', 'Форматирование тултипа напряжения', {
+    value,
+    formatted
+  });
+  return formatted;
 };
 
 // Вычисляем позицию критического порога в процентах
 const criticalThresholdPosition = computed(() => {
-  const min = store.calculateGroupMinVoltage(selectedDevice.value?.device_id);
-  const max = store.calculateGroupMaxVoltage(selectedDevice.value?.device_id);
-  const critical = store.calculateGroupCriticalVoltage(selectedDevice.value?.device_id);
-  return ((critical - min) / (max - min)) * 100;
+  if (!selectedDevice.value) return 0;
+
+  const min = calculateMinVoltage(selectedDevice.value.device_id);
+  const max = calculateMaxVoltage(selectedDevice.value.device_id);
+  const critical = calculateCriticalVoltage(selectedDevice.value.device_id);
+
+  const position = ((critical - min) / (max - min)) * 100;
+
+  logDebug('DebugPanel', 'Вычисление позиции критического порога', {
+    deviceId: selectedDevice.value.device_id,
+    min,
+    max,
+    critical,
+    position
+  });
+
+  return position;
 });
 
 // Нормальный прогресс (от критического порога до max)
 const batteryNormalProgress = computed(() => {
-  const min = store.calculateGroupMinVoltage(selectedDevice.value?.device_id);
-  const max = store.calculateGroupMaxVoltage(selectedDevice.value?.device_id);
-  if (deviceVoltage.value <= criticalVoltage.value) {
+  if (!selectedDevice.value) return 0;
+
+  const min = calculateMinVoltage(selectedDevice.value.device_id);
+  const max = calculateMaxVoltage(selectedDevice.value.device_id);
+  const critical = calculateCriticalVoltage(selectedDevice.value.device_id);
+
+  logDebug('DebugPanel', 'Вычисление нормального прогресса', {
+    deviceId: selectedDevice.value.device_id,
+    min,
+    max,
+    critical,
+    voltage: deviceVoltage.value
+  });
+
+  if (deviceVoltage.value <= critical) {
     return 0;
   }
-  const normalVoltage = deviceVoltage.value - criticalVoltage.value;
-  const maxNormalVoltage = max - criticalVoltage.value;
+
+  const normalVoltage = deviceVoltage.value - critical;
+  const maxNormalVoltage = max - critical;
   return Math.min(100, Math.max(0, (normalVoltage / maxNormalVoltage) * 100));
 });
 
 // Критический прогресс (от min до критического порога)
 const batteryCriticalProgress = computed(() => {
-  const min = store.calculateGroupMinVoltage(selectedDevice.value?.device_id);
-  const max = store.calculateGroupMaxVoltage(selectedDevice.value?.device_id);
-  if (deviceVoltage.value >= criticalVoltage.value) {
+  if (!selectedDevice.value) return 0;
+
+  const min = calculateMinVoltage(selectedDevice.value.device_id);
+  const max = calculateMaxVoltage(selectedDevice.value.device_id);
+  const critical = calculateCriticalVoltage(selectedDevice.value.device_id);
+
+  logDebug('DebugPanel', 'Вычисление критического прогресса', {
+    deviceId: selectedDevice.value.device_id,
+    min,
+    max,
+    critical,
+    voltage: deviceVoltage.value
+  });
+
+  if (deviceVoltage.value >= critical) {
     return 0;
   }
-  const criticalVoltageValue = criticalVoltage.value - deviceVoltage.value;
-  const criticalVoltageRange = criticalVoltage.value - min;
+
+  const criticalVoltageValue = critical - deviceVoltage.value;
+  const criticalVoltageRange = critical - min;
   return Math.min(100, Math.max(0, (criticalVoltageValue / criticalVoltageRange) * 100));
 });
 
 // Позиция текущего уровня
 const currentLevelPosition = computed(() => {
-  const min = store.calculateGroupMinVoltage(selectedDevice.value?.device_id);
-  const max = store.calculateGroupMaxVoltage(selectedDevice.value?.device_id);
-  return ((deviceVoltage.value - min) / (max - min)) * 100;
+  if (!selectedDevice.value) return 0;
+
+  const min = calculateMinVoltage(selectedDevice.value.device_id);
+  const max = calculateMaxVoltage(selectedDevice.value.device_id);
+
+  const position = ((deviceVoltage.value - min) / (max - min)) * 100;
+
+  logDebug('DebugPanel', 'Вычисление позиции текущего уровня', {
+    deviceId: selectedDevice.value.device_id,
+    min,
+    max,
+    voltage: deviceVoltage.value,
+    position
+  });
+
+  return position;
 });
 
 // Минимальное напряжение
 const minVoltage = computed(() => {
-  return store.calculateGroupMinVoltage(selectedDevice.value?.device_id);
+  if (!selectedDevice.value) return 2.5;
+
+  const min = calculateMinVoltage(selectedDevice.value.device_id);
+  logDebug('DebugPanel', 'Получение минимального напряжения', {
+    deviceId: selectedDevice.value.device_id,
+    minVoltage: min
+  });
+  return min;
 });
 
 // Максимальное напряжение
 const maxVoltage = computed(() => {
-  return store.calculateGroupMaxVoltage(selectedDevice.value?.device_id);
+  if (!selectedDevice.value) return 4.3;
+
+  const max = calculateMaxVoltage(selectedDevice.value.device_id);
+  logDebug('DebugPanel', 'Получение максимального напряжения', {
+    deviceId: selectedDevice.value.device_id,
+    maxVoltage: max
+  });
+  return max;
 });
 
 // Цвет критического уровня
 const criticalColor = computed(() => {
-  const voltage = deviceVoltage.value;
-  if (voltage < 2.7) return '#f56c6c';
-  if (voltage < 3.0) return '#faa7a7';
-  return '#ffcccb';
+  if (!selectedDevice.value) return '#ffcccb';
+
+  const color = store.deviceCriticalColor(selectedDevice.value.device_id);
+  logDebug('DebugPanel', 'Получение цвета критического уровня', {
+    deviceId: selectedDevice.value.device_id,
+    color
+  });
+  return color;
 });
 
 // Цвет нормального уровня
 const batteryColor = computed(() => {
-  const voltage = deviceVoltage.value;
-  if (voltage < 3.0) return '#f56c6c';
-  if (voltage < 3.4) return '#e6a23c';
-  return '#67c23a';
+  if (!selectedDevice.value) return '#67c23a';
+
+  const color = store.deviceBatteryColor(selectedDevice.value.device_id);
+  logDebug('DebugPanel', 'Получение цвета нормального уровня', {
+    deviceId: selectedDevice.value.device_id,
+    color
+  });
+  return color;
 });
 
 const batteryTypeName = computed(() => {
+  if (!selectedDevice.value) return 'Нормальный режим';
+
   const voltage = deviceVoltage.value;
-  if (voltage < 3.0) return 'Критический режим';
-  if (voltage < 3.4) return 'Внимание';
-  return 'Нормальный режим';
+  let name;
+  if (voltage < 3.0) name = 'Критический режим';
+  else if (voltage < 3.4) name = 'Внимание';
+  else name = 'Нормальный режим';
+
+  logDebug('DebugPanel', 'Определение типа аккумулятора', {
+    deviceId: selectedDevice.value?.device_id,
+    voltage,
+    name
+  });
+
+  return name;
 });
 
+// Форматированное минимальное напряжение
 const formattedMinVoltage = computed(() => {
-  return store.calculateGroupMinVoltage(selectedDevice.value?.device_id).toFixed(1);
+  if (!selectedDevice.value) return '2.5';
+
+  const value = calculateMinVoltage(selectedDevice.value.device_id).toFixed(1);
+  logDebug('DebugPanel', 'Форматирование минимального напряжения', {
+    deviceId: selectedDevice.value.device_id,
+    value
+  });
+  return value;
 });
 
+// Форматированное максимальное напряжение
 const formattedMaxVoltage = computed(() => {
-  return store.calculateGroupMaxVoltage(selectedDevice.value?.device_id).toFixed(1);
+  if (!selectedDevice.value) return '4.3';
+
+  const value = calculateMaxVoltage(selectedDevice.value.device_id).toFixed(1);
+  logDebug('DebugPanel', 'Форматирование максимального напряжения', {
+    deviceId: selectedDevice.value.device_id,
+    value
+  });
+  return value;
 });
 
+// Форматированное критическое напряжение
 const formattedCriticalThreshold = computed(() => {
-  return store.calculateGroupCriticalVoltage(selectedDevice.value?.device_id).toFixed(2);
+  if (!selectedDevice.value) return '3.00';
+
+  const value = calculateCriticalVoltage(selectedDevice.value.device_id).toFixed(2);
+  logDebug('DebugPanel', 'Форматирование критического напряжения', {
+    deviceId: selectedDevice.value.device_id,
+    value
+  });
+  return value;
 });
 
+// Форматированное значение напряжения
 const formattedVoltage = computed(() => {
-  return deviceVoltage.value.toFixed(2) + ' В';
+  if (!selectedDevice.value) return '3.70 В';
+
+  const value = deviceVoltage.value.toFixed(2) + ' В';
+  logDebug('DebugPanel', 'Форматирование текущего напряжения', {
+    deviceId: selectedDevice.value?.device_id,
+    value
+  });
+  return value;
 });
 
 // Обработчик изменения статуса
 const updateStatus = (value) => {
+  logDebug('DebugPanel', 'Обновление статуса', {
+    deviceId: selectedDevice.value?.device_id,
+    value
+  });
+
   if (selectedDevice.value) {
     store.updateDeviceStatus(selectedDevice.value.device_id, value);
   }
@@ -382,8 +613,15 @@ const updateStatus = (value) => {
 
 // Перевод в спящий режим
 const sendEmergencySleep = async () => {
+  logDebug('DebugPanel', 'Перевод в спящий режим', {
+    deviceId: selectedDevice.value?.device_id,
+    isFake: selectedDevice.value?.is_fake
+  });
+
   if (selectedDevice.value) {
     if (selectedDevice.value.is_fake) {
+      logDebug('DebugPanel', 'Эмуляция перевода в сон', { deviceId: selectedDevice.value.device_id });
+
       await new Promise(resolve => setTimeout(resolve, 300));
       store.updateDeviceStatus(selectedDevice.value.device_id, 'SLEEPING');
       ElNotification({
@@ -393,8 +631,12 @@ const sendEmergencySleep = async () => {
         duration: 2000
       });
     } else {
+      logDebug('DebugPanel', 'Отправка команды перевода в сон', { deviceId: selectedDevice.value.device_id });
+
       const response = await store.forceSleep(selectedDevice.value.device_id);
       if (response.success) {
+        logDebug('DebugPanel', 'Устройство переведено в сон', { deviceId: selectedDevice.value.device_id });
+
         ElNotification({
           title: 'Устройство',
           message: 'Устройство переведено в спящий режим',
@@ -402,6 +644,11 @@ const sendEmergencySleep = async () => {
           duration: 2000
         });
       } else {
+        logDebug('DebugPanel', 'Ошибка отправки команды сна', {
+          deviceId: selectedDevice.value.device_id,
+          error: response.message
+        });
+
         ElNotification({
           title: 'Ошибка',
           message: 'Не удалось перевести устройство в спящий режим',
@@ -415,8 +662,15 @@ const sendEmergencySleep = async () => {
 
 // Пробуждение устройства
 const wakeDevice = async () => {
+  logDebug('DebugPanel', 'Пробуждение устройства', {
+    deviceId: selectedDevice.value?.device_id,
+    isFake: selectedDevice.value?.is_fake
+  });
+
   if (selectedDevice.value) {
     if (selectedDevice.value.is_fake) {
+      logDebug('DebugPanel', 'Эмуляция пробуждения', { deviceId: selectedDevice.value.device_id });
+
       await new Promise(resolve => setTimeout(resolve, 300));
       store.wakeDevice(selectedDevice.value.device_id);
       ElNotification({
@@ -426,8 +680,12 @@ const wakeDevice = async () => {
         duration: 2000
       });
     } else {
+      logDebug('DebugPanel', 'Отправка команды пробуждения', { deviceId: selectedDevice.value.device_id });
+
       const response = await store.wakeDevice(selectedDevice.value.device_id);
       if (response.success) {
+        logDebug('DebugPanel', 'Устройство пробуждено', { deviceId: selectedDevice.value.device_id });
+
         ElNotification({
           title: 'Устройство',
           message: 'Устройство пробуждено',
@@ -435,6 +693,11 @@ const wakeDevice = async () => {
           duration: 2000
         });
       } else {
+        logDebug('DebugPanel', 'Ошибка пробуждения устройства', {
+          deviceId: selectedDevice.value.device_id,
+          error: response.message
+        });
+
         ElNotification({
           title: 'Ошибка',
           message: 'Не удалось пробудить устройство',
@@ -448,10 +711,16 @@ const wakeDevice = async () => {
 
 // Эмуляция низкого напряжения
 const simulateLowVoltage = () => {
+  logDebug('DebugPanel', 'Эмуляция низкого напряжения', { deviceId: selectedDevice.value?.device_id });
+
   if (selectedDevice.value) {
     store.updateDeviceVoltage(
         selectedDevice.value.device_id,
         criticalVoltage.value - 0.1
+    );
+    store.updateDeviceStatus(
+        selectedDevice.value.device_id,
+        'SLEEPING'
     );
     ElNotification({
       title: 'Эмуляция',
@@ -464,6 +733,8 @@ const simulateLowVoltage = () => {
 
 // Эмуляция аварийного события
 const simulateEmergency = () => {
+  logDebug('DebugPanel', 'Эмуляция аварийного события', { deviceId: selectedDevice.value?.device_id });
+
   if (selectedDevice.value) {
     store.updateDeviceVoltage(
         selectedDevice.value.device_id,
@@ -484,11 +755,20 @@ const simulateEmergency = () => {
 
 // Эмуляция отправки команды
 const simulateCommand = () => {
+  logDebug('DebugPanel', 'Эмуляция отправки команды', { deviceId: selectedDevice.value?.device_id });
+
   if (selectedDevice.value) {
     const newStatus = deviceStatus.value === 'ON' ? 'OFF' : 'ON';
     const newVoltage = newStatus === 'ON'
         ? Math.min(4.3, deviceVoltage.value + 0.05)
         : Math.max(2.5, deviceVoltage.value - 0.05);
+
+    logDebug('DebugPanel', 'Эмуляция команды', {
+      deviceId: selectedDevice.value.device_id,
+      newStatus,
+      newVoltage
+    });
+
     store.updateDeviceStatus(
         selectedDevice.value.device_id,
         newStatus
@@ -496,6 +776,10 @@ const simulateCommand = () => {
     store.updateDeviceVoltage(
         selectedDevice.value.device_id,
         newVoltage
+    );
+    store.updateDeviceIntensity(
+        selectedDevice.value.device_id,
+        newStatus === 'ON' ? 100 : 0
     );
     ElNotification({
       title: 'Эмуляция',
@@ -507,10 +791,138 @@ const simulateCommand = () => {
 };
 
 const openDeviceSettings = () => {
+  logDebug('DebugPanel', 'Открытие настроек устройства', { deviceId: selectedDevice.value?.device_id });
+  emit('open-settings', selectedDevice.value);
+};
+
+// Обработчик завершения инициализации 3D
+const handleInitComplete = (success) => {
+  logDebug('DebugPanel', 'Инициализация 3D завершена', {
+    deviceId: selectedDevice.value?.device_id,
+    success
+  });
+};
+
+// Принудительная инициализация 3D
+const force3DInit = () => {
+  logDebug('DebugPanel', 'Принудительная инициализация 3D', {
+    deviceId: selectedDevice.value?.device_id,
+    show3D: show3D.value
+  });
+
   if (selectedDevice.value) {
-    emit('open-settings', selectedDevice.value);
+    handleInit3D(selectedDevice.value.device_id);
   }
 };
+
+// Обработчик инициализации 3D
+const handleInit3D = (deviceId) => {
+  logDebug('DebugPanel', 'Принудительная инициализация 3D', { deviceId });
+
+  // Ищем компонент DeviceCard
+  const deviceCard = document.querySelector(`[data-device-id="${deviceId}"]`);
+  if (deviceCard && deviceCard.forceInit) {
+    logDebug('DebugPanel', 'Вызов forceInit в DeviceCard', { deviceId });
+    deviceCard.forceInit();
+  } else {
+    logDebug('DebugPanel', 'DeviceCard не найден или forceInit недоступен', { deviceId });
+  }
+};
+
+// Инициализация при монтировании
+onMounted(() => {
+  logDebug('DebugPanel', 'Инициализация компонента DebugPanel');
+
+  // Проверяем, есть ли выбранное устройство
+  if (selectedDevice.value) {
+    logDebug('DebugPanel', 'Устройство уже выбрано', { deviceId: selectedDevice.value.device_id });
+
+    // Даем время на полное отображение
+    setTimeout(() => {
+      handleInit3D(selectedDevice.value.device_id);
+    }, 300);
+  }
+
+  // Даем время для полной загрузки
+  setTimeout(() => {
+    // Добавляем обработчик переключения вкладок
+    const tabContent = document.querySelector('.el-tabs__content');
+    if (tabContent) {
+      logDebug('DebugPanel', 'Наблюдение за табами', { tabContent });
+
+      const observer = new MutationObserver(() => {
+        logDebug('DebugPanel', 'Изменение табов обнаружено');
+        // Даем время на переключение
+        setTimeout(() => {
+          // Если активирован таб с фейковыми устройствами
+          if (document.querySelector('.el-tab-pane.is-active[data-name="fake"]')) {
+            logDebug('DebugPanel', 'Таб с фейковыми устройствами активирован');
+
+            // Принудительно инициализируем 3D для фейковых устройств
+            store.fakeDevices.forEach(device => {
+              handleInit3D(device.device_id);
+            });
+          }
+        }, 500);
+      });
+
+      observer.observe(tabContent, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+    }
+  }, 100);
+});
+
+// Очистка при размонтировании
+onUnmounted(() => {
+  logDebug('DebugPanel', 'Компонент размонтирован', { deviceId: selectedDevice.value?.device_id });
+});
+
+// Следим за изменениями в сторе
+watch(() => store.selectedDevice, (newDevice, oldDevice) => {
+  logDebug('DebugPanel', 'Выбранное устройство изменилось', {
+    oldDeviceId: oldDevice ? oldDevice.device_id : null,
+    newDeviceId: newDevice ? newDevice.device_id : null
+  });
+
+  // Сбрасываем счетчик попыток
+  containerCheckAttempts.value = 0;
+
+  // Если есть новое устройство, инициализируем
+  if (newDevice) {
+    logDebug('DebugPanel', 'Новое устройство выбрано', { deviceId: newDevice.device_id });
+
+    // Даем время на полное отображение
+    setTimeout(() => {
+      handleInit3D(newDevice.device_id);
+
+      // Повторная проверка через 500 мс
+      setTimeout(() => {
+        handleInit3D(newDevice.device_id);
+      }, 500);
+    }, 300);
+  }
+}, { deep: true });
+
+// Следим за переключением режима отображения
+watch(() => store.interfaceSettings.global3DMode, (newMode, oldMode) => {
+  logDebug('DebugPanel', 'Изменение режима отображения', {
+    oldMode,
+    newMode
+  });
+
+  if (newMode && selectedDevice.value) {
+    logDebug('DebugPanel', 'Переключение на 3D-режим', { deviceId: selectedDevice.value.device_id });
+
+    // Даем время на отображение
+    setTimeout(() => {
+      handleInit3D(selectedDevice.value.device_id);
+    }, 300);
+  }
+});
 </script>
 
 <style scoped>
@@ -608,6 +1020,7 @@ const openDeviceSettings = () => {
   left: 0;
   height: 100%;
   background: linear-gradient(90deg, #67c23a 0%, #95d97b 100%);
+  transition: width 0.3s ease, background-color 0.3s ease;
 }
 .battery-critical {
   position: absolute;
@@ -689,12 +1102,15 @@ const openDeviceSettings = () => {
   color: #909399;
 }
 .battery-type-info {
-  position: relative;
+  position: absolute;
+  bottom: -1.5rem;
+  left: 0;
+  width: 100%;
   display: flex;
+  justify-content: center;
   gap: 0.25rem;
   font-size: 0.75rem;
   color: #606266;
-  width: 100%;
 }
 .battery-type-label {
   font-weight: bold;
@@ -705,6 +1121,7 @@ const openDeviceSettings = () => {
   color: #409eff;
   font-size: 0.85rem;
   margin-top: 0.2rem;
+  line-height: 1.2;
 }
 .voltage-input-container {
   display: flex;
@@ -728,13 +1145,13 @@ const openDeviceSettings = () => {
 .voltage-slider {
   width: 100%;
 }
-.critical-voltage-control {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
 .critical-input {
   width: 100%;
+}
+.intensity-control {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 .intensity-slider {
   width: 100%;
@@ -760,11 +1177,6 @@ const openDeviceSettings = () => {
   align-items: center;
   font-size: 0.8rem;
 }
-:deep(.header-icon) {
-  width: 0.9rem;
-  height: 0.9rem;
-  margin-right: 0.25rem;
-}
 :deep(.status-icon) {
   width: 0.9rem;
   height: 0.9rem;
@@ -774,10 +1186,6 @@ const openDeviceSettings = () => {
   width: 0.9rem;
   height: 0.9rem;
   margin-right: 0.25rem;
-}
-:deep(.el-radio-group) {
-  display: flex;
-  flex-wrap: wrap;
 }
 :deep(.el-radio-button__inner) {
   display: inline-flex;

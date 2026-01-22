@@ -1,3 +1,4 @@
+// resources/js/components/SmartLight/stores/batteryTypes.js
 /**
  * Единая точка входа для типов аккумуляторов
  * Все данные о типах аккумуляторов определены здесь

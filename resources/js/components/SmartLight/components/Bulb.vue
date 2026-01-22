@@ -6,7 +6,7 @@
   >
     <!-- 3D визуализация, если поддерживается -->
     <div v-if="webGLSupported && show3D" class="bulb-3d-container">
-      <div class="three-scene-container" ref="container"></div>
+      <div class="three-scene-container" ref="container" :style="{ visibility: containerVisible ? 'visible' : 'hidden' }"></div>
     </div>
 
     <!-- CSS-визуализация как fallback -->
@@ -47,11 +47,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
-import { checkWebGLSupport, initWhenReady } from '@/components/SmartLight/api/utils/webglSupport.js';
+import { logDebug, checkWebGLSupport, isContainerReady } from '@/components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
   deviceId: {
@@ -65,234 +63,180 @@ const props = defineProps({
 });
 
 const container = ref(null);
-let scene = null;
-let camera = null;
-let renderer = null;
-let controls = null;
-let bulb = null;
-let filament = null;
-let bulbLight = null;
-let animationFrame = null;
-
 const store = useSmartLightStore();
 const webGLCheck = checkWebGLSupport();
 const webGLSupported = webGLCheck.isSupported;
+const containerVisible = ref(true);
+
+logDebug('Bulb', 'Компонент создан', {
+  deviceId: props.deviceId,
+  show3D: props.show3D,
+  webGLSupported
+});
 
 // Получаем данные устройства
-const device = computed(() => store.getDevice(props.deviceId));
-const status = computed(() => device.value?.status || 'OFF');
-const intensity = computed(() => device.value?.intensity || 100);
+const device = computed(() => {
+  const dev = store.getDevice(props.deviceId);
+  logDebug('Bulb', 'Получение устройства', {
+    deviceId: props.deviceId,
+    device: dev
+  });
+  return dev;
+});
+
+const status = computed(() => {
+  const statusValue = device.value?.status || 'OFF';
+  logDebug('Bulb', 'Получение статуса', {
+    deviceId: props.deviceId,
+    status: statusValue
+  });
+  return statusValue;
+});
+
+const intensity = computed(() => {
+  const intensityValue = device.value?.intensity || 100;
+  logDebug('Bulb', 'Получение интенсивности', {
+    deviceId: props.deviceId,
+    intensity: intensityValue
+  });
+  return intensityValue;
+});
 
 // Вычисляем класс состояния
 const statusClass = computed(() => {
-  return `bulb-status-${status.value.toLowerCase()}`;
+  const classValue = `bulb-status-${status.value.toLowerCase()}`;
+  logDebug('Bulb', 'Вычисление класса статуса', {
+    deviceId: props.deviceId,
+    status: status.value,
+    class: classValue
+  });
+  return classValue;
 });
 
 // Вычисляем интенсивность свечения
 const glowIntensity = computed(() => {
-  if (status.value === 'OFF') return 0;
-  if (status.value === 'SLEEPING') return 0.3 * (intensity.value / 100);
-  return 0.8 * (intensity.value / 100);
+  let intensityValue;
+  if (status.value === 'OFF') intensityValue = 0;
+  else if (status.value === 'SLEEPING') intensityValue = 0.3 * (intensity.value / 100);
+  else intensityValue = 0.8 * (intensity.value / 100);
+
+  logDebug('Bulb', 'Вычисление интенсивности свечения', {
+    deviceId: props.deviceId,
+    status: status.value,
+    intensity: intensity.value,
+    glowIntensity: intensityValue
+  });
+
+  return intensityValue;
 });
 
 const glowGradient = computed(() => {
-  if (status.value === 'OFF') return 'none';
-  if (status.value === 'SLEEPING') {
-    return 'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 40%, rgba(255, 180, 80, 0) 70%)';
-  }
-  return 'radial-gradient(circle, rgba(255, 220, 150, 0.9) 0%, rgba(255, 200, 100, 0) 40%, rgba(255, 180, 80, 0) 70%)';
-});
-
-// Создаем 3D-модель лампочки
-const createBulbModel = () => {
-  // Создаем сферу для лампочки
-  const bulbGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-
-  // Создаем материалы
-  const bulbMaterial = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.9,
-    roughness: 0.1,
-    metalness: 0.1,
-    clearcoat: 1.0,
-    clearcoatRoughness: 0.1
-  });
-
-  bulb = new THREE.Mesh(bulbGeometry, bulbMaterial);
-  bulb.position.z = 0;
-  scene.add(bulb);
-
-  // Создаем нить накаливания
-  const filamentGeometry = new THREE.TorusGeometry(0.1, 0.05, 16, 32, Math.PI * 0.8);
-  const filamentMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    emissive: 0xffff00,
-    emissiveIntensity: 0.8
-  });
-
-  filament = new THREE.Mesh(filamentGeometry, filamentMaterial);
-  filament.rotation.x = Math.PI / 2;
-  filament.position.y = 0.2;
-  scene.add(filament);
-
-  // Создаем свет
-  bulbLight = new THREE.PointLight(0xffffcc, 1, 10);
-  bulbLight.position.copy(bulb.position);
-  scene.add(bulbLight);
-};
-
-// Обновляем 3D-модель при изменении статуса или интенсивности
-const updateBulbStatus = () => {
-  if (!bulb || !filament || !bulbLight) return;
-
-  // Обновляем интенсивность свечения
+  let gradient;
   if (status.value === 'OFF') {
-    bulbLight.intensity = 0;
-    filament.material.emissiveIntensity = 0;
+    gradient = 'none';
+  } else if (status.value === 'SLEEPING') {
+    gradient = 'radial-gradient(circle, rgba(255, 165, 0, 0.8) 0%, rgba(255, 140, 0, 0) 40%, rgba(255, 180, 80, 0) 70%)';
   } else {
-    bulbLight.intensity = 1 * (intensity.value / 100);
-    filament.material.emissiveIntensity = 0.8 * (intensity.value / 100);
+    gradient = 'radial-gradient(circle, rgba(255, 220, 150, 0.9) 0%, rgba(255, 200, 100, 0) 40%, rgba(255, 180, 80, 0) 70%)';
   }
 
-  // Обновляем цвет в зависимости от статуса
-  if (status.value === 'SLEEPING') {
-    filament.material.color.set(0xff9800);
-    bulbLight.color.set(0xff9800);
-  } else {
-    filament.material.color.set(0xffff00);
-    bulbLight.color.set(0xffffcc);
-  }
-};
-
-// Обработка изменения размера окна
-const onWindowResize = () => {
-  if (!container.value || !camera || !renderer) return;
-
-  camera.aspect = container.value.clientWidth / container.value.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
-};
-
-// Анимация
-const animate = () => {
-  animationFrame = requestAnimationFrame(animate);
-  renderer.render(scene, camera);
-};
-
-// Очистка ресурсов
-const cleanup = () => {
-  if (animationFrame) {
-    cancelAnimationFrame(animationFrame);
-    animationFrame = null;
-  }
-
-  if (renderer) {
-    renderer.dispose();
-    renderer.forceContextLoss();
-    renderer = null;
-  }
-
-  if (container.value && container.value.firstChild) {
-    container.value.removeChild(container.value.firstChild);
-  }
-
-  if (scene) {
-    scene.traverse((object) => {
-      if (object.geometry) object.geometry.dispose();
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach(m => m.dispose());
-        } else {
-          object.material.dispose();
-        }
-      }
-    });
-    scene = null;
-  }
-
-  if (controls) {
-    controls.dispose();
-    controls = null;
-  }
-
-  window.removeEventListener('resize', onWindowResize);
-};
-
-// Инициализация 3D-сцены
-const init = () => {
-  if (!webGLSupported) return;
-
-  // Создаем сцену
-  scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf5f7fa);
-
-  // Создаем камеру
-  camera = new THREE.PerspectiveCamera(
-      75,
-      container.value.clientWidth / container.value.clientHeight,
-      0.1,
-      1000
-  );
-  camera.position.z = 5;
-
-  // Создаем рендерер
-  renderer = new THREE.WebGLRenderer({
-    antialias: true,
-    alpha: true
+  logDebug('Bulb', 'Вычисление градиента свечения', {
+    deviceId: props.deviceId,
+    status: status.value,
+    gradient
   });
-  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.shadowMap.enabled = true;
 
-  // Добавляем в DOM
-  container.value.appendChild(renderer.domElement);
-
-  // Добавляем освещение
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-  scene.add(ambientLight);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-  directionalLight.position.set(1, 1, 1);
-  directionalLight.castShadow = true;
-  scene.add(directionalLight);
-
-  // Создаем модель лампочки
-  createBulbModel();
-
-  // Добавляем управление
-  controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05;
-  controls.rotateSpeed = 0.5;
-  controls.zoomSpeed = 1.0;
-
-  // Обработка изменения размера
-  window.addEventListener('resize', onWindowResize);
-};
+  return gradient;
+});
 
 // Инициализация при монтировании
 onMounted(() => {
-  if (webGLSupported && props.show3D) {
-    // Инициализируем с проверкой готовности контейнера
-    const { ready } = initWhenReady(container.value, init);
+  logDebug('Bulb', 'Компонент смонтирован', { deviceId: props.deviceId });
 
-    ready.then(isReady => {
-      if (isReady) {
-        animate();
-      }
+  // Даем время для полной загрузки
+  setTimeout(() => {
+    logDebug('Bulb', 'Проверка контейнера после монтирования', {
+      deviceId: props.deviceId,
+      containerReady: container.value ? isContainerReady(container.value) : false
     });
-  }
+
+    if (webGLSupported && props.show3D) {
+      // Даем время на отображение
+      setTimeout(() => {
+        // Проверяем видимость
+        if (checkContainerReady(container.value)) {
+          logDebug('Bulb', 'Контейнер виден, инициализируем 3D', { deviceId: props.deviceId });
+        } else {
+          logDebug('Bulb', 'Контейнер не виден, откладываем инициализацию', { deviceId: props.deviceId });
+
+          // Добавляем MutationObserver для отслеживания видимости
+          const tabPane = container.value?.closest('.el-tab-pane');
+          if (tabPane) {
+            logDebug('Bulb', 'Наблюдение за видимостью вкладки', { deviceId: props.deviceId });
+
+            const observer = new MutationObserver((mutations) => {
+              for (const mutation of mutations) {
+                if (mutation.type === 'attributes' &&
+                    (mutation.attributeName === 'style' ||
+                        mutation.attributeName === 'class' ||
+                        mutation.attributeName === 'hidden')) {
+                  if (checkContainerReady(container.value)) {
+                    logDebug('Bulb', 'Контейнер стал виден через MutationObserver', { deviceId: props.deviceId });
+                    observer.disconnect();
+                  }
+                }
+              }
+            });
+
+            observer.observe(tabPane, {
+              attributes: true,
+              attributeFilter: ['style', 'class', 'hidden'],
+              subtree: false
+            });
+          }
+
+          // Даем время для полного отображения
+          let frameCheck = 0;
+          const maxFrameChecks = 30;
+          const frameCheckInterval = setInterval(() => {
+            frameCheck++;
+            if (checkContainerReady(container.value)) {
+              logDebug('Bulb', 'Контейнер стал виден при проверке кадра', {
+                deviceId: props.deviceId,
+                frameCheck
+              });
+              init();
+              clearInterval(frameCheckInterval);
+            } else if (frameCheck >= maxFrameChecks) {
+              clearInterval(frameCheckInterval);
+            }
+          }, 100);
+        }
+      }, 500);
+    }
+  }, 100);
 });
 
 // Очистка при размонтировании
 onUnmounted(() => {
-  cleanup();
+  logDebug('Bulb', 'Компонент размонтирован', { deviceId: props.deviceId });
 });
 
 // Следим за изменениями
-watch(status, updateBulbStatus);
-watch(intensity, updateBulbStatus);
+watch(status, (newValue, oldValue) => {
+  logDebug('Bulb', 'Статус изменился', {
+    deviceId: props.deviceId,
+    oldValue,
+    newValue
+  });
+});
+watch(intensity, (newValue, oldValue) => {
+  logDebug('Bulb', 'Интенсивность изменилась', {
+    deviceId: props.deviceId,
+    oldValue,
+    newValue
+  });
+});
 </script>
 
 <style scoped>
@@ -319,6 +263,7 @@ watch(intensity, updateBulbStatus);
   min-height: 120px;
   position: relative;
   overflow: hidden;
+  visibility: hidden;
 }
 
 .css-bulb-container {
@@ -408,7 +353,6 @@ watch(intensity, updateBulbStatus);
   top: 5%;
   left: 5%;
   z-index: 1;
-  background: radial-gradient(circle, rgba(255, 255, 100, 0.9) 0%, rgba(255, 200, 100, 0) 70%);
   box-shadow:
       0 0 30px 15px rgba(255, 255, 100, 0.8),
       0 0 60px 30px rgba(255, 255, 100, 0.5);

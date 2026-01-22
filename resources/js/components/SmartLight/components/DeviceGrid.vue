@@ -6,11 +6,17 @@
       <el-empty description="Нет устройств" />
     </div>
 
-    <el-tabs v-else class="device-tabs" type="border-card">
+    <el-tabs
+        v-else
+        class="device-tabs"
+        type="border-card"
+        @tab-click="handleTabClick"
+    >
       <!-- Реальные устройства -->
       <el-tab-pane
           :label="`Реальные (${realDevices.length})`"
           :disabled="realDevices.length === 0"
+          name="real"
       >
         <div class="grid-container">
           <div
@@ -26,6 +32,7 @@
                 @command-sent="refreshDevice"
                 @emergency-sleep="handleEmergencySleep"
                 @open-settings="openDeviceSettings"
+                @init-3d="handleInit3D"
             />
           </div>
         </div>
@@ -35,6 +42,7 @@
       <el-tab-pane
           :label="`Демонстрация (${fakeDevices.length})`"
           :disabled="fakeDevices.length === 0"
+          name="fake"
       >
         <div class="fake-devices-banner">
           <Warning class="banner-icon" />
@@ -59,6 +67,7 @@
                 @command-sent="refreshDevice"
                 @emergency-sleep="handleEmergencySleep"
                 @open-settings="openDeviceSettings"
+                @init-3d="handleInit3D"
             />
           </div>
         </div>
@@ -72,28 +81,54 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { Warning } from '@element-plus/icons-vue';
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import DeviceCard from '@/components/SmartLight/components/DeviceCard.vue';
+import { logDebug } from '@/components/SmartLight/api/utils/webglSupport.js';
+
+const emit = defineEmits(['device-selected', 'emergency-sleep', 'open-settings']);
 
 const store = useSmartLightStore();
 const loading = ref(true);
 const selectedDeviceId = computed(() => store.selectedDeviceId);
+const activeTab = ref('real');
+
+logDebug('DeviceGrid', 'Компонент создан', {
+  selectedDeviceId: store.selectedDeviceId
+});
 
 // Реальные устройства (is_fake = false)
 const realDevices = computed(() => {
-  return store.realDevices;
+  const devices = store.realDevices;
+  logDebug('DeviceGrid', 'Получение реальных устройств', {
+    count: devices.length,
+    devices
+  });
+  return devices;
 });
 
 // Фейковые устройства (is_fake = true)
 const fakeDevices = computed(() => {
-  return store.fakeDevices;
+  const devices = store.fakeDevices;
+  logDebug('DeviceGrid', 'Получение фейковых устройств', {
+    count: devices.length,
+    devices
+  });
+  return devices;
 });
 
 // Селектор устройства
 const selectDevice = (device) => {
+  logDebug('DeviceGrid', 'Выбор устройства', {
+    deviceId: device.device_id,
+    name: device.name
+  });
+
   store.selectDevice(device.device_id);
+  emit('device-selected', device);
 };
 
 // Загрузка устройств
 const loadDevices = async () => {
+  logDebug('DeviceGrid', 'Загрузка устройств');
+
   loading.value = true;
   try {
     await store.fetchDevices();
@@ -104,40 +139,124 @@ const loadDevices = async () => {
   }
 };
 
+// Обработка переключения табов
+const handleTabClick = (tab) => {
+  logDebug('DeviceGrid', 'Переключение таба', {
+    label: tab.props.label,
+    name: tab.props.name
+  });
+
+  activeTab.value = tab.props.name;
+
+  // Если переключаемся на фейковые устройства, инициализируем 3D-рендеринг
+  if (tab.props.name === 'fake') {
+    logDebug('DeviceGrid', 'Активирован таб с фейковыми устройствами', {
+      fakeDevicesCount: fakeDevices.value.length
+    });
+
+    // Принудительно инициализируем 3D для фейковых устройств
+    setTimeout(() => {
+      fakeDevices.value.forEach(device => {
+        handleInit3D(device.device_id);
+      });
+    }, 300);
+  }
+};
+
+// Обработчик инициализации 3D
+const handleInit3D = (deviceId) => {
+  logDebug('DeviceGrid', 'Принудительная инициализация 3D', { deviceId });
+
+  // Ищем компонент DeviceCard
+  const deviceCard = document.querySelector(`[data-device-id="${deviceId}"]`);
+  if (deviceCard && deviceCard.forceInit) {
+    logDebug('DeviceGrid', 'Вызов forceInit в DeviceCard', { deviceId });
+    deviceCard.forceInit();
+  } else {
+    logDebug('DeviceGrid', 'DeviceCard не найден или forceInit недоступен', { deviceId });
+  }
+};
+
+onMounted(() => {
+  logDebug('DeviceGrid', 'Инициализация компонента');
+
+  loadDevices();
+
+  // Даем время для полной загрузки
+  setTimeout(() => {
+    // Добавляем обработчик переключения вкладок
+    const tabContent = document.querySelector('.el-tabs__content');
+    if (tabContent) {
+      logDebug('DeviceGrid', 'Наблюдение за табами', { tabContent });
+
+      const observer = new MutationObserver(() => {
+        logDebug('DeviceGrid', 'Изменение табов обнаружено');
+        // Даем время на переключение
+        setTimeout(() => {
+          // Если активирован таб с фейковыми устройствами
+          if (document.querySelector('.el-tab-pane.is-active[data-name="fake"]')) {
+            logDebug('DeviceGrid', 'Таб с фейковыми устройствами активирован');
+
+            // Принудительно инициализируем 3D для фейковых устройств
+            fakeDevices.value.forEach(device => {
+              handleInit3D(device.device_id);
+            });
+          }
+        }, 500);
+      });
+
+      observer.observe(tabContent, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+    }
+  }, 100);
+});
+
+// Следим за изменениями в сторе
+watch(() => store.devices, (newDevices, oldDevices) => {
+  logDebug('DeviceGrid', 'Изменение списка устройств', {
+    oldCount: oldDevices ? oldDevices.length : 0,
+    newCount: newDevices.length
+  });
+});
+
+// Следим за выбранным устройством
+watch(() => store.selectedDevice, (newDevice, oldDevice) => {
+  logDebug('DeviceGrid', 'Изменение выбранного устройства', {
+    oldDeviceId: oldDevice ? oldDevice.device_id : null,
+    newDeviceId: newDevice ? newDevice.device_id : null
+  });
+});
+
 // Обновление устройства
 const refreshDevice = (deviceId) => {
+  logDebug('DeviceGrid', 'Обновление устройства', { deviceId });
   loadDevices();
 };
 
 // Обработка перевода в сон
 const handleEmergencySleep = (deviceId) => {
+  logDebug('DeviceGrid', 'Обработка перевода в сон', { deviceId });
   refreshDevice(deviceId);
 };
 
 // Открытие настроек устройства
 const openDeviceSettings = (device) => {
+  logDebug('DeviceGrid', 'Открытие настроек устройства', {
+    deviceId: device.device_id,
+    name: device.name
+  });
   emit('open-settings', device);
 };
-
-onMounted(() => {
-  loadDevices();
-});
-
-// Следим за изменениями в сторе
-watch(() => store.devices, (newDevices, oldDevices) => {
-  // Компонент будет автоматически обновляться через реактивность Pinia
-});
-
-// Следим за выбранным устройством
-watch(() => store.selectedDevice, (newDevice, oldDevice) => {
-  // Компонент будет автоматически обновляться через реактивность Pinia
-});
 </script>
 
 <style scoped>
 .device-grid {
   height: 100%;
-  width:  device-grid;
+  width: 100%;
 }
 
 .no-devices {
@@ -148,15 +267,16 @@ watch(() => store.selectedDevice, (newDevice, oldDevice) => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  font-size: 0.8rem;
 }
 
 .grid-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 2fr));
-  grid-gap: 2rem 1.2rem;
-  padding: 1rem 1rem 3rem 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-gap: 1rem;
+  padding: 1rem;
   overflow-y: auto;
-  max-height: calc(100vh - 320px)
+  max-height: calc(100vh - 250px);
 }
 
 .device-col {
@@ -185,7 +305,8 @@ watch(() => store.selectedDevice, (newDevice, oldDevice) => {
   padding: 0.5rem;
   background: #f5f7fa;
   border-radius: 4px;
-  margin-top: 0.1rem;
+  margin: 1rem;
+  margin-top: 0;
   font-weight: 500;
   color: #606266;
 }

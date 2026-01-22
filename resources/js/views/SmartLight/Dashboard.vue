@@ -16,7 +16,7 @@
           <span>Обновить</span>
         </el-button>
         <el-button
-            @click="showDebugPanel = !showDebugPanel"
+            @click="toggleDebugPanel"
             type="info"
             size="small"
             :class="{ 'debug-active': showDebugPanel }"
@@ -44,15 +44,15 @@
          }">
       <div class="content-container">
         <DeviceGrid
-            @device-updated="refreshDevice"
-            @emergency-sleep="handleEmergencySleep"
-            @open-settings="openDeviceSettings"
             @device-selected="handleDeviceSelected"
-            :show-3d="store.interfaceSettings.global3DMode"
+            @open-settings="openDeviceSettings"
         />
       </div>
-      <div class="debug-panel-container" :class="{ 'active': showDebugPanel }">
-        <DebugPanel :show-3d="store.interfaceSettings.global3DMode" />
+      <div class="debug-panel-container" :class="{ 'active': showDebugPanel }" ref="debugPanelContainer">
+        <DebugPanel
+            @open-settings="openDeviceSettings"
+            :show-3d="store.interfaceSettings.global3DMode"
+        />
       </div>
     </div>
 
@@ -62,7 +62,11 @@
         width="520px"
         :modal="false"
     >
-      <DeviceSettings :device="selectedDevice" :show-3d="store.interfaceSettings.global3DMode" />
+      <DeviceSettings
+          :device="selectedDevice"
+          :show-3d="store.interfaceSettings.global3DMode"
+          @settings-updated="handleSettingsUpdated"
+      />
     </el-dialog>
   </div>
 </template>
@@ -81,6 +85,7 @@ import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightSto
 import DeviceGrid from '@/components/SmartLight/components/DeviceGrid.vue';
 import DebugPanel from '@/views/SmartLight/DebugPanel.vue';
 import DeviceSettings from '@/views/SmartLight/DeviceSettings.vue';
+import { logDebug } from '@/components/SmartLight/api/utils/webglSupport.js';
 
 const store = useSmartLightStore();
 const devices = ref([]);
@@ -88,9 +93,52 @@ const loading = ref(false);
 const showDebugPanel = ref(false);
 const deviceSettingsVisible = ref(false);
 const selectedDevice = ref(null);
+const debugPanelContainer = ref(null);
+
+logDebug('Dashboard', 'Компонент создан', {
+  storeInterfaceSettings: store.interfaceSettings
+});
+
+// Переключение отладочной панели
+const toggleDebugPanel = () => {
+  logDebug('Dashboard', 'Переключение отладочной панели', {
+    currentState: showDebugPanel.value
+  });
+
+  showDebugPanel.value = !showDebugPanel.value;
+
+  if (showDebugPanel.value) {
+    // Даем время на отображение
+    setTimeout(() => {
+      logDebug('Dashboard', 'Принудительная инициализация 3D при открытии панели отладки');
+
+      // Принудительно инициализируем 3D для фейковых устройств
+      store.fakeDevices.forEach(device => {
+        store.forceInit3D(device.device_id);
+      });
+    }, 300);
+  }
+};
+
+// Переключение режима отображения
+const toggle3DMode = () => {
+  logDebug('Dashboard', 'Переключение режима отображения', {
+    currentMode: store.interfaceSettings.global3DMode
+  });
+
+  store.setGlobal3DMode(!store.interfaceSettings.global3DMode);
+
+  ElNotification({
+    title: 'Режим отображения',
+    message: store.interfaceSettings.global3DMode ? 'Включен 3D режим' : 'Включен 2D режим',
+    type: store.interfaceSettings.global3DMode ? 'success' : 'info'
+  });
+};
 
 // Загрузка устройств
 const loadDevices = async () => {
+  logDebug('Dashboard', 'Загрузка устройств');
+
   loading.value = true;
   try {
     await store.fetchDevices();
@@ -107,51 +155,87 @@ const loadDevices = async () => {
   }
 };
 
-// Обработчик переключения режима отображения
-const toggle3DMode = () => {
-  store.setGlobal3DMode(!store.interfaceSettings.global3DMode);
-
-  ElNotification({
-    title: 'Режим отображения',
-    message: store.interfaceSettings.global3DMode ? 'Включен 3D режим' : 'Включен 2D режим',
-    type: store.interfaceSettings.global3DMode ? 'success' : 'info'
-  });
-};
-
-// Обновление устройства
-const refreshDevice = async (deviceId) => {
-  await loadDevices();
-};
-
-// Обработка перевода в сон
-const handleEmergencySleep = async (deviceId) => {
-  try {
-    await store.forceSleep(deviceId);
-    refreshDevice(deviceId);
-  } catch (error) {
-    ElNotification({
-      title: 'Ошибка',
-      message: 'Ошибка отправки команды сна',
-      type: 'error'
-    });
-  }
-};
-
-// Выбор устройства
+// Обработка выбора устройства
 const handleDeviceSelected = (device) => {
+  logDebug('Dashboard', 'Выбор устройства', {
+    deviceId: device.device_id,
+    name: device.name
+  });
+
   store.selectDevice(device.device_id);
   selectedDevice.value = device;
+
+  // Даем время на отображение
+  setTimeout(() => {
+    // Принудительно инициализируем 3D для выбранного устройства
+    store.forceInit3D(device.device_id);
+  }, 100);
 };
 
 // Открытие настроек устройства
 const openDeviceSettings = (device) => {
+  logDebug('Dashboard', 'Открытие настроек устройства', {
+    deviceId: device.device_id,
+    name: device.name
+  });
   selectedDevice.value = device;
   deviceSettingsVisible.value = true;
 };
 
+// Обработка обновления настроек
+const handleSettingsUpdated = (updatedDevice) => {
+  logDebug('Dashboard', 'Обработка обновления настроек', {
+    deviceId: updatedDevice.device_id,
+    updatedDevice
+  });
+
+  // Обновляем устройство в сторе
+  const deviceIndex = store.devices.findIndex(d => d.device_id === updatedDevice.device_id);
+  if (deviceIndex !== -1) {
+    store.devices[deviceIndex] = {
+      ...store.devices[deviceIndex],
+      ...updatedDevice
+    };
+  }
+};
+
 onMounted(() => {
+  logDebug('Dashboard', 'Инициализация компонента');
+
   store.initInterfaceSettings();
   loadDevices();
+
+  // Даем время для полной загрузки
+  setTimeout(() => {
+    // Добавляем обработчик переключения вкладок
+    const tabContent = document.querySelector('.el-tabs__content');
+    if (tabContent) {
+      logDebug('Dashboard', 'Наблюдение за табами', { tabContent });
+
+      const observer = new MutationObserver(() => {
+        logDebug('Dashboard', 'Изменение табов обнаружено');
+        // Даем время на переключение
+        setTimeout(() => {
+          // Если активирован таб с фейковыми устройствами
+          if (document.querySelector('.el-tab-pane.is-active[data-name="fake"]')) {
+            logDebug('Dashboard', 'Таб с фейковыми устройствами активирован');
+
+            // Принудительно инициализируем 3D для фейковых устройств
+            store.fakeDevices.forEach(device => {
+              store.forceInit3D(device.device_id);
+            });
+          }
+        }, 500);
+      });
+
+      observer.observe(tabContent, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style']
+      });
+    }
+  }, 100);
 });
 </script>
 
@@ -219,22 +303,21 @@ onMounted(() => {
   grid-template-columns: 1fr 320px;
 }
 
-.dashboard-layout.mode-3d {
-  grid-template-rows: 1fr 0;
-}
-
 .content-container {
   height: 100%;
   overflow: hidden;
 }
 
 .debug-panel-container {
+  width: 320px;
   transform: translateX(100%);
   opacity: 0;
   pointer-events: none;
   border-left: 1px solid #ebeef5;
   background: #fff;
   transition: all 0.3s ease;
+  height: 100%;
+  overflow: auto;
 }
 
 .debug-panel-container.active {

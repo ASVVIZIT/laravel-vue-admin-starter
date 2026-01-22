@@ -1,8 +1,12 @@
 <template>
-  <div class="device-card" :class="{
-    'device-card--selected': isSelected,
-    'device-card--3d': show3D
-  }">
+  <div
+      class="device-card"
+      :class="{
+      'device-card--selected': isSelected,
+      'device-card--3d': show3D
+    }"
+      :data-device-id="device.device_id"
+  >
     <!-- Шапка -->
     <div class="device-header">
       <h3 class="device-name">{{ device.name }}</h3>
@@ -33,6 +37,8 @@
             <Bulb
                 :device-id="device.device_id"
                 :show-3d="show3D"
+                @init-complete="handleInitComplete"
+                @visibility-change="force3DInit"
             />
           </div>
         </div>
@@ -43,7 +49,14 @@
             <BatteryRenderer
                 :device-id="device.device_id"
                 :show-3d="show3D"
+                @init-complete="handleInitComplete"
+                @visibility-change="force3DInit"
             />
+            <div class="voltage-value">{{ device.voltage?.toFixed(2) || '3.70' }} В</div>
+            <div class="runtime-info">
+              <Timer class="runtime-icon" />
+              {{ deviceRuntime }}
+            </div>
           </div>
         </div>
       </div>
@@ -89,6 +102,7 @@
               size="small"
               @click="sendEmergencySleep"
               type="info"
+              class="full-width"
           >
             <Moon class="control-icon" />
             <span>Сон</span>
@@ -98,6 +112,7 @@
               size="small"
               @click="wakeDevice"
               type="success"
+              class="full-width"
           >
             <Sunny class="control-icon" />
             <span>Разбудить</span>
@@ -107,6 +122,7 @@
               size="small"
               @click="openDeviceSettings"
               type="primary"
+              class="full-width"
           >
             <Setting class="control-icon" />
             <span>Настройки</span>
@@ -124,15 +140,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { ElNotification } from 'element-plus';
 import {
-  Moon,
-  Sunny,
-  Warning,
-  Setting,
   CircleCheckFilled,
   CircleCloseFilled,
+  Sunny,
+  Moon,
+  Warning,
+  Setting,
   Timer,
   Eleme,
   Grid
@@ -140,6 +156,7 @@ import {
 import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import Bulb from '@/components/SmartLight/components/Bulb.vue';
 import BatteryRenderer from '@/components/SmartLight/components/BatteryRenderer.vue';
+import { logDebug, checkWebGLSupport } from '@/components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
   device: {
@@ -152,15 +169,36 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['command-sent', 'emergency-sleep', 'open-settings']);
+const emit = defineEmits(['command-sent', 'emergency-sleep', 'open-settings', 'init-3d']);
 
 const store = useSmartLightStore();
 const loading = ref(false);
+const webGLCheck = checkWebGLSupport();
+const webGLSupported = webGLCheck.isSupported;
+
+logDebug('DeviceCard', 'Компонент создан', {
+  deviceId: props.device.device_id,
+  name: props.device.name,
+  isFake: props.device.is_fake,
+  status: props.device.status,
+  webGLSupported
+});
 
 // Определяем режим отображения для этого устройства
 const show3D = computed({
-  get: () => store.getDevice3DMode(props.device.device_id),
+  get: () => {
+    const mode = store.getDevice3DMode(props.device.device_id);
+    logDebug('DeviceCard', 'Получение режима отображения', {
+      deviceId: props.device.device_id,
+      mode
+    });
+    return mode;
+  },
   set: (value) => {
+    logDebug('DeviceCard', 'Установка режима отображения', {
+      deviceId: props.device.device_id,
+      value
+    });
     store.setDevice3DMode(props.device.device_id, value);
   }
 });
@@ -169,17 +207,49 @@ const show3D = computed({
 const isDeviceOn = computed({
   get: () => props.device.status === 'ON',
   set: (value) => {
-    // Ничего не делаем здесь - реактивность обрабатывается через handleSwitchChange
+    const status = value ? 'ON' : 'OFF';
+    store.updateDeviceStatus(props.device.device_id, status);
   }
+});
+
+// Расчет времени работы
+const deviceRuntime = computed(() => {
+  const runtime = store.deviceRuntime(props.device.device_id);
+  logDebug('DeviceCard', 'Вычисление времени работы', {
+    deviceId: props.device.device_id,
+    runtime
+  });
+  return runtime;
+});
+
+// Безопасный диапазон интенсивности
+const safeIntensity = computed(() => {
+  const range = store.deviceSafeIntensityRange(props.device.device_id);
+  logDebug('DeviceCard', 'Получение безопасного диапазона', {
+    deviceId: props.device.device_id,
+    range
+  });
+  return range;
 });
 
 // Обработчик изменения переключателя
 const handleSwitchChange = async (value) => {
+  logDebug('DeviceCard', 'Обработчик изменения переключателя', {
+    deviceId: props.device.device_id,
+    value,
+    status: props.device.status
+  });
+
   loading.value = true;
   const command = value ? 'ON' : 'OFF';
 
   try {
     if (props.device.is_fake) {
+      logDebug('DeviceCard', 'Эмуляция команды для фейкового устройства', {
+        deviceId: props.device.device_id,
+        command
+      });
+
       await new Promise(resolve => setTimeout(resolve, 300));
       // Используем стор для обновления
       store.updateDeviceStatus(props.device.device_id, command);
@@ -204,6 +274,12 @@ const handleSwitchChange = async (value) => {
         duration: 2000
       });
     } else {
+      logDebug('DeviceCard', 'Отправка команды на сервер', {
+        deviceId: props.device.device_id,
+        command,
+        intensity: props.device.intensity
+      });
+
       const response = await store.sendCommand(
           props.device.device_id,
           command,
@@ -211,32 +287,60 @@ const handleSwitchChange = async (value) => {
       );
 
       if (response.success) {
+        logDebug('DeviceCard', 'Команда успешно обработана', {
+          deviceId: props.device.device_id,
+          response
+        });
+
         ElNotification({
           title: 'Устройство',
           message: `Светильник ${command.toLowerCase()}`,
           type: 'success'
         });
       } else {
+        logDebug('DeviceCard', 'Ошибка обработки команды', {
+          deviceId: props.device.device_id,
+          error: response.error
+        });
         throw new Error(response.message || 'Ошибка управления');
       }
     }
 
     emit('command-sent', props.device.device_id);
   } catch (error) {
+    logDebug('DeviceCard', 'Ошибка управления светильником', {
+      deviceId: props.device.device_id,
+      error: error.message
+    });
+
     ElNotification({
       title: 'Ошибка',
       message: 'Ошибка управления светильником',
       type: 'error'
     });
   } finally {
+    logDebug('DeviceCard', 'Завершение обработки команды', {
+      deviceId: props.device.device_id
+    });
     loading.value = false;
   }
 };
 
 // Изменение интенсивности
 const updateIntensity = async () => {
+  logDebug('DeviceCard', 'Изменение интенсивности', {
+    deviceId: props.device.device_id,
+    intensity: props.device.intensity,
+    status: props.device.status
+  });
+
   if (props.device.status === 'ON') {
     if (props.device.is_fake) {
+      logDebug('DeviceCard', 'Эмуляция изменения интенсивности', {
+        deviceId: props.device.device_id,
+        intensity: props.device.intensity
+      });
+
       await new Promise(resolve => setTimeout(resolve, 300));
       ElNotification({
         title: 'Эмуляция',
@@ -245,6 +349,11 @@ const updateIntensity = async () => {
         duration: 2000
       });
     } else {
+      logDebug('DeviceCard', 'Отправка изменения интенсивности на сервер', {
+        deviceId: props.device.device_id,
+        intensity: props.device.intensity
+      });
+
       const response = await store.sendCommand(
           props.device.device_id,
           props.device.status,
@@ -252,6 +361,10 @@ const updateIntensity = async () => {
       );
 
       if (!response.success) {
+        logDebug('DeviceCard', 'Ошибка изменения интенсивности', {
+          deviceId: props.device.device_id,
+          error: response.error
+        });
         throw new Error(response.message || 'Ошибка изменения интенсивности');
       }
     }
@@ -260,7 +373,14 @@ const updateIntensity = async () => {
 
 // Перевод в спящий режим
 const sendEmergencySleep = async () => {
+  logDebug('DeviceCard', 'Перевод в спящий режим', {
+    deviceId: props.device.device_id,
+    isFake: props.device.is_fake
+  });
+
   if (props.device.is_fake) {
+    logDebug('DeviceCard', 'Эмуляция перевода в сон', { deviceId: props.device.device_id });
+
     await new Promise(resolve => setTimeout(resolve, 300));
     ElNotification({
       title: 'Эмуляция',
@@ -271,11 +391,23 @@ const sendEmergencySleep = async () => {
     // Используем стор для обновления
     store.updateDeviceStatus(props.device.device_id, 'SLEEPING');
   } else {
+    logDebug('DeviceCard', 'Отправка команды сна на сервер', {
+      deviceId: props.device.device_id
+    });
+
     const response = await store.forceSleep(props.device.device_id);
 
     if (response.success) {
+      logDebug('DeviceCard', 'Команда сна успешно обработана', {
+        deviceId: props.device.device_id,
+        response
+      });
       emit('emergency-sleep', props.device.device_id);
     } else {
+      logDebug('DeviceCard', 'Ошибка отправки команды сна', {
+        deviceId: props.device.device_id,
+        error: response.error
+      });
       throw new Error(response.message || 'Ошибка отправки команды сна');
     }
   }
@@ -283,7 +415,14 @@ const sendEmergencySleep = async () => {
 
 // Пробуждение устройства
 const wakeDevice = async () => {
+  logDebug('DeviceCard', 'Пробуждение устройства', {
+    deviceId: props.device.device_id,
+    isFake: props.device.is_fake
+  });
+
   if (props.device.is_fake) {
+    logDebug('DeviceCard', 'Эмуляция пробуждения', { deviceId: props.device.device_id });
+
     await new Promise(resolve => setTimeout(resolve, 300));
     ElNotification({
       title: 'Эмуляция',
@@ -294,31 +433,109 @@ const wakeDevice = async () => {
     // Используем стор для обновления
     store.wakeDevice(props.device.device_id);
   } else {
+    logDebug('DeviceCard', 'Отправка команды пробуждения на сервер', {
+      deviceId: props.device.device_id
+    });
+
     const response = await store.wakeDevice(props.device.device_id);
 
     if (response.success) {
+      logDebug('DeviceCard', 'Команда пробуждения успешно обработана', {
+        deviceId: props.device.device_id,
+        response
+      });
       emit('command-sent', props.device.device_id);
     } else {
+      logDebug('DeviceCard', 'Ошибка пробуждения устройства', {
+        deviceId: props.device.device_id,
+        error: response.error
+      });
       throw new Error(response.message || 'Ошибка пробуждения устройства');
     }
   }
 };
 
 const openDeviceSettings = () => {
+  logDebug('DeviceCard', 'Открытие настроек устройства', { deviceId: props.device.device_id });
   emit('open-settings', props.device);
 };
 
+// Обработчик завершения инициализации 3D
+const handleInitComplete = (success) => {
+  logDebug('DeviceCard', 'Инициализация 3D завершена', {
+    deviceId: props.device.device_id,
+    success
+  });
+};
+
+// Принудительная инициализация 3D
+const force3DInit = () => {
+  logDebug('DeviceCard', 'Принудительная инициализация 3D', {
+    deviceId: props.device.device_id,
+    show3D: show3D.value
+  });
+
+  if (webGLSupported && show3D.value) {
+    // Инициируем событие для принудительной инициализации
+    emit('init-3d', props.device.device_id);
+  }
+};
+
+// Инициализация при монтировании
+onMounted(() => {
+  logDebug('DeviceCard', 'Инициализация компонента', { deviceId: props.device.device_id });
+
+  store.initInterfaceSettings();
+
+  // Даем время для полной загрузки
+  setTimeout(() => {
+    logDebug('DeviceCard', 'Проверка контейнера после монтирования', {
+      deviceId: props.device.device_id
+    });
+  }, 100);
+});
+
+// Очистка при размонтировании
+onUnmounted(() => {
+  logDebug('DeviceCard', 'Очистка компонента', { deviceId: props.device.device_id });
+});
+
 // Следим за изменениями в сторе
-watch(() => store.devices, (newDevices) => {
+watch(() => store.devices, (newDevices, oldDevices) => {
+  logDebug('DeviceCard', 'Обновление списка устройств', {
+    deviceId: props.device.device_id,
+    newDevicesCount: newDevices.length,
+    oldDevicesCount: oldDevices ? oldDevices.length : 0
+  });
+
   const device = newDevices.find(d => d.device_id === props.device.device_id);
   if (device) {
+    logDebug('DeviceCard', 'Обновление данных устройства', {
+      deviceId: props.device.device_id,
+      device
+    });
     props.device = { ...device };
   }
 }, { deep: true });
 
-// Инициализация
-onMounted(() => {
-  store.initInterfaceSettings();
+// Следим за выбранным устройством
+watch(() => store.selectedDevice, (newDevice, oldDevice) => {
+  logDebug('DeviceCard', 'Изменение выбранного устройства', {
+    oldDeviceId: oldDevice ? oldDevice.device_id : null,
+    newDeviceId: newDevice ? newDevice.device_id : null
+  });
+
+  // Если это наше устройство было выбрано
+  if (newDevice && newDevice.device_id === props.device.device_id) {
+    logDebug('DeviceCard', 'Наше устройство выбрано', {
+      deviceId: props.device.device_id
+    });
+
+    // Принудительно инициализируем 3D
+    setTimeout(() => {
+      force3DInit();
+    }, 200);
+  }
 });
 </script>
 
@@ -326,7 +543,7 @@ onMounted(() => {
 .device-card {
   background: #fff;
   border-radius: 4px;
-  box-shadow: 1px 3px 14px 6px #00000040;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   padding: 0.75rem;
   height: 100%;
   display: flex;
@@ -382,9 +599,9 @@ onMounted(() => {
 /* Основной блок с лампочкой и аккумулятором */
 .device-main {
   display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 0.2rem;
-  margin-bottom: 0.7rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .bulb-block {
