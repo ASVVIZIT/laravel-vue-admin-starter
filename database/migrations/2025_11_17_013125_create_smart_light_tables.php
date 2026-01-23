@@ -24,6 +24,8 @@ class CreateSmartLightTables extends Migration
             $table->string('api_key');
             $table->json('settings')->nullable();
             $table->boolean('is_fake')->default(false);
+            $table->timestamp('settings_updated_at')->nullable()->comment('Время последнего обновления настроек');
+            $table->json('battery_group_config')->nullable()->comment('Конфигурация группировки аккумуляторов');
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
@@ -91,6 +93,14 @@ class CreateSmartLightTables extends Migration
             [
                 'key' => 'telemetry_retention_days',
                 'value' => '30'
+            ],
+            [
+                'key' => 'voltage_warning_threshold',
+                'value' => '0.15'
+            ],
+            [
+                'key' => 'voltage_critical_threshold',
+                'value' => '0.10'
             ]
         ];
 

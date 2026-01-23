@@ -26,7 +26,6 @@ class DeviceController extends Controller
         ]);
 
         $user = Auth::user();
-
         $device = SmartLightDevice::create([
             'user_id' => $user ? $user->id : null,
             'name' => 'Светильник ' . Str::random(4),
@@ -62,7 +61,13 @@ class DeviceController extends Controller
             'sleep_interval' => $device->sleep_interval,
             'emergency_sleep_interval' => $device->emergency_sleep_interval,
             'app_host' => config('app.host') ?? parse_url(config('app.url'), PHP_URL_HOST),
-            'device_type' => $device->device_type
+            'device_type' => $device->device_type,
+            'power_config' => [
+                'shared_power_source' => true, // Общий источник питания для модуля и лампы
+                'controller_runtime' => 24 * 60 * 60, // 24 часа автономной работы контроллера при отключенной нагрузке
+                'min_controller_voltage' => 2.8, // Минимальное напряжение для работы модуля
+                'power_management_mode' => 'conservative' // Режим управления питанием
+            ]
         ]);
     }
 
@@ -96,7 +101,6 @@ class DeviceController extends Controller
     {
         $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
         $user = $request->user();
-
         $ownsDevice = ($user && $device->user_id === $user->id) ||
             ($user && $user->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT));
 

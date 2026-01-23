@@ -12,28 +12,57 @@ use Illuminate\Queue\SerializesModels;
 
 class DeviceCommandSent implements ShouldBroadcast
 {
+    use Dispatchable, InteractsWithSockets, SerializesModels;
+
     public $deviceId;
     public $command;
+    public $intensity;
     public $timestamp;
 
-    public function __construct($deviceId, $command)
+    /**
+     * Create a new event instance.
+     */
+    public function __construct(string $deviceId, string $command, int $intensity = 100)
     {
         $this->deviceId = $deviceId;
         $this->command = $command;
-        $this->timestamp = now()->toIso8601String();
+        $this->intensity = $intensity;
+        $this->timestamp = now()->timestamp;
     }
 
-    public function broadcastOn()
+    /**
+     * Get the channels the event should broadcast on.
+     *
+     * @return array<int, \Illuminate\Broadcasting\Channel>
+     */
+    public function broadcastOn(): array
     {
-        return new PrivateChannel('smart-light.device.' . $this->deviceId);
+        return [
+            new PrivateChannel('device.'.$this->deviceId),
+        ];
     }
 
-    public function broadcastWith()
+    /**
+     * The event's broadcast name.
+     *
+     * @return string
+     */
+    public function broadcastAs()
+    {
+        return 'command.sent';
+    }
+
+    /**
+     * Get the data to broadcast.
+     *
+     * @return array<string, mixed>
+     */
+    public function broadcastWith(): array
     {
         return [
             'command' => $this->command,
-            'timestamp' => $this->timestamp,
-            'device_id' => $this->deviceId
+            'intensity' => $this->intensity,
+            'timestamp' => $this->timestamp
         ];
     }
 }

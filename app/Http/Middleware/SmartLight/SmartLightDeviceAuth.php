@@ -44,7 +44,6 @@ class SmartLightDeviceAuth
         }
 
         $request->merge(['device' => $device]);
-
         return $next($request);
     }
 }
