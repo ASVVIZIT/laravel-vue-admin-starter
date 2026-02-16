@@ -39,6 +39,9 @@ use App\Http\Controllers\Api\SmartLight\CommandController;
 use App\Http\Controllers\API\SmartLight\DeviceSettingsController;
 use App\Http\Middleware\SmartLight\SmartLightDeviceAuth;
 
+
+use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
+
 // Импорты фасадов для отладочных маршрутов
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
@@ -338,7 +341,7 @@ Route::get('/debug/network', function(Request $request) {
 });
 
 // SmartLight API
-Route::namespace('Api')->group(function() {
+Route::namespace('api')->group(function() {
     Route::prefix('smart-light')->name('smart-light.')->group(function () {
         // Публичные маршруты
         Route::post('/register', [DeviceController::class, 'register'])
@@ -420,7 +423,7 @@ Route::namespace('Api')->group(function() {
     });
 
     // API версия 1 для совместимости с фронтендом
-    Route::prefix('api/v1/smart-light')->name('api.v1.')->group(function () {
+    Route::prefix('v1/smart-light')->name('api.v1.')->group(function () {
         // Получение всех устройств пользователя
         Route::get('/devices', [DeviceController::class, 'apiIndex'])
             ->middleware('auth:sanctum')
@@ -464,6 +467,15 @@ Route::namespace('Api')->group(function() {
             ->middleware('auth:sanctum')
             ->name('commands.status');
     });
+});
+
+// Публичный доступ для получения списка ссылок
+Route::get('social-media-links', [SocialMediaLinkController::class, 'index']);
+
+// Защищенные маршруты для управления
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('social-media-links', SocialMediaLinkController::class)->except('index');
+    Route::post('social-media-links/reorder', [SocialMediaLinkController::class, 'reorder']);
 });
 
 

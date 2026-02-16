@@ -1,408 +1,415 @@
-// resources/js/components/SmartLight/api/powerSupplies/PowerSupplyApi.js
-import { POWER_SUPPLY_TYPES } from '@/components/SmartLight/stores/powerSupplyTypes.js';
-import { logger } from '@/components/SmartLight/api/utils/logger.js';
-import { ApiUtils } from '@/components/SmartLight/api/utils/types.js';
+/**
+ * API для работы с источниками питания
+ *
+ * Совместим с системой типов источников питания
+ *
+ * @file resources/js/components/SmartLight/api/powerSupplies/PowerSupplyApi.js
+ */
 
-export const PowerSupplyApi = {
-    async getAll() {
-        logger.debug('PowerSupplyApi.getAll called');
+import { BaseResource } from '@components/SmartLight/api/core/BaseResource.js';
+import { logDebug, logError } from '@components/SmartLight/utils/appLogger.js';
+
+export class PowerSupplyApi {
+    constructor() {
+        this.resource = new BaseResource('power-supplies');
+    }
+
+    /**
+     * Получение всех источников питания
+     */
+    async getAllPowerSupplies() {
+        logDebug('PowerSupplyApi', 'Получение всех источников питания');
+
         try {
-            await ApiUtils.delay(200);
+            const response = await this.resource.get('');
 
-            return {
-                success: true,
-                message: 'Типы источников питания загружены',
-                data: POWER_SUPPLY_TYPES
-            };
-        } catch (error) {
-            logger.error('PowerSupplyApi.getAll error', error);
-            return {
-                success: false,
-                message: 'Ошибка загрузки типов источников питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_ALL_POWER_SUPPLIES_ERROR'
-                }
-            };
-        }
-    },
-
-    async getById(id) {
-        logger.debug('PowerSupplyApi.getById called', { id });
-        try {
-            await ApiUtils.delay(100);
-
-            const supplyType = POWER_SUPPLY_TYPES.find(type => type.id === id);
-
-            if (!supplyType) {
-                throw new Error('Тип источника питания не найден');
-            }
-
-            return {
-                success: true,
-                message: 'Тип источника питания получен',
-                data: supplyType
-            };
-        } catch (error) {
-            logger.error('PowerSupplyApi.getById error', error);
-            return {
-                success: false,
-                message: error.message || 'Ошибка загрузки типа источника питания',
-                error: {
-                    message: error.message || 'Not found',
-                    code: 'POWER_SUPPLY_NOT_FOUND'
-                }
-            };
-        }
-    },
-
-    async setDeviceType(deviceId, supplyId, settings = {}) {
-        logger.debug('PowerSupplyApi.setDeviceType called', { deviceId, supplyId, settings });
-        try {
-            await ApiUtils.delay(150);
-
-            const supplyType = POWER_SUPPLY_TYPES.find(type => type.id === supplyId);
-
-            if (!supplyType) {
+            // Проверяем структуру ответа
+            if (!response || !response.data || !Array.isArray(response.data)) {
+                logDebug('PowerSupplyApi', 'Получен некорректный ответ от API', { response });
                 return {
                     success: false,
-                    message: 'Тип источника питания не найден',
-                    error: {
-                        message: 'Invalid power supply type',
-                        code: 'INVALID_POWER_SUPPLY_TYPE'
-                    }
+                    data: [],
+                    message: 'Получен некорректный ответ от API'
                 };
             }
 
             return {
                 success: true,
-                message: 'Тип источника питания установлен',
-                data: {
-                    power_supply_id: supplyId,
-                    settings: {
-                        voltage: supplyType.nominalVoltage,
-                        ripple: supplyType.ripple,
-                        ...settings
-                    }
-                }
+                data: response.data,
+                message: 'Источники питания успешно загружены'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.setDeviceType error', error);
+            logError('PowerSupplyApi', 'Ошибка загрузки источников питания', error);
             return {
                 success: false,
-                message: 'Не удалось установить тип источника питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SET_DEVICE_TYPE_ERROR'
-                }
+                message: 'Не удалось загрузить источники питания',
+                error: error.message
             };
         }
-    },
+    }
 
-    async activatePowerSupply(deviceId, supplyId) {
-        logger.debug('PowerSupplyApi.activatePowerSupply called', { deviceId, supplyId });
+    /**
+     * Получение источника питания по ID
+     */
+    async getPowerSupplyById(id) {
+        logDebug('PowerSupplyApi', 'Получение источника питания по ID', { id });
+
         try {
-            await ApiUtils.delay(200);
+            const response = await this.resource.get(`/${id}`);
 
-            return {
-                success: true,
-                message: 'Источник питания активирован',
-                data: {
-                    status: 'active',
-                    deviceId,
-                    supplyId
-                }
-            };
-        } catch (error) {
-            logger.error('PowerSupplyApi.activatePowerSupply error', error);
-            return {
-                success: false,
-                message: 'Не удалось активировать источник питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'ACTIVATE_POWER_SUPPLY_ERROR'
-                }
-            };
-        }
-    },
-
-    async deactivatePowerSupply(deviceId) {
-        logger.debug('PowerSupplyApi.deactivatePowerSupply called', { deviceId });
-        try {
-            await ApiUtils.delay(200);
-
-            return {
-                success: true,
-                message: 'Источник питания деактивирован',
-                data: {
-                    status: 'inactive',
-                    deviceId
-                }
-            };
-        } catch (error) {
-            logger.error('PowerSupplyApi.deactivatePowerSupply error', error);
-            return {
-                success: false,
-                message: 'Не удалось деактивировать источник питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'DEACTIVATE_POWER_SUPPLY_ERROR'
-                }
-            };
-        }
-    },
-
-    async simulateVoltageChange(deviceId, targetVoltage, duration = 2000) {
-        logger.debug('PowerSupplyApi.simulateVoltageChange called', { deviceId, targetVoltage, duration });
-        try {
-            const steps = 10;
-            const stepDuration = duration / steps;
-
-            for (let i = 0; i < steps; i++) {
-                await ApiUtils.delay(stepDuration);
+            // Проверяем структуру ответа
+            if (!response || !response.data) {
+                logDebug('PowerSupplyApi', 'Получен некорректный ответ от API', { response });
+                return {
+                    success: false,
+                    data: null,
+                    message: 'Получен некорректный ответ от API'
+                };
             }
 
             return {
                 success: true,
-                message: 'Изменение напряжения симулировано',
-                data: {
-                    targetVoltage,
-                    duration
-                }
+                data: response.data,
+                message: 'Источник питания успешно загружен'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.simulateVoltageChange error', error);
+            logError('PowerSupplyApi', 'Ошибка загрузки источника питания', error);
             return {
                 success: false,
-                message: 'Ошибка симуляции изменения напряжения',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_VOLTAGE_CHANGE_ERROR'
-                }
+                message: 'Не удалось загрузить источник питания',
+                error: error.message
             };
         }
-    },
+    }
 
-    async simulatePowerFailure(deviceId, duration = 2000) {
-        logger.debug('PowerSupplyApi.simulatePowerFailure called', { deviceId, duration });
+    /**
+     * Получение источников питания для выпадающего списка
+     */
+    async getPowerSuppliesForDropdown() {
+        logDebug('PowerSupplyApi', 'Получение источников питания для выпадающего списка');
+
         try {
-            await ApiUtils.delay(duration);
+            const response = await this.resource.get('/dropdown');
+
+            // Проверяем структуру ответа
+            if (!response || !response.data || !Array.isArray(response.data)) {
+                logDebug('PowerSupplyApi', 'Получен некорректный ответ от API', { response });
+                return {
+                    success: false,
+                    data: [],
+                    message: 'Получен некорректный ответ от API'
+                };
+            }
 
             return {
                 success: true,
-                message: 'Отключение питания симулировано',
-                data: {
-                    status: 'power_failure',
-                    duration
-                }
+                data: response.data.map(supply => ({
+                    id: supply.id,
+                    label: supply.name,
+                    value: supply.id,
+                    disabled: false,
+                    category: supply.category,
+                    description: supply.description
+                })),
+                message: 'Источники питания успешно загружены'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.simulatePowerFailure error', error);
+            logError('PowerSupplyApi', 'Ошибка загрузки источников питания', error);
             return {
                 success: false,
-                message: 'Ошибка симуляции отключения питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_POWER_FAILURE_ERROR'
-                }
+                message: 'Не удалось загрузить источники питания',
+                error: error.message
             };
         }
-    },
+    }
 
-    async getPowerSupplyStatus(deviceId) {
-        logger.debug('PowerSupplyApi.getPowerSupplyStatus called', { deviceId });
-        try {
-            await ApiUtils.delay(100);
-
-            return {
-                success: true,
-                message: 'Статус источника питания получен',
-                data: {
-                    status: 'active',
-                    supplyId: 'standard-5v',
-                    voltage: 3.7,
-                    ripple: 50,
-                    glowStyle: {
-                        glowColor: '#409eff',
-                        glowIntensity: 0.6,
-                        connectionStyle: 'standard'
-                    }
-                }
-            };
-        } catch (error) {
-            logger.error('PowerSupplyApi.getPowerSupplyStatus error', error);
-            return {
-                success: false,
-                message: 'Не удалось получить статус источника питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_POWER_SUPPLY_STATUS_ERROR'
-                }
-            };
-        }
-    },
-
+    /**
+     * Проверка совместимости источника питания с устройством
+     */
     async checkPowerSupplyCompatibility(supplyId, deviceId) {
-        logger.debug('PowerSupplyApi.checkPowerSupplyCompatibility called', { supplyId, deviceId });
+        logDebug('PowerSupplyApi', 'Проверка совместимости источника питания', {
+            supplyId,
+            deviceId
+        });
+
         try {
-            await ApiUtils.delay(150);
-
-            const supplyType = POWER_SUPPLY_TYPES.find(type => type.id === supplyId);
-
-            if (!supplyType) {
-                return {
-                    success: false,
-                    message: 'Тип источника питания не найден',
-                    error: {
-                        message: 'Invalid power supply',
-                        code: 'INVALID_POWER_SUPPLY'
-                    }
-                };
-            }
+            const response = await this.resource.post('/check-compatibility', {
+                power_supply_id: supplyId,
+                device_id: deviceId
+            });
 
             return {
                 success: true,
-                message: 'Совместимость проверена',
-                data: {
-                    compatible: true,
-                    warnings: [],
-                    recommendations: []
-                }
+                response,
+                message: 'Совместимость проверена'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.checkPowerSupplyCompatibility error', error);
+            logError('PowerSupplyApi', 'Ошибка проверки совместимости', error);
             return {
                 success: false,
-                message: 'Ошибка проверки совместимости',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'COMPATIBILITY_CHECK_ERROR'
-                }
+                message: 'Не удалось проверить совместимость',
+                error: error.message
             };
         }
-    },
+    }
 
+    /**
+     * Установка источника питания для устройства
+     */
+    async setDeviceType(deviceId, supplyId, settings = {}) {
+        logDebug('PowerSupplyApi', 'Установка источника питания для устройства', {
+            deviceId,
+            supplyId,
+            settings
+        });
+
+        try {
+            const response = await this.resource.post('/set-device-type', {
+                device_id: deviceId,
+                power_supply_id: supplyId,
+                settings
+            });
+
+            return {
+                success: true,
+                response,
+                message: 'Источник питания установлен'
+            };
+        } catch (error) {
+            logError('PowerSupplyApi', 'Ошибка установки источника питания', error);
+            return {
+                success: false,
+                message: 'Не удалось установить источник питания',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Обновление источника питания
+     */
+    async updatePowerSupply(supplyId, params) {
+        logDebug('PowerSupplyApi', 'Обновление источника питания', {
+            supplyId,
+            params
+        });
+
+        try {
+            const response = await this.resource.put(`/${supplyId}`, params);
+
+            return {
+                success: true,
+                response,
+                message: 'Источник питания обновлен'
+            };
+        } catch (error) {
+            logError('PowerSupplyApi', 'Ошибка обновления источника питания', error);
+            return {
+                success: false,
+                message: 'Не удалось обновить источник питания',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Получение статуса источника питания
+     */
+    async getPowerSupplyStatus(deviceId) {
+        logDebug('PowerSupplyApi', 'Получение статуса источника питания', { deviceId });
+
+        try {
+            const response = await this.resource.get(`/status/${deviceId}`);
+            return {
+                success: true,
+                response,
+                message: 'Статус источника питания успешно загружен'
+            };
+        } catch (error) {
+            logError('PowerSupplyApi', 'Ошибка загрузки статуса источника питания', error);
+            return {
+                success: false,
+                message: 'Не удалось загрузить статус источника питания',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Симуляция отключения питания
+     */
+    async simulatePowerFailure(deviceId, duration = 2000) {
+        logDebug('PowerSupplyApi', 'Симуляция отключения питания', {
+            deviceId,
+            duration
+        });
+
+        try {
+            const response = await this.resource.post('/simulate-failure', {
+                device_id: deviceId,
+                duration
+            });
+
+            return {
+                success: true,
+                response,
+                message: 'Отключение питания симулировано'
+            };
+        } catch (error) {
+            logError('PowerSupplyApi', 'Ошибка симуляции отключения питания', error);
+            return {
+                success: false,
+                message: 'Не удалось симулировать отключение питания',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Симуляция изменения напряжения
+     */
+    async simulateVoltageChange(deviceId, targetVoltage, duration = 2000) {
+        logDebug('PowerSupplyApi', 'Симуляция изменения напряжения', {
+            deviceId,
+            targetVoltage,
+            duration
+        });
+
+        try {
+            const response = await this.resource.post('/simulate-voltage', {
+                device_id: deviceId,
+                target_voltage: targetVoltage,
+                duration
+            });
+
+            return {
+                success: true,
+                response,
+                message: 'Напряжение успешно изменено'
+            };
+        } catch (error) {
+            logError('PowerSupplyApi', 'Ошибка симуляции изменения напряжения', error);
+            return {
+                success: false,
+                message: 'Не удалось симулировать изменение напряжения',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Симуляция зарядки
+     */
     async simulateCharging(deviceId, targetVoltage, duration = 2000) {
-        logger.debug('PowerSupplyApi.simulateCharging called', { deviceId, targetVoltage, duration });
-        try {
-            const steps = 10;
-            const stepDuration = duration / steps;
+        logDebug('PowerSupplyApi', 'Симуляция зарядки', {
+            deviceId,
+            targetVoltage,
+            duration
+        });
 
-            for (let i = 0; i < steps; i++) {
-                await ApiUtils.delay(stepDuration);
-            }
+        try {
+            const response = await this.resource.post('/simulate-charging', {
+                device_id: deviceId,
+                target_voltage: targetVoltage,
+                duration
+            });
 
             return {
                 success: true,
-                message: 'Зарядка симулирована',
-                data: {
-                    targetVoltage,
-                    duration,
-                    simulated: true
-                }
+                response,
+                message: 'Зарядка симулирована'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.simulateCharging error', error);
+            logError('PowerSupplyApi', 'Ошибка симуляции зарядки', error);
             return {
                 success: false,
-                message: 'Ошибка симуляции зарядки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_CHARGING_ERROR'
-                }
+                message: 'Не удалось симулировать зарядку',
+                error: error.message
             };
         }
-    },
+    }
 
+    /**
+     * Симуляция разрядки
+     */
     async simulateDischarging(deviceId, targetVoltage, duration = 2000) {
-        logger.debug('PowerSupplyApi.simulateDischarging called', { deviceId, targetVoltage, duration });
-        try {
-            const steps = 10;
-            const stepDuration = duration / steps;
+        logDebug('PowerSupplyApi', 'Симуляция разрядки', {
+            deviceId,
+            targetVoltage,
+            duration
+        });
 
-            for (let i = 0; i < steps; i++) {
-                await ApiUtils.delay(stepDuration);
-            }
+        try {
+            const response = await this.resource.post('/simulate-discharging', {
+                device_id: deviceId,
+                target_voltage: targetVoltage,
+                duration
+            });
 
             return {
                 success: true,
-                message: 'Разрядка симулирована',
-                data: {
-                    targetVoltage,
-                    duration,
-                    simulated: true
-                }
+                response,
+                message: 'Разрядка симулирована'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.simulateDischarging error', error);
+            logError('PowerSupplyApi', 'Ошибка симуляции разрядки', error);
             return {
                 success: false,
-                message: 'Ошибка симуляции разрядки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_DISCHARGING_ERROR'
-                }
+                message: 'Не удалось симулировать разрядку',
+                error: error.message
             };
         }
-    },
+    }
 
+    /**
+     * Получение параметров питания
+     */
     async getPowerParameters(deviceId) {
-        logger.debug('PowerSupplyApi.getPowerParameters called', { deviceId });
-        try {
-            await ApiUtils.delay(150);
+        logDebug('PowerSupplyApi', 'Получение параметров питания', { deviceId });
 
+        try {
+            const response = await this.resource.get(`/parameters/${deviceId}`);
             return {
                 success: true,
-                message: 'Параметры питания получены',
-                data: {
-                    supplyId: 'standard-5v',
-                    nominalVoltage: 5.0,
-                    voltage: 3.7,
-                    ripple: 50,
-                    glowStyle: {
-                        glowColor: '#409eff',
-                        glowIntensity: 0.6,
-                        connectionStyle: 'standard'
-                    }
-                }
+                response,
+                message: 'Параметры питания успешно загружены'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.getPowerParameters error', error);
+            logError('PowerSupplyApi', 'Ошибка загрузки параметров питания', error);
             return {
                 success: false,
-                message: 'Ошибка получения параметров питания',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_POWER_PARAMETERS_ERROR'
-                }
+                message: 'Не удалось загрузить параметры питания',
+                error: error.message
             };
         }
-    },
+    }
 
-    async simulateEmergency(deviceId) {
-        logger.debug('PowerSupplyApi.simulateEmergency called', { deviceId });
+    /**
+     * Симуляция аварийной ситуации с питанием
+     */
+    async simulatePowerEmergency(deviceId) {
+        logDebug('PowerSupplyApi', 'Симуляция аварийной ситуации с питанием', { deviceId });
+
         try {
-            await ApiUtils.delay(300);
+            const response = await this.resource.post('/simulate-emergency', {
+                device_id: deviceId
+            });
 
             return {
                 success: true,
-                message: 'Аварийное событие симулировано',
-                data: {
-                    status: 'emergency',
-                    deviceId,
-                    voltage: 2.5
-                }
+                response,
+                message: 'Аварийная ситуация с питанием симулирована'
             };
         } catch (error) {
-            logger.error('PowerSupplyApi.simulateEmergency error', error);
+            logError('PowerSupplyApi', 'Ошибка симуляции аварийной ситуации', error);
             return {
                 success: false,
-                message: 'Ошибка симуляции аварийного события',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_EMERGENCY_ERROR'
-                }
+                message: 'Не удалось симулировать аварийную ситуацию с питанием',
+                error: error.message
             };
         }
     }
 };
+
+// Экспорт экземпляра
+export const powerSupplyApi = new PowerSupplyApi();

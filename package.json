@@ -350,9 +350,11 @@
     "moment-timezone": "^0.5.48",
     "path-browserify": "^1.0.1",
     "pusher-js": "^8.4.0",
+    "qrcode": "^1.5.4",
     "simple-peer": "^9.11.1",
     "three": "^0.182.0",
     "vite-plugin-pwa": "^1.0.0",
+    "vue-draggable-next": "^2.3.0",
     "vuedraggable": "^4.1.0",
     "workbox-window": "^7.3.0"
   },

@@ -1,5 +1,5 @@
-// resources/js/components/SmartLight/api/core/BatteryTypeResource.js
 import { BaseResource } from './BaseResource.js';
+import { logDebug, logError } from '@/components/SmartLight/api/utils/apilogger';
 
 export class BatteryTypeResource extends BaseResource {
     constructor() {
@@ -85,11 +85,9 @@ export class BatteryTypeResource extends BaseResource {
 
     async getBatteryHistory(deviceId, options = {}) {
         const params = new URLSearchParams();
-
         if (options.start) params.append('start', options.start);
         if (options.end) params.append('end', options.end);
         if (options.interval) params.append('interval', options.interval);
-
         return this.get(`/history/${deviceId}`, params);
     }
 

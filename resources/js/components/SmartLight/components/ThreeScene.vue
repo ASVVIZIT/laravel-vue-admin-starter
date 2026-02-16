@@ -6,7 +6,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { checkWebGLSupport, initWhenReady } from '@/components/SmartLight/api/utils/webglSupport.js';
+import { checkWebGLSupport, initWhenReady } from '@components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
   deviceId: {

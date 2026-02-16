@@ -50,8 +50,8 @@
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
-import { checkWebGLSupport, initWhenReady } from '@/components/SmartLight/api/utils/webglSupport.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import { checkWebGLSupport, initWhenReady } from '@components/SmartLight/api/utils/webglSupport.js';
 
 const props = defineProps({
   deviceId: {
@@ -74,7 +74,7 @@ let filament = null;
 let bulbLight = null;
 let animationFrame = null;
 
-const store = useSmartLightStore();
+const store = useSmartlightStore();
 const webGLCheck = checkWebGLSupport();
 const webGLSupported = webGLCheck.isSupported;
 

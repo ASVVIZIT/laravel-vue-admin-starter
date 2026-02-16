@@ -1,22 +1,32 @@
-// resources/js/components/SmartLight/api/smartLight/TypesApi.js
+/**
+ * API для работы с типами SmartLight
+ *
+ * Этот файл использует PowerSupplyApi для работы с источниками питания
+ *
+ * @file resources/js/components/SmartLight/api/smartLight/TypesApi.js
+ */
+
 import { BatteryTypeApi } from '../batteryTypes/BatteryTypeApi.js';
 import { BulbTypeApi } from '../bulbTypes/BulbTypeApi.js';
 import { PowerSupplyApi } from '../powerSupplies/PowerSupplyApi.js';
 
+import { BATTERY_TYPES } from '../../stores/smartLight/types/batteryTypes';
+import { BULB_TYPES } from '../../stores/smartLight/types/bulbTypes';
+
 export const TypesApi = {
     // Работа с типами батарей
     getBatteryTypes: async () => {
-        const response = await BatteryTypeApi.getAll();
+        const response = await BatteryTypeApi.getAllBatteryTypes();
         return {
             success: response.success,
             message: response.message,
-            data: response.data || response || [],
+            data: response.data || response || [] || BATTERY_TYPES,
             error: response.error
         };
     },
 
     getBatteryType: async (id) => {
-        const response = await BatteryTypeApi.getById(id);
+        const response = await BatteryTypeApi.getBatteryTypeById(id);
         return {
             success: response.success,
             message: response.message,
@@ -117,17 +127,17 @@ export const TypesApi = {
 
     // Работа с типами лампочек
     getBulbTypes: async () => {
-        const response = await BulbTypeApi.getAll();
+        const response = await BulbTypeApi.getAllBulbTypes();
         return {
             success: response.success,
             message: response.message,
-            data: response.data || response || [],
+            data: response.data || response || [] || BULB_TYPES,
             error: response.error
         };
     },
 
     getBulbType: async (id) => {
-        const response = await BulbTypeApi.getById(id);
+        const response = await BulbTypeApi.getBulbTypeById(id);
         return {
             success: response.success,
             message: response.message,
@@ -228,7 +238,7 @@ export const TypesApi = {
 
     // Работа с источниками питания
     getPowerSupplies: async () => {
-        const response = await PowerSupplyApi.getAll();
+        const response = await PowerSupplyApi.getAllPowerSupplies();
         return {
             success: response.success,
             message: response.message,
@@ -238,7 +248,7 @@ export const TypesApi = {
     },
 
     getPowerSupply: async (id) => {
-        const response = await PowerSupplyApi.getById(id);
+        const response = await PowerSupplyApi.getPowerSupplyById(id);
         return {
             success: response.success,
             message: response.message,

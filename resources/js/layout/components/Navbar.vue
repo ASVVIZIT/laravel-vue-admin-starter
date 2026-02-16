@@ -1,5 +1,5 @@
 <template>
-  <div class="navbar rowBC reset-el-dropdown">
+  <div id="main-navbar" class="navbar rowBC reset-el-dropdown">
     <div class="rowSC">
       <hamburger
         id="hamburger-container"

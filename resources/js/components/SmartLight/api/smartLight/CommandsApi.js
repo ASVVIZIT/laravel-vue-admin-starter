@@ -1,12 +1,12 @@
 // resources/js/components/SmartLight/api/smartLight/CommandsApi.js
 import { SmartLightResource } from '../core/SmartLightResource.js';
-import { logger } from '../utils/logger.js';
+import {logDebug, logError} from '../utils/apiLogger.js';
 
 const resource = new SmartLightResource();
 
 export const CommandsApi = {
     async sendCommand(deviceId, command, intensity = 100) {
-        logger.debug('CommandsApi.sendCommand called', { deviceId, command, intensity });
+        logDebug('CommandsApi','sendCommand called', { deviceId, command, intensity });
         try {
             const response = await resource.sendCommand(deviceId, command, intensity);
             return {
@@ -15,7 +15,7 @@ export const CommandsApi = {
                 data: response.data
             };
         } catch (error) {
-            logger.error('CommandsApi.sendCommand error', error);
+            logError('CommandsApi','sendCommand error', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка отправки команды',
@@ -25,7 +25,7 @@ export const CommandsApi = {
     },
 
     async forceSleep(deviceId) {
-        logger.debug('CommandsApi.forceSleep called', { deviceId });
+        logDebug('CommandsApi', 'forceSleep called', { deviceId });
         try {
             const response = await resource.forceSleep(deviceId);
             return {
@@ -34,7 +34,7 @@ export const CommandsApi = {
                 data: response.data
             };
         } catch (error) {
-            logger.error('CommandsApi.forceSleep error', error);
+            logError('CommandsApi','forceSleep error', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка отправки команды сна',
@@ -44,7 +44,7 @@ export const CommandsApi = {
     },
 
     async getCommand(deviceId) {
-        logger.debug('CommandsApi.getCommand called', { deviceId });
+        logDebug('CommandsApi','getCommand called', { deviceId });
         try {
             const response = await resource.getCommand(deviceId);
             return {
@@ -53,7 +53,7 @@ export const CommandsApi = {
                 data: response.data
             };
         } catch (error) {
-            logger.error('CommandsApi.getCommand error', error);
+            logError('CommandsApi','getCommand error', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка получения команды',

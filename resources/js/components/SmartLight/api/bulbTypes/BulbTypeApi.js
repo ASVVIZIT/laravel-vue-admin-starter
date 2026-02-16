@@ -1,338 +1,300 @@
-// resources/js/components/SmartLight/api/bulbTypes/BulbTypeApi.js
-import { BULB_TYPES } from '@/components/SmartLight/stores/bulbTypes.js';
-import { logger } from '@/components/SmartLight/api/utils/logger.js';
-import { ApiUtils } from '@/components/SmartLight/api/utils/types.js';
+/**
+ * API для работы с типами ламп
+ * Совместим с системой типов источников света
+ */
+import { BaseResource } from '@/components/SmartLight/api/core/BaseResource';
+import { logDebug, logError } from '@/components/SmartLight/utils/appLogger';
 
-export const BulbTypeApi = {
-    async getAll() {
-        logger.debug('BulbTypeApi.getAll called');
+export class BulbTypeApi {
+    constructor() {
+        this.resource = new BaseResource('bulb-types');
+    }
+
+    /**
+     * Получение всех типов ламп
+     */
+    async getAllBulbTypes() {
+        logDebug('BulbTypeApi', 'Получение всех типов ламп');
+
         try {
-            await ApiUtils.delay(200);
+            const response = await this.resource.get('');
 
-            return {
-                success: true,
-                message: 'Типы лампочек загружены',
-                data: BULB_TYPES
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.getAll error', error);
-            return {
-                success: false,
-                message: 'Ошибка загрузки типов лампочек',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_ALL_BULB_TYPES_ERROR'
-                }
-            };
-        }
-    },
-
-    async getById(id) {
-        logger.debug('BulbTypeApi.getById called', { id });
-        try {
-            await ApiUtils.delay(100);
-
-            const bulbType = BULB_TYPES.find(type => type.id === id);
-
-            if (!bulbType) {
-                throw new Error('Тип лампочки не найден');
-            }
-
-            return {
-                success: true,
-                message: 'Тип лампочки получен',
-                data: bulbType
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.getById error', error);
-            return {
-                success: false,
-                message: error.message || 'Ошибка загрузки типа лампочки',
-                error: {
-                    message: error.message || 'Not found',
-                    code: 'BULB_TYPE_NOT_FOUND'
-                }
-            };
-        }
-    },
-
-    async setDeviceType(deviceId, bulbTypeId, settings = {}) {
-        logger.debug('BulbTypeApi.setDeviceType called', { deviceId, bulbTypeId, settings });
-        try {
-            await ApiUtils.delay(150);
-
-            const bulbType = BULB_TYPES.find(type => type.id === bulbTypeId);
-
-            if (!bulbType) {
+            // Проверяем структуру ответа
+            if (!response || !response.data || !Array.isArray(response.data)) {
+                logDebug('BulbTypeApi', 'Получен некорректный ответ от API', { response });
                 return {
                     success: false,
-                    message: 'Тип лампочки не найден',
-                    error: {
-                        message: 'Invalid bulb type',
-                        code: 'INVALID_BULB_TYPE'
-                    }
+                    data: [],
+                    message: 'Получен некорректный ответ от API'
                 };
             }
 
             return {
                 success: true,
-                message: 'Тип лампочки установлен',
-                data: {
-                    bulb_type_id: bulbTypeId,
-                    settings: {
-                        min_intensity: bulbType.minIntensity,
-                        max_intensity: bulbType.maxIntensity,
-                        color_temperature: bulbType.colorTemperature,
-                        ...settings
-                    }
-                }
+                data: response.data,
+                message: 'Типы ламп успешно загружены'
             };
         } catch (error) {
-            logger.error('BulbTypeApi.setDeviceType error', error);
+            logError('BulbTypeApi', 'Ошибка загрузки типов ламп', error);
             return {
                 success: false,
-                message: 'Не удалось установить тип лампочки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SET_DEVICE_TYPE_ERROR'
-                }
+                message: 'Не удалось загрузить типы ламп',
+                error: error.message
             };
         }
-    },
+    }
 
-    async getBulbTypeStatus(deviceId) {
-        logger.debug('BulbTypeApi.getBulbTypeStatus called', { deviceId });
+    /**
+     * Получение типа лампы по ID
+     */
+    async getBulbTypeById(id) {
+        logDebug('BulbTypeApi', 'Получение типа лампы по ID', { id });
+
         try {
-            await ApiUtils.delay(100);
+            const response = await this.resource.get(`/${id}`);
 
-            return {
-                success: true,
-                message: 'Статус типа лампочки получен',
-                data: {
-                    status: 'ON',
-                    intensity: 100,
-                    color_temperature: 2700
-                }
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.getBulbTypeStatus error', error);
-            return {
-                success: false,
-                message: 'Не удалось получить статус типа лампочки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_BULB_STATUS_ERROR'
-                }
-            };
-        }
-    },
-
-    async simulateLightEffect(deviceId, effectType, duration = 2000) {
-        logger.debug('BulbTypeApi.simulateLightEffect called', { deviceId, effectType, duration });
-        try {
-            await ApiUtils.delay(duration / 2);
-
-            return {
-                success: true,
-                message: 'Эффект освещения симулирован',
-                data: {
-                    effectType,
-                    duration,
-                    simulated: true
-                }
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.simulateLightEffect error', error);
-            return {
-                success: false,
-                message: 'Ошибка симуляции эффекта освещения',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_LIGHT_EFFECT_ERROR'
-                }
-            };
-        }
-    },
-
-    async simulateColorChange(deviceId, color, duration = 2000) {
-        logger.debug('BulbTypeApi.simulateColorChange called', { deviceId, color, duration });
-        try {
-            await ApiUtils.delay(duration / 2);
-
-            return {
-                success: true,
-                message: 'Изменение цвета симулировано',
-                data: {
-                    color,
-                    duration,
-                    simulated: true
-                }
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.simulateColorChange error', error);
-            return {
-                success: false,
-                message: 'Ошибка симуляции изменения цвета',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_COLOR_CHANGE_ERROR'
-                }
-            };
-        }
-    },
-
-    async getBulbParameters(deviceId) {
-        logger.debug('BulbTypeApi.getBulbParameters called', { deviceId });
-        try {
-            await ApiUtils.delay(150);
-
-            return {
-                success: true,
-                message: 'Параметры лампочки получены',
-                data: {
-                    status: 'ON',
-                    intensity: 100,
-                    color_temperature: 2700,
-                    voltage: 3.7
-                }
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.getBulbParameters error', error);
-            return {
-                success: false,
-                message: 'Ошибка получения параметров лампочки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_BULB_PARAMETERS_ERROR'
-                }
-            };
-        }
-    },
-
-    async setBulbParameters(deviceId, parameters) {
-        logger.debug('BulbTypeApi.setBulbParameters called', { deviceId, parameters });
-        try {
-            await ApiUtils.delay(200);
-
-            return {
-                success: true,
-                message: 'Параметры лампочки установлены',
-                data: {
-                    deviceId,
-                    parameters
-                }
-            };
-        } catch (error) {
-            logger.error('BulbTypeApi.setBulbParameters error', error);
-            return {
-                success: false,
-                message: 'Ошибка установки параметров лампочки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SET_BULB_PARAMETERS_ERROR'
-                }
-            };
-        }
-    },
-
-    async getBulbHistory(deviceId, options = {}) {
-        logger.debug('BulbTypeApi.getBulbHistory called', { deviceId, options });
-        try {
-            await ApiUtils.delay(250);
-
-            // Генерируем фейковую историю
-            const now = Date.now();
-            const history = Array.from({ length: 24 }, (_, i) => {
-                const time = new Date(now - i * 3600000).toISOString();
+            // Проверяем структуру ответа
+            if (!response || !response.data) {
+                logDebug('BulbTypeApi', 'Получен некорректный ответ от API', { response });
                 return {
-                    timestamp: time,
-                    intensity: Math.min(100, Math.max(10, 50 + Math.sin(i) * 20)),
-                    colorTemperature: 2700 + (i % 20) * 100
+                    success: false,
+                    data: null,
+                    message: 'Получен некорректный ответ от API'
                 };
+            }
+
+            return {
+                success: true,
+                data: response.data,
+                message: 'Тип лампы успешно загружен'
+            };
+        } catch (error) {
+            logError('BulbTypeApi', 'Ошибка загрузки типа лампы', error);
+            return {
+                success: false,
+                message: 'Не удалось загрузить тип лампы',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Получение типов ламп для выпадающего списка
+     */
+    async getBulbTypesForDropdown() {
+        logDebug('BulbTypeApi', 'Получение типов ламп для выпадающего списка');
+
+        try {
+            const response = await this.resource.get('/dropdown');
+
+            // Проверяем структуру ответа
+            if (!response || !response.data || !Array.isArray(response.data)) {
+                logDebug('BulbTypeApi', 'Получен некорректный ответ от API', { response });
+                return {
+                    success: false,
+                    data: [],
+                    message: 'Получен некорректный ответ от API'
+                };
+            }
+
+            return {
+                success: true,
+                data: response.data.map(type => ({
+                    id: type.id,
+                    label: type.name,
+                    value: type.id,
+                    disabled: false,
+                    category: type.category,
+                    baseType: type.base_type
+                })),
+                message: 'Типы ламп успешно загружены'
+            };
+        } catch (error) {
+            logError('BulbTypeApi', 'Ошибка загрузки типов ламп', error);
+            return {
+                success: false,
+                message: 'Не удалось загрузить типы ламп',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Проверка совместимости типа лампы с устройством
+     */
+    async checkBulbTypeCompatibility(bulbTypeId, deviceId) {
+        logDebug('BulbTypeApi', 'Проверка совместимости типа лампы', {
+            bulbTypeId,
+            deviceId
+        });
+
+        try {
+            const response = await this.resource.post('/check-compatibility', {
+                bulb_type_id: bulbTypeId,
+                device_id: deviceId
             });
 
             return {
                 success: true,
-                message: 'История лампочки получена',
-                data: history
+                response,
+                message: 'Совместимость проверена'
             };
         } catch (error) {
-            logger.error('BulbTypeApi.getBulbHistory error', error);
+            logError('BulbTypeApi', 'Ошибка проверки совместимости', error);
             return {
                 success: false,
-                message: 'Ошибка получения истории лампочки',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'GET_BULB_HISTORY_ERROR'
-                }
+                message: 'Не удалось проверить совместимость',
+                error: error.message
             };
         }
-    },
+    }
 
-    async simulateGroupEffect(deviceId, effectType, configuration) {
-        logger.debug('BulbTypeApi.simulateGroupEffect called', { deviceId, effectType, configuration });
+    /**
+     * Установка типа лампы для устройства
+     */
+    async setDeviceType(deviceId, bulbTypeId, settings = {}) {
+        logDebug('BulbTypeApi', 'Установка типа лампы для устройства', {
+            deviceId,
+            bulbTypeId,
+            settings
+        });
+
         try {
-            await ApiUtils.delay(300);
+            const response = await this.resource.post('/set-device-type', {
+                device_id: deviceId,
+                bulb_type_id: bulbTypeId,
+                settings
+            });
 
             return {
                 success: true,
-                message: 'Групповой эффект симулирован',
-                data: {
-                    effectType,
-                    configuration,
-                    simulated: true
-                }
+                response,
+                message: 'Тип лампы установлен'
             };
         } catch (error) {
-            logger.error('BulbTypeApi.simulateGroupEffect error', error);
+            logError('BulbTypeApi', 'Ошибка установки типа лампы', error);
             return {
                 success: false,
-                message: 'Ошибка симуляции группового эффекта',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'SIMULATE_GROUP_EFFECT_ERROR'
-                }
+                message: 'Не удалось установить тип лампы',
+                error: error.message
             };
         }
-    },
+    }
 
-    async getBulbTypeCompatibility(bulbTypeId, deviceId) {
-        logger.debug('BulbTypeApi.getBulbTypeCompatibility called', { bulbTypeId, deviceId });
+    /**
+     * Обновление типа лампы
+     */
+    async updateBulbType(bulbTypeId, params) {
+        logDebug('BulbTypeApi', 'Обновление типа лампы', {
+            bulbTypeId,
+            params
+        });
+
         try {
-            await ApiUtils.delay(150);
-
-            const bulbType = BULB_TYPES.find(type => type.id === bulbTypeId);
-
-            if (!bulbType) {
-                return {
-                    success: false,
-                    message: 'Тип лампочки не найден',
-                    error: {
-                        message: 'Invalid bulb type',
-                        code: 'INVALID_BULB_TYPE'
-                    }
-                };
-            }
+            const response = await this.resource.put(`/${bulbTypeId}`, params);
 
             return {
                 success: true,
-                message: 'Совместимость проверена',
-                data: {
-                    compatible: true,
-                    warnings: [],
-                    recommendations: []
-                }
+                response,
+                message: 'Тип лампы обновлен'
             };
         } catch (error) {
-            logger.error('BulbTypeApi.getBulbTypeCompatibility error', error);
+            logError('BulbTypeApi', 'Ошибка обновления типа лампы', error);
             return {
                 success: false,
-                message: 'Ошибка проверки совместимости',
-                error: {
-                    message: error.message || 'Network error',
-                    code: 'COMPATIBILITY_CHECK_ERROR'
-                }
+                message: 'Не удалось обновить тип лампы',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Получение статуса типа лампы
+     */
+    async getBulbTypeStatus(deviceId) {
+        logDebug('BulbTypeApi', 'Получение статуса типа лампы', { deviceId });
+
+        try {
+            const response = await this.resource.get(`/status/${deviceId}`);
+            return {
+                success: true,
+                response,
+                message: 'Статус типа лампы успешно загружен'
+            };
+        } catch (error) {
+            logError('BulbTypeApi', 'Ошибка загрузки статуса типа лампы', error);
+            return {
+                success: false,
+                message: 'Не удалось загрузить статус типа лампы',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Симуляция светового эффекта
+     */
+    async simulateLightEffect(deviceId, effectType, duration = 2000) {
+        logDebug('BulbTypeApi', 'Симуляция светового эффекта', {
+            deviceId,
+            effectType,
+            duration
+        });
+
+        try {
+            const response = await this.resource.post('/simulate-effect', {
+                device_id: deviceId,
+                effect_type: effectType,
+                duration
+            });
+
+            return {
+                success: true,
+                response,
+                message: 'Световой эффект симулирован'
+            };
+        } catch (error) {
+            logError('BulbTypeApi', 'Ошибка симуляции светового эффекта', error);
+            return {
+                success: false,
+                message: 'Не удалось симулировать световой эффект',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Симуляция изменения цвета
+     */
+    async simulateColorChange(deviceId, color, duration = 2000) {
+        logDebug('BulbTypeApi', 'Симуляция изменения цвета', {
+            deviceId,
+            color,
+            duration
+        });
+
+        try {
+            const response = await this.resource.post('/simulate-color', {
+                device_id: deviceId,
+                color,
+                duration
+            });
+
+            return {
+                success: true,
+                response,
+                message: 'Цвет успешно изменен'
+            };
+        } catch (error) {
+            logError('BulbTypeApi', 'Ошибка симуляции изменения цвета', error);
+            return {
+                success: false,
+                message: 'Не удалось симулировать изменение цвета',
+                error: error.message
             };
         }
     }
 };
+
+// Экспорт экземпляра
+export const bulbTypeApi = new BulbTypeApi();

@@ -50,14 +50,14 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 import {
   checkWebGLSupport,
   initWhenReady,
   logDebug,
   isContainerReady,
   isFullyVisible
-} from '@/components/SmartLight/api/utils/webglSupport.js';
+} from '@components/SmartLight/api/utils/webglSupport.js';
 import {
   calculateMinVoltage,
   calculateMaxVoltage,
@@ -66,7 +66,7 @@ import {
   calculateBatteryNormalProgress,
   calculateBatteryCriticalProgress,
   calculateCurrentLevelPosition
-} from '@/components/SmartLight/api/utils/deviceUtils.js';
+} from '@/components/SmartLight/utils/deviceUtils.js';
 
 const props = defineProps({
   deviceId: {
@@ -95,7 +95,7 @@ let animationFrame = null;
 let initialized = false;
 let containerVisible = ref(false);
 
-const store = useSmartLightStore();
+const store = useSmartlightStore();
 const webGLCheck = checkWebGLSupport();
 const webGLSupported = webGLCheck.isSupported;
 

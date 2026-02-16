@@ -15,5 +15,6 @@ class AdminBaseSeeder extends Seeder
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(UsersSeeder::class);
         $this->call(UsersTableSeeder::class);
+        $this->call(SocialMediaLinksSeeder::class);
     }
 }

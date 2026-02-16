@@ -1,37 +1,187 @@
-// resources/js/components/SmartLight/services/PowerService.js
+import {
+    calculateMinVoltage,
+    calculateMaxVoltage,
+    calculateCriticalVoltage,
+    calculateCriticalThresholdPosition,
+    calculateBatteryNormalProgress,
+    calculateBatteryCriticalProgress,
+    calculateCurrentLevelPosition,
+    calculateBatteryColor,
+    calculateCriticalColor,
+    calculateDeviceRuntime
+} from '@/components/SmartLight/utils/deviceUtils';
+import { logDebug } from '@/components/SmartLight/api/utils/logger';
+import { useSmartlightStore } from '@/components/SmartLight/stores';
+
 export class PowerService {
-    static calculateRuntime(device) {
-        const currentVoltage = device.voltage || 3.7;
-        const batteryCapacity = device.battery_capacity || 2000;
-        const criticalVoltage = device.critical_voltage || 3.2;
-
-        if (currentVoltage <= criticalVoltage) {
-            return 'КРИТИЧЕСКИЙ ЗАРЯД';
-        }
-
-        const lightCurrent = 40; // mA
-        const espCurrent = 0.5;  // mA
-        const remainingCapacity = batteryCapacity * ((currentVoltage - 2.8) / (4.2 - 2.8));
-        const dailyConsumption = (lightCurrent * 10) + (espCurrent * 24);
-        const days = remainingCapacity / dailyConsumption;
-
-        return this.formatRuntime(days);
+    constructor() {
+        this.deviceStore = useSmartlightStore();
     }
 
-    static formatRuntime(days) {
-        if (days < 1) {
-            const hours = Math.round(days * 24);
-            return `${hours} ${this.declineWord(hours, ['час', 'часа', 'часов'])}`;
-        }
-        return `${Math.round(days * 10) / 10} ${this.declineWord(Math.floor(days), ['день', 'дня', 'дней'])}`;
+    /**
+     * Рассчитывает время работы устройства
+     */
+    calculateRuntime(deviceId) {
+        const device = this.deviceStore.actions.getDevice(deviceId);
+        logDebug('PowerService', 'Расчет времени работы', {
+            deviceId,
+            device,
+            runtime: calculateDeviceRuntime(device)
+        });
+
+        return calculateDeviceRuntime(device);
     }
 
-    static declineWord(number, words) {
-        const num = Math.abs(number) % 100;
-        const lastDigit = num % 10;
-        if (num > 10 && num < 20) return words[2];
-        if (lastDigit === 1) return words[0];
-        if (lastDigit >= 2 && lastDigit <= 4) return words[1];
-        return words[2];
+    /**
+     * Рассчитывает минимальное напряжение для устройства
+     */
+    calculateMinVoltage(deviceId) {
+        logDebug('PowerService', 'Расчет минимального напряжения', {
+            deviceId,
+            minVoltage: calculateMinVoltage(deviceId)
+        });
+
+        return calculateMinVoltage(deviceId);
+    }
+
+    /**
+     * Рассчитывает максимальное напряжение для устройства
+     */
+    calculateMaxVoltage(deviceId) {
+        logDebug('PowerService', 'Расчет максимального напряжения', {
+            deviceId,
+            maxVoltage: calculateMaxVoltage(deviceId)
+        });
+
+        return calculateMaxVoltage(deviceId);
+    }
+
+    /**
+     * Рассчитывает критическое напряжение для устройства
+     */
+    calculateCriticalVoltage(deviceId) {
+        logDebug('PowerService', 'Расчет критического напряжения', {
+            deviceId,
+            criticalVoltage: calculateCriticalVoltage(deviceId)
+        });
+
+        return calculateCriticalVoltage(deviceId);
+    }
+
+    /**
+     * Рассчитывает позицию критического порога в процентах
+     */
+    calculateCriticalThresholdPosition(device) {
+        logDebug('PowerService', 'Расчет позиции критического порога', {
+            deviceId: device?.device_id,
+            position: calculateCriticalThresholdPosition(device)
+        });
+
+        return calculateCriticalThresholdPosition(device);
+    }
+
+    /**
+     * Рассчитывает нормальный прогресс
+     */
+    calculateBatteryNormalProgress(device) {
+        logDebug('PowerService', 'Расчет нормального прогресса', {
+            deviceId: device?.device_id,
+            progress: calculateBatteryNormalProgress(device)
+        });
+
+        return calculateBatteryNormalProgress(device);
+    }
+
+    /**
+     * Рассчитывает критический прогресс
+     */
+    calculateBatteryCriticalProgress(device) {
+        logDebug('PowerService', 'Расчет критического прогресса', {
+            deviceId: device?.device_id,
+            progress: calculateBatteryCriticalProgress(device)
+        });
+
+        return calculateBatteryCriticalProgress(device);
+    }
+
+    /**
+     * Рассчитывает позицию текущего уровня
+     */
+    calculateCurrentLevelPosition(device) {
+        logDebug('PowerService', 'Расчет позиции текущего уровня', {
+            deviceId: device?.device_id,
+            position: calculateCurrentLevelPosition(device)
+        });
+
+        return calculateCurrentLevelPosition(device);
+    }
+
+    /**
+     * Рассчитывает цвет нормального уровня
+     */
+    getBatteryColor(deviceId) {
+        const device = this.deviceStore.actions.getDevice(deviceId);
+        logDebug('PowerService', 'Получение цвета нормального уровня', {
+            deviceId,
+            color: calculateBatteryColor(device)
+        });
+
+        return calculateBatteryColor(device);
+    }
+
+    /**
+     * Рассчитывает цвет критического уровня
+     */
+    getCriticalColor(deviceId) {
+        const device = this.deviceStore.actions.getDevice(deviceId);
+        logDebug('PowerService', 'Получение цвета критического уровня', {
+            deviceId,
+            color: calculateCriticalColor(device)
+        });
+
+        return calculateCriticalColor(device);
+    }
+
+    /**
+     * Рассчитывает безопасный диапазон интенсивности
+     */
+    calculateSafeIntensityRange(deviceId) {
+        logDebug('PowerService', 'Расчет безопасного диапазона интенсивности', { deviceId });
+
+        return {
+            min: 0,
+            max: 100
+        };
+    }
+
+    /**
+     * Рассчитывает параметры питания с учетом группировки
+     */
+    calculatePowerParameters(device) {
+        if (!device) {
+            logDebug('PowerService', 'Устройство не найдено для расчета параметров питания');
+            return null;
+        }
+
+        const minVoltage = calculateMinVoltage(device.device_id);
+        const maxVoltage = calculateMaxVoltage(device.device_id);
+        const criticalVoltage = calculateCriticalVoltage(device.device_id);
+
+        logDebug('PowerService', 'Расчет параметров питания', {
+            deviceId: device.device_id,
+            minVoltage,
+            maxVoltage,
+            criticalVoltage,
+            voltage: device.voltage,
+            batteryGroupConfig: device.battery_group_config
+        });
+
+        return {
+            minVoltage,
+            maxVoltage,
+            criticalVoltage,
+            voltage: device.voltage,
+            batteryGroupConfig: device.battery_group_config
+        };
     }
 }

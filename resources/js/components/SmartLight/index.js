@@ -1,7 +1,14 @@
 // resources/js/components/SmartLight/index.js
-export { useSmartLightStore } from './stores/smartLightStore.js';
-export { Index } from './api/smartLight/SmartLightApi.js';
-export { PowerService } from './services/PowerService.js';
-export { default as BatterySlider } from './components/BatterySlider.vue';
-export { default as DeviceCard } from './components/DeviceCard.vue';
-export { default as DeviceGrid } from './components/DeviceGrid.vue';
+/**
+ * Точка входа для модуля "Умное освещение"
+ * Импортируйте все компоненты и функциональность через этот файл
+ */
+
+export * from './api/core/SmartLightResource';
+export * from './composables/useWebGL';
+export * from './composables/useDeviceCalculations';
+export * from './controllers/DeviceController';
+export * from './controllers/SettingsController';
+export * from './services/DeviceService';
+export * from './services/SettingsService';
+export * from './stores';

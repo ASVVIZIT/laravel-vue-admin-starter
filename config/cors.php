@@ -36,7 +36,14 @@ return [
     ],
 
     'allowed_methods' => ['*'],
-    'allowed_origins' => ['http://94.41.87.10'],
+    'allowed_origins' => [
+        'http://94.41.87.10',
+        'http://94.41.87.10:8050',
+        'http://94.41.87.10:8080',
+        'http://localhost:5173',
+        'http://127.0.0.1:8050',
+        'http://127.0.0.1:8080',
+    ],
     /*'allowed_origins' => [
         'http://94.41.87.10',
         'http://94.41.87.10:8050',

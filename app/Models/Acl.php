@@ -48,6 +48,11 @@ final class Acl
     const PERMISSION_MANAGE_SMART_LIGHT = 'manage smart light';
     const PERMISSION_MANAGE_OWN_SMART_LIGHT = 'manage own smart light';
 
+    // ===== ДЛЯ SOCIAL MEDIA LINKS =====
+    const PERMISSION_VIEW_SOCIAL_MEDIA_LINKS = 'view social media links';
+    const PERMISSION_MANAGE_SOCIAL_MEDIA_LINKS = 'manage social media links';
+    const PERMISSION_MANAGE_OWN_SOCIAL_MEDIA_LINKS = 'manage own social media links';
+
     /**
      * @param array $exclusives Exclude some permissions from the list
      * @return array

@@ -38,7 +38,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 
 const props = defineProps({
   status: {
@@ -68,7 +68,7 @@ const props = defineProps({
   }
 });
 
-const store = useSmartLightStore();
+const store = useSmartlightStore();
 const webGLSupported = ref(false); // Для простоты, пока используем только CSS
 
 // Вычисляем интенсивность свечения

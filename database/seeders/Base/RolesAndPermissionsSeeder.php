@@ -16,8 +16,7 @@ class RolesAndPermissionsSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Получаем guard из конфигурации
-        // $guard = config('auth.defaults.guard', 'web');
-        $guard = 'web';
+        $guard = config('auth.defaults.guard', 'web');
 
         // Удаляем старые роли и разрешения
         Role::where('guard_name', $guard)->delete();
@@ -29,7 +28,7 @@ class RolesAndPermissionsSeeder extends Seeder
         }
 
         // Создаем разрешения
-        foreach (Acl::permissions() as $permissionName) { // Убедитесь, что разрешение есть здесь
+        foreach (Acl::permissions() as $permissionName) {
             Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => $guard]);
         }
 
@@ -61,7 +60,9 @@ class RolesAndPermissionsSeeder extends Seeder
                 Acl::PERMISSION_USER_MANAGE,
                 Acl::PERMISSION_PERMISSION_MANAGE,
                 Acl::PERMISSION_VIEW_SMART_LIGHT,
-                Acl::PERMISSION_MANAGE_SMART_LIGHT
+                Acl::PERMISSION_MANAGE_SMART_LIGHT,
+                Acl::PERMISSION_VIEW_SOCIAL_MEDIA_LINKS,
+                Acl::PERMISSION_MANAGE_SOCIAL_MEDIA_LINKS
             ]);
         }
 
@@ -72,7 +73,8 @@ class RolesAndPermissionsSeeder extends Seeder
         if ($manager) {
             $manager->syncPermissions([
                 Acl::PERMISSION_USER_MANAGE,
-                Acl::PERMISSION_MANAGE_OWN_SMART_LIGHT
+                Acl::PERMISSION_MANAGE_OWN_SMART_LIGHT,
+                Acl::PERMISSION_MANAGE_OWN_SOCIAL_MEDIA_LINKS
             ]);
         }
     }

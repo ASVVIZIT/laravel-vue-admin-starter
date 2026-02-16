@@ -15,6 +15,7 @@ import entityRoutes from './modules/entity';
 import servicesRoutes from './modules/services.js';
 import dynamicTableRoutes from './modules/dynamicTable.js';
 import smartLightRoutes from './modules/SmartLight/smart-light.js';
+import socialMediaLinks from './modules/SocialMediaLinks/social-media-links.js';
 
 // Функции для работы с куками
 function getCookie(name) {
@@ -141,6 +142,7 @@ export const constantRoutes = [
   },
   ...dynamicTableRoutes,
   ...smartLightRoutes,
+  ...socialMediaLinks,
 ];
 
 export const asyncRoutes = [

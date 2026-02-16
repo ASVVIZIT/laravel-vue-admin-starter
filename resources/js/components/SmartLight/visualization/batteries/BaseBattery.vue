@@ -37,7 +37,7 @@
 
 <script setup>
 import { computed, inject } from 'vue';
-import { useSmartLightStore } from '@/components/SmartLight/stores/smartLightStore.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartLightStore.js';
 
 const props = defineProps({
   deviceId: {
@@ -58,7 +58,7 @@ const props = defineProps({
   }
 });
 
-const store = inject('smartLightStore') || useSmartLightStore();
+const store = inject('smartLightStore') || useSmartlightStore();
 
 // Вычисляем позицию критического порога в процентах
 const criticalThresholdPosition = computed(() => {

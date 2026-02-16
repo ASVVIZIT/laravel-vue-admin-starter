@@ -1,34 +1,15 @@
 /**
- * Единая точка входа для типов лампочек
- * Все данные о типах лампочек определены здесь
+ * Типы ламп
  *
- * Структура данных:
- * - id: уникальный идентификатор типа
- * - name: название
- * - category: категория (incandescent, led, halogen, smart-led)
- * - shape: форма
- * - baseType: тип цоколя
- * - nominalVoltage: номинальное напряжение
- * - minVoltage: минимальное напряжение
- * - maxVoltage: максимальное напряжение
- * - minIntensity: минимальная интенсивность
- * - maxIntensity: максимальная интенсивность
- * - nominalIntensity: номинальная интенсивность
- * - colorTemperature: цветовая температура
- * - colorRange: диапазон цветовой температуры
- * - lightEfficiency: световая эффективность
- * - filamentMaterial: материал нити
- * - lifespan: срок службы
- * - dimensions: габариты
- * - visualFeatures: визуальные свойства
- * - groupSupport: поддержка группировки
- * - smartFeatures: умные функции
+ * Содержит только данные типов ламп без бизнес-логики
+ *
+ * @file stores/smartlight/types/bulbTypes.js
  */
 
-export const BULB_TYPES = [
-    {
+export const BULB_TYPES = {
+    'classic': {
         id: 'classic',
-        name: 'Классическая лампочка накаливания',
+        name: 'Классическая',
         category: 'incandescent',
         shape: 'pear',
         baseType: 'E27',
@@ -42,11 +23,7 @@ export const BULB_TYPES = [
         lightEfficiency: 10,
         filamentMaterial: 'tungsten',
         lifespan: 1000,
-        dimensions: {
-            height: 120,
-            width: 80,
-            unit: 'px'
-        },
+        dimensions: { height: 120, width: 80, unit: 'px' },
         visualFeatures: {
             glass: {
                 shape: 'pear',
@@ -94,11 +71,17 @@ export const BULB_TYPES = [
             enabled: false,
             maxCount: 1,
             configuration: []
+        },
+        powerManagement: {
+            sharedPowerSource: true,
+            controllerRuntime: 86400, // 24 часа в секундах
+            minControllerVoltage: 2.5,
+            powerManagementMode: 'conservative'
         }
     },
-    {
+    'led': {
         id: 'led',
-        name: 'Современная LED-лампочка',
+        name: 'LED',
         category: 'led',
         shape: 'round',
         baseType: 'E27',
@@ -109,18 +92,11 @@ export const BULB_TYPES = [
         maxIntensity: 100,
         nominalIntensity: 100,
         colorTemperature: 4000,
-        colorRange: {
-            min: 2700,
-            max: 6500
-        },
+        colorRange: { min: 2700, max: 6500 },
         lightEfficiency: 80,
         filamentMaterial: 'semiconductor',
         lifespan: 25000,
-        dimensions: {
-            height: 100,
-            width: 70,
-            unit: 'px'
-        },
+        dimensions: { height: 100, width: 70, unit: 'px' },
         visualFeatures: {
             glass: {
                 shape: 'round',
@@ -137,10 +113,7 @@ export const BULB_TYPES = [
             },
             filament: {
                 visible: false,
-                ledArray: {
-                    count: 8,
-                    arrangement: 'circular'
-                },
+                ledArray: { count: 8, arrangement: 'circular' },
                 glow: true,
                 glowIntensity: 0.9,
                 rotation: false,
@@ -173,11 +146,25 @@ export const BULB_TYPES = [
             enabled: true,
             maxCount: 10,
             configuration: ['linear', 'circular']
+        },
+        powerManagement: {
+            sharedPowerSource: true,
+            controllerRuntime: 86400, // 24 часа в секундах
+            minControllerVoltage: 2.5,
+            powerManagementMode: 'conservative'
+        },
+        smartFeatures: {
+            colorControl: true,
+            scheduling: true,
+            remoteControl: true,
+            energyMonitoring: true,
+            voiceControl: true,
+            integration: ['smart_home']
         }
     },
-    {
+    'halogen': {
         id: 'halogen',
-        name: 'Галогенная лампочка',
+        name: 'Галогенная',
         category: 'halogen',
         shape: 'candle',
         baseType: 'E14',
@@ -191,11 +178,7 @@ export const BULB_TYPES = [
         lightEfficiency: 15,
         filamentMaterial: 'tungsten_halogene',
         lifespan: 2000,
-        dimensions: {
-            height: 100,
-            width: 60,
-            unit: 'px'
-        },
+        dimensions: { height: 100, width: 60, unit: 'px' },
         visualFeatures: {
             glass: {
                 shape: 'candle',
@@ -245,97 +228,30 @@ export const BULB_TYPES = [
             enabled: false,
             maxCount: 1,
             configuration: []
-        }
-    },
-    {
-        id: 'smart-led',
-        name: 'Умная LED-лампочка',
-        category: 'smart-led',
-        shape: 'sphere',
-        baseType: 'E27',
-        nominalVoltage: 3.7,
-        minVoltage: 2.5,
-        maxVoltage: 4.3,
-        minIntensity: 1,
-        maxIntensity: 100,
-        nominalIntensity: 100,
-        colorTemperature: 2700,
-        colorRange: {
-            min: 2700,
-            max: 6500
         },
-        lightEfficiency: 90,
-        filamentMaterial: 'rgb_led',
-        lifespan: 30000,
-        dimensions: {
-            height: 90,
-            width: 90,
-            unit: 'px'
-        },
-        visualFeatures: {
-            glass: {
-                shape: 'sphere',
-                thickness: 0.3,
-                baseColor: '#f0f0f0',
-                activeColor: '#ffffff',
-                criticalColor: '#ff9800',
-                offColor: '#e6e6e6',
-                glassOpacity: 0.95,
-                transmission: 0.8,
-                roughness: 0.2,
-                clearcoat: 0.8,
-                clearcoatRoughness: 0.2
-            },
-            filament: {
-                visible: false,
-                ledArray: {
-                    count: 12,
-                    arrangement: 'circular'
-                },
-                glow: true,
-                glowIntensity: 0.9,
-                rotation: false,
-                supportInner: false
-            },
-            light: {
-                type: 'point',
-                color: '#ffffff',
-                intensity: 1.2,
-                distance: 15,
-                decay: 1.5,
-                castShadow: true,
-                colorTemperature: 2700
-            },
-            base: {
-                material: 'plastic',
-                color: '#333333',
-                threading: true,
-                electronicsVisible: true
-            },
-            effects: {
-                fluid: false,
-                heatDistortion: false,
-                glow: true,
-                rotation: false,
-                flicker: true,
-                flickerIntensity: 0.03,
-                flickerFrequency: 0.01,
-                colorTransition: true,
-                colorTransitionDuration: 2
-            }
-        },
-        groupSupport: {
-            enabled: true,
-            maxCount: 15,
-            configuration: ['linear', 'grid', 'circular']
-        },
-        smartFeatures: {
-            colorControl: true,
-            scheduling: true,
-            remoteControl: true,
-            energyMonitoring: true,
-            voiceControl: true,
-            integration: ['smart_home']
+        powerManagement: {
+            sharedPowerSource: true,
+            controllerRuntime: 72000, // 20 часов в секундах
+            minControllerVoltage: 2.5,
+            powerManagementMode: 'balanced'
         }
     }
-];
+};
+
+/**
+ * Получает тип лампочки по ID
+ */
+export const getBulbTypeById = (bulbTypeId) => {
+    return BULB_TYPES[bulbTypeId] || BULB_TYPES.classic;
+};
+
+/**
+ * Возвращает типы ламп для выпадающего списка
+ */
+export const getBulbTypesForDropdown = () => {
+    return Object.entries(BULB_TYPES).map(([id, type]) => ({
+        id,
+        label: type.name,
+        value: id
+    }));
+};

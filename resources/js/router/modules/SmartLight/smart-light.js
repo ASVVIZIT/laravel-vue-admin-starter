@@ -21,7 +21,7 @@ export default [
             {
                 path: 'settings',
                 name: 'SmartLightSettings',
-                component: () => import('@/views/SmartLight/Settings.vue'),
+                component: () => import('@/views/SmartLight/GlobalSettingsPanel.vue'),
                 meta: {
                     title: 'Настройки SmartLight',
                     noCache: true,

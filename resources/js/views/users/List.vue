@@ -910,22 +910,77 @@ const confirmPermission = async () => {
 const permissionKeys = (permissions) =>
     permissions.map(p => p.id)
 
-const tableHeight = ref('calc(100vh - 1000px)')
+const tableHeight = ref('calc(100vh - 300px)')
 
 function updateTableHeight() {
-  const breadHeight = 50 // Высота вашего заголовка
-  const tagHeight = 50 // Высота вашего заголовка
-  const headerHeight = 140 // Высота вашего заголовка
-  const paginationHeight = 60 // Высота пагинации
-  const offset = 30 // Дополнительные отступы
-  tableHeight.value = `calc(100vh - ${breadHeight + tagHeight + headerHeight + paginationHeight + offset}px)`
+  // Получаем высоты элементов по их ID
+  const navbarEl = document.querySelector('#main-navbar');
+  const tagsViewEl = document.querySelector('#tags-view-container');
+  const appMainEl = document.querySelector('#app-main');
+  const cardBodyEl = document.querySelector('.el-card__body');
+
+  // Доп регулировка
+
+  const AddLevel = 60;
+
+  // Динамические высоты с запасом
+  const navbarHeight = navbarEl?.offsetHeight || 60;
+  const tagsViewHeight = tagsViewEl?.offsetHeight || 50;
+
+  // Рассчитываем паддинги app-main
+  const appMainStyle = window.getComputedStyle(appMainEl || {});
+  const appMainPaddingTop = parseInt(appMainStyle.paddingTop) || 20;
+  const appMainPaddingBottom = parseInt(appMainStyle.paddingBottom) || 20;
+  const appMainPadding = appMainPaddingTop + appMainPaddingBottom;
+
+
+  const cardBodyStyle = window.getComputedStyle(cardBodyEl || {});
+  const cardBodyPaddingTop = parseInt(cardBodyStyle.paddingTop) || 20;
+  const cardBodyPaddingBottom = parseInt(cardBodyStyle.paddingBottom) || 20;
+  const cardBodyPadding = cardBodyPaddingTop + cardBodyPaddingBottom;
+
+
+  // Остальные элементы (фильтры, заголовок, пагинация)
+  const filterContainer = document.querySelector('.filter-container');
+  const filterHeight = filterContainer?.offsetHeight + AddLevel || 120; // Заголовок + фильтры
+
+  const paginationEl = document.querySelector('.pagination-container, .el-pagination');
+  const paginationHeight = paginationEl?.offsetHeight || 60;
+
+  // Общая высота, которую нужно вычесть
+  const totalOffset = navbarHeight + tagsViewHeight + appMainPadding + cardBodyPadding + filterHeight + paginationHeight;
+
+  // Защита от отрицательных значений
+  const minHeight = 300;
+  const viewportHeight = window.innerHeight;
+
+  console.log('Расчет высоты таблицы:', {
+    viewportHeight,
+    totalOffset,
+    navbarHeight,
+    tagsViewHeight,
+    appMainPadding,
+    filterHeight,
+    paginationHeight,
+    minHeight
+  });
+
+  if (viewportHeight - totalOffset < minHeight) {
+    tableHeight.value = `${minHeight}px`;
+  } else {
+    tableHeight.value = `calc(100vh - ${totalOffset}px)`;
+  }
 }
 
 // Инициализация
 onMounted(async () => {
   pagination.per_page = 20
-  updateTableHeight()
-  window.addEventListener('resize', updateTableHeight)
+  console.log('Инициализация расчета высоты таблицы');
+
+  setTimeout(() => {
+    updateTableHeight()
+    window.addEventListener('resize', updateTableHeight)
+  }, 300);
   await getList()
   // Проверка блокировки manage permission
   if (checkPermission(['manage permission'])) {
