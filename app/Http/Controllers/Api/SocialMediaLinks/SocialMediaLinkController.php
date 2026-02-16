@@ -22,9 +22,10 @@ class SocialMediaLinkController extends Controller
 
     public function store(Request $request)
     {
-        // Основная валидация - проверяем, что URL не пустой и не слишком длинный
+        // Основная валидация - проверяем, что URL не пустый и не слишком длинный
+        // Поле description теперь может быть строкой или отсутствовать (null)
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100',
+            'name' => 'required|string|max:300',
             'url' => 'required|string|max:1000', // Увеличиваем максимальную длину
             'icon' => 'required|string|max:100',
             'order_column' => 'nullable|integer|min:0',
@@ -55,10 +56,13 @@ class SocialMediaLinkController extends Controller
             return response()->json(['error' => 'Invalid URL format'], 422);
         }
 
-        // Дополнительно можно экранировать URL для безопасности, если он будет отображаться в HTML
-        // $url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
-
         $validated['url'] = $url;
+
+        // Проверяем, был ли передан description в запросе
+        if (!array_key_exists('description', $validated) || is_null($validated['description']) || trim($validated['description']) === '') {
+            // Если поле отсутствует, null или пустая строка после trim, устанавливаем его в null (или в пустую строку '', если в БД default '')
+            $validated['description'] = null; // Или '' если поле в БД NOT NULL с default ''
+        }
 
         if (!isset($validated['order_column'])) {
             $maxOrder = SocialMediaLink::max('order_column') ?? -1;
@@ -74,8 +78,9 @@ class SocialMediaLinkController extends Controller
         $link = SocialMediaLink::findOrFail($id);
 
         // Основная валидация
+        // description может быть строкой, пустой строкой или отсутствовать
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:100',
+            'name' => 'required|string|max:300',
             'url' => 'required|string|max:1000', // Увеличиваем максимальную длину
             'icon' => 'required|string|max:100',
             'order_column' => 'nullable|integer|min:0',
@@ -105,6 +110,12 @@ class SocialMediaLinkController extends Controller
         }
 
         $validated['url'] = $url;
+
+        // Проверяем, был ли передан description в запросе
+        if (!array_key_exists('description', $validated) || is_null($validated['description']) || trim($validated['description']) === '') {
+            // Если поле отсутствует, null или пустая строка после trim, устанавливаем его в null (или в пустую строку '', если в БД default '')
+            $validated['description'] = null; // Или '' если поле в БД NOT NULL с default ''
+        }
 
         $link->update($validated);
         return response()->json($link);

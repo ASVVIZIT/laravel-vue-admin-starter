@@ -11,7 +11,7 @@ const servicesRoutes = {
     meta: {
         title: 'Services',
         description: 'Services description',
-        bootstrapIcon: 'person',
+        elSvgIcon: 'Service',
         permissions: ['view menu entity'],
     },
     children: [

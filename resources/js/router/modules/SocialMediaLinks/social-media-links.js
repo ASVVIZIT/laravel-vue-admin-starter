@@ -1,15 +1,18 @@
-// Экспортируем массив маршрутов для модуля
+// resources/js/router/modules/SocialMediaLinks/social-media-links.js
 export default [
     {
         path: '/social-admin',
-        component: () => import('@/layout/Layout.vue'), // Основной layout для админки
+        name: 'SocialAdmin',
+        alwaysShow: true,
+        showInMenu: true,
+        sidebar: true,
+        hidden: false,
+        component: () => import('@/layout/Layout.vue'),
         meta: {
-            title: 'Соцсети для отзывов', // Название для меню
+            title: 'Соцсети для отзывов',
             description: 'Управление соцсети для отзывов',
-            permissions: ['manage_social_media_links'], // Необходимые права
-            bootstrapIcon: 'person-workspace',
-            sidebar: true, // Показывать в боковом меню
-            hidden: false
+            permissions: ['manage_social_media_links'],
+            elSvgIcon: 'Connection',
         },
         children: [
             {
@@ -17,22 +20,33 @@ export default [
                 name: 'SocialMediaLinksAdmin',
                 component: () => import('@/views/SocialMediaLinks/Admin/SocialMediaLinksAdmin.vue'),
                 meta: {
-                    title: 'Управление соц ссылками', // Название для подменю
+                    title: 'Управление qr-code (ссылки)',
+                    description: 'Управление соцсети для отзывов',
+                    elSvgIcon: 'Operation',
                     permissions: ['manage_social_media_links'],
-                    sidebar: true,
-                    hidden: false
+                }
+            },
+            {
+                path: 'reviews',
+                name: 'ReviewsPageAdmin',
+                component: () => import('@/views/SocialMediaLinks/Public/ReviewsPage.vue'),
+                hidden: false,
+                requiresAuth: true,
+                meta: {
+                    title: 'Отзывы (Админ)',
+                    elSvgIcon: 'Comment'
                 }
             }
         ]
     },
     {
-        path: '/reviews', // Публичная страница
-        name: 'ReviewsPage',
+        path: '/reviews',
+        name: 'ReviewsPagePublic',
         component: () => import('@/views/SocialMediaLinks/Public/ReviewsPage.vue'),
+        hidden: true,
+        requiresAuth: false,
         meta: {
             title: 'Оставить отзыв',
-            hidden: true, // Не показывать в меню
-            requiresAuth: false // Не требует аутентификации
         }
     }
 ];

@@ -10,10 +10,10 @@ class CreateSocialMediaLinksTable extends Migration
     {
         Schema::create('social_media_links', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 100);
-            $table->string('url', 500); // Увеличен размер для полных URL
+            $table->string('name', 300);
+            $table->string('url', 1000); // Увеличен размер для полных URL
             $table->string('icon', 100);
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->integer('order_column')->default(0); // Используем order_column, т.к. order - зарезервированное слово
             $table->timestamps();
         });

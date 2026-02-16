@@ -192,6 +192,10 @@
     white-space: nowrap;
   }
 
+  .el-menu-item * {
+    vertical-align: middle;
+  }
+
   &>.el-menu {
     .svg-icon {
       margin-right: 12px;

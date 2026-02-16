@@ -54,7 +54,11 @@
     .el-sub-menu.is-opened {
     //  background-color: var(--el-submenu-active-bg-color);
       .el-menu-item {
+        vertical-align: middle;
       //  background-color: var(--el-submenu-active-bg-color);
+      }
+      .el-menu-item * {
+        vertical-align: middle;
       }
     }
   }

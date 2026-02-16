@@ -6,7 +6,7 @@ export default [
         component: () => import('@/modules/video/gallery/VideoGallery.vue'),
         meta: {
             title: 'Видео галерея',
-            bootstrapIcon: 'videos',
+            elSvgIcon: 'VideoCameraFilled',
             permissions: ['manage entity']
         }
     },
@@ -25,7 +25,7 @@ export default [
         name: 'videosMessageTest',
         meta: {
             title: 'UI Тестер сообщений',
-            bootstrapIcon: 'message',
+            elSvgIcon: 'Tools',
             permissions:
                 ['manage entity']
         },
