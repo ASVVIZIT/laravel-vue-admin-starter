@@ -1,10 +1,12 @@
-import request from '@/utils/request.js';
+import request from '@/utils/request.js'; // Импортируем глобальный axios-клиент
 
 export class BaseResource {
+    // Конструктор принимает базовый путь к API
     constructor(basePath) {
         this.basePath = basePath;
     }
 
+    // Метод GET
     async get(path = '', params = {}) {
         const url = this.buildUrl(path);
         try {
@@ -19,6 +21,7 @@ export class BaseResource {
         }
     }
 
+    // Метод POST
     async post(path, data = {}) {
         const url = this.buildUrl(path);
         try {
@@ -33,6 +36,7 @@ export class BaseResource {
         }
     }
 
+    // Метод PUT
     async put(path, data = {}) {
         const url = this.buildUrl(path);
         try {
@@ -47,6 +51,7 @@ export class BaseResource {
         }
     }
 
+    // Метод DELETE
     async delete(path) {
         const url = this.buildUrl(path);
         try {
@@ -60,6 +65,7 @@ export class BaseResource {
         }
     }
 
+    // Вспомогательный метод для построения URL
     buildUrl(path = '') {
         if (!path) return this.basePath;
         // Убираем завершающий слеш из basePath
@@ -69,13 +75,14 @@ export class BaseResource {
         return `${basePath}/${path}`;
     }
 
+    // Вспомогательный метод для обработки ошибок
     handleNetworkError(error) {
-        console.error('Network error - check CORS configuration', error);
+        console.error('Network error in BaseResource:', error);
         if (error.code === 'ERR_NETWORK' || error.message.includes('Network Error')) {
-            throw new Error('Ошибка соединения с сервером. Проверьте CORS настройки');
+            throw new Error('Connection error. Please check network settings.');
         }
         if (error.response) {
-            throw new Error(`Ошибка сервера: ${error.response.status} ${error.response.data.message || error.response.data.error}`);
+            throw new Error(`Server error: ${error.response.status} ${error.response.data.message || error.response.data.error || error.response.statusText}`);
         }
         throw error;
     }

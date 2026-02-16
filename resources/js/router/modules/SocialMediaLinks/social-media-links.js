@@ -1,11 +1,12 @@
+// Экспортируем массив маршрутов для модуля
 export default [
     {
         path: '/admin',
-        component: () => import('@/layout/Layout.vue'),
+        component: () => import('@/layout/Layout.vue'), // Основной layout для админки
         meta: {
-            title: 'Соцсети для отзывов',
-            permissions: ['manage_social_media_links'],
-            sidebar: true,
+            title: 'Соцсети для отзывов', // Название для меню
+            permissions: ['manage_social_media_links'], // Необходимые права
+            sidebar: true, // Показывать в боковом меню
             hidden: false
         },
         children: [
@@ -14,7 +15,7 @@ export default [
                 name: 'SocialMediaLinksAdmin',
                 component: () => import('@/views/SocialMediaLinks/Admin/SocialMediaLinksAdmin.vue'),
                 meta: {
-                    title: 'Управление',
+                    title: 'Управление', // Название для подменю
                     permissions: ['manage_social_media_links'],
                     sidebar: true,
                     hidden: false
@@ -23,13 +24,13 @@ export default [
         ]
     },
     {
-        path: '/reviews',
+        path: '/reviews', // Публичная страница
         name: 'ReviewsPage',
         component: () => import('@/views/SocialMediaLinks/Public/ReviewsPage.vue'),
         meta: {
             title: 'Оставить отзыв',
-            hidden: true,
-            requiresAuth: false
+            hidden: true, // Не показывать в меню
+            requiresAuth: false // Не требует аутентификации
         }
     }
 ];

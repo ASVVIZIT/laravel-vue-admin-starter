@@ -1,49 +1,82 @@
 <template>
   <div class="social-media-links-list">
-    <!-- Кнопка добавления сверху -->
     <div class="add-button-top">
       <el-button type="primary" @click="addLink">Добавить ссылку</el-button>
     </div>
 
-    <el-scrollbar style="height: 500px;">
+    <el-scrollbar style="height: 480px;">
       <draggable
           v-model="localLinks"
           :options="{
-            animation: 150,
-            ghostClass: 'dragging',
-            dragClass: 'dragging',
-            chosenClass: 'dragging',
+            animation: 200,
+            ghostClass: 'dragging-row-ghost',
+            chosenClass: 'dragging-row-chosen',
             forceFallback: true,
-            handle: '.drag-handle',
+            handle: '.card-header',
             sort: true
           }"
           @start="onDragStart"
           @end="onReorder"
       >
-        <div
+        <el-card
             v-for="link in localLinks"
             :key="link.id"
-            class="social-media-link-card"
-            :class="{ 'dragging': link.isDragging }"
+            shadow="hover"
+            class="link-row"
         >
-          <div class="drag-handle" style="cursor: move; margin-right: 10px;">
-            <i class="fas fa-grip-lines"></i>
+          <!-- Заголовок карточки -->
+          <div class="card-header" slot="header">
+            <!-- Иконка соцсети -->
+            <component :is="getIconComponent(link.icon)" class="header-icon" />
+            <!-- Название -->
+            <span class="header-title">{{ link.name }}</span>
+            <!-- Иконка перетаскивания -->
+            <div class="drag-handle" title="Перетащите для сортировки">
+              <component :is="DragHandleIcon" />
+            </div>
           </div>
-          <i :class="link.icon" class="social-media-icon"></i>
-          <div class="name">{{ link.name }}</div>
-          <div class="url">{{ link.url }}</div>
-          <div class="qr-code">
-            <qr-code-generator :url="link.url" :name="link.name" :size="100" />
+
+          <!-- Основной контент строки (тело карточки) -->
+          <div class="row-content">
+            <!-- Колонка: URL и Описание -->
+            <div class="col-info">
+              <div class="url-label">URL:</div>
+              <div class="url">{{ link.url }}</div>
+              <div v-if="link.description" class="description-label">Описание:</div>
+              <div v-if="link.description" class="description">{{ link.description }}</div>
+            </div>
+
+            <!-- Колонка: QR-код -->
+            <div class="col-qr">
+              <qr-code-generator :url="link.url" :name="link.name" :size="100" />
+            </div>
+
+            <!-- Колонка: Кнопки -->
+            <div class="col-controls">
+              <el-button
+                  size="small"
+                  type="primary"
+                  @click="editLink(link)"
+                  :icon="EditIcon"
+                  class="square-button-style"
+              >
+                <!-- Редактировать -->
+              </el-button>
+              <el-button
+                  size="small"
+                  type="danger"
+                  @click="showDeleteConfirm(link.id)"
+                  :icon="DeleteIcon"
+                  class="square-button-style"
+              >
+                <!-- Удалить -->
+              </el-button>
+            </div>
           </div>
-          <div class="actions">
-            <el-button size="small" @click="editLink(link)">Редактировать</el-button>
-            <el-button size="small" type="danger" @click="showDeleteConfirm(link.id)">Удалить</el-button>
-          </div>
-        </div>
+        </el-card>
       </draggable>
     </el-scrollbar>
 
-    <!-- Кнопка добавления снизу -->
     <div class="add-button-bottom">
       <el-button type="primary" @click="addLink">Добавить ссылку</el-button>
     </div>
@@ -56,7 +89,6 @@
         @saved="handleLinkSaved"
     />
 
-    <!-- Диалог подтверждения удаления -->
     <el-dialog
         v-model="showDeleteConfirmDialog"
         title="Подтверждение удаления"
@@ -77,26 +109,42 @@ import { useSocialMediaLinksStore } from '@/components/SocialMediaLinks/store/so
 import { VueDraggableNext as Draggable } from 'vue-draggable-next';
 import SocialMediaForm from './SocialMediaForm.vue';
 import QrCodeGenerator from './QrCodeGenerator.vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { Edit as EditIcon, Delete as DeleteIcon, Operation as DragHandleIcon, VideoCamera as VideoCameraIcon, ChatLineSquare as ChatLineSquareIcon, Position as PositionIcon, Guide as GuideIcon, Picture as PictureIcon, Connection as ConnectionIcon, Link as LinkIcon, Monitor as MonitorIcon } from '@element-plus/icons-vue';
 
 const store = useSocialMediaLinksStore();
 const showForm = ref(false);
-const currentLink = ref({}); // Используем пустой объект вместо null
+const currentLink = ref({});
 const showDeleteConfirmDialog = ref(false);
 const deleteLinkId = ref(null);
-
-// Локальное состояние для перетаскивания
 const localLinks = ref([]);
 
-// Используем сортированные ссылки из стора
 const sortedLinks = computed(() => store.sortedLinks);
 
-// Синхронизируем локальное состояние с глобальным
-watch(sortedLinks, (newLinks) => {
-  localLinks.value = newLinks.map(link => ({
-    ...link,
-    isDragging: link.isDragging || false
-  }));
+// --- Карта соответствия иконок ---
+const iconMap = {
+  'fab fa-2gis': GuideIcon,
+  'fab fa-vk': GuideIcon,
+  'fab fa-telegram': ChatLineSquareIcon,
+  'fab fa-whatsapp': ChatLineSquareIcon,
+  'fab fa-youtube': VideoCameraIcon,
+  'fab fa-tiktok': MonitorIcon,
+  'fab fa-twitter': PositionIcon,
+  'fab fa-pinterest': PictureIcon,
+  'fab fa-instagram': PictureIcon,
+  'fab fa-facebook': ConnectionIcon,
+  'fab fa-linkedin': LinkIcon,
+  'default': LinkIcon
+};
+
+const getIconComponent = (iconString) => {
+  const mappedComponent = iconMap[iconString];
+  return mappedComponent || iconMap.default;
+};
+// --- /Карта соответствия иконок ---
+
+watch(sortedLinks, (newSortedLinks) => {
+  localLinks.value = [...newSortedLinks];
 }, { immediate: true });
 
 onMounted(async () => {
@@ -104,8 +152,6 @@ onMounted(async () => {
 });
 
 const editLink = (link) => {
-  if (!link) return;
-  // Создаем копию ссылки, чтобы избежать мутации оригинала
   currentLink.value = { ...link };
   showForm.value = true;
 };
@@ -114,8 +160,9 @@ const addLink = () => {
   currentLink.value = {
     name: '',
     url: '',
+    description: '', // Добавлено
     icon: 'fab fa-instagram',
-    order: store.linkCount
+    order_column: store.linkCount
   };
   showForm.value = true;
 };
@@ -123,14 +170,13 @@ const addLink = () => {
 const handleLinkSaved = async (linkData) => {
   try {
     if (linkData.id) {
-      // Обновляем существующую ссылку
       await store.updateLink(linkData.id, linkData);
+      ElMessage.success('Ссылка обновлена');
     } else {
-      // Создаем новую ссылку
       await store.createLink(linkData);
+      ElMessage.success('Ссылка создана');
     }
     showForm.value = false;
-    ElMessage.success(linkData.id ? 'Ссылка обновлена' : 'Ссылка создана');
   } catch (error) {
     ElMessage.error('Ошибка сохранения: ' + error.message);
   }
@@ -145,39 +191,18 @@ const deleteLink = async (id) => {
   }
 };
 
-const onDragStart = (event) => {
-  const index = event.oldIndex;
-  if (index !== undefined && index >= 0 && index < localLinks.value.length) {
-    localLinks.value[index].isDragging = true;
-  }
+const onDragStart = () => {
+  // Можно добавить логику при начале перетаскивания, если нужно
 };
 
-const onReorder = async (event) => {
+const onReorder = async () => {
   try {
-    // Получаем новый порядок ID
     const newOrder = localLinks.value.map(link => link.id);
-
-    // Обновляем порядок в локальном состоянии
-    store.updateLocalOrder(newOrder);
-
-    // Отправляем изменения на сервер
     await store.reorderLinks(newOrder);
-
     ElMessage.success('Порядок обновлен');
   } catch (error) {
     ElMessage.error('Ошибка обновления порядка: ' + error.message);
-
-    // Восстанавливаем порядок из стора
-    const freshLinks = store.sortedLinks;
-    localLinks.value = freshLinks.map(link => ({
-      ...link,
-      isDragging: link.isDragging || false
-    }));
-  } finally {
-    // Сброс состояния dragging
-    localLinks.value.forEach(link => {
-      link.isDragging = false;
-    });
+    localLinks.value = [...store.sortedLinks];
   }
 };
 
@@ -194,76 +219,155 @@ const confirmDelete = async () => {
 
 <style scoped>
 .social-media-links-list {
-  padding: 20px;
+  padding: 5px;
 }
 
 .add-button-top, .add-button-bottom {
-  margin: 15px 0;
+  margin: 5px 0;
   text-align: center;
 }
 
-.social-media-link-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 8px;
+.link-row {
   margin-bottom: 10px;
-  background: #fff;
-  transition: all 0.3s;
-  min-height: 120px;
+  border-radius: 8px;
+  transition: box-shadow 0.2s;
 }
 
-.dragging {
-  border: 2px dashed #409EFF;
-  background-color: #f5f7fa;
+.link-row:hover {
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.dragging-row-ghost {
+  opacity: 0.6;
   transform: scale(1.02);
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  z-index: 10;
+  background-color: #e6f7ff;
+  border: 2px dashed #1890ff;
+  box-shadow: 0 4px 16px rgba(24, 144, 255, 0.3);
+}
+
+.dragging-row-chosen {
+  opacity: 0.9;
+  transform: scale(1.02);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  z-index: 1000;
+  background-color: #f0f9ff;
+}
+
+/* Заголовок карточки */
+.card-header {
+  padding: 8px 10px !important; /* Уменьшил отступы */
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Распределяем элементы по краям и центру */
+  background-color: #fafafa;
+  border-bottom: 1px solid #eee;
+  border-radius: 8px 8px 0 0;
+  cursor: move; /* Показываем, что элемент можно двигать */
+  user-select: none; /* Запрещаем выделять текст внутри хэндла */
+  gap: 8px; /* Отступ между элементами */
+}
+
+.header-icon {
+  font-size: 18px;
+  color: #409EFF;
+  flex-shrink: 0;
+  width: 25px;
+  height: 25px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.header-title {
+  flex: 1; /* Занимает оставшееся пространство */
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .drag-handle {
-  cursor: move;
-  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px; /* Уменьшил размер хэндла */
+  height: 24px;
   color: #999;
-}
-
-.social-media-icon {
-  font-size: 24px;
-  margin-right: 10px;
-  color: #409EFF;
-}
-
-.name {
-  font-weight: bold;
   font-size: 14px;
-  margin-bottom: 5px;
-  line-height: 1.4;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  flex-shrink: 0; /* Не сжимаем хэндл */
+}
+
+.drag-handle:hover {
+  background-color: #ebebeb;
+}
+
+.drag-handle :deep(svg) {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+/* Основной контент строки */
+.row-content {
+  display: grid;
+  grid-template-columns: 1fr auto auto; /* info qr buttons */
+  gap: 15px; /* Отступы между колонками */
+  align-items: start; /* Выравнивание по верхнему краю */
+}
+
+/* Колонка информации */
+.col-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px; /* Меньший отступ между элементами */
+}
+
+.url-label, .description-label {
+  font-size: 11px;
+  color: #909399;
+  font-weight: 500;
 }
 
 .url {
   font-size: 12px;
-  color: #666;
-  margin-bottom: 5px;
-  word-break: break-all;
-  max-width: 250px;
+  color: #606266;
+  word-break: break-all; /* Перенос длинного URL */
 }
 
-.qr-code {
-  margin: 5px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.actions {
-  display: flex;
-  gap: 5px;
-  margin-top: 5px;
-}
-
-.actions .el-button {
-  padding: 0 5px;
+.description {
   font-size: 12px;
+  color: #909399;
+  line-height: 1.3;
+  /* Опционально: ограничить высоту и добавить скролл */
+  /* max-height: 3em; */
+  /* overflow-y: auto; */
+}
+
+/* Колонка QR */
+.col-qr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Колонка управления */
+.col-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* Общий класс для стилизации квадратных кнопок */
+.square-button-style {
+  width: 20px !important;
+  height: 20px !important;
+  padding: 0 !important;
+  margin-left: 0 !important;
+  border-radius: 4px !important;
 }
 </style>

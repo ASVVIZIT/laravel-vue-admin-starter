@@ -474,7 +474,9 @@ Route::get('social-media-links', [SocialMediaLinkController::class, 'index']);
 
 // Защищенные маршруты для управления
 Route::middleware('auth:sanctum')->group(function () {
-    Route::apiResource('social-media-links', SocialMediaLinkController::class)->except('index');
+    Route::post('social-media-links', [SocialMediaLinkController::class, 'store']);
+    Route::put('social-media-links/{id}', [SocialMediaLinkController::class, 'update']);
+    Route::delete('social-media-links/{id}', [SocialMediaLinkController::class, 'destroy']);
     Route::post('social-media-links/reorder', [SocialMediaLinkController::class, 'reorder']);
 });
 

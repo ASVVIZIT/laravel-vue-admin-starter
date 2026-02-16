@@ -13,57 +13,73 @@ class SocialMediaLinksSeeder extends Seeder
 {
     public function run(): void
     {
-
+//2gis
         $links = [
             [
-                'name' => 'Facebook',
-                'url' => 'https://www.facebook.com',
-                'icon' => 'fab fa-facebook',
-            ],
-            [
-                'name' => 'Instagram',
-                'url' => 'https://www.instagram.com',
-                'icon' => 'fab fa-instagram',
+                'name' => '2gis',
+                'url' => 'https://2gis.ru',
+                'icon' => 'fab fa-2gis',
+                'description' => '',
             ],
             [
                 'name' => 'VK',
                 'url' => 'https://vk.com',
                 'icon' => 'fab fa-vk',
+                'description' => '',
             ],
             [
                 'name' => 'Telegram',
                 'url' => 'https://t.me',
                 'icon' => 'fab fa-telegram',
-            ],
-            [
-                'name' => 'YouTube',
-                'url' => 'https://www.youtube.com',
-                'icon' => 'fab fa-youtube',
-            ],
-            [
-                'name' => 'TikTok',
-                'url' => 'https://www.tiktok.com',
-                'icon' => 'fab fa-tiktok',
-            ],
-            [
-                'name' => 'Twitter',
-                'url' => 'https://twitter.com',
-                'icon' => 'fab fa-twitter',
-            ],
-            [
-                'name' => 'Pinterest',
-                'url' => 'https://www.pinterest.com',
-                'icon' => 'fab fa-pinterest',
+                'description' => '',
             ],
             [
                 'name' => 'WhatsApp',
                 'url' => 'https://wa.me',
                 'icon' => 'fab fa-whatsapp',
+                'description' => '',
+            ],
+            [
+                'name' => 'YouTube',
+                'url' => 'https://www.youtube.com',
+                'icon' => 'fab fa-youtube',
+                'description' => '',
+            ],
+            [
+                'name' => 'TikTok',
+                'url' => 'https://www.tiktok.com',
+                'icon' => 'fab fa-tiktok',
+                'description' => '',
+            ],
+            [
+                'name' => 'Twitter',
+                'url' => 'https://twitter.com',
+                'icon' => 'fab fa-twitter',
+                'description' => '',
+            ],
+            [
+                'name' => 'Pinterest',
+                'url' => 'https://www.pinterest.com',
+                'icon' => 'fab fa-pinterest',
+                'description' => '',
+            ],
+            [
+                'name' => 'Facebook',
+                'url' => 'https://www.facebook.com',
+                'icon' => 'fab fa-facebook',
+                'description' => '',
+            ],
+            [
+                'name' => 'Instagram',
+                'url' => 'https://www.instagram.com',
+                'icon' => 'fab fa-instagram',
+                'description' => '',
             ],
             [
                 'name' => 'LinkedIn',
                 'url' => 'https://www.linkedin.com',
                 'icon' => 'fab fa-linkedin',
+                'description' => '',
             ],
         ];
 

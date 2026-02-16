@@ -16,7 +16,17 @@
       </el-form-item>
 
       <el-form-item label="URL" prop="url">
-        <el-input v-model="form.url" placeholder="https://example.com" />
+        <el-input v-model="form.url" placeholder="https://example.com/path?query=value" />
+      </el-form-item>
+
+      <!-- Новое поле Описание -->
+      <el-form-item label="Описание" prop="description">
+        <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="3"
+            placeholder="Краткое описание назначения ссылки"
+        />
       </el-form-item>
 
       <el-form-item label="Иконка" prop="icon">
@@ -30,12 +40,11 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="Порядок" prop="order">
+      <el-form-item label="Порядок" prop="order_column">
         <el-input-number
-            v-model="form.order"
+            v-model="form.order_column"
             :min="0"
             :max="maxOrder"
-            @change="updateOrder"
         />
       </el-form-item>
     </el-form>
@@ -68,8 +77,9 @@ const visible = ref(false);
 const form = ref({
   name: '',
   url: '',
+  description: '', // Добавлено
   icon: 'fab fa-instagram',
-  order: 0
+  order_column: 0
 });
 const formRef = ref(null);
 
@@ -86,10 +96,10 @@ const availableIcons = ref([
   'fab fa-linkedin'
 ]);
 
+// Функция проверки URL (используем ту же, что и раньше)
 const isValidUrl = (url) => {
   if (!url || !url.trim()) return false;
 
-  // Добавляем протокол, если его нет
   let normalizedUrl = url.trim();
   if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
     normalizedUrl = 'https://' + normalizedUrl;
@@ -103,6 +113,25 @@ const isValidUrl = (url) => {
   }
 };
 
+const normalizeUrl = (url) => {
+  if (!url || !url.trim()) return '';
+
+  url = url.trim();
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    parsed.hostname = parsed.hostname.toLowerCase();
+    return parsed.toString();
+  } catch (e) {
+    return `https://${url.replace(/[^a-z0-9.-]/gi, '').toLowerCase()}`;
+  }
+};
+
+// Обновляем правила валидации
 const rules = {
   name: [
     { required: true, message: 'Введите название', trigger: 'blur' },
@@ -114,17 +143,18 @@ const rules = {
       validator: (rule, value, callback) => {
         if (!value || !value.trim()) {
           callback(new Error('URL не может быть пустым'));
+        } else if (isValidUrl(value)) {
+          callback();
         } else {
-          // Проверяем валидность URL (с автоматическим добавлением протокола)
-          if (isValidUrl(value)) {
-            callback();
-          } else {
-            callback(new Error('Неверный URL'));
-          }
+          callback(new Error('Неверный URL'));
         }
       },
       trigger: 'blur'
     }
+  ],
+  // Новое правило для description
+  description: [
+    { max: 500, message: 'Максимум 500 символов', trigger: 'blur' }
   ],
   icon: [
     { required: true, message: 'Выберите иконку', trigger: 'change' }
@@ -135,46 +165,40 @@ const maxOrder = computed(() => {
   return props.links.length ? props.links.length - 1 : 0;
 });
 
-// Правильное наблюдение за изменением props.link
+// Обновляем watch для инициализации формы с учётом description
 watch(() => props.link, (newLink) => {
-  if (newLink && newLink !== null) {
-    // Создаем копию объекта, чтобы избежать мутации props
+  if (newLink && Object.keys(newLink).length > 0) {
     form.value = {
       id: newLink.id || null,
       name: newLink.name || '',
       url: newLink.url || '',
+      description: newLink.description || '', // Добавлено
       icon: newLink.icon || 'fab fa-instagram',
-      order: newLink.order !== undefined ? newLink.order : 0
+      order_column: newLink.order_column !== undefined ? newLink.order_column : 0
     };
     visible.value = true;
   } else {
-    // Сброс формы при пустом значении
     form.value = {
       name: '',
       url: '',
+      description: '', // Сброс поля при открытии новой формы
       icon: 'fab fa-instagram',
-      order: 0
+      order_column: 0
     };
   }
-}, { immediate: true });
+}, { deep: true, immediate: true });
 
 const onClose = () => {
   visible.value = false;
-  // Сброс формы при закрытии
+  // Сбрасываем форму при закрытии
   form.value = {
     name: '',
     url: '',
+    description: '', // Добавлено
     icon: 'fab fa-instagram',
-    order: 0
+    order_column: 0
   };
   emits('close');
-};
-
-const updateOrder = (newOrder) => {
-  // Проверяем, не превышает ли порядок количество элементов
-  if (newOrder > maxOrder.value) {
-    form.value.order = maxOrder.value;
-  }
 };
 
 const submitForm = async () => {
@@ -186,8 +210,6 @@ const submitForm = async () => {
   if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
     normalizedUrl = 'https://' + normalizedUrl;
   }
-
-  // Обновляем URL в форме
   form.value.url = normalizedUrl;
 
   emits('saved', { ...form.value });

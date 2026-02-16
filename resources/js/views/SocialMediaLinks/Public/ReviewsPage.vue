@@ -1,155 +1,99 @@
 <template>
-  <div class="qr-container">
-    <div v-if="!normalizedUrl || !normalizedUrl.trim()" class="no-url-message">
-      <span>URL не указан</span>
+  <div class="reviews-page">
+    <h1>Сканируйте QR-код, чтобы получить 10% скидку!</h1>
+
+    <div v-if="loading">
+      <div class="loading-message">Загрузка данных...</div>
     </div>
-    <img v-else :src="qrUrl" alt="QR-код" class="qr-image" />
-    <div class="qr-actions" v-if="normalizedUrl && normalizedUrl.trim()">
-      <el-button type="primary" size="small" @click="downloadQr">Скачать QR</el-button>
-      <el-button size="small" @click="regenerateQr">Сгенерировать принудительно</el-button>
+
+    <div v-else-if="error">
+      <div class="error-message">Ошибка: {{ error }}</div>
     </div>
-    <div v-if="regenerationMessage" class="regeneration-message">{{ regenerationMessage }}</div>
+
+    <div v-else-if="sortedLinks.length === 0">
+      <div class="empty-message">Нет доступных соцсетей</div>
+    </div>
+
+    <div v-else class="review-cards-grid">
+      <review-card
+          v-for="link in sortedLinks"
+          :key="link.id"
+          :icon="link.icon"
+          :name="link.name"
+          :url="link.url"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import QRCode from 'qrcode';
-import { ElMessage } from 'element-plus';
+import { useSocialMediaLinksStore } from '@/components/SocialMediaLinks/store/socialMediaLinks';
+import ReviewCard from '@/components/SocialMediaLinks/components/Public/ReviewCard.vue';
 
-const props = defineProps({
-  url: {
-    type: String,
-    required: true
-  },
-  name: {
-    type: String,
-    required: true
-  },
-  size: {
-    type: Number,
-    default: 150
+const store = useSocialMediaLinksStore();
+const loading = ref(true);
+const error = ref(null);
+
+const sortedLinks = computed(() => store.sortedLinks);
+
+onMounted(async () => {
+  try {
+    await store.fetchLinks();
+  } catch (err) {
+    error.value = err.message;
+  } finally {
+    loading.value = false;
   }
 });
-
-const qrUrl = ref('');
-const regenerationMessage = ref('');
-const normalizedUrl = ref('');
-
-const normalizeUrl = (url) => {
-  if (!url) return '';
-
-  url = url.trim();
-
-  // Добавляем протокол, если его нет
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-  }
-
-  try {
-    // Парсим URL
-    const parsed = new URL(url);
-
-    // Приводим домен к нижнему регистру
-    parsed.hostname = parsed.hostname.toLowerCase();
-
-    // Возвращаем нормализованный URL
-    return parsed.toString();
-  } catch (e) {
-    // Если не удалось распарсить, возвращаем базовый URL с именем
-    return `https://${url.replace(/[^a-z0-9]/gi, '').toLowerCase()}`;
-  }
-};
-
-const generateQr = async () => {
-  normalizedUrl.value = normalizeUrl(props.url);
-
-  // Проверяем, что URL не пустой
-  if (!normalizedUrl.value || !normalizedUrl.value.trim()) {
-    qrUrl.value = '';
-    return;
-  }
-
-  try {
-    qrUrl.value = await QRCode.toDataURL(normalizedUrl.value, {
-      width: props.size,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
-    });
-  } catch (e) {
-    console.error('Ошибка генерации QR-кода:', e);
-    qrUrl.value = '';
-    ElMessage.error('Ошибка генерации QR-кода');
-  }
-};
-
-onMounted(() => {
-  generateQr();
-});
-
-const downloadQr = () => {
-  if (!qrUrl.value) return;
-
-  const link = document.createElement('a');
-  link.href = qrUrl.value;
-  link.download = `${props.name}-qr.png`;
-  link.click();
-};
-
-const regenerateQr = async () => {
-  await generateQr();
-  if (qrUrl.value) {
-    regenerationMessage.value = 'QR-код успешно перегенерирован';
-
-    // Очищаем сообщение через 3 секунды
-    setTimeout(() => {
-      regenerationMessage.value = '';
-    }, 3000);
-  }
-};
 </script>
 
 <style scoped>
-.qr-container {
+.reviews-page {
   text-align: center;
-  margin: 5px 0;
-  position: relative;
+  padding: 40px 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.qr-image {
-  max-width: 100%;
-  height: auto;
-  margin-bottom: 5px;
+h1 {
+  margin-bottom: 30px;
+  font-size: 28px;
+  color: #333;
+  font-weight: 600;
 }
 
-.qr-actions {
+.loading-message {
+  padding: 30px;
   display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.regeneration-message {
-  position: absolute;
-  top: -20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #4caf50;
-  color: white;
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  z-index: 10;
-}
-
-.no-url-message {
-  padding: 10px;
-  color: #999;
-  font-size: 14px;
-  min-height: 150px;
-  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.empty-message {
+  padding: 30px;
+  color: #666;
+  font-size: 16px;
+}
+
+.error-message {
+  padding: 30px;
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  max-width: 500px;
+  margin: 0 auto;
+  color: #e74c3c;
+}
+
+.review-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px 0;
 }
 </style>

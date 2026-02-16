@@ -1,6 +1,6 @@
 <template>
   <div class="social-media-links-admin">
-    <h1>Управление соцсетями для отзывов</h1>
+    <h3>Управление соцсетями для отзывов</h3>
     <social-media-list />
   </div>
 </template>
@@ -11,6 +11,10 @@ import SocialMediaList from '@/components/SocialMediaLinks/components/Admin/Soci
 
 <style scoped>
 .social-media-links-admin {
-  padding: 20px;
+  padding: 5px;
+}
+
+.social-media-links-admin h3 {
+  margin: 0 0 10px 0;
 }
 </style>
