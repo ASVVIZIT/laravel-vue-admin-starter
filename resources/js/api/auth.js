@@ -1,3 +1,4 @@
+// resources/js/api/auth.js
 import request from '@/utils/request';
 import Cookies from 'js-cookie';
 

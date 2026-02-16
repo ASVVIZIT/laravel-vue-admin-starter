@@ -111,6 +111,10 @@ import SocialMediaForm from './SocialMediaForm.vue';
 import QrCodeGenerator from './QrCodeGenerator.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit as EditIcon, Delete as DeleteIcon, Operation as DragHandleIcon, VideoCamera as VideoCameraIcon, ChatLineSquare as ChatLineSquareIcon, Position as PositionIcon, Guide as GuideIcon, Picture as PictureIcon, Connection as ConnectionIcon, Link as LinkIcon, Monitor as MonitorIcon } from '@element-plus/icons-vue';
+import { useFenixIconsStore } from '@/components/FenixIconVue/store/fenixIconsStore';
+
+// Инициализируем стор
+const fenixIconStore = useFenixIconsStore();
 
 const store = useSocialMediaLinksStore();
 const showForm = ref(false);
@@ -121,25 +125,31 @@ const localLinks = ref([]);
 
 const sortedLinks = computed(() => store.sortedLinks);
 
-// --- Карта соответствия иконок ---
+// --- Карта соответствия иконок (теперь использует стор) ---
 const iconMap = {
-  'fab fa-2gis': GuideIcon,
-  'fab fa-vk': GuideIcon,
-  'fab fa-telegram': ChatLineSquareIcon,
-  'fab fa-whatsapp': ChatLineSquareIcon,
-  'fab fa-youtube': VideoCameraIcon,
-  'fab fa-tiktok': MonitorIcon,
-  'fab fa-twitter': PositionIcon,
-  'fab fa-pinterest': PictureIcon,
-  'fab fa-instagram': PictureIcon,
-  'fab fa-facebook': ConnectionIcon,
-  'fab fa-linkedin': LinkIcon,
+  'fab fa-2gis': fenixIconStore.getIconByName('Fenix2gis'), // Используем новую иконку!
+  'fab fa-vk': fenixIconStore.getIconByName('FenixVk') || GuideIcon, // Замените FenixVk на реальное имя
+  'fab fa-telegram': fenixIconStore.getIconByName('FenixTelegram') || ChatLineSquareIcon, // Замените FenixTelegram на реальное имя
+  'fab fa-whatsapp': fenixIconStore.getIconByName('FenixWhatsApp') || ChatLineSquareIcon, // Замените FenixWhatsApp на реальное имя
+  'fab fa-instagram': fenixIconStore.getIconByName('FenixInstagram') || LinkIcon, // Замените FenixInstagram на реальное имя
+  'fab fa-facebook': fenixIconStore.getIconByName('FenixFacebook') || ConnectionIcon, // Замените FenixFacebook на реальное имя
+  'fab fa-youtube': fenixIconStore.getIconByName('FenixYoutube') || VideoCameraIcon, // Замените FenixYoutube на реальное имя
+  'fab fa-tiktok': fenixIconStore.getIconByName('FenixTikTok') || MonitorIcon, // Замените FenixTikTok на реальное имя
+  'fab fa-twitter': fenixIconStore.getIconByName('FenixTwitter') || PositionIcon, // Замените FenixTwitter на реальное имя
+  'fab fa-pinterest': fenixIconStore.getIconByName('FenixPinterest') || PictureIcon, // Замените FenixPinterest на реальное имя
+  'fab fa-linkedin': fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon, // Замените FenixLinkedIn на реальное имя
   'default': LinkIcon
 };
 
 const getIconComponent = (iconString) => {
   const mappedComponent = iconMap[iconString];
-  return mappedComponent || iconMap.default;
+  // Проверяем, что компонент найден в сторе или есть резервная иконка Element Plus
+  if (mappedComponent) {
+    return mappedComponent;
+  } else {
+    console.warn(`Иконка для '${iconString}' не найдена, используется резервная.`); // Логирование
+    return iconMap.default; // Используем резервную иконку
+  }
 };
 // --- /Карта соответствия иконок ---
 
@@ -271,8 +281,8 @@ const confirmDelete = async () => {
   font-size: 18px;
   color: #409EFF;
   flex-shrink: 0;
-  width: 25px;
-  height: 25px;
+  width: 50px;
+  height: 30px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -364,8 +374,8 @@ const confirmDelete = async () => {
 
 /* Общий класс для стилизации квадратных кнопок */
 .square-button-style {
-  width: 20px !important;
-  height: 20px !important;
+  width: 24px !important;
+  height: 24px !important;
   padding: 0 !important;
   margin-left: 0 !important;
   border-radius: 4px !important;

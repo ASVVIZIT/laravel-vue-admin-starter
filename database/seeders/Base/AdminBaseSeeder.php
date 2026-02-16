@@ -3,10 +3,7 @@
 namespace Database\Seeders\Base;
 
 use Illuminate\Database\Seeder;
-use App\Models\User;
-use Spatie\Permission\Models\Role;
-use Illuminate\Support\Facades\Hash;
-use Carbon\Carbon;
+use Database\Seeders\SocialMediaLinks\SocialMediaLinksSeeder;
 
 class AdminBaseSeeder extends Seeder
 {

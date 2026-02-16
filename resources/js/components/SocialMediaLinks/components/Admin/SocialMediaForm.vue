@@ -84,15 +84,16 @@ const form = ref({
 const formRef = ref(null);
 
 const availableIcons = ref([
+  'fab fa-2gis',
+  'fab fa-vk',
+  'fab fa-telegram',
+  'fab fa-whatsapp',
+  'fab fa-youtube',
   'fab fa-facebook',
   'fab fa-twitter',
   'fab fa-instagram',
-  'fab fa-vk',
-  'fab fa-telegram',
-  'fab fa-youtube',
   'fab fa-tiktok',
   'fab fa-pinterest',
-  'fab fa-whatsapp',
   'fab fa-linkedin'
 ]);
 

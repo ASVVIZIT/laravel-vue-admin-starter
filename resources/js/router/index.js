@@ -94,6 +94,7 @@ export const constantRoutes = [
       return '/dashboard';
     },
     hidden: true,
+    requiresAuth: true
   },
   {
     path: '/',
@@ -109,7 +110,8 @@ export const constantRoutes = [
           bootstrapIcon: 'house-fill',
           showInGuide: true,
           affix: true,
-          noCache: false
+          noCache: false,
+          requiresAuth: true
         }
       }
     ]
@@ -166,26 +168,29 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 }),
 });
 
+// ...
 router.beforeEach(async (to, from, next) => {
-  // Создаем экземпляр хранилища внутри хука
+  console.log('[Router Guard] Checking route:', to.path, 'meta:', to.meta); // Добавьте это
   const authStore = useAuthStore();
 
-  // Установка типа логина
   if (to.meta.loginType) {
     authStore.setLoginType(to.meta.loginType);
     console.log(`[Router] Setting login type to ${to.meta.loginType}`);
   }
 
-  // Проверка тестового окружения
   if (to.meta.testOnly && import.meta.env.PROD) {
     return next('/login');
   }
 
   // Проверка аутентификации
-  if (to.meta.requiresAuth) {
+  console.log('[Router Guard] requiresAuth is:', to.meta.requiresAuth); // Добавьте это
+  if (to.meta.requiresAuth) { // <-- Это условие
+    console.log('[Router Guard] Route requires auth, checking...');
     const isAuthenticated = await authStore.checkAuth();
+    console.log('[Router Guard] User authenticated?', isAuthenticated); // Добавьте это
 
     if (!isAuthenticated) {
+      console.log('[Router Guard] Not authenticated, redirecting to login.');
       const loginPath = authStore.loginType === 'admin'
           ? '/admin/login'
           : '/login';
@@ -196,14 +201,16 @@ router.beforeEach(async (to, from, next) => {
       });
     }
 
-    // Проверка роли
     if (to.meta.role && !authStore.user?.roles?.includes(to.meta.role)) {
       return next('/401');
     }
+  } else {
+    console.log('[Router Guard] Route does not require auth, proceeding.'); // Добавьте это
   }
 
   next();
 });
+// ...
 
 export function resetRouter() {
   const asyncRouterNameArr = asyncRoutes.map((mItem) => mItem.name);

@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
+use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
+
 /*
 |--------------------------------------------------------------------------
 | Web Routes
@@ -24,6 +26,11 @@ Route::get('/{any}', function () {
 Route::group(['middleware' => 'web'], function () {
     Route::get('', 'HomeController@index')->where('any', '.*');
 });
+
+
+
+// Публичный доступ для получения списка ссылок
+Route::get('social-media-links', [SocialMediaLinkController::class, 'index']);
 
 /*Route::get('/debug-broadcast', function() {
     return Broadcast::auth(request());

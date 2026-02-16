@@ -1,11 +1,15 @@
 <template>
-  <div class="qr-wrapper">
-    <div v-if="!normalizedUrl || !normalizedUrl.trim()" class="no-url-message">
+  <div class="qr-wrapper fenix-qr">
+    <!-- Добавим проверку и вывод сообщения, если URL пуст -->
+    <div v-if="!props.url || !props.url.trim()" class="no-url-message fenix-qr__no-url">
       <span>URL не указан</span>
     </div>
-    <div v-else class="qr-container">
-      <!-- Колонка с кнопками слева -->
-      <div class="qr-buttons-column">
+    <div v-else-if="!normalizedUrl || !normalizedUrl.trim()" class="no-url-message fenix-qr__no-url">
+      <span>URL недействителен</span>
+    </div>
+    <div v-else class="qr-container fenix-qr__container">
+      <!-- Колонка (в вертикальном контейнере) с кнопками над QR-кодом -->
+      <div class="qr-buttons-row fenix-qr__buttons-row">
         <el-button
             size="small"
             type="success"
@@ -13,7 +17,7 @@
             circle
             @click.stop="downloadQr"
             :icon="DownloadIcon"
-            class="square-button"
+            class="square-button fenix-qr__btn"
         >
         </el-button>
         <el-button
@@ -23,7 +27,7 @@
             circle
             @click.stop="regenerateQr"
             :icon="RefreshIcon"
-            class="square-button"
+            class="square-button fenix-qr__btn"
         >
         </el-button>
         <el-button
@@ -33,7 +37,7 @@
             circle
             @click.stop="showLargeQrModal = true"
             :icon="ZoomInIcon"
-            class="square-button"
+            class="square-button fenix-qr__btn"
         >
         </el-button>
         <!-- Кнопка "Открыть в новом окне" -->
@@ -44,7 +48,7 @@
             circle
             @click.stop="openLargeQrInNewWindow"
             :icon="LinkIcon"
-            class="square-button"
+            class="square-button fenix-qr__btn"
         >
         </el-button>
         <!-- Кнопка "Печать" -->
@@ -55,12 +59,12 @@
             circle
             @click.stop="printLargeQr"
             :icon="PrinterIcon"
-            class="square-button"
+            class="square-button fenix-qr__btn"
         >
         </el-button>
       </div>
-      <!-- Колонка с QR-кодом справа -->
-      <img :src="qrUrl" alt="QR-код" class="qr-image" />
+      <!-- QR-код расположен ниже блока кнопок -->
+      <img :src="qrUrl" alt="QR-код" class="qr-image fenix-qr__image" />
     </div>
 
     <el-dialog
@@ -113,8 +117,8 @@ const showLargeQrModal = ref(false);
 
 const normalizeUrl = (url) => {
   if (!url) return '';
-  url = url.trim();
-  if (!url) return '';
+  url = url.trim(); // Удаляем пробелы в начале и конце
+  if (!url) return ''; // Если после удаления пробелов строка пуста
   if (!url.startsWith('http://') && !url.startsWith('https://')) {
     url = 'https://' + url;
   }
@@ -123,6 +127,7 @@ const normalizeUrl = (url) => {
     parsed.hostname = parsed.hostname.toLowerCase();
     return parsed.toString();
   } catch (e) {
+    console.error('Error normalizing URL:', e); // Логируем ошибку нормализации
     return '';
   }
 };
@@ -130,6 +135,7 @@ const normalizeUrl = (url) => {
 const generateQr = async (targetSize = props.size) => {
   const normUrl = normalizeUrl(props.url);
   if (!normUrl || !normUrl.trim()) {
+    console.warn('Cannot generate QR: normalized URL is empty or invalid for', props.url); // Логируем проблему
     return '';
   }
   try {
@@ -147,8 +153,10 @@ const generateQr = async (targetSize = props.size) => {
 
 const generateQrNormal = async () => {
   normalizedUrl.value = normalizeUrl(props.url);
+  console.log('QrCodeGenerator normalizedUrl:', normalizedUrl.value); // Логируем нормализованный URL
   if (!normalizedUrl.value || !normalizedUrl.value.trim()) {
     qrUrl.value = '';
+    console.warn('QrCodeGenerator: Setting qrUrl to empty string due to invalid normalizedUrl.');
     return;
   }
   qrUrl.value = await generateQr(props.size);
@@ -162,6 +170,7 @@ const generateLargeQr = async () => {
 };
 
 onMounted(async () => {
+  console.log('QrCodeGenerator mounted, props.url:', props.url); // Логируем props.url при монтировании
   await generateQrNormal();
   await generateLargeQr();
 });
@@ -198,7 +207,7 @@ const openLargeQrInNewWindow = () => {
       <html>
         <head><title>Увеличенный QR-код для ${props.name}</title></head>
         <body style="display:flex; justify-content:center; align-items:center; margin:0; background:#fff;">
-          <img src="${largeQrUrl.value}" alt="Увеличенный QR-код" style="max-width: 100vw; max-height: 100vh;" />
+          <img src="${largeQrUrl.value}" alt="Увеличенный QR-код" style="max-width: 100vw; max-height: 100vh; border: 2px solid #d5cece; border-radius: 10px;" />
         </body>
       </html>
     `);
@@ -241,13 +250,18 @@ const printLargeQr = () => {
               text-align: center;
               margin-bottom: 20px;
             }
+            .print-logo {
+              width: 60px;
+              height: 60px;
+              margin-bottom: 10px;
+            }
             .print-title {
-              font-size: 20px;
+              font-size: 30px;
               font-weight: bold;
               margin: 0;
             }
             .print-domain {
-              font-size: 18px;
+              font-size: 30px;
               color: #666;
               margin: 5px 0 0 0;
             }
@@ -255,6 +269,9 @@ const printLargeQr = () => {
               display: flex;
               justify-content: center;
               align-items: center;
+              border: 2px solid #d5cece;
+              border-radius: 10px;
+              padding: 10px;
             }
             .print-qr-image {
               width: ${LARGE_QR_SIZE}px;
@@ -266,6 +283,7 @@ const printLargeQr = () => {
         </head>
         <body>
           <div class="print-header">
+            <img src="/images/logo-icon.png" alt="Логотип" class="print-logo" />
             <div class="print-title">${props.name}</div>
             <div class="print-domain">${domain}</div>
           </div>
@@ -294,46 +312,53 @@ const regenerateQr = async () => {
 </script>
 
 <style scoped>
-/* Основной контейнер */
-.qr-wrapper {
-  /* display: flex; убрано, так как теперь layout внутри .qr-container */
-  /* align-items и gap также убраны */
+/* Повышаем специфичность стилей */
+.qr-wrapper.fenix-qr {
+  display: flex; /* Flexbox для вертикального размещения блока кнопок и QR-кода */
+  flex-direction: column; /* Основная ось - вертикальная */
+  align-items: center; /* Выравнивание дочерних элементов по центру по поперечной оси (горизонтали) */
+  gap: 5px; /* Отступ между блоком кнопок и QR-кодом */
 }
 
-/* Контейнер для колонок кнопок и QR-кода */
-.qr-container {
-  display: flex;
-  align-items: row; /* Выравнивание по верхнему краю */
-  gap: 5px; /* Отступ между колонками */
+/* Контейнер для блока кнопок и QR-кода */
+.qr-container.fenix-qr__container {
+  display: flex !important; /* !important для повышения приоритета */
+  flex-direction: column !important; /* !important: Теперь основная ось вертикальная */
+  align-items: center !important; /* !important: Центрируем дочерние элементы (кнопки, QR) по горизонтали */
+  gap: 5px !important; /* !important для повышения приоритета */
+  flex-wrap: nowrap; /* Запрещаем перенос */
 }
 
-/* Колонка с кнопками */
-.qr-buttons-column {
-  display: flex;
-  flex-direction: row; /* Кнопки в столбик */
-  gap: 5px; /* Отступ между кнопками */
-  /* Узкая колонка, размер определяется содержимым (ширина кнопок) */
-  flex-shrink: 0; /* Не сжимаем колонку кнопок */
-  align-self: stretch; /* Растягиваем на высоту контента .qr-container, если нужно */
+/* Новый класс для строки (ряда) кнопок */
+.qr-buttons-row.fenix-qr__buttons-row {
+  display: flex !important; /* !important для повышения приоритета */
+  flex-direction: row !important; /* !important: Кнопки в ряд */
+  gap: 5px !important; /* !important: Отступ между кнопками */
+  /* Убираем flex-shrink: 0 и align-self: stretch, так как теперь это ряд внутри колонки */
+  /* align-self: flex-start; - если хотим прижать кнопки к верху, но обычно не нужно при flex-direction: column у родителя */
+  flex-wrap: nowrap; /* Запрещаем перенос кнопок в ряду */
 }
 
 /* QR-код */
-.qr-image {
+.qr-image.fenix-qr__image {
   width: v-bind('props.size + "px"'); /* Используем динамический размер */
   height: v-bind('props.size + "px"');
-  flex-shrink: 0; /* Не сжимаем изображение */
+  /* flex-shrink: 0 !important; - можно оставить, если не хотим, чтобы изображение сжималось */
+  border: 2px solid #d5cece;
+  border-radius: 10px;
+  /* align-self: center; - необязательно, так как родитель qr-container выравнивает по центру */
 }
 
 /* Стили для квадратных кнопок */
-.square-button {
-  width: 32px !important;
-  height: 32px !important;
+.square-button.fenix-qr__btn {
+  width: 24px !important;
+  height: 24px !important;
   padding: 0 !important;
   margin-left: 0 !important;
   border-radius: 4px !important;
 }
 
-.no-url-message {
+.no-url-message.fenix-qr__no-url {
   padding: 10px;
   color: #999;
   font-size: 12px;
@@ -354,6 +379,8 @@ const regenerateQr = async () => {
   height: v-bind('LARGE_QR_SIZE + "px"');
   max-width: 100%;
   height: auto;
+  border: 2px solid #d5cece;
+  border-radius: 10px;
 }
 
 .loading-large-qr {

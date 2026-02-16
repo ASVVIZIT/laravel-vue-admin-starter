@@ -4,7 +4,7 @@ export default [
         component: () => import('@/layout/Layout.vue'),
         meta: {
             title: 'SmartLight',
-            icon: 'Opportunity', // lightning
+            elSvgIcon: 'lightning', // lightning
             permission: 'view_smart_light'
         },
         children: [
