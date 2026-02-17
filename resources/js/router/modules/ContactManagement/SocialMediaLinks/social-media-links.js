@@ -1,24 +1,21 @@
-// resources/js/router/modules/SocialMediaLinks/social-media-links.js
+// resources/js/router/modules/ContactManagement/SocialMediaLinks/social-media-links.js
 export default [
     {
-        path: '/social-admin',
-        name: 'SocialAdmin',
+        // Этот маршрут станет ПОДМЕНЮ "Соцсети для отзывов" внутри "Управление Контактами"
+        path: 'social-media-links-parent', // Относительный путь от /contact-management
+        name: 'SocialMediaLinksParent',
         alwaysShow: true,
-        showInMenu: true,
-        sidebar: true,
-        hidden: false,
-        component: () => import('@/layout/Layout.vue'),
         meta: {
             title: 'Соцсети для отзывов',
             description: 'Управление соцсети для отзывов',
-            permissions: ['manage_social_media_links'],
             elSvgIcon: 'Connection',
+            permissions: ['manage_social_media_links'],
         },
         children: [
             {
-                path: 'social-media-links',
+                path: 'admin',
                 name: 'SocialMediaLinksAdmin',
-                component: () => import('@/views/SocialMediaLinks/Admin/SocialMediaLinksAdmin.vue'),
+                component: () => import('@/views/ContactManagement/SocialMediaLinks/Admin/SocialMediaLinksAdmin.vue'),
                 meta: {
                     title: 'Управление qr-code (ссылки)',
                     description: 'Управление соцсети для отзывов',
@@ -29,20 +26,21 @@ export default [
             {
                 path: 'reviews',
                 name: 'ReviewsPageAdmin',
-                component: () => import('@/views/SocialMediaLinks/Public/ReviewsPage.vue'),
+                component: () => import('@/views/ContactManagement/SocialMediaLinks/Public/ReviewsPage.vue'),
                 hidden: false,
                 requiresAuth: true,
                 meta: {
                     title: 'Отзывы (Админ)',
-                    elSvgIcon: 'Comment'
+                    elSvgIcon: 'Comment' // Иконка для конкретного пункта
                 }
             }
         ]
     },
+    // Этот маршрут - публичный, обычно не отображается в боковом меню
     {
         path: '/reviews',
         name: 'ReviewsPagePublic',
-        component: () => import('@/views/SocialMediaLinks/Public/ReviewsPage.vue'),
+        component: () => import('@/views/ContactManagement/SocialMediaLinks/Public/ReviewsPage.vue'),
         hidden: true,
         requiresAuth: false,
         meta: {

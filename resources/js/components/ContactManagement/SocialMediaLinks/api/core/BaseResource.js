@@ -1,4 +1,4 @@
-import request from '@/utils/request.js'; // Импортируем глобальный axios-клиент
+import request from '@utils/request.js'; // Импортируем глобальный axios-клиент
 
 export class BaseResource {
     // Конструктор принимает базовый путь к API

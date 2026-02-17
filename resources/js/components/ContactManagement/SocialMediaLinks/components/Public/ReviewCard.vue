@@ -23,9 +23,9 @@ import {
   Monitor as MonitorIcon
 } from '@element-plus/icons-vue';
 // Импортируем компонент QR-кода
-import QrCodeGenerator from '@/components/SocialMediaLinks/components/Admin/QrCodeGenerator.vue';
+import QrCodeGenerator from '@components/ContactManagement/SocialMediaLinks/components/Admin/QrCodeGenerator.vue';
 // --- Импортируем стор FenixIcon ---
-import { useFenixIconsStore } from '@/components/FenixIconVue/store/fenixIconsStore';
+import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
 
 // --- Инициализируем стор FenixIcon ---
 const fenixIconStore = useFenixIconsStore();

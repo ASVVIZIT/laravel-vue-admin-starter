@@ -105,13 +105,13 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
-import { useSocialMediaLinksStore } from '@/components/SocialMediaLinks/store/socialMediaLinks';
+import { useSocialMediaLinksStore } from '@components/ContactManagement/SocialMediaLinks/store/socialMediaLinks.js';
 import { VueDraggableNext as Draggable } from 'vue-draggable-next';
 import SocialMediaForm from './SocialMediaForm.vue';
 import QrCodeGenerator from './QrCodeGenerator.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Edit as EditIcon, Delete as DeleteIcon, Operation as DragHandleIcon, VideoCamera as VideoCameraIcon, ChatLineSquare as ChatLineSquareIcon, Position as PositionIcon, Guide as GuideIcon, Picture as PictureIcon, Connection as ConnectionIcon, Link as LinkIcon, Monitor as MonitorIcon } from '@element-plus/icons-vue';
-import { useFenixIconsStore } from '@/components/FenixIconVue/store/fenixIconsStore';
+import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
 
 // Инициализируем стор
 const fenixIconStore = useFenixIconsStore();

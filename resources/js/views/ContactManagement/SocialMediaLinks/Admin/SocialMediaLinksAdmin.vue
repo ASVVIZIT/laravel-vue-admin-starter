@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import SocialMediaList from '@/components/SocialMediaLinks/components/Admin/SocialMediaList.vue';
+import SocialMediaList from '@components/ContactManagement/SocialMediaLinks/components/Admin/SocialMediaList.vue';
 </script>
 
 <style scoped>

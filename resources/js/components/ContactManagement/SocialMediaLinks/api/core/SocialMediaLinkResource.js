@@ -1,4 +1,4 @@
-import { BaseResource } from '@/components/SocialMediaLinks/api/core/BaseResource';
+import { BaseResource } from '@components/ContactManagement/SocialMediaLinks/api/core/BaseResource.js';
 
 export class SocialMediaLinkResource extends BaseResource {
     // Устанавливаем базовый путь для этого ресурса

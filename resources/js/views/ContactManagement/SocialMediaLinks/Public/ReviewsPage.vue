@@ -42,8 +42,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useSocialMediaLinksStore } from '@/components/SocialMediaLinks/store/socialMediaLinks';
-import ReviewCard from '@/components/SocialMediaLinks/components/Public/ReviewCard.vue';
+import { useSocialMediaLinksStore } from '@components/ContactManagement/SocialMediaLinks/store/socialMediaLinks.js';
+import ReviewCard from '@components/ContactManagement/SocialMediaLinks/components/Public/ReviewCard.vue';
 
 const store = useSocialMediaLinksStore();
 const loading = ref(true);

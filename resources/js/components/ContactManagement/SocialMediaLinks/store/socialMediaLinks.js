@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { SocialMediaLinkResource } from '@/components/SocialMediaLinks/api/core/SocialMediaLinkResource';
+import { SocialMediaLinkResource } from '@components/ContactManagement/SocialMediaLinks/api/core/SocialMediaLinkResource.js';
 
 // Определяем store для управления ссылками
 export const useSocialMediaLinksStore = defineStore('socialMediaLinks', {
