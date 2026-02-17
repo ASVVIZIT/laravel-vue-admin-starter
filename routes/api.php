@@ -480,6 +480,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('social-media-links/reorder', [SocialMediaLinkController::class, 'reorder']);
 });
 
+// Маршруты для системы CompanyContactChannels
+Route::apiResource('companies', \App\Http\Controllers\Api\Company\CompanyController::class);
+
+Route::prefix('companies/{company}')->group(function () {
+    Route::apiResource('contact-channels', \App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController::class);
+    Route::put('contact-channels/reorder', [\App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController::class, 'reorder'])->name('contact-channels.reorder');
+});
+
+
 
 // ===================================================
 // Регистрация middleware для роутов
