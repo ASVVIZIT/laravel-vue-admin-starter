@@ -1,3 +1,4 @@
+// resources/js/components/ContactManagement/SocialMediaLinks/store/socialMediaLinks.js
 import { defineStore } from 'pinia';
 import { SocialMediaLinkResource } from '@components/ContactManagement/SocialMediaLinks/api/core/SocialMediaLinkResource.js';
 

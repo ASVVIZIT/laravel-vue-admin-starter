@@ -1,3 +1,4 @@
+// resources/js/components/ContactManagement/SocialMediaLinks/api/core/SocialMediaLinkResource.js
 import { BaseResource } from '@components/ContactManagement/SocialMediaLinks/api/core/BaseResource.js';
 
 export class SocialMediaLinkResource extends BaseResource {

@@ -1,3 +1,4 @@
+// resources/js/components/ContactManagement/SocialMediaLinks/api/core/BaseResource.js
 import request from '@utils/request.js'; // Импортируем глобальный axios-клиент
 
 export class BaseResource {
