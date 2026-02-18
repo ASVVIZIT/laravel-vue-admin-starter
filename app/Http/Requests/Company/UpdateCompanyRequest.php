@@ -37,7 +37,11 @@ class UpdateCompanyRequest extends FormRequest
         if ($this->filled('address')) {
             $rules['address'] = 'string|max:500';
         }
-
+        if ($this->filled('settings')) {
+            $rules['settings'] = 'array';
+            $rules['settings.icon'] = 'nullable|string|max:255';
+            $rules['settings.color'] = 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/';
+        }
         return $rules;
     }
 
@@ -52,6 +56,9 @@ class UpdateCompanyRequest extends FormRequest
             'name' => 'Название',
             'description' => 'Описание',
             'address' => 'Адрес',
+            'settings' => 'Настройки',
+            'settings.icon' => 'Иконка',
+            'settings.color' => 'Цвет',
         ];
     }
 }

@@ -17,10 +17,17 @@ class CompanyController extends Controller
      *
      * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
-    public function index(): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
+        // Валидация и получение per_page из запроса
+        $perPage = $request->get('per_page', 15); // По умолчанию 15
+        $page = $request->get('page', 1); // По умолчанию 1
+
+        // Убедимся, что per_page в допустимом диапазоне, если нужно
+        $perPage = min(max((int)$perPage, 1), 100); // Пример: от 1 до 100
+
         // Загружаем компании с количеством каналов связи
-        $companies = Company::withCount('contactChannels')->paginate(10); // или all()
+        $companies = Company::withCount('contactChannels')->paginate($perPage, ['*'], 'page', $page);
         return CompanyResource::collection($companies);
     }
 

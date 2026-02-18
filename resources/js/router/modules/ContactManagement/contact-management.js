@@ -4,11 +4,11 @@ import Layout from '@/layout/Layout.vue';
 
 import SocialMediaLinksRoutes from './SocialMediaLinks/social-media-links.js';
 
-/*const CompanyContactChannelsRoutes = [
+const CompanyContactChannelsRoutes = [
     {
         path: 'companies',
         name: 'CompanyList',
-        component: () => import('@/views/ContactManagement/CompanyContactChannels/Admin/CompanyList.vue').catch(() => ({ default: () => import('@/views/error-page/404.vue') })),
+        component: () => import('@/views/ContactManagement/CompanyContactChannels/Admin/CompanyListAdmin.vue').catch(() => ({ default: () => import('@/views/error-page/404.vue') })),
         meta: {
             title: 'Компании',
             description: 'Список компаний',
@@ -16,7 +16,7 @@ import SocialMediaLinksRoutes from './SocialMediaLinks/social-media-links.js';
             // permissions: ['...'],
         }
     },
-    {
+    /*{
         path: 'companies/:id/channels',
         name: 'CompanyChannelsList',
         component: () => import('@/views/ContactManagement/CompanyContactChannels/Admin/CompanyChannelsList.vue').catch(() => ({ default: () => import('@/views/error-page/404.vue') })),
@@ -27,8 +27,8 @@ import SocialMediaLinksRoutes from './SocialMediaLinks/social-media-links.js';
             // permissions: ['...'],
         },
         props: true
-    },
-];*/
+    },*/
+];
 
 const contactManagementRoutes = {
     path: '/contact-management',
@@ -43,7 +43,7 @@ const contactManagementRoutes = {
         // permissions: ['...'],
     },
     children: [
-        // ...CompanyContactChannelsRoutes,
+        ...CompanyContactChannelsRoutes,
         ...SocialMediaLinksRoutes,
     ]
 };

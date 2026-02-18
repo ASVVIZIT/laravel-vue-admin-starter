@@ -24,6 +24,9 @@ return new class extends Migration
             // Адрес компании (строковое поле, может быть пустым)
             $table->string('address')->nullable();
 
+            // Настройки компаний
+            $table->json('settings')->nullable();
+
             // Столбцы для отметки времени создания и последнего обновления записи
             $table->timestamps();
         });

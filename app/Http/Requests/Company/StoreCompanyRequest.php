@@ -30,6 +30,9 @@ class StoreCompanyRequest extends FormRequest
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'address' => 'nullable|string|max:500',
+            'settings' => 'nullable|array',
+            'settings.icon' => 'nullable|string|max:255', // Пример: валидация конкретного ключа 'icon'
+            'settings.color' => 'nullable|string|regex:/^#[0-9A-Fa-f]{6}$/', // Пример: валидация цвета в формате #RRGGBB
         ];
     }
 
@@ -44,6 +47,9 @@ class StoreCompanyRequest extends FormRequest
             'name' => 'Название',
             'description' => 'Описание',
             'address' => 'Адрес',
+            'settings' => 'Настройки',
+            'settings.icon' => 'Иконка', // Локализация для ключа icon в settings
+            'settings.color' => 'Цвет',   // Локализация для ключа color в settings
         ];
     }
 }

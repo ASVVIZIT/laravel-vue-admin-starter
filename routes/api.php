@@ -39,8 +39,10 @@ use App\Http\Controllers\Api\SmartLight\CommandController;
 use App\Http\Controllers\API\SmartLight\DeviceSettingsController;
 use App\Http\Middleware\SmartLight\SmartLightDeviceAuth;
 
-
 use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
+
+use App\Http\Controllers\Api\Company\CompanyController;
+use App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController;
 
 // Импорты фасадов для отладочных маршрутов
 use Illuminate\Support\Facades\DB;
@@ -481,11 +483,11 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Маршруты для системы CompanyContactChannels
-Route::apiResource('companies', \App\Http\Controllers\Api\Company\CompanyController::class);
+Route::apiResource('companies', CompanyController::class);
 
 Route::prefix('companies/{company}')->group(function () {
-    Route::apiResource('contact-channels', \App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController::class);
-    Route::put('contact-channels/reorder', [\App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController::class, 'reorder'])->name('contact-channels.reorder');
+    Route::apiResource('contact-channels',ContactChannelController::class);
+    Route::put('contact-channels/reorder', [ContactChannelController::class, 'reorder'])->name('contact-channels.reorder');
 });
 
 

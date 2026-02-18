@@ -20,6 +20,8 @@ class CompanyResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'address' => $this->address,
+            // Добавляем settings Json
+            'settings' => $this->settings, // Это будет PHP-массив, Laravel автоматически преобразует в JSON,
             // Пример: передаём количество каналов связи (если использовался withCount)
             'contact_channels_count' => $this->when(isset($this->contact_channels_count), $this->contact_channels_count),
             // Передаём связанные каналы связи (если они были загружены, например, через load)

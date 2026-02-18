@@ -12,7 +12,11 @@ class Company extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name', 'description', 'address'
+        'name', 'description', 'address', 'settings'
+    ];
+
+    protected $casts = [
+        'settings' => 'array',
     ];
 
     public function contactChannels()
