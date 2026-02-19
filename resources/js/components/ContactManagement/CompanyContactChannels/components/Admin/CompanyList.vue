@@ -9,7 +9,7 @@
 
     <h3>Список Компаний</h3>
 
-    <div class="table-wrapper" :style="{ 'max-height': tableHeight }">
+    <div class="table-wrapper" :style="wrapperStyle">
       <el-table
           v-loading="companyStore.loading"
           :data="companyStore.companies"
@@ -166,11 +166,22 @@ const companyStore = useCompanyStore();
 
 // --- Пропсы ---
 const props = defineProps({
-  tableHeight: {
+  tableMaxHeight: {
+    type: String,
+    default: 'calc(100vh - 260px)'
+  },
+  tableMinHeight: {
     type: String,
     default: 'calc(100vh - 260px)'
   }
 });
+
+const wrapperStyle = computed(() => ({
+  'max-height': props.tableMaxHeight,
+  'min-height': props.tableMinHeight
+}));
+
+const { tableMaxHeight, tableMinHeight } = toRefs(props);
 
 // --- Состояния UI ---
 const dialogVisible = ref(false);
@@ -375,6 +386,8 @@ onMounted(() => {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 10px;
+  border: 0.01rem solid #e9e9e9;
+  border-radius: 2px;
 }
 .table-icon {
   width: 22px;
