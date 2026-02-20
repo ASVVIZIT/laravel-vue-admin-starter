@@ -1,7 +1,11 @@
 <template>
   <div class="company-list">
     <div class="header-actions">
-      <el-button type="primary" @click="openCreateDialog">
+      <el-button
+          type="primary"
+          @click="openCreateDialog"
+          :disabled="companyStore.loading || formLoading || deletionLoading"
+      >
         <el-icon><Plus /></el-icon>
         Добавить Компанию
       </el-button>
@@ -9,358 +13,284 @@
 
     <h3>Список Компаний</h3>
 
-    <div class="table-wrapper" :style="wrapperStyle">
-      <el-table
-          v-loading="companyStore.loading"
+    <div class="table-wrapper" :style="tableStyle">
+      <CompanyTable
           :data="companyStore.companies"
-          style="width: 100%"
-          row-key="id"
-          border
-          :default-sort="{ prop: 'id', order: 'ascending' }"
-      >
-        <el-table-column prop="id" label="ID" sortable width="60" fixed="left" />
-        <el-table-column label="Иконка" width="56" fixed="left">
-          <template #default="{ row }">
-            <component :is="getIconComponent(row.settings?.icon)" class="table-icon" />
-          </template>
-        </el-table-column>
-        <el-table-column prop="name" label="Название" sortable min-width="140">
-          <template #default="{ row }">
-            <editable-cell
-                v-model="row.name"
-                :validator="(val) => val.trim().length > 0 && val.length <= 255"
-                @save="(val) => updateCompanyField(row.id, 'name', val)"
-                :disabled="row._updating || formLoading"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="description" label="Описание" min-width="180">
-          <template #default="{ row }">
-            <editable-cell
-                v-model="row.description"
-                type="textarea"
-                :rows="2"
-                :validator="(val) => val === null || val === '' || (typeof val === 'string' && val.length <= 1000)"
-                @save="(val) => updateCompanyField(row.id, 'description', val)"
-                :disabled="row._updating || formLoading"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="address" label="Адрес" min-width="150">
-          <template #default="{ row }">
-            <editable-cell
-                v-model="row.address"
-                :validator="(val) => val === null || val === '' || (typeof val === 'string' && val.length <= 500)"
-                @save="(val) => updateCompanyField(row.id, 'address', val)"
-                :disabled="row._updating || formLoading"
-            />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Действия" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button size="small" type="primary" @click="openEditDialog(row)" :disabled="row._updating || formLoading">
-              <el-icon><Edit /></el-icon>
-            </el-button>
-            <el-button size="small" type="danger" @click="showDeleteConfirm(row)" :disabled="row._updating || formLoading">
-              <el-icon><Delete /></el-icon>
-            </el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          :loading="companyStore.loading"
+          :icon-map="iconMap"
+          @edit="openEditDialog"
+          @delete="showDeleteConfirm"
+          @update-field="updateCompanyField"
+      />
     </div>
 
-    <!-- ПАГИНАЦИЯ -->
-    <el-pagination
-        v-if="companyStore.totalPages > 1"
-        class="pagination"
-        background
-        layout="prev, pager, next, jumper, sizes, ->, total"
+    <CompanyPagination
         :current-page="companyStore.currentPage"
         :page-size="companyStore.pageSize"
-        :page-sizes="[5, 10, 15, 20, 25, 50]"
-        :total="companyStore.totalItems"
-        @current-change="handlePageChange"
+        :total-items="companyStore.totalItems"
+        :total-pages="companyStore.totalPages"
+        @page-change="handlePageChange"
         @size-change="handleSizeChange"
-        :hide-on-single-page="false"
     />
 
-    <!-- Диалог создания/редактирования -->
-    <el-dialog
-        v-model="dialogVisible"
-        :title="editingCompany ? 'Редактировать компанию' : 'Создать компанию'"
-        width="50%"
-        @closed="resetForm"
-        destroy-on-close
-    >
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="120px" v-loading="formLoading">
-        <el-form-item label="Название" prop="name">
-          <el-input v-model="form.name" maxlength="255" show-word-limit :disabled="formLoading" />
-        </el-form-item>
-        <el-form-item label="Иконка" prop="settings.icon">
-          <el-select v-model="form.settings.icon" clearable filterable placeholder="Выберите иконку" :disabled="formLoading">
-            <el-option
-                v-for="iconOption in iconOptions"
-                :key="iconOption.value"
-                :label="iconOption.label"
-                :value="iconOption.value"
-            >
-              <div class="icon-option">
-                <component :is="getIconComponent(iconOption.value)" class="option-icon" />
-                <span>{{ iconOption.label }}</span>
-              </div>
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="Описание" prop="description">
-          <el-input v-model="form.description" type="textarea" :rows="3" maxlength="1000" show-word-limit :disabled="formLoading" />
-        </el-form-item>
-        <el-form-item label="Адрес" prop="address">
-          <el-input v-model="form.address" maxlength="500" show-word-limit :disabled="formLoading" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="dialogVisible = false" :disabled="formLoading">Отмена</el-button>
-          <el-button type="primary" @click="submitForm" :loading="formLoading">
-            {{ editingCompany ? 'Сохранить' : 'Создать' }}
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <CompanyForm
+        v-model:visible="dialogVisible"
+        :company="editingCompany"
+        :loading="formLoading"
+        :icon-options="iconOptions"
+        @submit="submitForm"
+    />
 
-    <!-- Диалог подтверждения удаления -->
-    <el-dialog
-        v-model="deleteConfirmDialogVisible"
-        title="Подтверждение удаления"
-        width="30%"
-        :close-on-click-modal="false"
-        :close-on-press-escape="false"
-    >
-      <p>Вы уверены, что хотите удалить компанию "<strong>{{ companyToDelete?.name }}</strong>"?</p>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="deleteConfirmDialogVisible = false" :disabled="deletionLoading">Отмена</el-button>
-          <el-button type="danger" @click="confirmDelete" :loading="deletionLoading">Удалить</el-button>
-        </span>
-      </template>
-    </el-dialog>
+    <CompanyDeleteConfirm
+        v-model:visible="deleteConfirmDialogVisible"
+        :company="companyToDelete"
+        :loading="deletionLoading"
+        @confirm="confirmDelete"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, reactive, computed } from 'vue';
+import { ref, onMounted, computed, watch, nextTick } from 'vue';
 import { ElMessage } from 'element-plus';
-import {
-  Plus, Edit, Delete, Check, Close,
-  Link as DefaultIcon, OfficeBuilding, House,
-  VideoCamera, ChatLineSquare, Position, Guide,
-  Picture, Connection, Monitor
-} from '@element-plus/icons-vue';
-import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
-import EditableCell from '@/components/ContactManagement/CompanyContactChannels/components/Admin/EditableCell.vue';
+import { Plus } from '@element-plus/icons-vue';
 import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
+import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
+import CompanyTable from './CompanyTable.vue';
+import CompanyPagination from './CompanyPagination.vue';
+import CompanyForm from './CompanyForm.vue';
+import CompanyDeleteConfirm from './CompanyDeleteConfirm.vue';
+import { getIconMap, getIconOptions } from '../../utils/iconConfig.js';
+import { getFieldLabel } from '../../utils/fieldLabels.js';
 
-const fenixIconStore = useFenixIconsStore();
 const companyStore = useCompanyStore();
+const fenixIconStore = useFenixIconsStore();
 
-// --- Пропсы ---
 const props = defineProps({
-  tableMaxHeight: {
-    type: String,
-    default: 'calc(100vh - 260px)'
-  },
-  tableMinHeight: {
-    type: String,
-    default: 'calc(100vh - 260px)'
-  }
+  tableMaxHeight: { type: String, default: 'calc(100vh - 320px)' },
+  tableMinHeight: { type: String, default: 'calc(100vh - 320px)' }
 });
 
-const wrapperStyle = computed(() => ({
-  'max-height': props.tableMaxHeight,
-  'min-height': props.tableMinHeight
-}));
+// ============================================================================
+// СОСТОЯНИЯ UI
+// ============================================================================
 
-const { tableMaxHeight, tableMinHeight } = toRefs(props);
-
-// --- Состояния UI ---
 const dialogVisible = ref(false);
 const editingCompany = ref(null);
-const formRef = ref(null);
 const formLoading = ref(false);
 const deletionLoading = ref(false);
 const deleteConfirmDialogVisible = ref(false);
 const companyToDelete = ref(null);
 
-const form = reactive({
-  name: '',
-  settings: { icon: 'el-icon-office-building' },
-  description: '',
-  address: '',
+const iconMap = getIconMap(fenixIconStore);
+const iconOptions = getIconOptions();
+
+const tableStyle = computed(() => ({
+  'max-height': props.tableMaxHeight,
+  'min-height': props.tableMinHeight
+}));
+
+// ============================================================================
+// ОТЛАДКА: СЛЕДИМ ЗА СОСТОЯНИЕМ STORE
+// ============================================================================
+
+watch(() => companyStore.loading, (newVal) => {
+  console.log('[CompanyList] Store loading changed:', newVal);
 });
 
-const iconOptions = [
-  { value: 'el-icon-office-building', label: 'Офисное здание' },
-  { value: 'el-icon-house', label: 'Дом' },
-  { value: 'el-icon-fenix-custom', label: 'Fenix Custom' },
-  { value: 'el-icon-link', label: 'Ссылка' },
-  { value: 'el-icon-video-camera', label: 'Видеокамера' },
-  { value: 'el-icon-chat-line-square', label: 'Чат' },
-  { value: 'el-icon-position', label: 'Позиция' },
-  { value: 'el-icon-guide', label: 'Гид' },
-  { value: 'el-icon-picture', label: 'Картинка' },
-  { value: 'el-icon-connection', label: 'Соединение' },
-  { value: 'el-icon-monitor', label: 'Монитор' },
-];
+watch(() => companyStore.totalItems, (newVal, oldVal) => {
+  console.log('[CompanyList] totalItems changed:', oldVal, '→', newVal);
+});
 
-const rules = {
-  name: [
-    { required: true, message: 'Название компании обязательно', trigger: 'blur' },
-    { max: 255, message: 'Название не должно превышать 255 символов', trigger: 'blur' },
-  ],
-  'settings.icon': [
-    { required: true, message: 'Иконка обязательна', trigger: 'change' },
-  ],
-  description: [{ type: 'string', message: 'Описание должно быть строкой', trigger: 'blur' }],
-  address: [{ max: 500, message: 'Адрес не должен превышать 500 символов', trigger: 'blur' }],
-};
+// ============================================================================
+// ОБРАБОТЧИКИ ПАГИНАЦИИ
+// ============================================================================
 
-const iconMap = {
-  'el-icon-office-building': OfficeBuilding,
-  'el-icon-house': House,
-  'el-icon-fenix-custom': fenixIconStore.getIconByName('FenixCustom') || DefaultIcon,
-  'el-icon-link': DefaultIcon,
-  'el-icon-video-camera': VideoCamera,
-  'el-icon-chat-line-square': ChatLineSquare,
-  'el-icon-position': Position,
-  'el-icon-guide': Guide,
-  'el-icon-picture': Picture,
-  'el-icon-connection': Connection,
-  'el-icon-monitor': Monitor,
-  'default': DefaultIcon
-};
-
-const getIconComponent = (iconString) => {
-  const mappedComponent = iconMap[iconString];
-  if (mappedComponent) return mappedComponent;
-  console.warn(`Иконка для '${iconString}' не найдена, используется резервная.`);
-  return iconMap['default'];
-};
-
-// --- Обработчики пагинации ---
 const handlePageChange = (newPage) => {
-  console.log("COMPONENT: Page changed to:", newPage);
+  console.log('[CompanyList] handlePageChange:', newPage);
+
+  // Принудительный сброс состояний перед пагинацией
+  formLoading.value = false;
+  deletionLoading.value = false;
+  dialogVisible.value = false;
+  deleteConfirmDialogVisible.value = false;
+
   companyStore.fetchCompanies(newPage, companyStore.pageSize);
 };
 
 const handleSizeChange = (newSize) => {
-  console.log("COMPONENT: Page size changed to:", newSize);
+  console.log('[CompanyList] handleSizeChange:', newSize);
+
+  // Принудительный сброс состояний перед изменением размера
+  formLoading.value = false;
+  deletionLoading.value = false;
+  dialogVisible.value = false;
+  deleteConfirmDialogVisible.value = false;
+
   companyStore.fetchCompanies(1, newSize);
 };
 
-// --- Inline редактирование ---
+// ============================================================================
+// INLINE РЕДАКТИРОВАНИЕ
+// ============================================================================
+
 const updateCompanyField = async (companyId, fieldName, newValue) => {
+  console.log('[CompanyList] updateCompanyField:', { companyId, fieldName, newValue });
+
   const company = companyStore.companies.find(c => c.id === companyId);
   if (!company) {
-    console.error('Company not found for inline edit:', companyId);
+    console.error('[CompanyList] Company not found:', companyId);
     return;
   }
+
   company._updating = true;
+
   try {
-    let updateData = {};
-    if (fieldName === 'settings.icon') {
-      updateData = { settings: { ...company.settings, icon: newValue } };
-    } else {
-      updateData = { [fieldName]: newValue };
-    }
+    const updateData = fieldName === 'settings.icon'
+        ? { settings: { ...company.settings, icon: newValue } }
+        : { [fieldName]: newValue };
+
     await companyStore.updateCompany(companyId, updateData);
-    ElMessage.success(`Поле "${fieldName}" обновлено`);
+
+    const fieldLabel = getFieldLabel(fieldName, 'company');
+    ElMessage.success({
+      message: `Поле "${fieldLabel}" обновлено`,
+      type: 'success',
+      duration: 2000,
+    });
+
   } catch (err) {
-    console.error(err);
-    ElMessage.warning(`Поле "${fieldName}" не обновлено`);
+    console.error('[CompanyList] updateCompanyField error:', err);
+
+    const fieldLabel = getFieldLabel(fieldName, 'company');
+    ElMessage.warning({
+      message: `Поле "${fieldLabel}" не обновлено`,
+      type: 'warning',
+      duration: 3000,
+    });
+
   } finally {
     company._updating = false;
+    console.log('[CompanyList] updateCompanyField finished');
   }
 };
 
-// --- Диалоги ---
+// ============================================================================
+// ДИАЛОГИ
+// ============================================================================
+
 const openCreateDialog = () => {
+  console.log('[CompanyList] openCreateDialog called');
+  console.log('[CompanyList] dialogVisible before:', dialogVisible.value);
+  console.log('[CompanyList] companyStore.loading:', companyStore.loading);
+  console.log('[CompanyList] formLoading:', formLoading.value);
+  console.log('[CompanyList] deletionLoading:', deletionLoading.value);
+
   editingCompany.value = null;
-  resetForm();
   dialogVisible.value = true;
+
+  console.log('[CompanyList] dialogVisible after:', dialogVisible.value);
 };
 
 const openEditDialog = (company) => {
+  console.log('[CompanyList] openEditDialog called:', company);
   editingCompany.value = company;
-  form.name = company.name;
-  form.settings.icon = company.settings?.icon || 'el-icon-office-building';
-  form.description = company.description;
-  form.address = company.address;
   dialogVisible.value = true;
 };
 
 const showDeleteConfirm = (company) => {
+  console.log('[CompanyList] showDeleteConfirm called:', company);
   companyToDelete.value = company;
   deleteConfirmDialogVisible.value = true;
 };
 
 const confirmDelete = async () => {
-  if (!companyToDelete.value) return;
+  if (!companyToDelete.value) {
+    console.error('[CompanyList] No company to delete');
+    return;
+  }
+
+  console.log('[CompanyList] confirmDelete called:', companyToDelete.value);
   deletionLoading.value = true;
+
   try {
     await companyStore.deleteCompany(companyToDelete.value.id);
-    ElMessage.success(`Компания "${companyToDelete.value.name}" удалена успешно`);
-    companyStore.fetchCompanies(companyStore.currentPage, companyStore.pageSize);
+    ElMessage.success({
+      message: `Компания "${companyToDelete.value.name}" удалена успешно`,
+      type: 'success',
+      duration: 2000,
+    });
+    await companyStore.fetchCompanies(companyStore.currentPage, companyStore.pageSize);
+
   } catch (err) {
-    console.error(err);
+    console.error('[CompanyList] confirmDelete error:', err);
+    ElMessage.error({
+      message: 'Ошибка при удалении компании',
+      type: 'error',
+      duration: 3000,
+    });
+
   } finally {
     deletionLoading.value = false;
     companyToDelete.value = null;
     deleteConfirmDialogVisible.value = false;
+    console.log('[CompanyList] confirmDelete finished, deletionLoading:', deletionLoading.value);
   }
 };
 
-const submitForm = async () => {
-  await formRef.value.validate();
+// ============================================================================
+// ОТПРАВКА ФОРМЫ (СОЗДАНИЕ / РЕДАКТИРОВАНИЕ)
+// ============================================================================
+
+const submitForm = async (formData) => {
+  console.log('[CompanyList] submitForm called:', formData);
   formLoading.value = true;
+
   try {
-    const submitData = {
-      name: form.name,
-      description: form.description,
-      address: form.address,
-      settings: form.settings,
-    };
     if (editingCompany.value) {
-      await companyStore.updateCompany(editingCompany.value.id, submitData);
-      ElMessage.success('Компания обновлена успешно');
+      await companyStore.updateCompany(editingCompany.value.id, formData);
+      ElMessage.success({
+        message: 'Компания обновлена успешно',
+        type: 'success',
+        duration: 2000,
+      });
     } else {
-      await companyStore.createCompany(submitData);
-      ElMessage.success('Компания создана успешно');
+      await companyStore.createCompany(formData);
+      ElMessage.success({
+        message: 'Компания создана успешно',
+        type: 'success',
+        duration: 2000,
+      });
     }
     dialogVisible.value = false;
-    companyStore.fetchCompanies(companyStore.currentPage, companyStore.pageSize);
+
+    // Ждём завершения fetchCompanies перед закрытием
+    await companyStore.fetchCompanies(companyStore.currentPage, companyStore.pageSize);
+
+    // Принудительная перерисовка после обновления totalItems
+    await nextTick();
+    console.log('[CompanyList] After fetch, totalItems:', companyStore.totalItems);
+
   } catch (err) {
-    console.error(err);
+    console.error('[CompanyList] submitForm error:', err);
+    ElMessage.error({
+      message: 'Ошибка при сохранении компании',
+      type: 'error',
+      duration: 3000,
+    });
+
   } finally {
     formLoading.value = false;
+    console.log('[CompanyList] submitForm finished, formLoading:', formLoading.value);
   }
 };
 
-const resetForm = () => {
-  formRef.value?.clearValidate();
-  Object.assign(form, {
-    name: '',
-    settings: { icon: 'el-icon-office-building' },
-    description: '',
-    address: ''
-  });
-  editingCompany.value = null;
-};
-
-const totalPages = computed(() => companyStore.totalPages);
+// ============================================================================
+// МОНТИРОВАНИЕ КОМПОНЕНТА
+// ============================================================================
 
 onMounted(() => {
-  console.log("COMPONENT: Mounted, fetching companies...");
+  console.log('[CompanyList] Component mounted');
   companyStore.fetchCompanies(1, companyStore.pageSize);
 });
 </script>
@@ -372,40 +302,23 @@ onMounted(() => {
   flex-direction: column;
   height: 100%;
 }
+
 .header-actions {
   margin-bottom: 10px;
 }
+
 .company-list h3 {
   margin: 0 0 10px 0;
   flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 600;
 }
-.dialog-footer button:first-child {
-  margin-right: 10px;
-}
+
 .table-wrapper {
   flex: 1;
   overflow-y: auto;
   margin-bottom: 10px;
   border: 0.01rem solid #e9e9e9;
   border-radius: 2px;
-}
-.table-icon {
-  width: 22px;
-  height: 22px;
-  color: #409EFF;
-  text-align: center;
-  vertical-align: middle;
-}
-.icon-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.option-icon {
-  width: 16px;
-  height: 16px;
-}
-.pagination {
-  align-self: center;
 }
 </style>

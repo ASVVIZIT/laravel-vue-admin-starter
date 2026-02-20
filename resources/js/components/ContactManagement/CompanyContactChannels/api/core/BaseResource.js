@@ -8,14 +8,8 @@ export class BaseResource {
     async get(path = '', params = {}) {
         const url = this.buildUrl(path);
         try {
-            const response = await request({
-                url,
-                method: 'get',
-                params
-            });
-            // request.js УЖЕ вернул response.data
-            // Возвращаем response КАК ЕСТЬ, чтобы сохранить meta и links
-            return response; // <-- ИСПРАВЛЕНО: было response.data
+            const response = await request({ url, method: 'get', params });
+            return response; // ← Важно: не response.data!
         } catch (error) {
             this.handleNetworkError(error);
             throw error;
@@ -25,12 +19,8 @@ export class BaseResource {
     async post(path, data = {}) {
         const url = this.buildUrl(path);
         try {
-            const response = await request({
-                url,
-                method: 'post',
-                data
-            });
-            return response; // <-- ИСПРАВЛЕНО
+            const response = await request({ url, method: 'post', data });
+            return response;
         } catch (error) {
             this.handleNetworkError(error);
             throw error;
@@ -40,12 +30,8 @@ export class BaseResource {
     async put(path, data = {}) {
         const url = this.buildUrl(path);
         try {
-            const response = await request({
-                url,
-                method: 'put',
-                data
-            });
-            return response; // <-- ИСПРАВЛЕНО
+            const response = await request({ url, method: 'put', data });
+            return response;
         } catch (error) {
             this.handleNetworkError(error);
             throw error;
@@ -55,11 +41,8 @@ export class BaseResource {
     async delete(path) {
         const url = this.buildUrl(path);
         try {
-            const response = await request({
-                url,
-                method: 'delete',
-            });
-            return response; // <-- ИСПРАВЛЕНО
+            const response = await request({ url, method: 'delete' });
+            return response;
         } catch (error) {
             this.handleNetworkError(error);
             throw error;
