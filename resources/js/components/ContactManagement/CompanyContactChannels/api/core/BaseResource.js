@@ -9,7 +9,7 @@ export class BaseResource {
         const url = this.buildUrl(path);
         try {
             const response = await request({ url, method: 'get', params });
-            return response; // ← Важно: не response.data!
+            return response;
         } catch (error) {
             this.handleNetworkError(error);
             throw error;
@@ -51,7 +51,9 @@ export class BaseResource {
 
     buildUrl(path = '') {
         if (!path) return this.basePath;
-        let basePath = this.basePath.endsWith('/') ? this.basePath.slice(0, -1) : this.basePath;
+        let basePath = this.basePath.endsWith('/')
+            ? this.basePath.slice(0, -1)
+            : this.basePath;
         path = path.startsWith('/') ? path.slice(1) : path;
         return `${basePath}/${path}`;
     }
@@ -62,7 +64,9 @@ export class BaseResource {
             throw new Error('Connection error. Please check network settings.');
         }
         if (error.response) {
-            const serverMsg = error.response.data?.message || error.response.data?.error || error.response.statusText;
+            const serverMsg = error.response.data?.message
+                || error.response.data?.error
+                || error.response.statusText;
             throw new Error(`Server error: ${error.response.status} ${serverMsg}`);
         }
         throw error;

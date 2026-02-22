@@ -1,79 +1,116 @@
 <template>
   <el-dialog
       v-model="localVisible"
-      :title="company ? 'Редактировать компанию' : 'Создать компанию'"
-      width="50%"
+      :title="dialogTitle"
+      :width="COMPANY_FORM_UI.DIALOG_WIDTH"
+      :close-on-click-modal="false"
+      :close-on-press-escape="!loading"
+      :show-close="!loading"
       @closed="resetForm"
-      destroy-on-close
+      @open="onDialogOpen"
+      class="company-form-dialog"
   >
+    <div v-if="isEditMode && company" class="company-info">
+      <el-tag type="info" size="small" effect="plain">
+        <el-icon><InfoFilled /></el-icon>
+        ID: {{ company.id }}
+      </el-tag>
+      <span v-if="company.name" class="company-name">{{ company.name }}</span>
+    </div>
+
     <el-form
         ref="formRef"
-        :model="form"
-        :rules="rules"
-        label-width="120px"
-        v-loading="loading"
+        :model="formData"
+        :rules="formRules"
+        :label-width="COMPANY_FORM_UI.LABEL_WIDTH"
+        :label-position="COMPANY_FORM_UI.LABEL_POSITION"
+        :size="COMPANY_FORM_UI.FORM_SIZE"
+        :disabled="loading"
     >
-      <el-form-item label="Название" prop="name">
+      <el-form-item
+          :label="COMPANY_FORM_FIELDS.NAME.label"
+          :prop="COMPANY_FORM_FIELDS.NAME.key"
+      >
         <el-input
-            v-model="form.name"
-            maxlength="255"
+            v-model="formData.name"
+            :placeholder="COMPANY_FORM_FIELDS.NAME.placeholder"
+            :maxlength="COMPANY_FORM_FIELDS.NAME.maxLength"
             show-word-limit
+            clearable
             :disabled="loading"
-            placeholder="Введите название компании"
         />
       </el-form-item>
 
-      <el-form-item label="Иконка" prop="settings.icon">
-        <el-select
-            v-model="form.settings.icon"
+      <el-form-item
+          :label="COMPANY_FORM_FIELDS.DESCRIPTION.label"
+          :prop="COMPANY_FORM_FIELDS.DESCRIPTION.key"
+      >
+        <el-input
+            v-model="formData.description"
+            type="textarea"
+            :rows="COMPANY_FORM_FIELDS.DESCRIPTION.rows"
+            :placeholder="COMPANY_FORM_FIELDS.DESCRIPTION.placeholder"
+            :maxlength="COMPANY_FORM_FIELDS.DESCRIPTION.maxLength"
+            show-word-limit
             clearable
-            filterable
-            placeholder="Выберите иконку"
             :disabled="loading"
-            style="width: 100%"
+        />
+      </el-form-item>
+
+      <el-form-item
+          :label="COMPANY_FORM_FIELDS.ADDRESS.label"
+          :prop="COMPANY_FORM_FIELDS.ADDRESS.key"
+      >
+        <el-input
+            v-model="formData.address"
+            :placeholder="COMPANY_FORM_FIELDS.ADDRESS.placeholder"
+            :maxlength="COMPANY_FORM_FIELDS.ADDRESS.maxLength"
+            show-word-limit
+            clearable
+            :disabled="loading"
+        />
+      </el-form-item>
+
+      <el-form-item
+          :label="COMPANY_FORM_FIELDS.ICON.label"
+          :prop="COMPANY_FORM_FIELDS.ICON.key"
+      >
+        <el-select
+            v-model="formData.settings.icon"
+            :placeholder="COMPANY_FORM_FIELDS.ICON.placeholder"
+            :clearable="COMPANY_FORM_FIELDS.ICON.clearable"
+            :style="{ width: COMPANY_FORM_UI.ICON_SELECT_WIDTH }"
+            :disabled="loading"
+            class="icon-select"
         >
           <el-option
-              v-for="option in iconOptions"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
+              v-for="icon in iconOptions"
+              :key="icon.value"
+              :label="icon.label"
+              :value="icon.value"
           >
-            <div class="icon-option">
-              <component :is="getIconComponent(option.value)" class="option-icon" />
-              <span>{{ option.label }}</span>
-            </div>
+            <span class="icon-option">
+              <el-icon :size="16">
+                <component :is="getIconComponent(icon.value)" />
+              </el-icon>
+              <span class="icon-label">{{ icon.label }}</span>
+            </span>
           </el-option>
         </el-select>
-      </el-form-item>
-
-      <el-form-item label="Описание" prop="description">
-        <el-input
-            v-model="form.description"
-            type="textarea"
-            :rows="3"
-            maxlength="1000"
-            show-word-limit
-            :disabled="loading"
-            placeholder="Введите описание (необязательно)"
-        />
-      </el-form-item>
-
-      <el-form-item label="Адрес" prop="address">
-        <el-input
-            v-model="form.address"
-            maxlength="500"
-            show-word-limit
-            :disabled="loading"
-            placeholder="Введите адрес (необязательно)"
-        />
       </el-form-item>
     </el-form>
 
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="localVisible = false" :disabled="loading">Отмена</el-button>
-        <el-button type="primary" @click="submitForm" :loading="loading">
-          {{ company ? 'Сохранить' : 'Создать' }}
+        <el-button @click="handleCancel" :disabled="loading">
+          {{ COMPANY_FORM_MESSAGES.CANCEL }}
+        </el-button>
+        <el-button
+            type="primary"
+            @click="handleSubmit"
+            :loading="loading"
+        >
+          {{ isEditMode ? COMPANY_FORM_MESSAGES.SUBMIT_EDIT : COMPANY_FORM_MESSAGES.SUBMIT_CREATE }}
         </el-button>
       </span>
     </template>
@@ -81,242 +118,287 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick } from 'vue';
-import { ElMessage } from 'element-plus';
-import { getIconMap } from '../../utils/iconConfig.js';
-import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
+import { ref, reactive, computed, watch, nextTick } from 'vue';
+import { InfoFilled } from '@element-plus/icons-vue';
+import {
+  COMPANY_FORM_PROPS_CONFIG,
+  COMPANY_FORM_UI,
+  COMPANY_FORM_FIELDS,
+  COMPANY_FORM_MESSAGES,
+  getDefaultCompanyFormValidation,
+  getInitialCompanyFormState,
+} from '../../utils/paginationOptions.js';
+import { getIconComponentByName } from '../../utils/iconConfig.js';
 
 const props = defineProps({
-  visible: { type: Boolean, default: false },
-  company: { type: Object, default: null },
-  loading: { type: Boolean, default: false },
-  iconOptions: { type: Array, default: () => [] }
+  visible: COMPANY_FORM_PROPS_CONFIG.visible,
+  company: COMPANY_FORM_PROPS_CONFIG.company,
+  loading: COMPANY_FORM_PROPS_CONFIG.loading,
+  iconOptions: COMPANY_FORM_PROPS_CONFIG.iconOptions,
 });
 
 const emit = defineEmits(['update:visible', 'submit']);
-const fenixIconStore = useFenixIconsStore();
+
 const formRef = ref(null);
 const localVisible = ref(props.visible);
-const iconMap = getIconMap(fenixIconStore);
 
-// ============================================================================
-// СОСТОЯНИЕ ФОРМЫ
-// ============================================================================
-
-const form = reactive({
-  name: '',
-  settings: { icon: 'el-icon-office-building' },
-  description: '',
-  address: ''
+const initialState = getInitialCompanyFormState();
+const formData = reactive({
+  name: initialState.formData.name,
+  description: initialState.formData.description,
+  address: initialState.formData.address,
+  settings: {
+    icon: initialState.formData.settings.icon,
+  },
 });
 
-// ============================================================================
-// ПРАВИЛА ВАЛИДАЦИИ
-// ============================================================================
+const isEditMode = computed(() => {
+  return props.company !== null && props.company !== undefined;
+});
 
-const rules = {
-  name: [
-    {
-      required: true,
-      message: 'Название компании обязательно',
-      trigger: ['blur', 'change']
-    },
-    {
-      min: 2,
-      max: 255,
-      message: 'Название должно быть от 2 до 255 символов',
-      trigger: ['blur', 'change']
-    }
-  ],
-  'settings.icon': [
-    {
-      required: true,
-      message: 'Иконка обязательна',
-      trigger: 'change'
-    }
-  ],
-  description: [
-    {
-      max: 1000,
-      message: 'Описание не должно превышать 1000 символов',
-      trigger: 'blur'
-    }
-  ],
-  address: [
-    {
-      max: 500,
-      message: 'Адрес не должен превышать 500 символов',
-      trigger: 'blur'
-    }
-  ]
-};
+const dialogTitle = computed(() => {
+  return isEditMode.value
+      ? COMPANY_FORM_MESSAGES.TITLE_EDIT
+      : COMPANY_FORM_MESSAGES.TITLE_CREATE;
+});
 
-// ============================================================================
-// СИНХРОНИЗАЦИЯ VISIBLE И ЗАПОЛНЕНИЕ ФОРМЫ
-// ============================================================================
+const formRules = computed(() => {
+  return getDefaultCompanyFormValidation();
+});
 
-watch(() => props.visible, (newVal) => {
-  localVisible.value = newVal;
-  if (newVal && props.company) {
-    nextTick(() => {
-      form.name = props.company.name || '';
-      form.settings.icon = props.company.settings?.icon || 'el-icon-office-building';
-      form.description = props.company.description || '';
-      form.address = props.company.address || '';
-    });
+const getIconComponent = (iconName) => {
+  if (!iconName) {
+    return getIconComponentByName('el-icon-link');
   }
-});
-
-// ============================================================================
-// ПОЛУЧЕНИЕ КОМПОНЕНТА ИКОНКИ
-// ============================================================================
-
-const getIconComponent = (iconString) => {
-  const mappedComponent = iconMap[iconString];
-  return mappedComponent || iconMap['default'];
+  return getIconComponentByName(iconName);
 };
 
-// ============================================================================
-// СБРОС ФОРМЫ
-// ============================================================================
+const populateForm = (company) => {
+  formData.name = company.name || '';
+  formData.description = company.description || '';
+  formData.address = company.address || '';
+  formData.settings = {
+    icon: company.settings?.icon || '',
+  };
 
-const resetForm = () => {
+  nextTick(() => {
+    if (formRef.value) {
+      formRef.value.clearValidate();
+    }
+  });
+};
+
+const resetFormData = () => {
+  formData.name = '';
+  formData.description = '';
+  formData.address = '';
+  formData.settings = {
+    icon: '',
+  };
+};
+
+const onDialogOpen = () => {
   if (formRef.value) {
     formRef.value.clearValidate();
-    formRef.value.resetFields();
   }
-  form.name = '';
-  form.settings.icon = 'el-icon-office-building';
-  form.description = '';
-  form.address = '';
 };
 
-// ============================================================================
-// ОТПРАВКА ФОРМЫ С ОБРАБОТКОЙ ОШИБОК
-// ============================================================================
+const resetForm = () => {
+  resetFormData();
+  if (formRef.value) {
+    formRef.value.clearValidate();
+  }
+  emit('update:visible', false);
+};
 
-const submitForm = async () => {
+const handleCancel = () => {
+  if (props.loading) return;
+  resetForm();
+};
+
+const handleSubmit = async () => {
+  if (props.loading) return;
+
   if (!formRef.value) {
-    console.error('[CompanyForm] formRef is not available');
-    ElMessage.error('Ошибка формы. Попробуйте ещё раз.');
+    console.error('[CompanyForm] formRef is null');
     return;
   }
 
-  console.log('[CompanyForm] submitForm called');
+  await formRef.value.validate(async (valid, fields) => {
+    if (valid) {
+      const submitData = {
+        name: formData.name,
+        description: formData.description,
+        address: formData.address,
+        settings: {
+          icon: formData.settings.icon,
+        },
+      };
 
-  try {
-    await formRef.value.validate();
-    console.log('[CompanyForm] Validation passed');
-
-    emit('submit', {
-      name: form.name,
-      settings: { icon: form.settings.icon },
-      description: form.description,
-      address: form.address
-    });
-
-  } catch (error) {
-    console.log('[CompanyForm] Validation failed:', error);
-
-    if (error.fields) {
-      const firstErrorField = Object.keys(error.fields)[0];
-      const firstErrorMessage = error.fields[firstErrorField][0]?.message || 'Ошибка валидации';
-
-      console.log('[CompanyForm] First error field:', firstErrorField);
-      console.log('[CompanyForm] First error message:', firstErrorMessage);
-
-      ElMessage.warning({
-        message: firstErrorMessage,
-        type: 'warning',
-        duration: 3000,
-      });
-
-      nextTick(() => {
-        const errorInput = document.querySelector(`.el-form-item.is-error input, .el-form-item.is-error textarea`);
-        if (errorInput) {
-          errorInput.focus();
-        }
-      });
+      emit('submit', submitData);
     } else {
-      ElMessage.warning({
-        message: 'Пожалуйста, заполните все обязательные поля',
-        type: 'warning',
-        duration: 3000,
-      });
+      console.warn('[CompanyForm] Validation failed:', fields);
+      if (fields) {
+        const firstError = Object.keys(fields)[0];
+        if (firstError && formRef.value.scrollToField) {
+          formRef.value.scrollToField(firstError);
+        }
+      }
+      return false;
     }
-  }
+  });
 };
+
+watch(() => props.visible, (newVal) => {
+  localVisible.value = newVal;
+});
+
+watch(localVisible, (newVal) => {
+  if (!newVal && props.visible) {
+    emit('update:visible', false);
+  }
+});
+
+watch(() => props.company, (newCompany) => {
+  nextTick(() => {
+    if (newCompany) {
+      populateForm(newCompany);
+    } else {
+      resetFormData();
+    }
+  });
+}, { deep: true });
+
+watch(() => props.visible, (newVal) => {
+  if (newVal) {
+    nextTick(() => {
+      if (props.company) {
+        populateForm(props.company);
+      } else {
+        resetFormData();
+      }
+      if (formRef.value) {
+        formRef.value.clearValidate();
+      }
+    });
+  }
+});
 </script>
 
 <style scoped>
-/* ============================================================================
-   DIALOG FOOTER
-   ============================================================================ */
-.dialog-footer button:first-child {
-  margin-right: 10px;
+.company-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  margin: -10px -10px 16px -10px;
+  background-color: #f0f2f5;
+  border-bottom: 1px solid #e4e7ed;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
-/* ============================================================================
-   ICON OPTIONS
-   ============================================================================ */
+.company-info :deep(.el-tag) {
+  height: 20px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.company-info :deep(.el-tag .el-icon) {
+  margin-right: 4px;
+  font-size: 12px;
+}
+
+.company-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: #606266;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.dialog-footer .el-button {
+  min-width: 80px;
+}
+
 .icon-option {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.option-icon {
-  width: 16px;
-  height: 16px;
-  color: #409EFF;
+.icon-option .el-icon {
+  flex-shrink: 0;
 }
 
-/* ============================================================================
-   ERROR STYLES
-   ============================================================================ */
-:deep(.el-form-item.is-error .el-input__wrapper) {
+.icon-option .icon-label {
+  font-size: 12px;
+  color: #606266;
+}
+
+.icon-select :deep(.el-select__wrapper) {
+  border-radius: 4px;
+}
+
+:deep(.el-dialog__header) {
+  padding: 12px 16px;
+  border-bottom: 1px solid #EBEEF5;
+}
+
+:deep(.el-dialog__title) {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+:deep(.el-dialog__body) {
+  padding: 16px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 10px 16px 14px;
+  border-top: 1px solid #EBEEF5;
+}
+
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #606266;
+}
+
+:deep(.el-input__wrapper) {
+  border-radius: 4px;
+}
+
+:deep(.el-textarea__inner) {
+  resize: vertical;
+}
+
+:deep(.el-form.is-disabled .el-input__inner),
+:deep(.el-form.is-disabled .el-textarea__inner),
+:deep(.el-form.is-disabled .el-select__wrapper) {
+  background-color: #f5f7fa;
+  cursor: not-allowed;
+}
+
+:deep(.el-form-item.is-error .el-input__wrapper),
+:deep(.el-form-item.is-error .el-textarea__wrapper),
+:deep(.el-form-item.is-error .el-select__wrapper) {
   box-shadow: 0 0 0 1px #f56c6c inset;
 }
 
 :deep(.el-form-item__error) {
-  font-size: 8px;
-  padding-top: 0px;
-  line-height: 1.0;
-  word-wrap: break-word;
-  word-break: break-word;
-  white-space: normal;
-  max-width: 100%;
-  overflow-wrap: break-word;
-  -webkit-hyphens: auto;
-  hyphens: auto;
-}
-
-/* ============================================================================
-   ADAPTIVE FOR NARROW MODALS
-   ============================================================================ */
-:deep(.el-dialog--small .el-form-item__error),
-:deep(.el-dialog[style*="width: 30%"] .el-form-item__error),
-:deep(.el-dialog[style*="width: 40%"] .el-form-item__error) {
-  font-size: 8px;
-  line-height: 1.0;
-}
-
-:deep(.el-dialog--small .el-form-item),
-:deep(.el-dialog[style*="width: 30%"] .el-form-item),
-:deep(.el-dialog[style*="width: 40%"] .el-form-item) {
-  margin-bottom: 14px;
-}
-
-:deep(.el-dialog--small .el-form-item__label),
-:deep(.el-dialog[style*="width: 30%"] .el-form-item__label),
-:deep(.el-dialog[style*="width: 40%"] .el-form-item__label) {
-  font-size: 12px;
-  padding-right: 8px;
-}
-
-:deep(.el-dialog--small .el-input__inner),
-:deep(.el-dialog[style*="width: 30%"] .el-input__inner),
-:deep(.el-dialog[style*="width: 40%"] .el-input__inner) {
-  font-size: 12px;
+  font-size: 11px;
+  padding-top: 4px;
 }
 </style>

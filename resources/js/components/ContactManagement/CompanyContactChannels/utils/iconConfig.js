@@ -8,14 +8,19 @@ import {
     Guide,
     Picture,
     Connection,
-    Monitor
+    Monitor,
+    QuestionFilled,
 } from '@element-plus/icons-vue';
 
+// ============================================================================
+// МАППИНГ ИКОНОК (для CompanyTable.vue)
+// ============================================================================
+
 export function getIconMap(fenixIconStore) {
-    return {
+    const map = {
         'el-icon-office-building': OfficeBuilding,
         'el-icon-house': House,
-        'el-icon-fenix-custom': fenixIconStore.getIconByName('FenixCustom') || DefaultIcon,
+        'el-icon-fenix-custom': fenixIconStore?.getIconByName?.('FenixCustom') || DefaultIcon,
         'el-icon-link': DefaultIcon,
         'el-icon-video-camera': VideoCamera,
         'el-icon-chat-line-square': ChatLineSquare,
@@ -24,22 +29,100 @@ export function getIconMap(fenixIconStore) {
         'el-icon-picture': Picture,
         'el-icon-connection': Connection,
         'el-icon-monitor': Monitor,
-        'default': DefaultIcon
+        'default': DefaultIcon,
     };
+
+    console.log('[iconConfig] getIconMap:', Object.keys(map).length, 'icons');
+    return map;
 }
 
+// ============================================================================
+// ОПЦИИ ДЛЯ SELECT (для CompanyForm.vue) - С component!
+// ============================================================================
+
 export function getIconOptions() {
-    return [
-        { value: 'el-icon-office-building', label: 'Офисное здание' },
-        { value: 'el-icon-house', label: 'Дом' },
-        { value: 'el-icon-fenix-custom', label: 'Fenix Custom' },
-        { value: 'el-icon-link', label: 'Ссылка' },
-        { value: 'el-icon-video-camera', label: 'Видеокамера' },
-        { value: 'el-icon-chat-line-square', label: 'Чат' },
-        { value: 'el-icon-position', label: 'Позиция' },
-        { value: 'el-icon-guide', label: 'Гид' },
-        { value: 'el-icon-picture', label: 'Картинка' },
-        { value: 'el-icon-connection', label: 'Соединение' },
-        { value: 'el-icon-monitor', label: 'Монитор' }
+    const options = [
+        {
+            value: 'el-icon-office-building',
+            label: 'Офисное здание',
+            component: OfficeBuilding,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-house',
+            label: 'Дом',
+            component: House,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-fenix-custom',
+            label: 'Fenix Custom',
+            component: DefaultIcon,  // ← ← ДОБАВЛЕНО! (или fenixIconStore)
+        },
+        {
+            value: 'el-icon-link',
+            label: 'Ссылка',
+            component: DefaultIcon,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-video-camera',
+            label: 'Видеокамера',
+            component: VideoCamera,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-chat-line-square',
+            label: 'Чат',
+            component: ChatLineSquare,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-position',
+            label: 'Позиция',
+            component: Position,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-guide',
+            label: 'Гид',
+            component: Guide,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-picture',
+            label: 'Картинка',
+            component: Picture,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-connection',
+            label: 'Соединение',
+            component: Connection,  // ← ← ДОБАВЛЕНО!
+        },
+        {
+            value: 'el-icon-monitor',
+            label: 'Монитор',
+            component: Monitor,  // ← ← ДОБАВЛЕНО!
+        },
     ];
+
+    console.log('[iconConfig] getIconOptions:', options.length, 'options');
+    console.log('[iconConfig] getIconOptions sample:', options[0]);
+
+    return options;
+}
+
+// ============================================================================
+// ВСПОМОГАТЕЛЬНАЯ ФУНКЦИЯ (для getIconComponent в CompanyForm.vue)
+// ============================================================================
+
+export function getIconComponentByName(iconName) {
+    const iconMap = {
+        'el-icon-office-building': OfficeBuilding,
+        'el-icon-house': House,
+        'el-icon-fenix-custom': DefaultIcon,
+        'el-icon-link': DefaultIcon,
+        'el-icon-video-camera': VideoCamera,
+        'el-icon-chat-line-square': ChatLineSquare,
+        'el-icon-position': Position,
+        'el-icon-guide': Guide,
+        'el-icon-picture': Picture,
+        'el-icon-connection': Connection,
+        'el-icon-monitor': Monitor,
+    };
+
+    return iconMap[iconName] || DefaultIcon;
 }

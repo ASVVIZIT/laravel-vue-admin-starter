@@ -3,7 +3,7 @@
 namespace App\Http\Resources\Company;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource; // Обновлённый путь к ресурсу
+use App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource;
 
 class CompanyResource extends JsonResource
 {

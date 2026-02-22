@@ -482,15 +482,20 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('social-media-links/reorder', [SocialMediaLinkController::class, 'reorder']);
 });
 
-// Маршруты для системы CompanyContactChannels
+// Маршрут для получения COUNT компаний
+Route::get('/companies/meta/total', [CompanyController::class, 'count']);
+
+// Маршрут для получения COUNT компаний (должен быть ДО apiResource!)
+Route::apiResource('companies', CompanyController::class)->where([
+    'company' => '[0-9]+',
+]);
 Route::apiResource('companies', CompanyController::class);
-
 Route::prefix('companies/{company}')->group(function () {
-    Route::apiResource('contact-channels',ContactChannelController::class);
+    Route::apiResource('contact-channels', ContactChannelController::class);
     Route::put('contact-channels/reorder', [ContactChannelController::class, 'reorder'])->name('contact-channels.reorder');
-});
-
-
+})->where([
+    'company' => '[0-9]+',
+]);
 
 // ===================================================
 // Регистрация middleware для роутов

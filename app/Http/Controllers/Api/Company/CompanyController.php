@@ -5,79 +5,153 @@ namespace App\Http\Controllers\Api\Company;
 use App\Http\Controllers\Controller;
 use App\Models\Company\Company;
 use App\Http\Resources\Company\CompanyResource;
+use App\Http\Resources\Company\CompanyCollection;
 use App\Http\Requests\Company\StoreCompanyRequest;
 use App\Http\Requests\Company\UpdateCompanyRequest;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 class CompanyController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     * Получить ТОЛЬКО количество записей (БЕЗ данных)
      */
-    public function index(Request $request): AnonymousResourceCollection
+    public function count(Request $request)
     {
-        // Валидация и получение per_page из запроса
-        $perPage = $request->get('per_page', 15); // По умолчанию 15
-        $page = $request->get('page', 1); // По умолчанию 1
+        \Log::info('CompanyController:count - Start');
 
-        // Убедимся, что per_page в допустимом диапазоне, если нужно
-        $perPage = min(max((int)$perPage, 1), 100); // Пример: от 1 до 100
+        $query = Company::query();
 
-        // Загружаем компании с количеством каналов связи
-        $companies = Company::withCount('contactChannels')->paginate($perPage, ['*'], 'page', $page);
-        return CompanyResource::collection($companies);
+        \Log::info('CompanyController:count - Initial count', [
+            'count' => $query->count()
+        ]);
+
+        // Применить те же фильтры что и в index()
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('address', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('has_icon')) {
+            $hasIcon = $request->get('has_icon') === 'true';
+            if ($hasIcon) {
+                $query->whereHas('settings', fn($q) => $q->where('icon', '!=', ''));
+            } else {
+                $query->whereDoesntHave('settings', fn($q) => $q->where('icon', '!=', ''));
+            }
+        }
+
+        $total = $query->count();
+
+        \Log::info('CompanyController:count - Final count', [
+            'total' => $total,
+            'filters' => $request->all()
+        ]);
+
+        return response()->json(['total' => (int) $total]);
+    }
+
+    /**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request): ResourceCollection
+    {
+        $perPage = max((int)$request->get('per_page', 15), 1);
+        $page = $request->get('page', 1);
+
+        $query = Company::query();
+
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                    ->orWhere('address', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('has_icon')) {
+            $hasIcon = $request->get('has_icon') === 'true';
+            if ($hasIcon) {
+                $query->whereHas('settings', fn($q) => $q->where('icon', '!=', ''));
+            } else {
+                $query->whereDoesntHave('settings', fn($q) => $q->where('icon', '!=', ''));
+            }
+        }
+
+        $sortBy = $request->get('sort_by', 'id_asc');
+        switch ($sortBy) {
+            case 'id_desc':
+                $query->orderBy('id', 'desc');
+                break;
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'created_at_desc':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'created_at_asc':
+                $query->orderBy('created_at', 'asc');
+                break;
+            default:
+                $query->orderBy('id', 'asc');
+        }
+
+        $total = $query->count();
+
+        $companies = $query->withCount('contactChannels')
+            ->paginate($perPage, ['*'], 'page', $page);
+
+        return new CompanyCollection($companies, $total);
     }
 
     /**
      * Store a newly created resource in storage.
-     *
-     * @param  \App\Http\Requests\Company\StoreCompanyRequest  $request
-     * @return \App\Http\Resources\Company\CompanyResource
      */
     public function store(StoreCompanyRequest $request): CompanyResource
     {
         $company = Company::create($request->validated());
+        $company->load('contactChannels');
+
         return new CompanyResource($company);
     }
 
     /**
      * Display the specified resource.
-     *
-     * @param  \App\Models\Company\Company  $company
-     * @return \App\Http\Resources\Company\CompanyResource
      */
     public function show(Company $company): CompanyResource
     {
-        // Загружаем связанную информацию, если нужно
         $company->load('contactChannels');
         return new CompanyResource($company);
     }
 
     /**
      * Update the specified resource in storage.
-     *
-     * @param  \App\Http\Requests\Company\UpdateCompanyRequest  $request
-     * @param  \App\Models\Company\Company  $company
-     * @return \App\Http\Resources\Company\CompanyResource
      */
     public function update(UpdateCompanyRequest $request, Company $company): CompanyResource
     {
         $company->update($request->validated());
+        $company->load('contactChannels');
         return new CompanyResource($company);
     }
 
     /**
      * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Company\Company  $company
-     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(Company $company)
     {
-        $company->delete(); // Каскадное удаление связанных каналов
-        return response()->json(['message' => 'Company deleted']);
+        $company->delete();
+
+        return response()->json([
+            'message' => 'Company deleted successfully',
+            'deleted_id' => $company->id
+        ]);
     }
 }

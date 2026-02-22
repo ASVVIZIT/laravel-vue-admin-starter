@@ -9,7 +9,7 @@ class CompanySeeder extends Seeder
 {
     public function run(): void
     {
-        // Используем фабрику для создания 50 компаний
-        Company::factory()->count(50)->create();
+        // Используем фабрику для создания 50000 компаний
+        Company::factory()->count(50000)->create();
     }
 }

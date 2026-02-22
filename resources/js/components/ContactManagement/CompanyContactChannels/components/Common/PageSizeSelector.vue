@@ -1,79 +1,84 @@
 <template>
-  <div class="page-size-selector" :class="className">
+  <div class="page-size-selector" :class="[props.className, { 'is-disabled': props.disabled }]">
+    <span v-if="props.showLabel" class="page-size-label" :style="labelStyle">{{ props.label }}</span>
     <el-select
         v-model="localSize"
         @change="handleChange"
-        :size="selectSize"
-        :class="selectClass"
+        :size="props.selectSize"
+        :class="props.selectClass"
+        :disabled="props.disabled"
+        class="compact-size-selector"
     >
       <el-option
-          v-for="option in options"
-          :key="option.value"
-          :label="option.label"
-          :value="option.value"
+          v-for="(size, index) in calculatedSizes"
+          :key="size"
+          :label="getOptionLabel(size, index)"
+          :value="size"
+          :disabled="size > props.loadedCount"
       />
     </el-select>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import {
-  generatePageSizeOptions,
+  PAGE_SIZE_SELECTOR_PROPS_CONFIG,
   PAGE_SIZE_SELECTOR_UI,
-  PAGE_SIZE_SELECTOR_PROPS,
+  PAGINATION_LABELS,
   PAGE_SIZE_OPTIONS,
-  PAGINATION_LABELS
+  PAGINATION_UI,
 } from '../../utils/paginationOptions.js';
 
-const props = defineProps({
-  modelValue: { type: PAGE_SIZE_SELECTOR_PROPS.MODEL_VALUE_TYPE, required: PAGE_SIZE_SELECTOR_PROPS.MODEL_VALUE_REQUIRED },
-  totalItems: { type: Number, default: PAGE_SIZE_SELECTOR_PROPS.TOTAL_ITEMS_DEFAULT },
-  baseSizes: { type: Array, default: PAGE_SIZE_SELECTOR_PROPS.BASE_SIZES },
-  allLabel: { type: String, default: PAGE_SIZE_SELECTOR_PROPS.ALL_LABEL },
-  showLabel: { type: Boolean, default: PAGE_SIZE_SELECTOR_PROPS.SHOW_LABEL },
-  label: { type: String, default: PAGE_SIZE_SELECTOR_PROPS.LABEL },
-  selectSize: { type: String, default: PAGE_SIZE_SELECTOR_PROPS.SELECT_SIZE },
-  className: { type: String, default: PAGE_SIZE_SELECTOR_PROPS.CLASS_NAME },
-  selectClass: { type: String, default: PAGE_SIZE_SELECTOR_PROPS.SELECT_CLASS }
-});
+const props = defineProps(PAGE_SIZE_SELECTOR_PROPS_CONFIG);
 
 const emit = defineEmits(['update:modelValue', 'change']);
+
 const localSize = ref(props.modelValue);
+const suffix = PAGINATION_LABELS.PAGE_SIZE_SUFFIX;
+const allLabel = props.allLabel || PAGINATION_LABELS.ALL_ITEMS;
 
-// ← Храним предыдущее значение totalItems для сравнения
-let previousTotalItems = ref(props.totalItems);
+const calculatedSizes = computed(() => {
+  const baseSizes = props.availableSizes || PAGE_SIZE_OPTIONS.BASE_AVAILABLE;
 
-// ← Вычисляем опции
-const options = computed(() => {
-  console.log('[PageSizeSelector] options recalculated, totalItems:', props.totalItems);
-  return generatePageSizeOptions(
-      props.totalItems,
-      props.baseSizes,
-      props.allLabel,
-      PAGINATION_LABELS.PAGE_SIZE_SUFFIX
-  );
-});
+  const filtered = baseSizes.filter(size => size <= props.loadedCount);
 
-// ← Отслеживаем изменение totalItems
-watch(() => props.totalItems, (newVal, oldVal) => {
-  console.log('[PageSizeSelector] totalItems changed:', oldVal, '→', newVal);
-  if (localSize.value === oldVal) {
-    console.log('[PageSizeSelector] "Все" было выбрано, обновляем:', oldVal, '→', newVal);
-    localSize.value = newVal;
+  if (props.loadedCount > 0 && !filtered.includes(props.loadedCount)) {
+    filtered.push(props.loadedCount);
   }
 
-  previousTotalItems.value = newVal;
+  if (filtered.length === 0) {
+    return baseSizes;
+  }
+
+  return filtered.sort((a, b) => a - b);
 });
 
-// ← Отслеживаем изменение modelValue извне
+const labelStyle = computed(() => ({
+  color: PAGE_SIZE_SELECTOR_UI.LABEL_COLOR,
+  fontSize: PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE,
+  marginRight: PAGE_SIZE_SELECTOR_UI.GAP,
+}));
+
+const getOptionLabel = (size, index) => {
+  const isAllItems = size >= props.loadedCount && props.loadedCount > 0;
+  if (isAllItems) {
+    return `${allLabel} (${size})`;
+  }
+  return `${size} ${suffix}`;
+};
+
 watch(() => props.modelValue, (newVal) => {
-  console.log('[PageSizeSelector] modelValue changed:', newVal);
   localSize.value = newVal;
 });
 
+watch(() => props.loadedCount, (newVal) => {
+  if (localSize.value > newVal && newVal > 0) {
+    localSize.value = newVal;
+  }
+});
+
 const handleChange = (value) => {
-  console.log('[PageSizeSelector] handleChange:', value);
   emit('update:modelValue', value);
   emit('change', value);
 };
@@ -86,31 +91,49 @@ const handleChange = (value) => {
   gap: v-bind('PAGE_SIZE_SELECTOR_UI.GAP');
 }
 
+.page-size-selector.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .page-size-selector .el-select {
   width: v-bind('PAGE_SIZE_SELECTOR_UI.SELECT_WIDTH');
 }
 
-:deep(.el-select) {
-  --el-select-font-size: 12px;
+.page-size-label {
+  white-space: nowrap;
+  font-weight: 500;
+  font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
 }
 
-:deep(.el-select__wrapper) {
-  height: 24px;
-  font-size: 12px;
+.compact-size-selector :deep(.el-select) {
+  --el-select-font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
+}
+
+.compact-size-selector :deep(.el-select__wrapper) {
+  height: v-bind('PAGINATION_UI.SELECT_HEIGHT');
+  font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
   box-shadow: none;
+  padding: 0 4px;
 }
 
-:deep(.el-select__input) {
-  font-size: 12px;
-  height: 24px;
+.compact-size-selector :deep(.el-select__input) {
+  font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
+  height: v-bind('PAGINATION_UI.SELECT_HEIGHT');
 }
 
-:deep(.el-select-dropdown__item) {
-  font-size: 12px;
-  padding: 4px 10px;
+.compact-size-selector :deep(.el-select-dropdown__item) {
+  font-size: v-bind('PAGINATION_UI.FONT_SIZE');
+  padding: v-bind('PAGINATION_UI.DROPDOWN_PADDING');
+  min-height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
 }
 
-:deep(.el-select__caret) {
-  font-size: 12px;
+.compact-size-selector :deep(.el-select__caret) {
+  font-size: v-bind('PAGINATION_UI.FONT_SIZE');
+}
+
+.compact-size-selector :deep(.el-select-dropdown__item.is-disabled) {
+  color: #c0c4cc;
+  cursor: not-allowed;
 }
 </style>
