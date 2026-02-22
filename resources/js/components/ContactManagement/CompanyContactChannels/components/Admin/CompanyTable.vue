@@ -2,8 +2,8 @@
   <div class="company-table-container">
     <el-table
         ref="tableRef"
-        :data="data"
-        v-loading="loading"
+        :data="props.data"
+        v-loading="props.loading"
         :max-height="maxHeight"
         stripe
         border
@@ -51,7 +51,7 @@
               v-model="row.name"
               type="text"
               placeholder="Название"
-              :disabled="row._updating || loading"
+              :disabled="row._updating || props.loading"
               :loading="row._updating"
               empty-text="—"
               :show-edit-button="true"
@@ -65,36 +65,51 @@
       <el-table-column
           prop="settings.icon"
           label="Иконка"
-          width="70"
+          width="80"
           align="center"
-          :resizable="false"
+          :resizable="true"
       >
-        <template #default="{ row, column, $index }">
-          <div class="icon-cell">
-            <div
-                v-if="!row._editingIcon"
-                class="icon-display"
-                @dblclick.stop="startIconEdit(row, $event)"
-            >
-              <el-icon
-                  v-if="row.settings?.icon && iconMap[row.settings.icon]"
-                  :size="14"
-                  color="#409EFF"
+        <template #default="{ row }">
+          <EditableCell
+              v-model="row.settings.icon"
+              type="select"
+              placeholder="Выберите"
+              :disabled="row._updating || props.loading"
+              :loading="row._updating"
+              empty-text="—"
+              :show-edit-button="true"
+              :show-action-buttons="true"
+              @save="handleUpdateField(row.id, 'settings.icon', $event)"
+              @error="handleEditError(row, 'settings.icon', $event)"
+          >
+            <template #display="{ value }">
+              <div class="icon-display-wrapper">
+                <el-icon
+                    v-if="value && props.iconMap[value]"
+                    :size="16"
+                    color="#409EFF"
+                >
+                  <component :is="props.iconMap[value]" />
+                </el-icon>
+                <span v-else class="icon-placeholder">—</span>
+              </div>
+            </template>
+            <template #options>
+              <el-option
+                  v-for="icon in props.iconOptions"
+                  :key="icon.value"
+                  :label="icon.label"
+                  :value="icon.value"
               >
-                <component :is="iconMap[row.settings.icon]" />
-              </el-icon>
-              <span v-else class="icon-placeholder">—</span>
-              <el-button
-                  v-if="!row._updating && !loading"
-                  link
-                  size="small"
-                  class="icon-edit-btn"
-                  @click.stop="startIconEdit(row, $event)"
-              >
-                <el-icon><Edit /></el-icon>
-              </el-button>
-            </div>
-          </div>
+                  <span class="icon-option">
+                      <el-icon :size="14">
+                          <component :is="props.iconMap[icon.value]" />
+                      </el-icon>
+                      <span>{{ icon.label }}</span>
+                  </span>
+              </el-option>
+            </template>
+          </EditableCell>
         </template>
       </el-table-column>
 
@@ -110,7 +125,7 @@
               type="textarea"
               :rows="1"
               placeholder="Описание"
-              :disabled="row._updating || loading"
+              :disabled="row._updating || props.loading"
               :loading="row._updating"
               empty-text="—"
               :show-edit-button="true"
@@ -133,7 +148,7 @@
               v-model="row.address"
               type="text"
               placeholder="Адрес"
-              :disabled="row._updating || loading"
+              :disabled="row._updating || props.loading"
               :loading="row._updating"
               empty-text="—"
               :show-edit-button="true"
@@ -173,25 +188,25 @@
       >
         <template #default="{ row }">
           <div class="action-buttons">
-            <el-tooltip content="Редактировать" placement="top">
+            <el-tooltip content="Редактировать" placement="left-start">
               <el-button
                   size="small"
                   type="primary"
                   link
                   @click.stop="handleEdit(row)"
-                  :disabled="loading || row._updating"
+                  :disabled="props.loading || row._updating"
                   class="action-btn"
               >
                 <el-icon><Edit /></el-icon>
               </el-button>
             </el-tooltip>
-            <el-tooltip content="Удалить" placement="top">
+            <el-tooltip content="Удалить" placement="right-start">
               <el-button
                   size="small"
                   type="danger"
                   link
                   @click.stop="handleDelete(row)"
-                  :disabled="loading || row._updating"
+                  :disabled="props.loading || row._updating"
                   class="action-btn"
               >
                 <el-icon><Delete /></el-icon>
@@ -208,92 +223,23 @@
         </div>
       </template>
     </el-table>
-
-    <!-- ★★★ TELEPORT: РЕЖИМ РЕДАКТИРОВАНИЯ ВНЕ ТАБЛИЦЫ ★★★ -->
-    <Teleport to="body">
-      <div
-          v-if="editingIconRow"
-          class="icon-edit-overlay"
-          :style="editOverlayStyle"
-      >
-        <el-select
-            v-model="tempIconValue"
-            size="small"
-            :disabled="editingIconRow._updating || loading"
-            :loading="editingIconRow._updating"
-            placeholder="Выберите"
-            clearable
-            filterable
-            :teleported="true"
-            popper-class="icon-select-popper"
-            @keyup.escape="cancelIconEdit"
-            class="icon-select-edit"
-            style="width: 200px;"
-            ref="editSelectRef"
-        >
-          <el-option
-              v-for="icon in iconOptions"
-              :key="icon.value"
-              :label="icon.label"
-              :value="icon.value"
-          >
-                        <span class="icon-option">
-                            <el-icon :size="14">
-                                <component :is="iconMap[icon.value]" />
-                            </el-icon>
-                            <span>{{ icon.label }}</span>
-                        </span>
-          </el-option>
-        </el-select>
-        <el-button-group class="edit-actions">
-          <el-button
-              size="small"
-              type="success"
-              @click="saveIconEdit"
-              :disabled="editingIconRow._updating || loading"
-          >
-            <el-icon><Check /></el-icon>
-          </el-button>
-          <el-button
-              size="small"
-              type="info"
-              @click="cancelIconEdit"
-              :disabled="editingIconRow._updating || loading"
-          >
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </el-button-group>
-      </div>
-    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
-import { Edit, Delete, Document, Check, Close } from '@element-plus/icons-vue';
+import { ref, computed } from 'vue';
+import { Edit, Delete, Document } from '@element-plus/icons-vue';
 import EditableCell from '../Common/EditableCell.vue';
 import {
   COMPANY_TABLE_PROPS_CONFIG,
   COMPANY_TABLE_UI,
 } from '../../utils/paginationOptions.js';
 
-const props = defineProps({
-  data: { type: Array, required: true },
-  loading: { type: Boolean, default: false },
-  iconMap: { type: Object, required: true },
-  iconOptions: { type: Array, required: true },
-  currentPage: { type: Number, default: 1 },
-  pageSize: { type: Number, default: 15 },
-  tableHeight: { type: String, default: '400' },
-});
+const props = defineProps(COMPANY_TABLE_PROPS_CONFIG);
 
 const emit = defineEmits(['edit', 'delete', 'update-field', 'row-dblclick']);
 
 const tableRef = ref(null);
-const tempIconValue = ref('');
-const editingIconRow = ref(null);
-const editOverlayStyle = ref({});
-const editSelectRef = ref(null);
 
 const maxHeight = computed(() => {
   return props.tableHeight || COMPANY_TABLE_UI.TABLE_HEIGHT;
@@ -330,53 +276,6 @@ const handleEditError = (row, fieldName, error) => {
   console.warn('[CompanyTable] Edit error:', { companyId: row.id, fieldName, error });
 };
 
-const startIconEdit = (row, event) => {
-  if (row._updating || props.loading) return;
-
-  editingIconRow.value = row;
-  tempIconValue.value = row.settings?.icon || '';
-
-  nextTick(() => {
-    const target = event.currentTarget;
-    const rect = target.getBoundingClientRect();
-
-    editOverlayStyle.value = {
-      position: 'fixed',
-      top: `${rect.top}px`,
-      left: `${rect.left}px`,
-      width: `${rect.width + 200}px`,
-      height: `${rect.height}px`,
-      zIndex: '9999',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '4px',
-      background: '#FFFFFF',
-      padding: '2px',
-      borderRadius: '4px',
-      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-    };
-
-    if (editSelectRef.value) {
-      editSelectRef.value.focus();
-    }
-  });
-};
-
-const saveIconEdit = () => {
-  if (!editingIconRow.value || editingIconRow.value._updating || props.loading) return;
-  handleUpdateField(editingIconRow.value.id, 'settings.icon', tempIconValue.value);
-  editingIconRow.value._editingIcon = false;
-  editingIconRow.value = null;
-  tempIconValue.value = '';
-};
-
-const cancelIconEdit = () => {
-  if (!editingIconRow.value || editingIconRow.value._updating || props.loading) return;
-  editingIconRow.value._editingIcon = false;
-  editingIconRow.value = null;
-  tempIconValue.value = '';
-};
-
 const handleEdit = (row) => {
   emit('edit', row);
 };
@@ -405,6 +304,7 @@ const getChannelCountType = (count) => {
   position: relative;
   background: #FFFFFF;
   border-radius: 2px;
+  overflow: hidden !important;
 }
 
 .company-table :deep(.el-table__header-wrapper) {
@@ -433,8 +333,8 @@ const getChannelCountType = (count) => {
   padding: 1px 2px;
   line-height: 1.2;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible !important;
+  text-overflow: clip;
 }
 
 .company-table :deep(.el-table__row) {
@@ -454,6 +354,10 @@ const getChannelCountType = (count) => {
   background-color: v-bind('COMPANY_TABLE_UI.HOVER_COLOR');
 }
 
+.company-table :deep(.el-table__body-wrapper) {
+  overflow: visible !important;
+}
+
 .cell-row-number {
   font-size: 7px;
   color: #909399;
@@ -465,86 +369,23 @@ const getChannelCountType = (count) => {
   font-size: 8px;
 }
 
-.icon-cell {
+.icon-display-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  width: 100%;
   min-height: 20px;
-  width: 100%;
-}
-
-.icon-display {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  cursor: pointer;
-  padding: 1px 2px;
-  border-radius: 2px;
-  transition: background-color 0.2s;
-  width: 100%;
-}
-
-.icon-display:hover {
-  background-color: v-bind('COMPANY_TABLE_UI.HOVER_COLOR');
-}
-
-.icon-display .el-icon {
-  flex-shrink: 0;
 }
 
 .icon-placeholder {
-  font-size: 12px;
+  font-size: 14px;
   color: #c0c4cc;
-}
-
-.icon-edit-btn {
-  padding: 0;
-  font-size: 10px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  color: #409EFF;
-  min-width: auto;
-  width: auto;
-  height: auto;
-}
-
-.icon-display:hover .icon-edit-btn {
-  opacity: 1;
-}
-
-.icon-select-edit :deep(.el-select__wrapper) {
-  height: 18px;
-  font-size: 8px;
-  padding: 0 2px;
-  box-shadow: none;
 }
 
 .icon-option {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.edit-actions {
-  flex-shrink: 0;
-  font-size: 8px;
-  line-height: 1;
-}
-
-.edit-actions .el-button {
-  padding: 1px 2px;
-  margin: 0;
-  border-radius: 0;
-}
-
-.edit-actions .el-button:first-child {
-  border-radius: 2px 0 0 2px;
-}
-
-.edit-actions .el-button:last-child {
-  border-radius: 0 2px 2px 0;
 }
 
 .channel-tag {
@@ -644,31 +485,5 @@ const getChannelCountType = (count) => {
   padding: 8px 10px;
   color: #909399;
   text-align: center;
-}
-
-:deep(.icon-select-popper) {
-  width: 200px !important;
-  min-width: 200px !important;
-  max-width: 300px !important;
-  z-index: 10000 !important;
-}
-
-:deep(.icon-select-popper .el-select-dropdown__item) {
-  height: 30px;
-  line-height: 28px;
-}
-
-:deep(.icon-select-popper .icon-option) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-/* ★★★ TELEPORT OVERLAY: ВНЕ ТАБЛИЦЫ, ПОВЕРХ ВСЕГО ★★★ */
-:deep(.icon-edit-overlay) {
-  background: #FFFFFF;
-  border-radius: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 9999;
 }
 </style>

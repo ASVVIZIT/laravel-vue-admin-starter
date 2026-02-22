@@ -82,14 +82,7 @@ import {
 // PROPS
 // ============================================================================
 
-const props = defineProps({
-  currentPage: { type: Number, default: 1 },
-  pageSize: { type: Number, default: 15 },
-  loadedCount: { type: Number, required: true },
-  totalItems: { type: Number, default: 0 },
-  availableSizes: { type: Array, required: true },
-  disabled: { type: Boolean, default: false },
-});
+const props = defineProps(PAGINATION_PROPS_CONFIG);
 
 // ============================================================================
 // EMITS

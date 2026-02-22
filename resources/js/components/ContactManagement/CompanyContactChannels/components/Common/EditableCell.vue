@@ -1,11 +1,14 @@
 <template>
-  <div class="editable-cell">
+  <div class="editable-cell" ref="cellRef">
+    <!-- ★★★ РЕЖИМ ПРОСМОТРА ★★★ -->
     <div
         v-if="!isEditing"
         class="cell-display"
         @dblclick.stop="startEditing"
     >
-      <span class="cell-text" :title="displayValue">{{ displayValue }}</span>
+      <slot name="display" :value="props.modelValue">
+        <span class="cell-text" :title="displayValue">{{ displayValue }}</span>
+      </slot>
       <el-button
           v-if="!props.disabled && props.showEditButton"
           link
@@ -18,7 +21,8 @@
       </el-button>
     </div>
 
-    <div v-else class="cell-edit" :class="{ 'is-error': hasError }">
+    <!-- ★★★ РЕЖИМ РЕДАКТИРОВАНИЯ (INLINE В ЯЧЕЙКЕ) ★★★ -->
+    <div v-else class="cell-edit-inline">
       <el-input
           v-if="props.type === 'text'"
           ref="inputRef"
@@ -32,6 +36,7 @@
           @keyup.enter="saveEdit"
           @keyup.esc="cancelEdit"
           @blur="handleBlur"
+          class="inline-input"
       />
       <el-input
           v-else-if="props.type === 'textarea'"
@@ -39,13 +44,14 @@
           v-model="tempValue"
           type="textarea"
           :placeholder="props.placeholder"
-          :rows="props.rows"
+          :rows="1"
           :maxlength="props.maxLength"
           size="small"
           :disabled="props.disabled || props.loading"
           @keydown.ctrl.enter.exact.prevent="saveEdit"
           @keyup.esc="cancelEdit"
           @blur="handleBlur"
+          class="inline-input"
       />
       <el-select
           v-else-if="props.type === 'select'"
@@ -56,21 +62,22 @@
           :disabled="props.disabled || props.loading"
           clearable
           filterable
+          :teleported="true"
           @keyup.esc="cancelEdit"
           @blur="handleBlur"
+          class="inline-select"
       >
         <slot name="options" />
       </el-select>
 
-      <el-button-group
-          v-if="props.showActionButtons"
-          class="edit-actions"
-      >
+      <div v-if="props.showActionButtons" class="inline-actions">
         <el-button
             size="small"
             type="success"
             @click="saveEdit"
             :disabled="props.loading"
+            class="action-btn-save"
+            title="Сохранить (Enter)"
         >
           <el-icon><Check /></el-icon>
         </el-button>
@@ -79,16 +86,18 @@
             type="info"
             @click="cancelEdit"
             :disabled="props.loading"
+            class="action-btn-cancel"
+            title="Отмена (Esc)"
         >
           <el-icon><Close /></el-icon>
         </el-button>
-      </el-button-group>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import { Edit, Check, Close } from '@element-plus/icons-vue';
 import {
   EDITABLE_CELL_PROPS_CONFIG,
@@ -99,9 +108,10 @@ const props = defineProps(EDITABLE_CELL_PROPS_CONFIG);
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel', 'start-edit', 'error']);
 
+const cellRef = ref(null);
+const inputRef = ref(null);
 const isEditing = ref(false);
 const tempValue = ref('');
-const inputRef = ref(null);
 const hasError = ref(false);
 const isSaving = ref(false);
 const isCanceling = ref(false);
@@ -131,8 +141,9 @@ const startEditing = () => {
       const inputElement = inputRef.value.$el?.querySelector('input, textarea, .el-input__inner');
       if (inputElement) {
         inputElement.focus();
-        if (inputElement.select) {
-          inputElement.select();
+        if (props.type === 'text' && inputElement.setSelectionRange) {
+          const len = inputElement.value.length;
+          inputElement.setSelectionRange(len, len);
         }
       }
     }
@@ -236,54 +247,102 @@ const finishEditing = () => {
   opacity: 1;
 }
 
-.cell-edit {
+/* ★★★ INLINE РЕДАКТИРОВАНИЕ ★★★ */
+.cell-edit-inline {
   display: flex;
   align-items: center;
   gap: 2px;
   width: 100%;
+  min-height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
 }
 
-.cell-edit.is-error {
-  outline: 1px solid v-bind('EDITABLE_CELL_UI.ERROR_COLOR');
+.inline-input,
+.inline-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-input :deep(.el-input__wrapper),
+.inline-select :deep(.el-select__wrapper) {
+  height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
+  padding: 0 4px;
+  box-shadow: none;
   border-radius: 2px;
-  padding: 1px;
 }
 
-.edit-actions {
-  flex-shrink: 0;
-  font-size: v-bind('EDITABLE_CELL_UI.BUTTON_FONT_SIZE');
-  line-height: 1;
-}
-
-.edit-actions .el-button {
-  padding: 1px 2px;
-  margin: 0;
-  border-radius: 0;
-}
-
-.edit-actions .el-button:first-child {
-  border-radius: 2px 0 0 2px;
-}
-
-.edit-actions .el-button:last-child {
-  border-radius: 0 2px 2px 0;
-}
-
-:deep(.el-input--small .el-input__wrapper) {
-  padding: v-bind('EDITABLE_CELL_UI.INPUT_PADDING');
-  height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
-}
-
-:deep(.el-input--small .el-input__inner) {
+.inline-input :deep(.el-input__inner),
+.inline-select :deep(.el-input__inner) {
   font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
-  line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
   height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
+  padding: 0 4px;
+}
+
+/* ★★★ УЗКИЕ ВЫСОКИЕ КНОПКИ (12×18px) ★★★ */
+.inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  flex-shrink: 0;
+  padding: 0;
+  margin: 0;
+}
+
+/* ★★★ УБИРАЕМ Element Plus MARGIN ★★★ */
+.inline-actions :deep(.el-button) {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.action-btn-save,
+.action-btn-cancel {
+  width: 12px;
+  height: 18px;
+  min-width: 12px;
+  min-height: 18px;
+  max-width: 12px;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  border: 1px solid transparent;
+}
+
+.action-btn-save :deep(.el-icon),
+.action-btn-cancel :deep(.el-icon) {
+  font-size: 10px;
+  width: 10px;
+  height: 10px;
+}
+
+.action-btn-save {
+  background-color: #67C23A;
+  color: #FFFFFF;
+}
+
+.action-btn-save:hover:not(:disabled) {
+  background-color: #85CE61;
+}
+
+.action-btn-cancel {
+  background-color: #909399;
+  color: #FFFFFF;
+}
+
+.action-btn-cancel:hover:not(:disabled) {
+  background-color: #A6A9AD;
+}
+
+.action-btn-save:disabled,
+.action-btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 :deep(.el-textarea--small .el-textarea__inner) {
   font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
-  line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
-  padding: v-bind('EDITABLE_CELL_UI.INPUT_PADDING');
+  padding: 0 4px;
 }
 
 :deep(.el-input__inner::placeholder) {
@@ -292,6 +351,10 @@ const finishEditing = () => {
 }
 
 :deep(.el-input__clear) {
-  font-size: v-bind('EDITABLE_CELL_UI.BUTTON_FONT_SIZE');
+  font-size: 8px;
+}
+
+:deep(.el-select__caret) {
+  font-size: 8px;
 }
 </style>

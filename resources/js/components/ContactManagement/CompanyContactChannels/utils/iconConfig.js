@@ -45,57 +45,57 @@ export function getIconOptions() {
         {
             value: 'el-icon-office-building',
             label: 'Офисное здание',
-            component: OfficeBuilding,  // ← ← ДОБАВЛЕНО!
+            component: OfficeBuilding,
         },
         {
             value: 'el-icon-house',
             label: 'Дом',
-            component: House,  // ← ← ДОБАВЛЕНО!
+            component: House,
         },
         {
             value: 'el-icon-fenix-custom',
             label: 'Fenix Custom',
-            component: DefaultIcon,  // ← ← ДОБАВЛЕНО! (или fenixIconStore)
+            component: DefaultIcon,
         },
         {
             value: 'el-icon-link',
             label: 'Ссылка',
-            component: DefaultIcon,  // ← ← ДОБАВЛЕНО!
+            component: DefaultIcon,
         },
         {
             value: 'el-icon-video-camera',
             label: 'Видеокамера',
-            component: VideoCamera,  // ← ← ДОБАВЛЕНО!
+            component: VideoCamera,
         },
         {
             value: 'el-icon-chat-line-square',
             label: 'Чат',
-            component: ChatLineSquare,  // ← ← ДОБАВЛЕНО!
+            component: ChatLineSquare,
         },
         {
             value: 'el-icon-position',
             label: 'Позиция',
-            component: Position,  // ← ← ДОБАВЛЕНО!
+            component: Position,
         },
         {
             value: 'el-icon-guide',
             label: 'Гид',
-            component: Guide,  // ← ← ДОБАВЛЕНО!
+            component: Guide,
         },
         {
             value: 'el-icon-picture',
             label: 'Картинка',
-            component: Picture,  // ← ← ДОБАВЛЕНО!
+            component: Picture,
         },
         {
             value: 'el-icon-connection',
             label: 'Соединение',
-            component: Connection,  // ← ← ДОБАВЛЕНО!
+            component: Connection,
         },
         {
             value: 'el-icon-monitor',
             label: 'Монитор',
-            component: Monitor,  // ← ← ДОБАВЛЕНО!
+            component: Monitor,
         },
     ];
 

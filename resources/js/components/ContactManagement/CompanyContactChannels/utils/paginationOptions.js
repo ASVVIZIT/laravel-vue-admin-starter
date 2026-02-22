@@ -11,6 +11,7 @@ export const COMPANY_FORM_PROPS_CONFIG = {
     company: { type: Object, default: null },
     loading: { type: Boolean, default: false },
     iconOptions: { type: Array, default: () => [] },
+    iconMap: { type: Object, default: () => ({}) },
 };
 
 export const COMPANY_FORM_UI = {
@@ -75,7 +76,7 @@ export const COMPANY_TABLE_PROPS_CONFIG = {
     iconOptions: { type: Array, required: true },
     currentPage: { type: Number, default: 1 },
     pageSize: { type: Number, default: 15 },
-    tableHeight: { type: String, default: '400' },
+    tableHeight: { type: String, default: '300' },
 };
 
 export const COMPANY_TABLE_UI = {
@@ -89,9 +90,10 @@ export const COMPANY_TABLE_UI = {
 export const PAGINATION_PROPS_CONFIG = {
     currentPage: { type: Number, default: 1 },
     pageSize: { type: Number, default: 15 },
+    loadedCount: { type: Number, required: true },
     totalItems: { type: Number, default: 0 },
-    totalPages: { type: Number, default: 1 },
     availableSizes: { type: Array, required: true },
+    disabled: { type: Boolean, default: false },
 };
 
 export const PAGINATION_UI = {
@@ -381,6 +383,7 @@ export const LOADING_DATA_ACTIONS_PROPS_CONFIG = {
     showLoadMore: { type: Boolean, default: true },
     showLoadAll: { type: Boolean, default: true },
     showRefresh: { type: Boolean, default: false },
+    chunkProgress: { type: Number, default: 0 },
 };
 
 export const LOADING_DATA_ACTIONS_UI = {

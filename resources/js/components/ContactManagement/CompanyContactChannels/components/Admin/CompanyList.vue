@@ -83,6 +83,7 @@
         v-model:visible="dialogVisible"
         :company="editingCompany"
         :loading="formLoading"
+        :icon-map="iconMap"
         :icon-options="iconOptions"
         @submit="submitForm"
     />

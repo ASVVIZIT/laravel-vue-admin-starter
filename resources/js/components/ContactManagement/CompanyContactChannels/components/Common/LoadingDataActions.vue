@@ -91,19 +91,7 @@ import {
   LOADING_DATA_ACTIONS_MESSAGES,
 } from '../../utils/paginationOptions.js';
 
-const props = defineProps({
-  loaded: { type: Number, required: true },
-  total: { type: Number, required: true },
-  percentage: { type: Number, required: true },
-  chunkSize: { type: Number, default: 500 },
-  disabled: { type: Boolean, default: false },
-  isLoading: { type: Boolean, default: false },
-  isPaused: { type: Boolean, default: false },
-  showLoadMore: { type: Boolean, default: true },
-  showLoadAll: { type: Boolean, default: true },
-  showRefresh: { type: Boolean, default: false },
-  chunkProgress: { type: Number, default: 0 },
-});
+const props = defineProps(LOADING_DATA_ACTIONS_PROPS_CONFIG);
 
 const emit = defineEmits(['load-more', 'load-all', 'pause', 'resume', 'refresh']);
 
