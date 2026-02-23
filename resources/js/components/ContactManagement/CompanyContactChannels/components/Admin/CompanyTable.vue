@@ -321,6 +321,83 @@ const getChannelCountType = (count) => {
 };
 </script>
 
+<style>
+/* ============================================================================
+   GLOBAL STYLES — для dropdown (рендерится в body, вне scope компонента)
+   ============================================================================ */
+
+.el-select-dropdown__item {
+  font-size: var(--el-font-size-base) !important;
+  padding: 0 12px 0 12px !important;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--el-text-color-regular);
+  height: 22px !important;
+  line-height: 22px !important;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.el-select-dropdown__item .icon-option {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  height: 22px;
+  line-height: 22px;
+}
+
+.el-select-dropdown__item .icon-option .el-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  line-height: 22px;
+}
+
+.el-select-dropdown__item .icon-option span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  height: 22px;
+  line-height: 22px;
+}
+
+.el-select-dropdown__item:hover {
+  background-color: #f5f7fa !important;
+}
+
+.el-select-dropdown__item.selected {
+  color: #409EFF !important;
+  font-weight: 600;
+  background-color: #f0f9eb !important;
+}
+
+.el-select-dropdown__item.disabled {
+  color: #c0c4cc !important;
+  cursor: not-allowed;
+}
+
+.el-select-dropdown {
+  padding: 4px 0 !important;
+  border-radius: 4px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.el-select-dropdown__empty {
+  font-size: var(--el-font-size-base);
+  padding: 8px 10px;
+  color: #909399;
+  text-align: center;
+}
+</style>
+
 <style scoped>
 .company-table-container {
   width: 100%;
@@ -515,47 +592,5 @@ const getChannelCountType = (count) => {
 .company-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-thumb {
   background: v-bind('COMPANY_TABLE_UI.SCROLLBAR_THUMB_COLOR');
   border-radius: v-bind('COMPANY_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
-}
-
-:deep(.el-select-dropdown__item) {
-  font-size: var(--el-font-size-base);
-  padding: 0 8px 0 8px;
-  position: relative;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--el-text-color-regular);
-  height: 22px;
-  line-height: 20px;
-  box-sizing: border-box;
-  cursor: pointer;
-}
-
-:deep(.el-select-dropdown__item:hover) {
-  background-color: #f5f7fa;
-}
-
-:deep(.el-select-dropdown__item.selected) {
-  color: #409EFF;
-  font-weight: 600;
-  background-color: #f0f9eb;
-}
-
-:deep(.el-select-dropdown__item.disabled) {
-  color: #c0c4cc;
-  cursor: not-allowed;
-}
-
-:deep(.el-select-dropdown) {
-  padding: 4px 0;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-:deep(.el-select-dropdown__empty) {
-  font-size: var(--el-font-size-base);
-  padding: 8px 10px;
-  color: #909399;
-  text-align: center;
 }
 </style>
