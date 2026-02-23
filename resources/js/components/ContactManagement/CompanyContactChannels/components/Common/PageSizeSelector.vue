@@ -1,6 +1,8 @@
 <template>
   <div class="page-size-selector" :class="[props.className, { 'is-disabled': props.disabled }]">
-    <span v-if="props.showLabel" class="page-size-label" :style="labelStyle">{{ props.label }}</span>
+        <span v-if="props.showLabel" class="page-size-label" :style="labelStyle">
+            {{ props.label }}
+        </span>
     <el-select
         v-model="localSize"
         @change="handleChange"
@@ -28,7 +30,7 @@ import {
   PAGINATION_LABELS,
   PAGE_SIZE_OPTIONS,
   PAGINATION_UI,
-} from '../../utils/paginationOptions.js';
+} from '../../utils/appConfig.js';
 
 const props = defineProps(PAGE_SIZE_SELECTOR_PROPS_CONFIG);
 

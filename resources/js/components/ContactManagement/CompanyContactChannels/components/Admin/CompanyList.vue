@@ -9,7 +9,7 @@
           class="add-btn"
       >
         <el-icon><Plus /></el-icon>
-        Добавить
+        {{ COMPANY_LIST_MESSAGES.BTN_ADD }}
       </el-button>
 
       <LoadingDataActions
@@ -33,14 +33,15 @@
     </div>
 
     <div class="filters-row">
-      <h3 class="title">Список Компаний</h3>
+      <h3 class="title">{{ COMPANY_LIST_MESSAGES.TITLE }}</h3>
       <Filters
           :total-items="companyStore.totalItems"
-          :total-filtered="filteredCount"
+          :total-filtered="companyStore.filteredCount"
           :disabled="isLoading"
           :available-sizes="availablePageSizes"
           :show-icon-filter="true"
           :search-debounce="COMPANY_LIST_FILTERS.SEARCH_DEBOUNCE"
+          :sort-options="getSortOptions()"
           @search="handleSearch"
           @filter="handleFilter"
           @reset="handleResetFilters"
@@ -61,6 +62,7 @@
           @edit="openEditDialog"
           @delete="showDeleteConfirm"
           @update-field="updateCompanyField"
+          @refresh="refreshSingleRecord"
           @row-dblclick="openEditDialog"
       />
     </div>
@@ -69,7 +71,7 @@
         :layout="PAGINATOR_DISPLAY.LAYOUT"
         :current-page="companyStore.currentPage"
         :page-size="companyStore.perPage"
-        :loaded-count="companyStore.loadedCount"
+        :loaded-count="companyStore.filteredCount"
         :total-items="companyStore.totalItems"
         :available-sizes="availablePageSizes"
         :disabled="isLoading || isRecalculatingPagination"
@@ -80,20 +82,22 @@
     />
 
     <CompanyForm
-        v-model:visible="dialogVisible"
+        :visible="dialogVisible"
         :company="editingCompany"
         :loading="formLoading"
         :icon-map="iconMap"
         :icon-options="iconOptions"
+        @update:visible="dialogVisible = $event"
         @submit="submitForm"
     />
 
     <DeleteConfirm
-        v-model:visible="deleteConfirmDialogVisible"
+        :visible="deleteConfirmDialogVisible"
         :item="companyToDelete"
         :item-name="companyToDelete?.name"
-        entity-label="компанию"
+        :entity-label="COMPANY_LIST_MESSAGES.ENTITY_LABEL"
         :loading="deletionLoading"
+        @update:visible="deleteConfirmDialogVisible = $event"
         @confirm="confirmDelete"
     />
   </div>
@@ -123,27 +127,21 @@ import {
   COMPANY_LIST_MESSAGES,
   COMPANY_TABLE_UI,
   PAGINATOR_DISPLAY,
-  getInitialCompanyListState,
-} from '../../utils/paginationOptions.js';
+  SORT_OPTIONS,
+  getSortOptions,
+} from '../../utils/appConfig.js';
 
 const companyStore = useCompanyStore();
 const fenixIconStore = useFenixIconsStore();
 
-const initialState = getInitialCompanyListState();
-
-const dialogVisible = ref(initialState.dialogVisible);
-const editingCompany = ref(initialState.editingCompany);
-const formLoading = ref(initialState.formLoading);
-const deletionLoading = ref(initialState.deletionLoading);
-const deleteConfirmDialogVisible = ref(initialState.deleteConfirmDialogVisible);
-const companyToDelete = ref(initialState.companyToDelete);
-const filteringLoading = ref(initialState.filteringLoading);
-const pageSizeLoading = ref(initialState.pageSizeLoading);
-const searchQuery = ref(initialState.searchQuery);
-const filterHasIcon = ref(initialState.filterHasIcon);
-const sortBy = ref(initialState.sortBy);
-const filteredCount = ref(initialState.filteredCount);
-const totalPages = ref(initialState.totalPages);
+const dialogVisible = ref(false);
+const editingCompany = ref(null);
+const formLoading = ref(false);
+const deletionLoading = ref(false);
+const deleteConfirmDialogVisible = ref(false);
+const companyToDelete = ref(null);
+const filteringLoading = ref(false);
+const pageSizeLoading = ref(false);
 const tableKey = ref(0);
 
 const isLoadingAll = ref(false);
@@ -188,8 +186,8 @@ const showLoadAllButton = computed(() => {
 const filteredCompanies = computed(() => {
   let result = [...companyStore.allCompanies];
 
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase();
+  if (companyStore.searchQuery) {
+    const query = companyStore.searchQuery.toLowerCase();
     result = result.filter((company) =>
         (company.name && company.name.toLowerCase().includes(query)) ||
         (company.address && company.address.toLowerCase().includes(query)) ||
@@ -197,21 +195,22 @@ const filteredCompanies = computed(() => {
     );
   }
 
-  if (filterHasIcon.value !== '') {
-    const hasIcon = filterHasIcon.value === 'true';
+  if (companyStore.filterHasIcon !== '') {
+    const hasIcon = companyStore.filterHasIcon === 'true';
     result = result.filter((company) => {
       const companyHasIcon = company.settings?.icon && company.settings.icon !== '';
       return hasIcon ? companyHasIcon : !companyHasIcon;
     });
   }
 
-  result = sortCompanies(result, sortBy.value);
-  filteredCount.value = result.length;
-  totalPages.value = Math.ceil(result.length / companyStore.perPage);
+  result = sortCompanies(result, companyStore.sortBy);
 
-  if (companyStore.currentPage > totalPages.value && totalPages.value > 0) {
-    companyStore.currentPage = 1;
-  }
+  const paginationResult = companyStore.recalculatePagination(result);
+  console.log('[CompanyList] filteredCompanies:', {
+    total: result.length,
+    pages: paginationResult.filteredTotalPages,
+    current: paginationResult.currentPage,
+  });
 
   return result;
 });
@@ -235,29 +234,27 @@ const sortCompanies = (companies, sortValue) => {
   }
 };
 
-// ★★★ ВАРИАНТ 3: УМНОЕ СОХРАНЕНИЕ СТРАНИЦЫ ПОСЛЕ СОЗДАНИЯ ★★★
 const submitForm = async (formData) => {
+  console.log('[CompanyList] submitForm: START', formData);
+
   formLoading.value = true;
 
   try {
     if (editingCompany.value) {
-      // РЕДАКТИРОВАНИЕ — остаёмся на той же странице
       await companyStore.updateCompany(editingCompany.value.id, formData);
       ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_COMPANY_UPDATED);
     } else {
-      // СОЗДАНИЕ — проверяем сортировку для решения о переходе на страницу 1
       await companyStore.createCompany(formData);
       ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_COMPANY_CREATED);
 
-      // Переходим на страницу 1 только если новая запись будет там
-      // id_desc = новые ID сверху, created_at_desc = новые записи сверху
-      if (sortBy.value === 'id_desc' || sortBy.value === 'created_at_desc') {
+      if (companyStore.sortBy === 'id_desc' || companyStore.sortBy === 'created_at_desc') {
         companyStore.currentPage = 1;
       }
-      // Для id_asc, name_asc, name_desc, created_at_asc — остаёмся на текущей странице
     }
     dialogVisible.value = false;
+    console.log('[CompanyList] submitForm: SUCCESS');
   } catch (err) {
+    console.error('[CompanyList] submitForm: ERROR', err);
     ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_SAVING);
   } finally {
     formLoading.value = false;
@@ -274,13 +271,13 @@ const loadNextChunk = async () => {
   } finally {
     setTimeout(() => {
       isRecalculatingPagination.value = false;
-    }, 200);
+    }, 100);
   }
 };
 
 const startChunkedLoad = async () => {
   if (companyStore.allRecordsLoaded) {
-    ElMessage.info('Все записи уже загружены');
+    ElMessage.info(COMPANY_LIST_MESSAGES.ALL_RECORDS_LOADED);
     return;
   }
 
@@ -320,61 +317,114 @@ const startChunkedLoad = async () => {
     isLoadPaused.value = false;
     setTimeout(() => {
       isRecalculatingPagination.value = false;
-    }, 200);
+    }, 100);
   }
 };
 
 const pauseLoadAll = () => {
   isLoadPaused.value = true;
-  ElMessage.info('Загрузка приостановлена');
+  ElMessage.info(COMPANY_LIST_MESSAGES.LOAD_PAUSED);
 };
 
 const resumeLoadAll = () => {
   isLoadPaused.value = false;
-  ElMessage.info('Загрузка возобновлена');
+  ElMessage.info(COMPANY_LIST_MESSAGES.LOAD_RESUMED);
 };
 
 const refreshData = async () => {
   try {
     const result = await companyStore.refreshData();
     if (result.success) {
-      ElMessage.success(result.newRecords > 0 ? `Загружено ${result.newRecords} новых записей` : 'Новых записей нет');
+      ElMessage.success(
+          result.newRecords > 0
+              ? COMPANY_LIST_MESSAGES.NEW_RECORDS_LOADED(result.newRecords)
+              : COMPANY_LIST_MESSAGES.NO_NEW_RECORDS
+      );
     }
   } catch (err) {
-    ElMessage.error('Ошибка при обновлении: ' + err.message);
+    ElMessage.error(COMPANY_LIST_MESSAGES.REFRESH_ERROR(err.message));
+  }
+};
+
+const refreshSingleRecord = async (companyId) => {
+  console.log('[CompanyList] refreshSingleRecord: START', { companyId });
+
+  const row = companyStore.allCompanies.find((c) => c.id === companyId);
+  if (!row) {
+    console.error('[CompanyList] refreshSingleRecord: ROW NOT FOUND', { companyId });
+    ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH('Запись не найдена'));
+    return;
+  }
+
+  console.log('[CompanyList] refreshSingleRecord: ROW FOUND', {
+    id: row.id,
+    name: row.name,
+    _refreshing: row._refreshing,
+  });
+
+  row._refreshing = true;
+
+  try {
+    console.log('[CompanyList] refreshSingleRecord: CALLING STORE');
+
+    const result = await companyStore.refreshSingleRecordWithRollback(companyId);
+
+    console.log('[CompanyList] refreshSingleRecord: STORE RESULT', { result });
+
+    if (result.success) {
+      console.log('[CompanyList] refreshSingleRecord: SUCCESS');
+      ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_RECORD_REFRESHED(row.name || `ID: ${row.id}`));
+    } else {
+      console.warn('[CompanyList] refreshSingleRecord: FAILED', { rolledBack: result.rolledBack });
+      if (result.rolledBack) {
+        ElMessage.warning(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(row.name || `ID: ${row.id}`) + ' (данные восстановлены)');
+      } else {
+        ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(row.name || `ID: ${row.id}`));
+      }
+    }
+  } catch (err) {
+    console.error('[CompanyList] refreshSingleRecord: EXCEPTION', { error: err.message });
+    companyStore.rollbackRefresh(companyId);
+    ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(row.name || `ID: ${row.id}`) + ' (данные восстановлены)');
+  } finally {
+    console.log('[CompanyList] refreshSingleRecord: FINALLY');
+
+    const updatedRow = companyStore.allCompanies.find((c) => c.id === companyId);
+    if (updatedRow && updatedRow._refreshing === true) {
+      updatedRow._refreshing = false;
+      companyStore.allCompanies = [...companyStore.allCompanies];
+      companyStore.companies = [...companyStore.allCompanies];
+      console.log('[CompanyList] refreshSingleRecord: _refreshing RESET');
+    }
   }
 };
 
 const handleSearch = (query) => {
+  companyStore.setFilters({ searchQuery: query });
   filteringLoading.value = true;
-  searchQuery.value = query;
-  companyStore.currentPage = 1;
   nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handleFilter = (filters) => {
+  companyStore.setFilters({
+    searchQuery: filters.search || '',
+    filterHasIcon: filters.hasIcon || '',
+    sortBy: filters.sortBy || SORT_OPTIONS.DEFAULT,
+  });
   filteringLoading.value = true;
-  searchQuery.value = filters.search || '';
-  filterHasIcon.value = filters.hasIcon || '';
-  sortBy.value = filters.sortBy || 'id_asc';
-  companyStore.currentPage = 1;
   nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handleResetFilters = () => {
-  filteringLoading.value = true;
-  searchQuery.value = '';
-  filterHasIcon.value = '';
-  sortBy.value = 'id_asc';
-  companyStore.currentPage = 1;
+  companyStore.resetFilters();
   ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_FILTERS_RESET);
+  filteringLoading.value = true;
   nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handleSort = (sortValue) => {
+  companyStore.setFilters({ sortBy: sortValue });
   filteringLoading.value = true;
-  sortBy.value = sortValue;
-  companyStore.currentPage = 1;
   nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
@@ -396,9 +446,9 @@ const handleSizeChange = (newSize) => {
     return;
   }
 
-  pageSizeLoading.value = true;
   companyStore.perPage = newSize;
-  companyStore.currentPage = 1;
+  companyStore.recalculatePagination();
+  pageSizeLoading.value = true;
   nextTick(() => setTimeout(() => { pageSizeLoading.value = false; }, COMPANY_LIST_FILTERS.PAGE_SIZE_TRANSITION_DELAY));
 };
 
@@ -447,9 +497,6 @@ const confirmDelete = async () => {
   try {
     await companyStore.deleteCompany(companyToDelete.value.id);
     ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_COMPANY_DELETED(companyToDelete.value.name));
-    if (companyStore.currentPage > totalPages.value) {
-      companyStore.currentPage = Math.max(1, totalPages.value);
-    }
   } catch (err) {
     ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_DELETING);
   } finally {
@@ -506,7 +553,9 @@ onMounted(async () => {
   align-items: center;
   gap: v-bind('COMPANY_LIST_UI.HEADER_TITLE_FILTERS_GAP');
   height: 28px;
-  flex-wrap: nowrap;
+  flex-wrap: nowrap !important;
+  width: 100%;
+  overflow: hidden;
 }
 
 .title {
@@ -542,7 +591,7 @@ onMounted(async () => {
   font-size: v-bind('COMPANY_LIST_UI.LOADING_TEXT_SIZE');
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   .header-row {
     flex-wrap: wrap;
     height: auto;
@@ -552,12 +601,25 @@ onMounted(async () => {
   .filters-row {
     flex-wrap: wrap;
     height: auto;
-    gap: 8px;
+    gap: 6px;
   }
 
   .title {
     width: 100%;
     text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .filters-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 8px;
   }
 }
 </style>

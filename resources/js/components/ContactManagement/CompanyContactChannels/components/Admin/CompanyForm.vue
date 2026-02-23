@@ -1,6 +1,6 @@
 <template>
   <el-dialog
-      v-model="dialogVisible"
+      v-model="localVisible"
       :title="editingCompany ? COMPANY_FORM_MESSAGES.TITLE_EDIT : COMPANY_FORM_MESSAGES.TITLE_CREATE"
       :width="COMPANY_FORM_UI.DIALOG_WIDTH"
       :close-on-click-modal="false"
@@ -16,7 +16,7 @@
         :size="COMPANY_FORM_UI.FORM_SIZE"
     >
       <el-form-item
-          label="Название"
+          :label="getFieldLabel('name', 'company')"
           prop="name"
       >
         <el-input
@@ -31,7 +31,7 @@
       <div class="form-row-inline">
         <el-form-item
             v-if="editingCompany"
-            label="ID"
+            :label="getFieldLabel('id', 'company')"
             prop="id"
             class="form-item-inline"
         >
@@ -43,7 +43,7 @@
         </el-form-item>
 
         <el-form-item
-            label="Иконка"
+            :label="getFieldLabel('settings.icon', 'company')"
             prop="settings.icon"
             class="form-item-inline"
         >
@@ -60,19 +60,19 @@
                 :label="icon.label"
                 :value="icon.value"
             >
-              <span class="icon-option">
-                  <el-icon :size="14" color="#409EFF">
-                      <component :is="getIconComponent(icon.value)" />
-                  </el-icon>
-                  <span>{{ icon.label }}</span>
-              </span>
+                            <span class="icon-option">
+                                <el-icon :size="14" color="#409EFF">
+                                    <component :is="getIconComponent(icon.value)" />
+                                </el-icon>
+                                <span>{{ icon.label }}</span>
+                            </span>
             </el-option>
           </el-select>
         </el-form-item>
       </div>
 
       <el-form-item
-          label="Описание"
+          :label="getFieldLabel('description', 'company')"
           prop="description"
       >
         <el-input
@@ -87,7 +87,7 @@
       </el-form-item>
 
       <el-form-item
-          label="Адрес"
+          :label="getFieldLabel('address', 'company')"
           prop="address"
       >
         <el-input
@@ -130,16 +130,21 @@ import {
   COMPANY_FORM_MESSAGES,
   getDefaultCompanyFormValidation,
   getInitialCompanyFormState,
-} from '../../utils/paginationOptions.js';
+} from '../../utils/appConfig.js';
+import { getFieldLabel } from '../../utils/fieldLabels.js';
 
 const props = defineProps(COMPANY_FORM_PROPS_CONFIG);
 
 const emit = defineEmits(['update:visible', 'submit']);
 
 const formRef = ref(null);
-const dialogVisible = computed({
+
+const localVisible = computed({
   get: () => props.visible,
-  set: (val) => emit('update:visible', val),
+  set: (val) => {
+    console.log('[CompanyForm] localVisible: SET', val);
+    emit('update:visible', val);
+  },
 });
 
 const editingCompany = computed(() => props.company);
@@ -150,13 +155,13 @@ const formData = ref({
   ...initialState.formData,
 });
 
-// ★★★ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ КОМПОНЕНТА ИКОНКИ ★★★
 const getIconComponent = (iconKey) => {
   if (!props.iconMap || !iconKey) return null;
   return props.iconMap[iconKey];
 };
 
 watch(() => props.company, (newVal) => {
+  console.log('[CompanyForm] watch company:', newVal);
   if (newVal) {
     formData.value = {
       id: newVal.id || '',
@@ -175,17 +180,23 @@ watch(() => props.company, (newVal) => {
 }, { immediate: true });
 
 const handleCancel = () => {
-  dialogVisible.value = false;
+  console.log('[CompanyForm] handleCancel');
+  emit('update:visible', false);
 };
 
 const handleSubmit = async () => {
+  console.log('[CompanyForm] handleSubmit: START');
+
   if (!formRef.value) return;
 
   await formRef.value.validate((valid) => {
+    console.log('[CompanyForm] handleSubmit: VALIDATE', { valid });
     if (valid) {
+      console.log('[CompanyForm] handleSubmit: EMIT SUBMIT', formData.value);
       emit('submit', formData.value);
     } else {
-      ElMessage.warning(COMPANY_FORM_MESSAGES.FIELD_REQUIRED('Название'));
+      console.warn('[CompanyForm] handleSubmit: VALIDATION FAILED');
+      ElMessage.warning(COMPANY_FORM_MESSAGES.FIELD_REQUIRED(getFieldLabel('name', 'company')));
     }
   });
 };
@@ -193,35 +204,35 @@ const handleSubmit = async () => {
 
 <style scoped>
 .company-form-dialog :deep(.el-dialog__body) {
-  padding: 20px;
+  padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING');
 }
 
 .company-form-dialog :deep(.el-form-item) {
-  margin-bottom: 16px;
+  margin-bottom: v-bind('COMPANY_FORM_UI.FORM_ITEM_MARGIN_BOTTOM');
 }
 
 .company-form-dialog :deep(.el-form-item__label) {
-  font-size: 12px;
-  font-weight: 500;
-  color: #606266;
-  margin-bottom: 4px;
+  font-size: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_SIZE');
+  font-weight: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_WEIGHT');
+  color: v-bind('COMPANY_FORM_UI.FORM_LABEL_COLOR');
+  margin-bottom: v-bind('COMPANY_FORM_UI.FORM_LABEL_MARGIN_BOTTOM');
 }
 
 .company-form-dialog :deep(.el-input__wrapper),
 .company-form-dialog :deep(.el-textarea__inner) {
-  font-size: 13px;
+  font-size: v-bind('COMPANY_FORM_UI.FORM_INPUT_FONT_SIZE');
 }
 
 .company-form-dialog :deep(.el-textarea__inner) {
   resize: vertical;
-  min-height: 60px;
+  min-height: v-bind('COMPANY_FORM_UI.FORM_TEXTAREA_MIN_HEIGHT');
 }
 
 .form-row-inline {
   display: flex;
   align-items: flex-start;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP');
+  margin-bottom: v-bind('COMPANY_FORM_UI.FORM_ROW_MARGIN_BOTTOM');
 }
 
 .form-item-inline {
@@ -230,19 +241,19 @@ const handleSubmit = async () => {
 }
 
 .form-item-inline :deep(.el-form-item__label) {
-  font-size: 12px;
-  font-weight: 500;
-  color: #606266;
-  margin-bottom: 4px;
+  font-size: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_SIZE');
+  font-weight: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_WEIGHT');
+  color: v-bind('COMPANY_FORM_UI.FORM_LABEL_COLOR');
+  margin-bottom: v-bind('COMPANY_FORM_UI.FORM_LABEL_MARGIN_BOTTOM');
 }
 
 .id-input :deep(.el-input__wrapper) {
-  background-color: #f5f7fa;
+  background-color: v-bind('COMPANY_FORM_UI.FORM_ID_INPUT_BACKGROUND');
 }
 
 .id-input :deep(.el-input__inner) {
-  color: #909399;
-  font-weight: 600;
+  color: v-bind('COMPANY_FORM_UI.FORM_ID_INPUT_COLOR');
+  font-weight: v-bind('COMPANY_FORM_UI.FORM_ID_INPUT_FONT_WEIGHT');
 }
 
 .icon-select {
@@ -250,14 +261,13 @@ const handleSubmit = async () => {
 }
 
 .icon-select :deep(.el-select__wrapper) {
-  height: 32px;
+  height: v-bind('COMPANY_FORM_UI.FORM_SELECT_HEIGHT');
 }
 
-/* ★★★ СТИЛИ ДЛЯ ИКОНОК В SELECT ★★★ */
 .icon-option {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: v-bind('COMPANY_FORM_UI.FORM_ICON_OPTION_GAP');
   line-height: 1;
 }
 
@@ -269,7 +279,7 @@ const handleSubmit = async () => {
 }
 
 :deep(.el-select-dropdown__item) {
-  padding: 8px 12px;
+  padding: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_ITEM_PADDING');
 }
 
 :deep(.el-select-dropdown__item.selected) {
@@ -280,10 +290,10 @@ const handleSubmit = async () => {
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: v-bind('COMPANY_FORM_UI.FORM_FOOTER_GAP');
 }
 
 .dialog-footer .el-button {
-  min-width: 80px;
+  min-width: v-bind('COMPANY_FORM_UI.FORM_FOOTER_BUTTON_MIN_WIDTH');
 }
 </style>

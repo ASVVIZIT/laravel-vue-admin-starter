@@ -1,7 +1,7 @@
 <template>
   <el-dialog
       v-model="localVisible"
-      :title="dialogTitle"
+      :title="DELETE_CONFIRM_MESSAGES.TITLE"
       :width="DELETE_CONFIRM_UI.DIALOG_WIDTH"
       :close-on-click-modal="false"
       :close-on-press-escape="!props.loading"
@@ -29,62 +29,65 @@
     </div>
 
     <template #footer>
-      <span class="dialog-footer">
-        <el-button @click="handleCancel" :disabled="props.loading">
-          {{ DELETE_CONFIRM_MESSAGES.CANCEL }}
-        </el-button>
-        <el-button
-            type="danger"
-            @click="handleConfirm"
-            :loading="props.loading"
-        >
-          {{ DELETE_CONFIRM_MESSAGES.CONFIRM }}
-        </el-button>
-      </span>
+            <span class="dialog-footer">
+                <el-button @click="handleCancel" :disabled="props.loading">
+                    {{ DELETE_CONFIRM_MESSAGES.CANCEL }}
+                </el-button>
+                <el-button
+                    type="danger"
+                    @click="handleConfirm"
+                    :loading="props.loading"
+                >
+                    {{ DELETE_CONFIRM_MESSAGES.CONFIRM }}
+                </el-button>
+            </span>
     </template>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, watch, computed } from 'vue';
+import { computed, watch } from 'vue';
 import { Warning, InfoFilled } from '@element-plus/icons-vue';
 import {
   DELETE_CONFIRM_PROPS_CONFIG,
   DELETE_CONFIRM_UI,
   DELETE_CONFIRM_MESSAGES,
-} from '../../utils/paginationOptions.js';
+} from '../../utils/appConfig.js';
 
 const props = defineProps(DELETE_CONFIRM_PROPS_CONFIG);
+
 const emit = defineEmits(['update:visible', 'confirm', 'cancel']);
 
-const localVisible = ref(props.visible);
-
-const dialogTitle = computed(() => {
-  return DELETE_CONFIRM_MESSAGES.TITLE;
+const localVisible = computed({
+  get: () => props.visible,
+  set: (val) => {
+    console.log('[DeleteConfirm] localVisible: SET', val);
+    emit('update:visible', val);
+  },
 });
 
 watch(() => props.visible, (newVal) => {
-  localVisible.value = newVal;
-});
-
-watch(localVisible, (newVal) => {
-  if (!newVal && props.visible) {
+  console.log('[DeleteConfirm] watch visible:', newVal);
+  if (!newVal) {
     emit('update:visible', false);
   }
 });
 
 const handleConfirm = () => {
+  console.log('[DeleteConfirm] handleConfirm');
   if (props.loading) return;
   emit('confirm');
 };
 
 const handleCancel = () => {
+  console.log('[DeleteConfirm] handleCancel');
   if (props.loading) return;
   emit('cancel');
-  localVisible.value = false;
+  emit('update:visible', false);
 };
 
 const resetForm = () => {
+  console.log('[DeleteConfirm] resetForm');
   emit('update:visible', false);
 };
 </script>

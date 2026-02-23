@@ -31,7 +31,7 @@
 <script setup>
 import { computed } from 'vue';
 import { Loading, Check } from '@element-plus/icons-vue';
-import { CHUNK_PROGRESS_CONFIG, CHUNK_PROGRESS_PROPS_CONFIG } from '../../utils/paginationOptions.js';
+import { CHUNK_PROGRESS_CONFIG, CHUNK_PROGRESS_PROPS_CONFIG } from '../../utils/appConfig.js';
 
 const props = defineProps(CHUNK_PROGRESS_PROPS_CONFIG);
 

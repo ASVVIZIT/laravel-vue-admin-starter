@@ -102,7 +102,7 @@ import { Edit, Check, Close } from '@element-plus/icons-vue';
 import {
   EDITABLE_CELL_PROPS_CONFIG,
   EDITABLE_CELL_UI,
-} from '../../utils/paginationOptions.js';
+} from '../../utils/appConfig.js';
 
 const props = defineProps(EDITABLE_CELL_PROPS_CONFIG);
 

@@ -89,7 +89,7 @@ import {
   LOADING_DATA_ACTIONS_UI,
   LOADING_DATA_ACTIONS_COLORS,
   LOADING_DATA_ACTIONS_MESSAGES,
-} from '../../utils/paginationOptions.js';
+} from '../../utils/appConfig.js';
 
 const props = defineProps(LOADING_DATA_ACTIONS_PROPS_CONFIG);
 

@@ -50,17 +50,17 @@
           class="sort-select"
           @change="handleSortChange"
       >
-        <el-option label="ID ↑" value="id_asc" />
-        <el-option label="ID ↓" value="id_desc" />
-        <el-option label="Название А-Я" value="name_asc" />
-        <el-option label="Название Я-А" value="name_desc" />
-        <el-option label="Сначала новые" value="created_at_desc" />
-        <el-option label="Сначала старые" value="created_at_asc" />
+        <el-option
+            v-for="option in sortOptionsList"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
+        />
       </el-select>
     </div>
 
     <div class="filter-info">
-      <div class="info-label">Найдено</div>
+      <div class="info-label">{{ FILTERS_MESSAGES.FOUND_LABEL }}</div>
       <div class="info-count">{{ props.totalFiltered }}/{{ props.totalItems }}</div>
     </div>
 
@@ -84,25 +84,34 @@ import {
   FILTERS_PROPS_CONFIG,
   FILTERS_UI,
   FILTERS_MESSAGES,
-} from '../../utils/paginationOptions.js';
+  SORT_OPTIONS,
+  getSortOptions,
+} from '../../utils/appConfig.js';
 
-const props = defineProps(FILTERS_PROPS_CONFIG);
+const props = defineProps({
+  ...FILTERS_PROPS_CONFIG,
+  sortOptions: { type: Array, default: null },
+});
 
 const emit = defineEmits(['search', 'filter', 'reset', 'sort']);
 
 const searchInputRef = ref(null);
 const localSearch = ref('');
 const localHasIcon = ref('');
-const localSortBy = ref('id_asc');
+const localSortBy = ref(SORT_OPTIONS.DEFAULT);
 const isSearchFocused = ref(false);
 
 let searchTimeout = null;
+
+const sortOptionsList = computed(() => {
+  return props.sortOptions || getSortOptions();
+});
 
 const hasActiveFilters = computed(() => {
   return (
       localSearch.value !== '' ||
       localHasIcon.value !== '' ||
-      localSortBy.value !== 'id_asc'
+      localSortBy.value !== SORT_OPTIONS.DEFAULT
   );
 });
 
@@ -140,7 +149,7 @@ const handleReset = () => {
   }
   localSearch.value = '';
   localHasIcon.value = '';
-  localSortBy.value = 'id_asc';
+  localSortBy.value = SORT_OPTIONS.DEFAULT;
   emit('reset');
   emitFilter();
 
@@ -179,7 +188,6 @@ onUnmounted(() => {
   align-items: center;
 }
 
-/* ★★★ ПОИСК — ВСЕГДА В ПОТОКЕ (БЕЗ absolute) ★★★ */
 .search-filter {
   position: relative;
   z-index: 1;
@@ -189,15 +197,13 @@ onUnmounted(() => {
   margin-left: 0 !important;
 }
 
-/* ★★★ ПРИ ФОКУСЕ — РОСТ ВЛЕВО ЧЕРЕЗ ОТРИЦАТЕЛЬНЫЙ MARGIN ★★★ */
 .search-filter.is-focused {
-  position: relative !important;  /* ← ← ВСЕГДА В ПОТОКЕ! */
+  position: relative !important;
   right: auto !important;
   top: auto !important;
   flex: 0 0 v-bind('FILTERS_UI.INPUT_WIDTH_FOCUSED') !important;
   max-width: v-bind('FILTERS_UI.INPUT_WIDTH_FOCUSED') !important;
   z-index: 100;
-  /* ← ← ОТРИЦАТЕЛЬНЫЙ MARGIN ТОЛКАЕТ ПОИСК ВЛЕВО, НЕ СДВИГАЯ СОСЕДЕЙ */
   margin-left: calc(v-bind('FILTERS_UI.INPUT_WIDTH') - v-bind('FILTERS_UI.INPUT_WIDTH_FOCUSED')) !important;
 }
 

@@ -5,19 +5,19 @@
         :data="props.data"
         v-loading="props.loading"
         :max-height="maxHeight"
-        stripe
-        border
-        size="small"
+        :stripe="COMPANY_TABLE_UI.TABLE_PROPS.stripe"
+        :border="COMPANY_TABLE_UI.TABLE_PROPS.border"
+        :size="COMPANY_TABLE_UI.TABLE_PROPS.size"
         :header-cell-style="headerCellStyle"
         :cell-style="cellStyle"
         :element-loading-text="loadingText"
-        element-loading-background="rgba(255, 255, 255, 0.9)"
+        :element-loading-background="COMPANY_TABLE_UI.LOADING_BACKGROUND"
         @row-dblclick="handleRowDblClick"
         class="company-table"
     >
       <el-table-column
           label="#"
-          width="28"
+          :width="COMPANY_TABLE_UI.ROW_NUMBER_WIDTH"
           align="center"
           fixed="left"
           :resizable="false"
@@ -29,8 +29,8 @@
 
       <el-table-column
           prop="id"
-          label="ID"
-          width="35"
+          :label="getFieldLabel('id', 'company')"
+          :width="COMPANY_TABLE_UI.ID_WIDTH"
           align="center"
           fixed="left"
           :resizable="false"
@@ -42,18 +42,18 @@
 
       <el-table-column
           prop="name"
-          label="Название"
-          min-width="120"
+          :label="getFieldLabel('name', 'company')"
+          :min-width="COMPANY_TABLE_UI.NAME_MIN_WIDTH"
           :resizable="true"
       >
         <template #default="{ row }">
           <EditableCell
               v-model="row.name"
               type="text"
-              placeholder="Название"
-              :disabled="row._updating || props.loading"
+              :placeholder="COMPANY_TABLE_UI.NAME_PLACEHOLDER"
+              :disabled="row._updating || row._refreshing || props.loading"
               :loading="row._updating"
-              empty-text="—"
+              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
               :show-action-buttons="true"
               @save="handleUpdateField(row.id, 'name', $event)"
@@ -64,8 +64,8 @@
 
       <el-table-column
           prop="settings.icon"
-          label="Иконка"
-          width="80"
+          :label="getFieldLabel('settings.icon', 'company')"
+          :width="COMPANY_TABLE_UI.ICON_WIDTH"
           align="center"
           :resizable="true"
       >
@@ -73,10 +73,10 @@
           <EditableCell
               v-model="row.settings.icon"
               type="select"
-              placeholder="Выберите"
-              :disabled="row._updating || props.loading"
+              :placeholder="COMPANY_TABLE_UI.ICON_PLACEHOLDER"
+              :disabled="row._updating || row._refreshing || props.loading"
               :loading="row._updating"
-              empty-text="—"
+              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
               :show-action-buttons="true"
               @save="handleUpdateField(row.id, 'settings.icon', $event)"
@@ -86,12 +86,12 @@
               <div class="icon-display-wrapper">
                 <el-icon
                     v-if="value && props.iconMap[value]"
-                    :size="16"
-                    color="#409EFF"
+                    :size="COMPANY_TABLE_UI.ICON_DISPLAY_SIZE"
+                    :color="COMPANY_TABLE_UI.ICON_DISPLAY_COLOR"
                 >
                   <component :is="props.iconMap[value]" />
                 </el-icon>
-                <span v-else class="icon-placeholder">—</span>
+                <span v-else class="icon-placeholder">{{ COMPANY_TABLE_UI.EMPTY_CELL_TEXT }}</span>
               </div>
             </template>
             <template #options>
@@ -101,12 +101,12 @@
                   :label="icon.label"
                   :value="icon.value"
               >
-                  <span class="icon-option">
-                      <el-icon :size="14">
-                          <component :is="props.iconMap[icon.value]" />
-                      </el-icon>
-                      <span>{{ icon.label }}</span>
-                  </span>
+                                <span class="icon-option">
+                                    <el-icon :size="COMPANY_TABLE_UI.ICON_SELECT_SIZE">
+                                        <component :is="props.iconMap[icon.value]" />
+                                    </el-icon>
+                                    <span>{{ icon.label }}</span>
+                                </span>
               </el-option>
             </template>
           </EditableCell>
@@ -115,8 +115,8 @@
 
       <el-table-column
           prop="description"
-          label="Описание"
-          min-width="130"
+          :label="getFieldLabel('description', 'company')"
+          :min-width="COMPANY_TABLE_UI.DESCRIPTION_MIN_WIDTH"
           :resizable="true"
       >
         <template #default="{ row }">
@@ -124,13 +124,13 @@
               v-model="row.description"
               type="textarea"
               :rows="1"
-              placeholder="Описание"
-              :disabled="row._updating || props.loading"
+              :placeholder="COMPANY_TABLE_UI.DESCRIPTION_PLACEHOLDER"
+              :disabled="row._updating || row._refreshing || props.loading"
               :loading="row._updating"
-              empty-text="—"
+              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
               :show-action-buttons="true"
-              :max-length="1000"
+              :max-length="COMPANY_TABLE_UI.DESCRIPTION_MAX_LENGTH"
               @save="handleUpdateField(row.id, 'description', $event)"
               @error="handleEditError(row, 'description', $event)"
           />
@@ -139,21 +139,21 @@
 
       <el-table-column
           prop="address"
-          label="Адрес"
-          min-width="120"
+          :label="getFieldLabel('address', 'company')"
+          :min-width="COMPANY_TABLE_UI.ADDRESS_MIN_WIDTH"
           :resizable="true"
       >
         <template #default="{ row }">
           <EditableCell
               v-model="row.address"
               type="text"
-              placeholder="Адрес"
-              :disabled="row._updating || props.loading"
+              :placeholder="COMPANY_TABLE_UI.ADDRESS_PLACEHOLDER"
+              :disabled="row._updating || row._refreshing || props.loading"
               :loading="row._updating"
-              empty-text="—"
+              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
               :show-action-buttons="true"
-              :max-length="500"
+              :max-length="COMPANY_TABLE_UI.ADDRESS_MAX_LENGTH"
               @save="handleUpdateField(row.id, 'address', $event)"
               @error="handleEditError(row, 'address', $event)"
           />
@@ -163,15 +163,15 @@
       <el-table-column
           prop="contact_channels_count"
           label="Каналы"
-          width="55"
+          :width="COMPANY_TABLE_UI.CHANNEL_WIDTH"
           align="center"
           :resizable="false"
       >
         <template #default="{ row }">
           <el-tag
               :type="getChannelCountType(row.contact_channels_count)"
-              size="small"
-              effect="plain"
+              :effect="COMPANY_TABLE_UI.TAG_PROPS.effect"
+              :size="COMPANY_TABLE_UI.TAG_PROPS.size"
               class="channel-tag"
           >
             {{ row.contact_channels_count || 0 }}
@@ -181,36 +181,51 @@
 
       <el-table-column
           label="Действия"
-          width="60"
+          :width="COMPANY_TABLE_UI.ACTION_WIDTH"
           fixed="right"
           align="center"
           :resizable="false"
       >
         <template #default="{ row }">
           <div class="action-buttons">
-            <el-tooltip content="Редактировать" placement="left-start">
+            <el-tooltip
+                :content="row._refreshing ? LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD_LOADING : LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD"
+                placement="top"
+            >
+              <el-button
+                  size="small"
+                  :type="row._refreshing ? 'warning' : 'info'"
+                  :icon="row._refreshing ? Loading : Refresh"
+                  circle
+                  :loading="row._refreshing"
+                  :disabled="props.loading || row._updating || row._refreshing"
+                  @click.stop="handleRefreshRecord(row.id)"
+                  class="action-btn action-btn-refresh"
+              />
+            </el-tooltip>
+
+            <el-tooltip content="Редактировать" placement="top">
               <el-button
                   size="small"
                   type="primary"
-                  link
+                  :icon="Edit"
+                  circle
+                  :disabled="props.loading || row._updating || row._refreshing"
                   @click.stop="handleEdit(row)"
-                  :disabled="props.loading || row._updating"
-                  class="action-btn"
-              >
-                <el-icon><Edit /></el-icon>
-              </el-button>
+                  class="action-btn action-btn-edit"
+              />
             </el-tooltip>
-            <el-tooltip content="Удалить" placement="right-start">
+
+            <el-tooltip content="Удалить" placement="top">
               <el-button
                   size="small"
                   type="danger"
-                  link
+                  :icon="Delete"
+                  circle
+                  :disabled="props.loading || row._updating || row._refreshing"
                   @click.stop="handleDelete(row)"
-                  :disabled="props.loading || row._updating"
-                  class="action-btn"
-              >
-                <el-icon><Delete /></el-icon>
-              </el-button>
+                  class="action-btn action-btn-delete"
+              />
             </el-tooltip>
           </div>
         </template>
@@ -218,8 +233,10 @@
 
       <template #empty>
         <div class="table-empty">
-          <el-icon :size="24" color="#909399"><Document /></el-icon>
-          <p>Нет данных</p>
+          <el-icon :size="COMPANY_TABLE_UI.EMPTY_ICON_SIZE" :color="COMPANY_TABLE_UI.EMPTY_ICON_COLOR">
+            <Document />
+          </el-icon>
+          <p>{{ COMPANY_LIST_MESSAGES.EMPTY_NO_DATA }}</p>
         </div>
       </template>
     </el-table>
@@ -228,16 +245,19 @@
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Edit, Delete, Document } from '@element-plus/icons-vue';
+import { Edit, Delete, Document, Refresh, Loading } from '@element-plus/icons-vue';
 import EditableCell from '../Common/EditableCell.vue';
+import { getFieldLabel } from '../../utils/fieldLabels.js';
 import {
   COMPANY_TABLE_PROPS_CONFIG,
   COMPANY_TABLE_UI,
-} from '../../utils/paginationOptions.js';
+  COMPANY_LIST_MESSAGES,
+  LOADING_DATA_ACTIONS_MESSAGES,
+} from '../../utils/appConfig.js';
 
 const props = defineProps(COMPANY_TABLE_PROPS_CONFIG);
 
-const emit = defineEmits(['edit', 'delete', 'update-field', 'row-dblclick']);
+const emit = defineEmits(['edit', 'delete', 'update-field', 'row-dblclick', 'refresh']);
 
 const tableRef = ref(null);
 
@@ -246,22 +266,22 @@ const maxHeight = computed(() => {
 });
 
 const loadingText = computed(() => {
-  return props.loading ? 'Загрузка...' : '';
+  return props.loading ? COMPANY_LIST_MESSAGES.LOADING_INITIAL : '';
 });
 
 const headerCellStyle = computed(() => ({
   background: COMPANY_TABLE_UI.HEADER_BACKGROUND,
   color: COMPANY_TABLE_UI.HEADER_COLOR,
   fontWeight: COMPANY_TABLE_UI.HEADER_FONT_WEIGHT,
-  fontSize: '8px',
-  height: '20px',
-  padding: '0 2px',
+  fontSize: COMPANY_TABLE_UI.HEADER_FONT_SIZE,
+  height: COMPANY_TABLE_UI.HEADER_HEIGHT,
+  padding: COMPANY_TABLE_UI.HEADER_PADDING,
 }));
 
 const cellStyle = computed(() => ({
-  padding: '1px 2px',
-  fontSize: '8px',
-  height: '22px',
+  padding: COMPANY_TABLE_UI.CELL_PADDING,
+  fontSize: COMPANY_TABLE_UI.CELL_FONT_SIZE,
+  height: COMPANY_TABLE_UI.CELL_HEIGHT,
 }));
 
 const rowIndex = ($index) => {
@@ -274,6 +294,10 @@ const handleUpdateField = (companyId, fieldName, newValue) => {
 
 const handleEditError = (row, fieldName, error) => {
   console.warn('[CompanyTable] Edit error:', { companyId: row.id, fieldName, error });
+};
+
+const handleRefreshRecord = (id) => {
+  emit('refresh', id);
 };
 
 const handleEdit = (row) => {
@@ -290,10 +314,10 @@ const handleRowDblClick = (row) => {
 };
 
 const getChannelCountType = (count) => {
-  if (!count || count === 0) return 'info';
-  if (count <= 3) return 'success';
-  if (count <= 10) return 'warning';
-  return 'danger';
+  if (!count || count === 0) return COMPANY_TABLE_UI.CHANNEL_TAG_TYPES.EMPTY;
+  if (count <= COMPANY_TABLE_UI.CHANNEL_THRESHOLDS.LOW) return COMPANY_TABLE_UI.CHANNEL_TAG_TYPES.LOW;
+  if (count <= COMPANY_TABLE_UI.CHANNEL_THRESHOLDS.MEDIUM) return COMPANY_TABLE_UI.CHANNEL_TAG_TYPES.MEDIUM;
+  return COMPANY_TABLE_UI.CHANNEL_TAG_TYPES.HIGH;
 };
 </script>
 
@@ -304,7 +328,7 @@ const getChannelCountType = (count) => {
   position: relative;
   background: #FFFFFF;
   border-radius: 2px;
-  overflow: hidden !important;
+  overflow: v-bind('COMPANY_TABLE_UI.CONTAINER_OVERFLOW');
 }
 
 .company-table :deep(.el-table__header-wrapper) {
@@ -315,39 +339,39 @@ const getChannelCountType = (count) => {
   background-color: v-bind('COMPANY_TABLE_UI.HEADER_BACKGROUND') !important;
   color: v-bind('COMPANY_TABLE_UI.HEADER_COLOR') !important;
   font-weight: v-bind('COMPANY_TABLE_UI.HEADER_FONT_WEIGHT') !important;
-  font-size: 8px;
-  height: 20px !important;
-  padding: 0 2px !important;
+  font-size: v-bind('COMPANY_TABLE_UI.HEADER_FONT_SIZE');
+  height: v-bind('COMPANY_TABLE_UI.HEADER_HEIGHT') !important;
+  padding: v-bind('COMPANY_TABLE_UI.HEADER_PADDING') !important;
 }
 
 .company-table :deep(.el-table__header th.is-fixed-left),
 .company-table :deep(.el-table__header th.is-fixed-right) {
-  z-index: 10 !important;
+  z-index: v-bind('COMPANY_TABLE_UI.FIXED_COLUMN_Z_INDEX') !important;
 }
 
 .company-table :deep(.el-table) {
-  font-size: 8px;
+  font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE');
 }
 
 .company-table :deep(.el-table .cell) {
-  padding: 1px 2px;
-  line-height: 1.2;
+  padding: v-bind('COMPANY_TABLE_UI.CELL_PADDING');
+  line-height: v-bind('COMPANY_TABLE_UI.CELL_LINE_HEIGHT');
   white-space: nowrap;
-  overflow: visible !important;
+  overflow: v-bind('COMPANY_TABLE_UI.CELL_OVERFLOW');
   text-overflow: clip;
 }
 
 .company-table :deep(.el-table__row) {
-  height: 22px !important;
+  height: v-bind('COMPANY_TABLE_UI.ROW_HEIGHT') !important;
 }
 
 .company-table :deep(.el-table__row td) {
-  padding: 1px 2px !important;
-  height: 22px !important;
+  padding: v-bind('COMPANY_TABLE_UI.CELL_PADDING') !important;
+  height: v-bind('COMPANY_TABLE_UI.CELL_HEIGHT') !important;
 }
 
 .company-table :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
-  background-color: #fafafa;
+  background-color: v-bind('COMPANY_TABLE_UI.STRIPED_ROW_BACKGROUND');
 }
 
 .company-table :deep(.el-table--enable-row-hover .el-table__body tr:hover > td) {
@@ -355,18 +379,18 @@ const getChannelCountType = (count) => {
 }
 
 .company-table :deep(.el-table__body-wrapper) {
-  overflow: visible !important;
+  overflow: v-bind('COMPANY_TABLE_UI.CELL_OVERFLOW');
 }
 
 .cell-row-number {
-  font-size: 7px;
-  color: #909399;
+  font-size: v-bind('COMPANY_TABLE_UI.ROW_NUMBER_FONT_SIZE');
+  color: v-bind('COMPANY_TABLE_UI.ROW_NUMBER_COLOR');
 }
 
 .cell-id {
-  font-weight: 600;
-  color: #409EFF;
-  font-size: 8px;
+  font-weight: v-bind('COMPANY_TABLE_UI.ID_FONT_WEIGHT');
+  color: v-bind('COMPANY_TABLE_UI.ID_COLOR');
+  font-size: v-bind('COMPANY_TABLE_UI.ID_FONT_SIZE');
 }
 
 .icon-display-wrapper {
@@ -374,44 +398,92 @@ const getChannelCountType = (count) => {
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 20px;
+  min-height: v-bind('COMPANY_TABLE_UI.ICON_DISPLAY_MIN_HEIGHT');
 }
 
 .icon-placeholder {
-  font-size: 14px;
-  color: #c0c4cc;
+  font-size: v-bind('COMPANY_TABLE_UI.ICON_PLACEHOLDER_FONT_SIZE');
+  color: v-bind('COMPANY_TABLE_UI.ICON_PLACEHOLDER_COLOR');
 }
 
 .icon-option {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: v-bind('COMPANY_TABLE_UI.ICON_OPTION_GAP');
 }
 
 .channel-tag {
-  height: 14px;
-  padding: 0 3px;
-  font-size: 7px;
-  font-weight: 500;
+  height: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_HEIGHT');
+  padding: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_PADDING');
+  font-size: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_FONT_SIZE');
+  font-weight: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_FONT_WEIGHT');
 }
 
 .action-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 4px;
+}
+
+.action-buttons .el-button + .el-button {
+  margin-left: 0px !important;
 }
 
 .action-btn {
-  padding: 1px;
-  font-size: 10px;
-  min-width: auto;
-  width: auto;
-  height: auto;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
-.action-btn:hover {
-  transform: scale(1.1);
+.action-btn-refresh {
+  color: #FF9500 !important;
+}
+
+.action-btn-refresh:hover:not(:disabled) {
+  color: #FFB140 !important;
+  transform: scale(1.15);
+}
+
+.action-btn-refresh :deep(.el-icon.is-loading) {
+  color: #FF4444 !important;
+  animation: rotating 1s linear infinite;
+}
+
+@keyframes rotating {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.action-btn-edit {
+  color: #409EFF !important;
+}
+
+.action-btn-edit:hover:not(:disabled) {
+  color: #66b1ff !important;
+  transform: scale(1.15);
+}
+
+.action-btn-delete {
+  color: #F56C6C !important;
+}
+
+.action-btn-delete:hover:not(:disabled) {
+  color: #f78989 !important;
+  transform: scale(1.15);
+}
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none !important;
+  color: #c0c4cc !important;
 }
 
 .table-empty {
@@ -419,30 +491,30 @@ const getChannelCountType = (count) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 20px 10px;
-  color: #909399;
+  gap: v-bind('COMPANY_TABLE_UI.EMPTY_GAP');
+  padding: v-bind('COMPANY_TABLE_UI.EMPTY_PADDING');
+  color: v-bind('COMPANY_TABLE_UI.EMPTY_TEXT_COLOR');
 }
 
 .table-empty p {
   margin: 0;
-  font-size: 11px;
-  color: #909399;
+  font-size: v-bind('COMPANY_TABLE_UI.EMPTY_TEXT_SIZE');
+  color: v-bind('COMPANY_TABLE_UI.EMPTY_TEXT_COLOR');
 }
 
 .company-table :deep(.el-table__body-wrapper)::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: v-bind('COMPANY_TABLE_UI.SCROLLBAR_WIDTH');
+  height: v-bind('COMPANY_TABLE_UI.SCROLLBAR_WIDTH');
 }
 
 .company-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
+  background: v-bind('COMPANY_TABLE_UI.SCROLLBAR_TRACK_COLOR');
+  border-radius: v-bind('COMPANY_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
 }
 
 .company-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 3px;
+  background: v-bind('COMPANY_TABLE_UI.SCROLLBAR_THUMB_COLOR');
+  border-radius: v-bind('COMPANY_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
 }
 
 :deep(.el-select-dropdown__item) {

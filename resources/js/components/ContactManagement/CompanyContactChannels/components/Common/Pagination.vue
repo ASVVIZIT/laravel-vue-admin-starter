@@ -1,17 +1,14 @@
 <template>
   <div class="pagination-wrapper" :class="{ 'is-recalculating': isRecalculating }">
-    <!-- ★★★ ИНДИКАТОР ПЕРЕСЧЕТА ★★★ -->
     <transition name="fade-slide">
       <div v-if="isRecalculating" class="recalculating-banner">
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>Пересчет...</span>
+        <span>{{ PAGINATION_MESSAGES.RECALCULATING }}</span>
       </div>
     </transition>
 
-    <!-- ★★★ ОСНОВНОЙ КОНТЕНТ ★★★ -->
     <transition name="fade-in" appear>
       <div class="pagination-content">
-        <!-- Выбор размера страницы -->
         <PageSizeSelector
             v-model="localPageSize"
             :loaded-count="props.loadedCount"
@@ -20,9 +17,7 @@
             @change="handleSizeChange"
         />
 
-        <!-- ★★★ ПАГИНАЦИЯ С КНОПКАМИ FIRST/LAST ★★★ -->
         <div class="pagination-with-nav">
-          <!-- КНОПКА "ПЕРВАЯ СТРАНИЦА" -->
           <el-button
               v-if="showNavigation"
               size="small"
@@ -35,7 +30,6 @@
             <el-icon><DArrowLeft /></el-icon>
           </el-button>
 
-          <!-- ОСНОВНОЙ EL-PAGINATION -->
           <el-pagination
               background
               :layout="PAGINATOR_DISPLAY.LAYOUT"
@@ -50,7 +44,6 @@
               class="compact-pagination"
           />
 
-          <!-- КНОПКА "ПОСЛЕДНЯЯ СТРАНИЦА" -->
           <el-button
               v-if="showNavigation"
               size="small"
@@ -73,34 +66,19 @@ import { ref, computed, watch } from 'vue';
 import { Loading, DArrowLeft, DArrowRight } from '@element-plus/icons-vue';
 import PageSizeSelector from './PageSizeSelector.vue';
 import {
-  PAGINATION_UI,
   PAGINATION_PROPS_CONFIG,
+  PAGINATION_UI,
   PAGINATOR_DISPLAY,
-} from '../../utils/paginationOptions.js';
-
-// ============================================================================
-// PROPS
-// ============================================================================
+  PAGINATION_MESSAGES,
+} from '../../utils/appConfig.js';
 
 const props = defineProps(PAGINATION_PROPS_CONFIG);
 
-// ============================================================================
-// EMITS
-// ============================================================================
-
 const emit = defineEmits(['page-change', 'size-change']);
-
-// ============================================================================
-// STATE
-// ============================================================================
 
 const localPageSize = ref(props.pageSize);
 const isRecalculating = ref(false);
 const showFirstLastButtons = ref(true);
-
-// ============================================================================
-// COMPUTED
-// ============================================================================
 
 const totalPages = computed(() => {
   if (props.loadedCount === 0) return 1;
@@ -115,10 +93,6 @@ const showNavigation = computed(() => {
   return showFirstLastButtons.value && totalPages.value > 1;
 });
 
-// ============================================================================
-// WATCH
-// ============================================================================
-
 watch(() => props.loadedCount, (newVal, oldVal) => {
   if (newVal !== oldVal && newVal > 0) {
     startRecalculation();
@@ -128,10 +102,6 @@ watch(() => props.loadedCount, (newVal, oldVal) => {
 watch(() => props.pageSize, (newVal) => {
   localPageSize.value = newVal;
 });
-
-// ============================================================================
-// МЕТОДЫ
-// ============================================================================
 
 const startRecalculation = () => {
   isRecalculating.value = true;
@@ -162,20 +132,12 @@ const handleSizeChange = (newSize) => {
 </script>
 
 <style scoped>
-/* ============================================================================
-   ГЛАВНЫЙ КОНТЕЙНЕР
-   ============================================================================ */
-
 .pagination-wrapper {
   position: relative;
   width: 100%;
   margin-top: v-bind('PAGINATION_UI.MARGIN_TOP');
   padding: v-bind('PAGINATION_UI.PADDING');
 }
-
-/* ============================================================================
-   ИНДИКАТОР ПЕРЕСЧЕТА
-   ============================================================================ */
 
 .recalculating-banner {
   position: absolute;
@@ -207,10 +169,6 @@ const handleSizeChange = (newSize) => {
   to { transform: rotate(360deg); }
 }
 
-/* ============================================================================
-   КОНТЕНТ ПАГИНАЦИИ
-   ============================================================================ */
-
 .pagination-content {
   display: flex;
   align-items: center;
@@ -220,10 +178,6 @@ const handleSizeChange = (newSize) => {
   width: 100%;
 }
 
-/* ============================================================================
-   КОНТЕЙНЕР С КНОПКАМИ НАВИГАЦИИ
-   ============================================================================ */
-
 .pagination-with-nav {
   display: flex;
   align-items: center;
@@ -231,10 +185,6 @@ const handleSizeChange = (newSize) => {
   flex: 1;
   justify-content: flex-end;
 }
-
-/* ============================================================================
-   КНОПКИ FIRST/LAST
-   ============================================================================ */
 
 .pagination-nav-btn {
   height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
@@ -267,7 +217,6 @@ const handleSizeChange = (newSize) => {
   transform: none;
 }
 
-/* Первая страница */
 .pagination-btn-first {
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eaed 100%);
   border: 1px solid #dcdfe6;
@@ -280,7 +229,6 @@ const handleSizeChange = (newSize) => {
   color: #409EFF;
 }
 
-/* Последняя страница */
 .pagination-btn-last {
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eaed 100%);
   border: 1px solid #dcdfe6;
@@ -292,10 +240,6 @@ const handleSizeChange = (newSize) => {
   border-color: #409EFF;
   color: #409EFF;
 }
-
-/* ============================================================================
-   ОСНОВНАЯ ПАГИНАЦИЯ
-   ============================================================================ */
 
 .compact-pagination {
   justify-content: flex-end;
@@ -396,10 +340,6 @@ const handleSizeChange = (newSize) => {
   min-height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
 }
 
-/* ============================================================================
-   АНИМАЦИИ
-   ============================================================================ */
-
 .fade-in-enter-active,
 .fade-in-leave-active {
   transition: opacity 0.4s ease, transform 0.4s ease;
@@ -425,10 +365,6 @@ const handleSizeChange = (newSize) => {
   opacity: 0;
   transform: translate(-50%, -20px);
 }
-
-/* ============================================================================
-   АДАПТИВНОСТЬ
-   ============================================================================ */
 
 @media (max-width: 768px) {
   .pagination-with-nav {
