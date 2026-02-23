@@ -54,7 +54,7 @@
     "resources/js/**/*",
     "resources/fonts/**/*",
     "resources/styles/**/*",
-    "vite.config.ts",
+    "vite.config.mts",
     "types/**/*.d.ts"
   ],
   "exclude": [

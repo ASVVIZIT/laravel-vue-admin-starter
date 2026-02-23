@@ -4,7 +4,6 @@
 /storage/*.key
 /vendor
 .env
-.env.txt
 .env.backup
 .phpunit.result.cache
 supervisor/
@@ -26,7 +25,6 @@ composer.lock
 /types/*
 *structure*
 /composer-old.lock
-/.env.production
 /vite.config.mts.*
 /storage/Videos/
 /public/chromedriver.exe
@@ -40,3 +38,4 @@ composer.lock
 /project_dump_dynamic_table_v2.bat
 /dynamic_tables_dump_simple.txt
 /dynamic_tables_dump_fast.txt
+/logs/

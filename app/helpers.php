@@ -131,44 +131,24 @@ if (!function_exists('vite_assets')) {
         $isDocker = config('app.env') === 'docker';
         $viteBase = config('vite.base', '/build/');
 
-        // Список локалей для Element Plus
-/*        $elementLocales = [
-            'element-plus/dist/locale/ru.mjs',
-            'element-plus/dist/locale/en.mjs',
-            'element-plus/dist/locale/zh-cn.mjs'
-        ];*/
-
         // ==================== PRODUCTION MODE ====================
         if ($isProduction) {
             $manifestPath = public_path('build/manifest.json');
 
             if (!file_exists($manifestPath)) {
-                throw new \RuntimeException(
-                    'Vite manifest not found. Run "npm run build" and check public directory.'
-                );
+                throw new \RuntimeException('Vite manifest not found.');
             }
 
             $manifest = json_decode(file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
             $entry = $manifest['resources/js/app.js'] ?? throw new \RuntimeException('Entry point not found');
 
-            // Основные теги
             $tags = '';
 
-            // Предзагрузка локалей Element Plus
-/*            foreach ($elementLocales as $localePath) {
-                $tags .= sprintf(
-                    '<link rel="modulepreload" href="%s" as="script" crossorigin="anonymous">',
-                    asset($viteBase . $localePath)
-                );
-            }*/
-
-            // Скрипт приложения
             $tags .= sprintf(
                 '<script type="module" src="%s"></script>',
                 asset($viteBase . $entry['file'])
             );
 
-            // CSS файлы
             foreach ($entry['css'] ?? [] as $css) {
                 $tags .= sprintf(
                     '<link rel="stylesheet" href="%s">',
@@ -176,22 +156,11 @@ if (!function_exists('vite_assets')) {
                 );
             }
 
-            // Предзагрузка ассетов
-            foreach ($entry['assets'] ?? [] as $asset) {
-                $ext = pathinfo($asset, PATHINFO_EXTENSION);
-                if (in_array($ext, ['woff', 'woff2', 'ttf', 'eot', 'otf'])) {
-                    $tags .= sprintf(
-                        '<link rel="preload" href="%s" as="font" type="font/%s" crossorigin>',
-                        asset($viteBase . $asset),
-                        $ext
-                    );
-                }
-            }
-
             return new HtmlString($tags);
         }
 
         // ==================== DEVELOPMENT MODE ====================
+        // ✅ ИСПОЛЬЗОВАТЬ VITE_DEV_SERVER_URL ИЗ .ENV
         $devServer = $isDocker
             ? rtrim(env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173'), '/')
             : rtrim(env('VITE_DEV_SERVER_URL', 'http://localhost:5173'), '/');
@@ -201,52 +170,11 @@ if (!function_exists('vite_assets')) {
             <script type="module" src="$devServer/resources/js/app.js"></script>
         HTML;
 
-        // В dev-режиме добавляем favicon
         $tags .= sprintf(
             '<link rel="icon" type="image/x-icon" href="%s">',
-            $devServer . '/resources/images/favicon.ico'
+            asset('favicon.ico')
         );
 
         return new HtmlString($tags);
     }
 }
-
-
-/*if (!function_exists('vite_assets')) {
-    function vite_assets(): HtmlString
-    {
-        $env = config('app.env');
-        $isProduction = $env === 'production';
-        $isDocker = $env === 'docker';
-        $manifestPath = public_path('build/manifest.json');
-
-        // Production mode
-        if ($isProduction && file_exists($manifestPath)) {
-            $manifest = json_decode(file_get_contents($manifestPath), true);
-
-            if (!isset($manifest['resources/js/app.js'])) {
-                throw new Exception('Vite manifest entry not found');
-            }
-
-            $script = '/build/' . $manifest['resources/js/app.js']['file'];
-            $css = $manifest['resources/js/app.js']['css'][0] ?? '';
-
-            $html = "<script type=\"module\" src=\"$script\"></script>";
-            if ($css) {
-                $html .= "<link rel=\"stylesheet\" href=\"/build/$css\">";
-            }
-
-            return new HtmlString($html);
-        }
-
-        // Development modes
-        $devServer = $isDocker
-            ? env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173')
-            : env('VITE_DEV_SERVER_URL', 'http://localhost:5173');
-
-        return new HtmlString(<<<HTML
-            <script type="module" src="$devServer/@vite/client"></script>
-            <script type="module" src="$devServer/resources/js/app.js"></script>
-        HTML);
-    }
-}*/
