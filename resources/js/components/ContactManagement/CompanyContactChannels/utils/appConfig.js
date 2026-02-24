@@ -80,7 +80,7 @@ export const COMPANY_TABLE_PROPS_CONFIG = {
     iconOptions: { type: Array, required: true },
     currentPage: { type: Number, default: 1 },
     pageSize: { type: Number, default: 15 },
-    tableHeight: { type: String, default: '300' },
+    tableHeight: { type: String, default: '280' },
 };
 
 export const PAGINATION_PROPS_CONFIG = {
