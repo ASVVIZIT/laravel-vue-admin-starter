@@ -6,6 +6,8 @@
       :close-on-click-modal="false"
       :close-on-press-escape="false"
       class="company-form-dialog"
+      :show-close="true"
+      :destroy-on-close="true"
   >
     <el-form
         ref="formRef"
@@ -25,6 +27,7 @@
             :maxlength="COMPANY_FORM_FIELDS.NAME.maxLength"
             :disabled="props.loading"
             show-word-limit
+            :clearable="true"
         />
       </el-form-item>
 
@@ -60,12 +63,12 @@
                 :label="icon.label"
                 :value="icon.value"
             >
-                            <span class="icon-option">
-                                <el-icon :size="14" color="#409EFF">
-                                    <component :is="getIconComponent(icon.value)" />
-                                </el-icon>
-                                <span>{{ icon.label }}</span>
-                            </span>
+              <span class="icon-option">
+                <el-icon :size="COMPANY_TABLE_UI.ICON_SELECT_SIZE" :color="COLORS.PRIMARY">
+                  <component :is="getIconComponent(icon.value)" />
+                </el-icon>
+                <span>{{ icon.label }}</span>
+              </span>
             </el-option>
           </el-select>
         </el-form-item>
@@ -83,6 +86,7 @@
             :disabled="props.loading"
             :maxlength="COMPANY_FORM_FIELDS.DESCRIPTION.maxLength"
             show-word-limit
+            :resize="COMPANY_FORM_UI.FORM_TEXTAREA_RESIZE || 'vertical'"
         />
       </el-form-item>
 
@@ -96,6 +100,7 @@
             :disabled="props.loading"
             :maxlength="COMPANY_FORM_FIELDS.ADDRESS.maxLength"
             show-word-limit
+            :clearable="true"
         />
       </el-form-item>
     </el-form>
@@ -128,8 +133,14 @@ import {
   COMPANY_FORM_UI,
   COMPANY_FORM_FIELDS,
   COMPANY_FORM_MESSAGES,
+  COMPANY_FORM_VALIDATION,
   getDefaultCompanyFormValidation,
   getInitialCompanyFormState,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
+  COMPANY_TABLE_UI,
 } from '../../utils/appConfig.js';
 import { getFieldLabel } from '../../utils/fieldLabels.js';
 
@@ -207,8 +218,20 @@ const handleSubmit = async () => {
   padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING');
 }
 
+.company-form-dialog :deep(.el-dialog__header) {
+  padding: v-bind('COMPANY_FORM_UI.DIALOG_HEADER_PADDING') !important;
+  border-bottom: 1px solid v-bind('COMPANY_FORM_UI.DIALOG_HEADER_BORDER_COLOR');
+}
+
+.company-form-dialog :deep(.el-dialog__title) {
+  font-size: v-bind('COMPANY_FORM_UI.DIALOG_TITLE_FONT_SIZE');
+  font-weight: v-bind('COMPANY_FORM_UI.DIALOG_TITLE_FONT_WEIGHT');
+  color: v-bind('COMPANY_FORM_UI.DIALOG_TITLE_COLOR');
+}
+
 .company-form-dialog :deep(.el-form-item) {
   margin-bottom: v-bind('COMPANY_FORM_UI.FORM_ITEM_MARGIN_BOTTOM');
+  transition: margin-bottom v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .company-form-dialog :deep(.el-form-item__label) {
@@ -221,6 +244,17 @@ const handleSubmit = async () => {
 .company-form-dialog :deep(.el-input__wrapper),
 .company-form-dialog :deep(.el-textarea__inner) {
   font-size: v-bind('COMPANY_FORM_UI.FORM_INPUT_FONT_SIZE');
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.company-form-dialog :deep(.el-input__wrapper:hover),
+.company-form-dialog :deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
+}
+
+.company-form-dialog :deep(.el-input__wrapper.is-focus),
+.company-form-dialog :deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
 .company-form-dialog :deep(.el-textarea__inner) {
@@ -249,6 +283,7 @@ const handleSubmit = async () => {
 
 .id-input :deep(.el-input__wrapper) {
   background-color: v-bind('COMPANY_FORM_UI.FORM_ID_INPUT_BACKGROUND');
+  cursor: not-allowed;
 }
 
 .id-input :deep(.el-input__inner) {
@@ -280,20 +315,151 @@ const handleSubmit = async () => {
 
 :deep(.el-select-dropdown__item) {
   padding: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_ITEM_PADDING');
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+:deep(.el-select-dropdown__item:hover) {
+  background-color: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_HOVER_BACKGROUND');
 }
 
 :deep(.el-select-dropdown__item.selected) {
-  color: #409EFF;
+  color: v-bind('COLORS.PRIMARY');
   font-weight: 600;
+  background-color: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_SELECTED_BACKGROUND');
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: v-bind('COMPANY_FORM_UI.FORM_FOOTER_GAP');
+  padding-top: v-bind('COMPANY_FORM_UI.FORM_FOOTER_PADDING_TOP');
 }
 
 .dialog-footer .el-button {
   min-width: v-bind('COMPANY_FORM_UI.FORM_FOOTER_BUTTON_MIN_WIDTH');
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.dialog-footer .el-button:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
+  .company-form-dialog :deep(.el-dialog) {
+    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_TABLET') !important;
+  }
+
+  .form-row-inline {
+    flex-direction: row;
+    gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP_TABLET');
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .company-form-dialog :deep(.el-dialog) {
+    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_MOBILE') !important;
+    margin: 10px auto;
+  }
+
+  .form-row-inline {
+    flex-direction: column;
+    gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP_MOBILE');
+  }
+
+  .form-item-inline {
+    width: 100%;
+  }
+
+  .dialog-footer {
+    flex-direction: column;
+    gap: v-bind('COMPANY_FORM_UI.FORM_FOOTER_GAP_MOBILE');
+  }
+
+  .dialog-footer .el-button {
+    width: 100%;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .company-form-dialog :deep(.el-dialog) {
+    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_SMALL') !important;
+    margin: 5px auto;
+  }
+
+  .company-form-dialog :deep(.el-dialog__body) {
+    padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING_SMALL');
+  }
+
+  .company-form-dialog :deep(.el-form-item__label) {
+    font-size: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_SIZE_SMALL');
+  }
+
+  .company-form-dialog :deep(.el-input__wrapper),
+  .company-form-dialog :deep(.el-textarea__inner) {
+    font-size: v-bind('COMPANY_FORM_UI.FORM_INPUT_FONT_SIZE_SMALL');
+  }
+
+  .dialog-footer .el-button {
+    min-width: auto;
+    padding: 8px 12px;
+  }
+}
+
+/* ============================================================================
+   АНИМАЦИИ ДИАЛОГА
+   ============================================================================ */
+.company-form-dialog :deep(.el-dialog) {
+  animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE_OUT');
+}
+
+@keyframes dialogFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.company-form-dialog :deep(.el-overlay) {
+  animation: overlayFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+@keyframes overlayFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ============================================================================
+   ВАЛИДАЦИЯ СТИЛИ
+   ============================================================================ */
+.company-form-dialog :deep(.el-form-item.is-error .el-input__wrapper),
+.company-form-dialog :deep(.el-form-item.is-error .el-textarea__inner) {
+  box-shadow: 0 0 0 1px v-bind('EDITABLE_CELL_UI.ERROR_COLOR') inset !important;
+}
+
+.company-form-dialog :deep(.el-form-item__error) {
+  color: v-bind('EDITABLE_CELL_UI.ERROR_COLOR');
+  font-size: v-bind('COMPANY_FORM_UI.FORM_ERROR_FONT_SIZE');
+  padding-top: v-bind('COMPANY_FORM_UI.FORM_ERROR_PADDING_TOP');
+}
+
+.company-form-dialog :deep(.el-form-item.is-success .el-input__wrapper) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.SUCCESS') inset !important;
 }
 </style>

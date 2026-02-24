@@ -70,6 +70,7 @@
           size="small"
           @click="handleReset"
           :disabled="props.disabled"
+          :title="FILTERS_MESSAGES.RESET_TOOLTIP ?? 'Сбросить фильтры'"
       >
         <el-icon><RefreshLeft /></el-icon>
       </el-button>
@@ -86,6 +87,10 @@ import {
   FILTERS_MESSAGES,
   SORT_OPTIONS,
   getSortOptions,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
 } from '../../utils/appConfig.js';
 
 const props = defineProps({
@@ -123,7 +128,7 @@ const handleSearchInput = () => {
   searchTimeout = setTimeout(() => {
     emit('search', localSearch.value);
     emitFilter();
-  }, props.searchDebounce);
+  }, props.searchDebounce || TIMINGS.DEBOUNCE_SEARCH);
 };
 
 const handleFilterChange = () => {
@@ -157,7 +162,7 @@ const handleReset = () => {
     if (searchInputRef.value) {
       searchInputRef.value.focus();
     }
-  }, 50);
+  }, TIMINGS.DELAY_FAST);
 };
 
 watch(() => props.totalItems, (newVal) => {
@@ -193,7 +198,7 @@ onUnmounted(() => {
   z-index: 1;
   flex: 0 0 v-bind('FILTERS_UI.INPUT_WIDTH') !important;
   max-width: v-bind('FILTERS_UI.INPUT_WIDTH') !important;
-  transition: all v-bind('FILTERS_UI.TRANSITION_DURATION') ease;
+  transition: all v-bind('FILTERS_UI.TRANSITION_DURATION') v-bind('ANIMATIONS.EASING_EASE');
   margin-left: 0 !important;
 }
 
@@ -212,6 +217,15 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_UI.FONT_SIZE');
   padding: 0 5px;
   border-radius: 3px;
+  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.search-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
+}
+
+.search-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
 .search-input :deep(.el-input__inner) {
@@ -221,6 +235,7 @@ onUnmounted(() => {
 
 .search-input :deep(.el-input__prefix) {
   font-size: v-bind('FILTERS_UI.FONT_SIZE');
+  color: v-bind('COLORS.INFO');
 }
 
 .search-input :deep(.el-input__prefix-inner) {
@@ -242,6 +257,11 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_UI.FONT_SIZE');
   padding: 0 5px;
   border-radius: 3px;
+  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.icon-select :deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
 .icon-select :deep(.el-select__input) {
@@ -262,6 +282,11 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_UI.FONT_SIZE');
   padding: 0 5px;
   border-radius: 3px;
+  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.sort-select :deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
 .sort-select :deep(.el-select__input) {
@@ -276,12 +301,13 @@ onUnmounted(() => {
   justify-content: center;
   gap: 1px;
   padding: 0 4px;
+  animation: fadeIn v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .info-label {
   font-size: 6px;
   font-weight: 600;
-  color: #606266;
+  color: v-bind('COLORS.INFO');
   text-transform: uppercase;
   letter-spacing: 0.5px;
   line-height: 1;
@@ -290,7 +316,7 @@ onUnmounted(() => {
 .info-count {
   font-size: 8px;
   font-weight: 700;
-  color: #409EFF;
+  color: v-bind('COLORS.PRIMARY');
   line-height: 1;
 }
 
@@ -313,7 +339,7 @@ onUnmounted(() => {
   color: var(--el-text-color-regular);
   box-sizing: border-box;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 :deep(.el-select-dropdown__item:hover) {
@@ -321,7 +347,7 @@ onUnmounted(() => {
 }
 
 :deep(.el-select-dropdown__item.selected) {
-  color: #409EFF;
+  color: v-bind('COLORS.PRIMARY');
   font-weight: 600;
   background-color: #f0f9eb;
 }
@@ -349,13 +375,37 @@ onUnmounted(() => {
   border-radius: 3px;
   min-width: auto;
   width: auto;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.filter-actions .el-button:hover:not(:disabled) {
+  transform: scale(1.1);
 }
 
 .filter-actions :deep(.el-icon) {
   font-size: 10px;
+  color: v-bind('COLORS.INFO');
 }
 
-@media (max-width: 768px) {
+.filter-actions .el-button:hover:not(:disabled) :deep(.el-icon) {
+  color: v-bind('COLORS.PRIMARY');
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .filters-container {
     gap: 4px;
     justify-content: center;
@@ -391,19 +441,124 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 480px) {
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .filters-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-item {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .search-filter {
+    flex: 2;
+    width: 100%;
+    order: 1;
+  }
+
+  .icon-filter {
+    order: 2;
+  }
+
+  .sort-filter {
+    order: 3;
+  }
+
+  .filter-info {
+    order: 4;
+    width: 100%;
+    margin-top: 4px;
+  }
+
+  .filter-actions {
+    order: 5;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
   .filters-container {
     flex-direction: column;
     align-items: stretch;
+    gap: 6px;
   }
 
   .filter-item {
     width: 100%;
+    flex: none;
   }
 
-  .icon-select,
-  .sort-select {
+  .search-filter {
     width: 100%;
+    max-width: none;
+    order: 1;
+  }
+
+  .icon-filter {
+    width: 100%;
+    order: 2;
+  }
+
+  .sort-filter {
+    width: 100%;
+    order: 3;
+  }
+
+  .filter-info {
+    order: 4;
+    flex-direction: row;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .filter-actions {
+    order: 5;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .info-label {
+    font-size: 5px;
+  }
+
+  .info-count {
+    font-size: 7px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .search-input :deep(.el-input__wrapper),
+  .icon-select :deep(.el-select__wrapper),
+  .sort-select :deep(.el-select__wrapper) {
+    height: 32px !important;
+  }
+
+  .search-input :deep(.el-input__inner),
+  .icon-select :deep(.el-select__input),
+  .sort-select :deep(.el-select__input) {
+    font-size: 14px !important;
+  }
+
+  .filter-actions .el-button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 16px;
+  }
+
+  .filter-actions :deep(.el-icon) {
+    font-size: 14px;
   }
 }
 </style>

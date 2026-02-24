@@ -101,12 +101,12 @@
                   :label="icon.label"
                   :value="icon.value"
               >
-                                <span class="icon-option">
-                                    <el-icon :size="COMPANY_TABLE_UI.ICON_SELECT_SIZE">
-                                        <component :is="props.iconMap[icon.value]" />
-                                    </el-icon>
-                                    <span>{{ icon.label }}</span>
-                                </span>
+                <span class="icon-option">
+                  <el-icon :size="COMPANY_TABLE_UI.ICON_SELECT_SIZE">
+                    <component :is="props.iconMap[icon.value]" />
+                  </el-icon>
+                  <span>{{ icon.label }}</span>
+                </span>
               </el-option>
             </template>
           </EditableCell>
@@ -191,6 +191,8 @@
             <el-tooltip
                 :content="row._refreshing ? LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD_LOADING : LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD"
                 placement="top"
+                :show-after="TIMINGS.TOOLTIP_DELAY"
+                :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
             >
               <el-button
                   size="small"
@@ -204,7 +206,12 @@
               />
             </el-tooltip>
 
-            <el-tooltip content="Редактировать" placement="top">
+            <el-tooltip
+                content="Редактировать"
+                placement="top"
+                :show-after="TIMINGS.TOOLTIP_DELAY"
+                :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+            >
               <el-button
                   size="small"
                   type="primary"
@@ -216,7 +223,12 @@
               />
             </el-tooltip>
 
-            <el-tooltip content="Удалить" placement="top">
+            <el-tooltip
+                content="Удалить"
+                placement="top"
+                :show-after="TIMINGS.TOOLTIP_DELAY"
+                :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+            >
               <el-button
                   size="small"
                   type="danger"
@@ -251,8 +263,13 @@ import { getFieldLabel } from '../../utils/fieldLabels.js';
 import {
   COMPANY_TABLE_PROPS_CONFIG,
   COMPANY_TABLE_UI,
+  EDITABLE_CELL_UI,
   COMPANY_LIST_MESSAGES,
   LOADING_DATA_ACTIONS_MESSAGES,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
 } from '../../utils/appConfig.js';
 
 const props = defineProps(COMPANY_TABLE_PROPS_CONFIG);
@@ -340,12 +357,13 @@ const getChannelCountType = (count) => {
   cursor: pointer;
   display: flex;
   align-items: center;
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .el-select-dropdown__item .icon-option {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: v-bind('COMPANY_TABLE_UI.ICON_OPTION_GAP');
   width: 100%;
   height: 22px;
   line-height: 22px;
@@ -374,7 +392,7 @@ const getChannelCountType = (count) => {
 }
 
 .el-select-dropdown__item.selected {
-  color: #409EFF !important;
+  color: v-bind('COLORS.PRIMARY') !important;
   font-weight: 600;
   background-color: #f0f9eb !important;
 }
@@ -453,6 +471,7 @@ const getChannelCountType = (count) => {
 
 .company-table :deep(.el-table--enable-row-hover .el-table__body tr:hover > td) {
   background-color: v-bind('COMPANY_TABLE_UI.HOVER_COLOR');
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .company-table :deep(.el-table__body-wrapper) {
@@ -494,6 +513,23 @@ const getChannelCountType = (count) => {
   padding: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_PADDING');
   font-size: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_FONT_SIZE');
   font-weight: v-bind('COMPANY_TABLE_UI.CHANNEL_TAG_FONT_WEIGHT');
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+/* EditableCell стили */
+.company-table :deep(.editable-cell-input) {
+  font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
+  line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
+  height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
+  padding: v-bind('EDITABLE_CELL_UI.INPUT_PADDING');
+}
+
+.company-table :deep(.editable-cell-error) {
+  color: v-bind('EDITABLE_CELL_UI.ERROR_COLOR');
+}
+
+.company-table :deep(.editable-cell-button) {
+  font-size: v-bind('EDITABLE_CELL_UI.BUTTON_FONT_SIZE');
 }
 
 .action-buttons {
@@ -516,21 +552,22 @@ const getChannelCountType = (count) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .action-btn-refresh {
-  color: #FF9500 !important;
+  color: v-bind('COLORS.WARNING') !important;
 }
 
 .action-btn-refresh:hover:not(:disabled) {
-  color: #FFB140 !important;
-  transform: scale(1.15);
+  color: v-bind('COLORS.WARNING') !important;
+  filter: brightness(1.1);
+  transform: scale(v-bind('COMPANY_TABLE_UI.ACTION_BTN_HOVER_SCALE'));
 }
 
 .action-btn-refresh :deep(.el-icon.is-loading) {
-  color: #FF4444 !important;
-  animation: rotating 1s linear infinite;
+  color: v-bind('COLORS.DANGER') !important;
+  animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
 }
 
 @keyframes rotating {
@@ -539,28 +576,30 @@ const getChannelCountType = (count) => {
 }
 
 .action-btn-edit {
-  color: #409EFF !important;
+  color: v-bind('COLORS.PRIMARY') !important;
 }
 
 .action-btn-edit:hover:not(:disabled) {
-  color: #66b1ff !important;
-  transform: scale(1.15);
+  color: v-bind('COLORS.PRIMARY') !important;
+  filter: brightness(1.1);
+  transform: scale(v-bind('COMPANY_TABLE_UI.ACTION_BTN_HOVER_SCALE'));
 }
 
 .action-btn-delete {
-  color: #F56C6C !important;
+  color: v-bind('COLORS.DANGER') !important;
 }
 
 .action-btn-delete:hover:not(:disabled) {
-  color: #f78989 !important;
-  transform: scale(1.15);
+  color: v-bind('COLORS.DANGER') !important;
+  filter: brightness(1.1);
+  transform: scale(v-bind('COMPANY_TABLE_UI.ACTION_BTN_HOVER_SCALE'));
 }
 
 .action-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
   transform: none !important;
-  color: #c0c4cc !important;
+  color: v-bind('COLORS.INFO') !important;
 }
 
 .table-empty {
@@ -592,5 +631,71 @@ const getChannelCountType = (count) => {
 .company-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-thumb {
   background: v-bind('COMPANY_TABLE_UI.SCROLLBAR_THUMB_COLOR');
   border-radius: v-bind('COMPANY_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
+}
+
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
+  .company-table :deep(.el-table) {
+    font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_MOBILE');
+  }
+
+  .action-btn {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .company-table :deep(.el-table) {
+    font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_MOBILE');
+  }
+
+  .cell-row-number,
+  .cell-id {
+    font-size: v-bind('COMPANY_TABLE_UI.ROW_NUMBER_FONT_SIZE');
+  }
+
+  .action-btn {
+    width: 20px;
+    height: 20px;
+  }
+
+  .action-btn :deep(.el-icon) {
+    font-size: 10px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .company-table :deep(.el-table) {
+    font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_SMALL');
+  }
+
+  .cell-row-number,
+  .cell-id {
+    font-size: 6px;
+  }
+
+  .action-btn {
+    width: 18px;
+    height: 18px;
+  }
+
+  .action-btn :deep(.el-icon) {
+    font-size: 9px;
+  }
+
+  .channel-tag {
+    height: 12px;
+    padding: 0 2px;
+    font-size: 6px;
+  }
 }
 </style>

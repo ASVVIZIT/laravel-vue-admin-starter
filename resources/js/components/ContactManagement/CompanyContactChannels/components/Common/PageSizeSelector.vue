@@ -1,8 +1,8 @@
 <template>
   <div class="page-size-selector" :class="[props.className, { 'is-disabled': props.disabled }]">
-        <span v-if="props.showLabel" class="page-size-label" :style="labelStyle">
-            {{ props.label }}
-        </span>
+    <span v-if="props.showLabel" class="page-size-label" :style="labelStyle">
+      {{ props.label }}
+    </span>
     <el-select
         v-model="localSize"
         @change="handleChange"
@@ -10,6 +10,7 @@
         :class="props.selectClass"
         :disabled="props.disabled"
         class="compact-size-selector"
+        :teleported="true"
     >
       <el-option
           v-for="(size, index) in calculatedSizes"
@@ -30,6 +31,10 @@ import {
   PAGINATION_LABELS,
   PAGE_SIZE_OPTIONS,
   PAGINATION_UI,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
 } from '../../utils/appConfig.js';
 
 const props = defineProps(PAGE_SIZE_SELECTOR_PROPS_CONFIG);
@@ -91,6 +96,7 @@ const handleChange = (value) => {
   display: flex;
   align-items: center;
   gap: v-bind('PAGE_SIZE_SELECTOR_UI.GAP');
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .page-size-selector.is-disabled {
@@ -106,6 +112,7 @@ const handleChange = (value) => {
   white-space: nowrap;
   font-weight: 500;
   font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
+  color: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_COLOR');
 }
 
 .compact-size-selector :deep(.el-select) {
@@ -117,6 +124,16 @@ const handleChange = (value) => {
   font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
   box-shadow: none;
   padding: 0 4px;
+  border-radius: v-bind('PAGINATION_UI.BORDER_RADIUS');
+  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.compact-size-selector :deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
+}
+
+.compact-size-selector :deep(.el-select__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
 .compact-size-selector :deep(.el-select__input) {
@@ -128,14 +145,142 @@ const handleChange = (value) => {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   padding: v-bind('PAGINATION_UI.DROPDOWN_PADDING');
   min-height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.compact-size-selector :deep(.el-select-dropdown__item:hover) {
+  background-color: #f5f7fa;
+}
+
+.compact-size-selector :deep(.el-select-dropdown__item.selected) {
+  color: v-bind('COLORS.PRIMARY');
+  font-weight: 600;
+  background-color: #f0f9eb;
 }
 
 .compact-size-selector :deep(.el-select__caret) {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
+  color: v-bind('COLORS.INFO');
+  transition: color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.compact-size-selector :deep(.el-select__caret:hover) {
+  color: v-bind('COLORS.PRIMARY');
 }
 
 .compact-size-selector :deep(.el-select-dropdown__item.is-disabled) {
-  color: #c0c4cc;
+  color: v-bind('COLORS.INFO');
   cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
+  .page-size-selector {
+    gap: v-bind('PAGINATION_UI.GAP');
+  }
+
+  .page-size-selector .el-select {
+    width: 65px;
+  }
+
+  .page-size-label {
+    font-size: 8px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .page-size-selector {
+    gap: 4px;
+  }
+
+  .page-size-selector .el-select {
+    width: 60px;
+  }
+
+  .page-size-label {
+    font-size: 7px;
+  }
+
+  .compact-size-selector :deep(.el-select__wrapper) {
+    height: 24px;
+  }
+
+  .compact-size-selector :deep(.el-select__input) {
+    font-size: 10px;
+  }
+
+  .compact-size-selector :deep(.el-select-dropdown__item) {
+    font-size: 10px;
+    min-height: 24px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .page-size-selector {
+    gap: 3px;
+  }
+
+  .page-size-selector .el-select {
+    width: 50px;
+  }
+
+  .page-size-label {
+    font-size: 6px;
+  }
+
+  .compact-size-selector :deep(.el-select__wrapper) {
+    height: 20px;
+    padding: 0 3px;
+  }
+
+  .compact-size-selector :deep(.el-select__input) {
+    font-size: 9px;
+  }
+
+  .compact-size-selector :deep(.el-select-dropdown__item) {
+    font-size: 9px;
+    min-height: 20px;
+    padding: 2px 6px;
+  }
+
+  .compact-size-selector :deep(.el-select__caret) {
+    font-size: 8px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .page-size-selector .el-select {
+    width: 80px;
+  }
+
+  .compact-size-selector :deep(.el-select__wrapper) {
+    height: 36px;
+  }
+
+  .compact-size-selector :deep(.el-select__input) {
+    font-size: 14px;
+  }
+
+  .compact-size-selector :deep(.el-select-dropdown__item) {
+    font-size: 14px;
+    min-height: 36px;
+    padding: 8px 12px;
+  }
+
+  .page-size-label {
+    font-size: 12px;
+  }
 }
 </style>

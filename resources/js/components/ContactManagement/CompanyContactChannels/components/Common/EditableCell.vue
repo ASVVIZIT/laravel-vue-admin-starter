@@ -102,6 +102,10 @@ import { Edit, Check, Close } from '@element-plus/icons-vue';
 import {
   EDITABLE_CELL_PROPS_CONFIG,
   EDITABLE_CELL_UI,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
 } from '../../utils/appConfig.js';
 
 const props = defineProps(EDITABLE_CELL_PROPS_CONFIG);
@@ -231,12 +235,13 @@ const finishEditing = () => {
   font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
   line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
   color: #303133;
+  transition: color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .edit-button {
   flex-shrink: 0;
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
   font-size: v-bind('EDITABLE_CELL_UI.BUTTON_FONT_SIZE');
   width: auto;
   height: auto;
@@ -247,6 +252,10 @@ const finishEditing = () => {
   opacity: 1;
 }
 
+.cell-display:hover .cell-text {
+  color: v-bind('COLORS.PRIMARY');
+}
+
 /* ★★★ INLINE РЕДАКТИРОВАНИЕ ★★★ */
 .cell-edit-inline {
   display: flex;
@@ -254,6 +263,7 @@ const finishEditing = () => {
   gap: 2px;
   width: 100%;
   min-height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
+  animation: fadeIn v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .inline-input,
@@ -268,6 +278,17 @@ const finishEditing = () => {
   padding: 0 4px;
   box-shadow: none;
   border-radius: 2px;
+  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.inline-input :deep(.el-input__wrapper:hover),
+.inline-select :deep(.el-select__wrapper:hover) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
+}
+
+.inline-input :deep(.el-input__wrapper.is-focus),
+.inline-select :deep(.el-select__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
 .inline-input :deep(.el-input__inner),
@@ -277,7 +298,7 @@ const finishEditing = () => {
   padding: 0 4px;
 }
 
-/* ★★★ УЗКИЕ ВЫСОКИЕ КНОПКИ (12×18px) ★★★ */
+/* ★★★ КНОПКИ ДЕЙСТВИЙ ★★★ */
 .inline-actions {
   display: flex;
   align-items: center;
@@ -287,7 +308,6 @@ const finishEditing = () => {
   margin: 0;
 }
 
-/* ★★★ УБИРАЕМ Element Plus MARGIN ★★★ */
 .inline-actions :deep(.el-button) {
   margin-left: 0 !important;
   margin-right: 0 !important;
@@ -295,11 +315,11 @@ const finishEditing = () => {
 
 .action-btn-save,
 .action-btn-cancel {
-  width: 12px;
-  height: 18px;
-  min-width: 12px;
-  min-height: 18px;
-  max-width: 12px;
+  width: 16px;
+  height: 20px;
+  min-width: 16px;
+  min-height: 20px;
+  max-width: 16px;
   padding: 0;
   margin: 0;
   display: flex;
@@ -307,6 +327,7 @@ const finishEditing = () => {
   justify-content: center;
   border-radius: 2px;
   border: 1px solid transparent;
+  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .action-btn-save :deep(.el-icon),
@@ -317,27 +338,57 @@ const finishEditing = () => {
 }
 
 .action-btn-save {
-  background-color: #67C23A;
+  background-color: v-bind('COLORS.SUCCESS');
   color: #FFFFFF;
+  border-color: v-bind('COLORS.SUCCESS');
 }
 
 .action-btn-save:hover:not(:disabled) {
-  background-color: #85CE61;
+  background-color: v-bind('COLORS.SUCCESS');
+  filter: brightness(1.1);
+  transform: scale(1.1);
 }
 
 .action-btn-cancel {
-  background-color: #909399;
+  background-color: v-bind('COLORS.INFO');
   color: #FFFFFF;
+  border-color: v-bind('COLORS.INFO');
 }
 
 .action-btn-cancel:hover:not(:disabled) {
-  background-color: #A6A9AD;
+  background-color: v-bind('COLORS.INFO');
+  filter: brightness(1.1);
+  transform: scale(1.1);
 }
 
 .action-btn-save:disabled,
 .action-btn-cancel:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
+}
+
+/* ★★★ ОШИБКА ВАЛИДАЦИИ ★★★ */
+.inline-input.error :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px v-bind('EDITABLE_CELL_UI.ERROR_COLOR') inset !important;
+  animation: shake v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 :deep(.el-textarea--small .el-textarea__inner) {
@@ -356,5 +407,118 @@ const finishEditing = () => {
 
 :deep(.el-select__caret) {
   font-size: 8px;
+}
+
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
+  .editable-cell {
+    min-height: 20px;
+  }
+
+  .action-btn-save,
+  .action-btn-cancel {
+    width: 14px;
+    height: 18px;
+    min-width: 14px;
+    min-height: 18px;
+    max-width: 14px;
+  }
+
+  .cell-text {
+    font-size: 7px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .editable-cell {
+    min-height: 18px;
+  }
+
+  .action-btn-save,
+  .action-btn-cancel {
+    width: 12px;
+    height: 16px;
+    min-width: 12px;
+    min-height: 16px;
+    max-width: 12px;
+  }
+
+  .action-btn-save :deep(.el-icon),
+  .action-btn-cancel :deep(.el-icon) {
+    font-size: 9px;
+    width: 9px;
+    height: 9px;
+  }
+
+  .cell-text {
+    font-size: 7px;
+  }
+
+  .edit-button {
+    font-size: 9px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .editable-cell {
+    min-height: 16px;
+  }
+
+  .action-btn-save,
+  .action-btn-cancel {
+    width: 10px;
+    height: 14px;
+    min-width: 10px;
+    min-height: 14px;
+    max-width: 10px;
+  }
+
+  .action-btn-save :deep(.el-icon),
+  .action-btn-cancel :deep(.el-icon) {
+    font-size: 8px;
+    width: 8px;
+    height: 8px;
+  }
+
+  .cell-text {
+    font-size: 6px;
+  }
+
+  .edit-button {
+    display: none;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .action-btn-save,
+  .action-btn-cancel {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    max-width: 24px;
+  }
+
+  .action-btn-save :deep(.el-icon),
+  .action-btn-cancel :deep(.el-icon) {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .edit-button {
+    opacity: 1;
+  }
 }
 </style>

@@ -129,6 +129,9 @@ import {
   PAGINATOR_DISPLAY,
   SORT_OPTIONS,
   getSortOptions,
+  BREAKPOINTS,
+  TIMINGS,
+  ANIMATIONS,
 } from '../../utils/appConfig.js';
 
 const companyStore = useCompanyStore();
@@ -229,7 +232,7 @@ const sortCompanies = (companies, sortValue) => {
     case 'name_asc': return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     case 'name_desc': return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
     case 'created_at_desc': return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    case 'created_at_asc': return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+    case 'created_at_asc': return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(a.created_at || 0));
     default: return sorted;
   }
 };
@@ -271,7 +274,7 @@ const loadNextChunk = async () => {
   } finally {
     setTimeout(() => {
       isRecalculatingPagination.value = false;
-    }, 100);
+    }, TIMINGS.RECALCULATING_DURATION);
   }
 };
 
@@ -317,7 +320,7 @@ const startChunkedLoad = async () => {
     isLoadPaused.value = false;
     setTimeout(() => {
       isRecalculatingPagination.value = false;
-    }, 100);
+    }, TIMINGS.RECALCULATING_DURATION);
   }
 };
 
@@ -540,6 +543,7 @@ onMounted(async () => {
   font-size: 11px;
   border-radius: 3px;
   flex-shrink: 0;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .add-btn :deep(.el-icon) {
@@ -548,12 +552,16 @@ onMounted(async () => {
   vertical-align: middle;
 }
 
+/* ============================================================================
+   ФИЛЬТРЫ — ЗАГОЛОВОК ВЛЕВО, БЛОК ФИЛЬТРОВ ВПРАВО (В СТРОКУ)
+   ============================================================================ */
 .filters-row {
   display: flex;
   align-items: center;
-  gap: v-bind('COMPANY_LIST_UI.HEADER_TITLE_FILTERS_GAP');
+  justify-content: space-between;
+  gap: 10px;
   height: 28px;
-  flex-wrap: nowrap !important;
+  flex-wrap: nowrap;
   width: 100%;
   overflow: hidden;
 }
@@ -565,8 +573,78 @@ onMounted(async () => {
   white-space: nowrap;
   flex-shrink: 0;
   color: #303133;
+  text-align: left;
 }
 
+/* Блок фильтров (Filters.vue) — прижат вправо */
+.filters-row :deep(.filters-component-wrapper),
+.filters-row :deep(.filters) {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* ============================================================================
+   КОМПАКТНЫЕ INPUT / SELECT ЭЛЕМЕНТЫ
+   ============================================================================ */
+.filters-row :deep(.el-input__wrapper),
+.filters-row :deep(.el-select__wrapper) {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 8px !important;
+  border-radius: 3px !important;
+  font-size: 12px !important;
+  box-shadow: none !important;
+  border: 1px solid #dcdfe6 !important;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.filters-row :deep(.el-input__inner) {
+  height: 26px !important;
+  line-height: 26px !important;
+  font-size: 12px !important;
+  padding: 0 !important;
+}
+
+.filters-row :deep(.el-select__input) {
+  font-size: 12px !important;
+  height: 26px !important;
+}
+
+.filters-row :deep(.el-input__prefix),
+.filters-row :deep(.el-input__suffix) {
+  display: flex;
+  align-items: center;
+  height: 26px !important;
+}
+
+.filters-row :deep(.el-input__prefix-inner > .el-icon),
+.filters-row :deep(.el-input__suffix-inner > .el-icon) {
+  font-size: 12px !important;
+}
+
+.filters-row :deep(.el-select__caret),
+.filters-row :deep(.el-select__arrow) {
+  font-size: 12px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+}
+
+/* Dropdown опции */
+.filters-row :deep(.el-select-dropdown__item) {
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+  height: 28px !important;
+  line-height: 28px !important;
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+/* ============================================================================
+   TABLE WRAPPER
+   ============================================================================ */
 .table-wrapper {
   flex: 1;
   overflow: hidden;
@@ -584,6 +662,7 @@ onMounted(async () => {
 :deep(.el-loading-spinner .el-icon-loading) {
   font-size: v-bind('COMPANY_LIST_UI.LOADING_SPINNER_SIZE');
   color: v-bind('COMPANY_LIST_UI.LOADING_SPINNER_COLOR');
+  animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
 }
 
 :deep(.el-loading-text) {
@@ -591,11 +670,14 @@ onMounted(async () => {
   font-size: v-bind('COMPANY_LIST_UI.LOADING_TEXT_SIZE');
 }
 
-@media (max-width: 768px) {
+/* ============================================================================
+   ПЛАНШЕТЫ (577px - 768px) — ЗАГОЛОВОК СВЕРХУ, ФИЛЬТРЫ СНИЗУ
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .header-row {
     flex-wrap: wrap;
     height: auto;
-    gap: 6px;
+    gap: 4px;
   }
 
   .filters-row {
@@ -607,19 +689,143 @@ onMounted(async () => {
   .title {
     width: 100%;
     text-align: center;
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+
+  .filters-row :deep(.filters-component-wrapper),
+  .filters-row :deep(.filters) {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  /* Компактные инпуты на планшете */
+  .filters-row :deep(.el-input__wrapper),
+  .filters-row :deep(.el-select__wrapper) {
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 6px !important;
+    font-size: 11px !important;
+  }
+
+  .filters-row :deep(.el-input__inner) {
+    height: 24px !important;
+    line-height: 24px !important;
+    font-size: 11px !important;
+  }
+
+  .filters-row :deep(.el-select-dropdown__item) {
+    font-size: 11px !important;
+    padding: 3px 8px !important;
+    height: 26px !important;
+    line-height: 26px !important;
   }
 }
 
-@media (max-width: 480px) {
+/* ============================================================================
+   МОБИЛЬНЫЕ (321px - 576px) — ВСЁ ВЕРТИКАЛЬНО
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .company-list {
+    padding: 8px;
+  }
+
   .filters-row {
     flex-direction: column;
     align-items: stretch;
+    gap: 6px;
   }
 
   .title {
     width: 100%;
     text-align: center;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    font-size: 12px;
+  }
+
+  .filters-row :deep(.filters-component-wrapper),
+  .filters-row :deep(.filters) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+
+  /* Компактные инпуты на мобильном */
+  .filters-row :deep(.el-input__wrapper),
+  .filters-row :deep(.el-select__wrapper) {
+    height: 26px !important;
+    min-height: 26px !important;
+    padding: 0 6px !important;
+    font-size: 11px !important;
+  }
+
+  .filters-row :deep(.el-input__inner) {
+    height: 24px !important;
+    line-height: 24px !important;
+    font-size: 11px !important;
+  }
+
+  .add-btn {
+    height: 22px;
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+}
+
+/* ============================================================================
+   ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px) — МАКСИМАЛЬНО КОМПАКТНО
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .company-list {
+    padding: 4px;
+  }
+
+  .title {
+    font-size: 11px;
+  }
+
+  .filters-row {
+    gap: 4px;
+  }
+
+  .filters-row :deep(.filters-component-wrapper),
+  .filters-row :deep(.filters) {
+    gap: 3px;
+  }
+
+  /* Максимально компактные инпуты */
+  .filters-row :deep(.el-input__wrapper),
+  .filters-row :deep(.el-select__wrapper) {
+    height: 24px !important;
+    min-height: 24px !important;
+    padding: 0 4px !important;
+    font-size: 10px !important;
+  }
+
+  .filters-row :deep(.el-input__inner) {
+    height: 22px !important;
+    line-height: 22px !important;
+    font-size: 10px !important;
+  }
+
+  .filters-row :deep(.el-select-dropdown__item) {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    height: 24px !important;
+    line-height: 24px !important;
+  }
+
+  .add-btn {
+    height: 20px;
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+
+  .add-btn :deep(.el-icon) {
+    font-size: 10px !important;
+    margin-right: 2px;
   }
 }
 </style>

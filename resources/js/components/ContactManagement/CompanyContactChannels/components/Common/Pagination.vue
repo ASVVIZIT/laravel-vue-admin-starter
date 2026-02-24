@@ -24,7 +24,7 @@
               :disabled="isFirstPage || isRecalculating || props.disabled"
               @click="goToFirstPage"
               class="pagination-nav-btn pagination-btn-first"
-              title="Первая страница"
+              :title="PAGINATION_MESSAGES.FIRST_PAGE"
               round
           >
             <el-icon><DArrowLeft /></el-icon>
@@ -50,7 +50,7 @@
               :disabled="isLastPage || isRecalculating || props.disabled"
               @click="goToLastPage"
               class="pagination-nav-btn pagination-btn-last"
-              title="Последняя страница"
+              :title="PAGINATION_MESSAGES.LAST_PAGE"
               round
           >
             <el-icon><DArrowRight /></el-icon>
@@ -70,6 +70,10 @@ import {
   PAGINATION_UI,
   PAGINATOR_DISPLAY,
   PAGINATION_MESSAGES,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
 } from '../../utils/appConfig.js';
 
 const props = defineProps(PAGINATION_PROPS_CONFIG);
@@ -107,7 +111,7 @@ const startRecalculation = () => {
   isRecalculating.value = true;
   setTimeout(() => {
     isRecalculating.value = false;
-  }, 150);
+  }, TIMINGS.RECALCULATING_DURATION);
 };
 
 const goToFirstPage = () => {
@@ -141,14 +145,14 @@ const handleSizeChange = (newSize) => {
 
 .recalculating-banner {
   position: absolute;
-  top: -16px;
+  top: v-bind('PAGINATION_UI.RECALCULATING_BANNER_TOP');
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 9px;
-  color: #409EFF;
+  color: v-bind('COLORS.PRIMARY');
   font-weight: 600;
   padding: 4px 12px;
   background: linear-gradient(135deg, #e8f4ff 0%, #d0e8ff 100%);
@@ -157,16 +161,17 @@ const handleSizeChange = (newSize) => {
   white-space: nowrap;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+  animation: bannerPulse v-bind('ANIMATIONS.TRANSITION_SLOW') ease-in-out infinite;
+}
+
+@keyframes bannerPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2); }
+  50% { box-shadow: 0 2px 12px rgba(64, 158, 255, 0.4); }
 }
 
 .recalculating-banner :deep(.el-icon) {
   font-size: 12px;
-  animation: rotating 1s linear infinite;
-}
-
-@keyframes rotating {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
 }
 
 .pagination-content {
@@ -194,7 +199,7 @@ const handleSizeChange = (newSize) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
   font-weight: 500;
 }
 
@@ -220,25 +225,25 @@ const handleSizeChange = (newSize) => {
 .pagination-btn-first {
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eaed 100%);
   border: 1px solid #dcdfe6;
-  color: #606266;
+  color: v-bind('COLORS.INFO');
 }
 
 .pagination-btn-first:hover:not(:disabled) {
   background: linear-gradient(135deg, #ecf5ff 0%, #d9ecff 100%);
-  border-color: #409EFF;
-  color: #409EFF;
+  border-color: v-bind('COLORS.PRIMARY');
+  color: v-bind('COLORS.PRIMARY');
 }
 
 .pagination-btn-last {
   background: linear-gradient(135deg, #f5f7fa 0%, #e8eaed 100%);
   border: 1px solid #dcdfe6;
-  color: #606266;
+  color: v-bind('COLORS.INFO');
 }
 
 .pagination-btn-last:hover:not(:disabled) {
   background: linear-gradient(135deg, #ecf5ff 0%, #d9ecff 100%);
-  border-color: #409EFF;
-  color: #409EFF;
+  border-color: v-bind('COLORS.PRIMARY');
+  color: v-bind('COLORS.PRIMARY');
 }
 
 .compact-pagination {
@@ -259,19 +264,19 @@ const handleSizeChange = (newSize) => {
   border-radius: v-bind('PAGINATION_UI.BORDER_RADIUS');
   padding: v-bind('PAGINATION_UI.BUTTON_PADDING');
   font-weight: 400;
-  transition: all 0.2s ease;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-pagination :deep(.el-pagination .el-pager li.is-active) {
   font-weight: 600;
-  background-color: #409EFF;
+  background-color: v-bind('COLORS.PRIMARY');
   color: #FFFFFF;
   transform: scale(1.05);
 }
 
 .compact-pagination :deep(.el-pagination .el-pager li:not(.is-active):hover) {
   background-color: #ecf5ff;
-  color: #409EFF;
+  color: v-bind('COLORS.PRIMARY');
 }
 
 .compact-pagination :deep(.el-pagination button) {
@@ -281,6 +286,7 @@ const handleSizeChange = (newSize) => {
   border-radius: v-bind('PAGINATION_UI.BORDER_RADIUS');
   min-width: v-bind('PAGINATION_UI.BUTTON_WIDTH');
   font-weight: 500;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-pagination :deep(.el-pagination .btn-prev),
@@ -297,14 +303,14 @@ const handleSizeChange = (newSize) => {
 .compact-pagination :deep(.el-pagination__total) {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   margin-right: v-bind('PAGINATION_UI.TOTAL_MARGIN');
-  color: #606266;
+  color: v-bind('COLORS.INFO');
   font-weight: 500;
 }
 
 .compact-pagination :deep(.el-pagination__jump) {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   margin-left: v-bind('PAGINATION_UI.JUMP_MARGIN');
-  color: #606266;
+  color: v-bind('COLORS.INFO');
 }
 
 .compact-pagination :deep(.el-pagination__jump .el-input) {
@@ -338,11 +344,16 @@ const handleSizeChange = (newSize) => {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   padding: v-bind('PAGINATION_UI.DROPDOWN_PADDING');
   min-height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
+/* ============================================================================
+   АНИМАЦИИ TRANSITION
+   ============================================================================ */
 .fade-in-enter-active,
 .fade-in-leave-active {
-  transition: opacity 0.4s ease, transform 0.4s ease;
+  transition: opacity v-bind('ANIMATIONS.TRANSITION_SLOW') v-bind('ANIMATIONS.EASING_EASE'),
+  transform v-bind('ANIMATIONS.TRANSITION_SLOW') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .fade-in-enter-from,
@@ -353,7 +364,7 @@ const handleSizeChange = (newSize) => {
 
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all 0.3s ease;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .fade-slide-enter-from {
@@ -366,7 +377,10 @@ const handleSizeChange = (newSize) => {
   transform: translate(-50%, -20px);
 }
 
-@media (max-width: 768px) {
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .pagination-with-nav {
     justify-content: center;
     width: 100%;
@@ -375,17 +389,20 @@ const handleSizeChange = (newSize) => {
   .pagination-content {
     justify-content: center;
   }
-}
-
-@media (max-width: 480px) {
-  .pagination-wrapper {
-    margin-top: 6px;
-  }
 
   .recalculating-banner {
-    top: -20px;
+    top: v-bind('PAGINATION_UI.RECALCULATING_BANNER_TOP_MOBILE');
     font-size: 8px;
     padding: 3px 10px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .pagination-wrapper {
+    margin-top: 6px;
   }
 
   .pagination-content {
@@ -400,6 +417,129 @@ const handleSizeChange = (newSize) => {
 
   .compact-pagination {
     justify-content: center;
+  }
+
+  .pagination-nav-btn {
+    height: 24px;
+    min-width: 24px;
+  }
+
+  .pagination-nav-btn :deep(.el-icon) {
+    font-size: 10px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .pagination-wrapper {
+    margin-top: 4px;
+    padding: 2px 0;
+  }
+
+  .recalculating-banner {
+    top: -18px;
+    font-size: 7px;
+    padding: 2px 8px;
+  }
+
+  .pagination-content {
+    gap: 4px;
+  }
+
+  .pagination-nav-btn {
+    height: 20px;
+    min-width: 20px;
+    padding: 0 4px;
+  }
+
+  .pagination-nav-btn :deep(.el-icon) {
+    font-size: 8px;
+  }
+
+  .compact-pagination :deep(.el-pagination .el-pager li) {
+    min-width: 20px;
+    height: 20px;
+    line-height: 20px;
+    font-size: 9px;
+    margin: 0 1px;
+  }
+
+  .compact-pagination :deep(.el-pagination button) {
+    height: 20px;
+    font-size: 9px;
+    min-width: 20px;
+  }
+
+  .compact-pagination :deep(.el-pagination__total) {
+    font-size: 8px;
+    margin-right: 4px;
+  }
+
+  .compact-pagination :deep(.el-pagination__jump) {
+    font-size: 8px;
+    margin-left: 4px;
+  }
+
+  .compact-pagination :deep(.el-pagination__jump .el-input) {
+    width: 28px;
+  }
+
+  .compact-pagination :deep(.el-pagination__jump .el-input .el-input__inner) {
+    height: 18px;
+    font-size: 8px;
+    padding: 0 2px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .pagination-nav-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 16px;
+  }
+
+  .pagination-nav-btn :deep(.el-icon) {
+    font-size: 18px;
+  }
+
+  .compact-pagination :deep(.el-pagination .el-pager li) {
+    min-width: 36px;
+    height: 36px;
+    line-height: 36px;
+    font-size: 14px;
+    margin: 0 2px;
+  }
+
+  .compact-pagination :deep(.el-pagination button) {
+    height: 36px;
+    font-size: 14px;
+    min-width: 36px;
+    padding: 0 8px;
+  }
+
+  .compact-pagination :deep(.el-pagination__total) {
+    font-size: 12px;
+    margin-right: 8px;
+  }
+
+  .compact-pagination :deep(.el-pagination__jump) {
+    font-size: 12px;
+    margin-left: 8px;
+  }
+
+  .compact-pagination :deep(.el-pagination__jump .el-input) {
+    width: 50px;
+  }
+
+  .compact-pagination :deep(.el-pagination__jump .el-input .el-input__inner) {
+    height: 32px;
+    font-size: 14px;
+    padding: 0 6px;
   }
 }
 </style>

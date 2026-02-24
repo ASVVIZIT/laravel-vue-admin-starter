@@ -1,7 +1,7 @@
 <template>
   <div class="loading-data-actions" :class="{ 'is-complete': isComplete, 'is-loading': props.isLoading }">
     <div class="control-buttons">
-      <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_LOAD_MORE" placement="top">
+      <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_LOAD_MORE" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
         <el-button
             v-if="props.showLoadMore && !props.isLoading"
             size="small"
@@ -14,7 +14,7 @@
         </el-button>
       </el-tooltip>
 
-      <el-tooltip :content="mainButtonTooltip" placement="top">
+      <el-tooltip :content="mainButtonTooltip" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
         <el-button
             v-if="showMainButton"
             size="small"
@@ -29,7 +29,7 @@
         </el-button>
       </el-tooltip>
 
-      <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH" placement="top">
+      <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
         <el-button
             v-if="props.showRefresh && !props.isLoading"
             size="small"
@@ -89,6 +89,10 @@ import {
   LOADING_DATA_ACTIONS_UI,
   LOADING_DATA_ACTIONS_COLORS,
   LOADING_DATA_ACTIONS_MESSAGES,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
 } from '../../utils/appConfig.js';
 
 const props = defineProps(LOADING_DATA_ACTIONS_PROPS_CONFIG);
@@ -162,7 +166,7 @@ const chunkRodStyle = computed(() => {
 const loadedLayerStyle = computed(() => ({
   width: `${props.percentage}%`,
   background: `linear-gradient(${CHUNK_PROGRESS_CONFIG.CHUNK_GRADIENT_ANGLE}, ${CHUNK_PROGRESS_CONFIG.LOADING_COLOR} 0%, ${CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT} 100%)`,
-  transition: `width ${CHUNK_PROGRESS_CONFIG.CHUNK_CATCHUP_DURATION} ${CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING} ${CHUNK_PROGRESS_CONFIG.CHUNK_CATCHUP_DELAY}`,
+  transition: `width ${CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION} ${CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING}`,
   zIndex: CHUNK_PROGRESS_CONFIG.LOADED_Z_INDEX,
   borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
 }));
@@ -197,17 +201,19 @@ const handleRefresh = () => {
   border: v-bind('LOADING_DATA_ACTIONS_UI.BORDER');
   width: 100%;
   height: v-bind('LOADING_DATA_ACTIONS_UI.HEIGHT');
-  transition: all 0.3s ease;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .loading-data-actions.is-complete {
-  background: #f0f9eb;
-  border-color: #c2e7b0;
+  background: v-bind('COLORS.SUCCESS');
+  background: linear-gradient(135deg, #f0f9eb 0%, #e6f7e6 100%);
+  border-color: v-bind('COLORS.SUCCESS');
 }
 
 .loading-data-actions.is-loading {
-  background: #e8f4ff;
-  border-color: #b3d8ff;
+  background: v-bind('COLORS.INFO');
+  background: linear-gradient(135deg, #e8f4ff 0%, #d9edff 100%);
+  border-color: v-bind('COLORS.PRIMARY');
 }
 
 .control-buttons {
@@ -224,13 +230,14 @@ const handleRefresh = () => {
   min-width: auto;
   border-radius: v-bind('LOADING_DATA_ACTIONS_UI.BUTTON_BORDER_RADIUS');
   border: none;
-  transition: all 0.2s;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
   cursor: pointer;
 }
 
 .control-btn:disabled {
   cursor: not-allowed;
   opacity: v-bind('LOADING_DATA_ACTIONS_COLORS.DISABLED_OPACITY');
+  transform: none !important;
 }
 
 .control-btn :deep(.el-icon) {
@@ -252,6 +259,7 @@ const handleRefresh = () => {
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM_HOVER'),
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_TO_HOVER')
   );
+  transform: scale(1.05);
 }
 
 .btn-main {
@@ -268,6 +276,7 @@ const handleRefresh = () => {
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_FROM_HOVER'),
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_TO_HOVER')
   );
+  transform: scale(1.05);
 }
 
 .btn-refresh {
@@ -284,6 +293,7 @@ const handleRefresh = () => {
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM_HOVER'),
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_TO_HOVER')
   );
+  transform: scale(1.05);
 }
 
 .progress-wrapper {
@@ -297,6 +307,12 @@ const handleRefresh = () => {
   width: 100%;
   overflow: hidden;
   box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW');
+  animation: progressBarPulse v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION') ease-in-out infinite;
+}
+
+@keyframes progressBarPulse {
+  0%, 100% { box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW'); }
+  50% { box-shadow: 0 0 15px rgba(64, 158, 255, 0.3); }
 }
 
 .progress-background {
@@ -451,6 +467,7 @@ const handleRefresh = () => {
   flex-shrink: 0;
   background: rgba(255, 255, 255, 0.7);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .status-badge :deep(.el-icon) {
@@ -458,12 +475,12 @@ const handleRefresh = () => {
 }
 
 .status-loading {
-  color: v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR');
+  color: v-bind('COLORS.PRIMARY');
   background: rgba(64, 158, 255, 0.2);
 }
 
 .status-loading :deep(.el-icon) {
-  animation: rotating 1.5s linear infinite;
+  animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
 }
 
 .status-paused {
@@ -472,12 +489,12 @@ const handleRefresh = () => {
 }
 
 .status-success {
-  color: #67c23a;
+  color: v-bind('COLORS.SUCCESS');
   background: rgba(103, 194, 58, 0.2);
 }
 
 .status-waiting {
-  color: #909399;
+  color: v-bind('COLORS.INFO');
   background: rgba(144, 147, 153, 0.2);
 }
 
@@ -486,7 +503,10 @@ const handleRefresh = () => {
   to { transform: rotate(360deg); }
 }
 
-@media (max-width: 640px) {
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXL')) {
   .loading-data-actions {
     flex-wrap: wrap;
     height: auto;
@@ -508,6 +528,114 @@ const handleRefresh = () => {
     width: 100%;
     justify-content: center;
     order: 3;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .loading-data-actions {
+    padding: v-bind('LOADING_DATA_ACTIONS_UI.PADDING');
+    gap: 4px;
+  }
+
+  .control-btn {
+    height: 20px;
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .control-btn :deep(.el-icon) {
+    font-size: 10px;
+  }
+
+  .progress-text {
+    font-size: 10px;
+  }
+
+  .status-badge {
+    font-size: 10px;
+    padding: 2px 4px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .loading-data-actions {
+    padding: 4px;
+    gap: 3px;
+  }
+
+  .control-buttons {
+    gap: 2px;
+  }
+
+  .control-btn {
+    height: 18px;
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+
+  .control-btn :deep(.el-icon) {
+    font-size: 9px;
+  }
+
+  .progress-bar {
+    height: 16px !important;
+  }
+
+  .progress-text {
+    font-size: 9px;
+  }
+
+  .progress-text .percent {
+    font-size: 8px;
+  }
+
+  .status-badge {
+    font-size: 9px;
+    padding: 1px 3px;
+    gap: 2px;
+  }
+
+  .status-badge :deep(.el-icon) {
+    font-size: 10px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .control-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .control-btn :deep(.el-icon) {
+    font-size: 18px;
+  }
+
+  .progress-bar {
+    height: 24px !important;
+  }
+
+  .progress-text {
+    font-size: 12px;
+  }
+
+  .status-badge {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .status-badge :deep(.el-icon) {
+    font-size: 14px;
   }
 }
 </style>

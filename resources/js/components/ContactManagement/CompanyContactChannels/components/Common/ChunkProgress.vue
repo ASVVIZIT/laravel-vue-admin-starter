@@ -16,6 +16,7 @@
           :show-text="true"
           class="progress-bar"
           :class="{ 'is-loading': props.isLoading, 'is-complete': isComplete }"
+          :duration="CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION.replace('s', '')"
       >
         <template #default="{ percentage: progressPercentage }">
           <div class="progress-text">
@@ -31,7 +32,15 @@
 <script setup>
 import { computed } from 'vue';
 import { Loading, Check } from '@element-plus/icons-vue';
-import { CHUNK_PROGRESS_CONFIG, CHUNK_PROGRESS_PROPS_CONFIG } from '../../utils/appConfig.js';
+import {
+  CHUNK_PROGRESS_CONFIG,
+  CHUNK_PROGRESS_PROPS_CONFIG,
+  BREAKPOINTS,
+  ANIMATIONS,
+  TIMINGS,
+  COLORS,
+  LOADING_DATA_ACTIONS_COLORS,
+} from '../../utils/appConfig.js';
 
 const props = defineProps(CHUNK_PROGRESS_PROPS_CONFIG);
 
@@ -61,26 +70,27 @@ const displayPercentage = computed(() => {
   height: 24px;
   min-width: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #909399 0%, #a0a0a0 100%);
+  background: linear-gradient(135deg, v-bind('COLORS.INFO') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: background 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW');
+  transition: background v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE'),
+  box-shadow v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .spinner-wrapper:not(.is-loading):not(.is-complete) {
-  background: linear-gradient(135deg, #909399 0%, #a0a0a0 100%);
+  background: linear-gradient(135deg, v-bind('COLORS.INFO') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%);
 }
 
 .spinner-wrapper.is-loading:not(.is-complete) {
   background: linear-gradient(135deg, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR') 0%, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT') 100%);
-  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
+  box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.CHUNK_SHADOW');
 }
 
 .spinner-wrapper.is-complete {
-  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  background: linear-gradient(135deg, v-bind('COLORS.SUCCESS') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM') 100%);
   box-shadow: 0 2px 4px rgba(103, 194, 58, 0.3);
 }
 
@@ -93,7 +103,7 @@ const displayPercentage = computed(() => {
 }
 
 .spinner-wrapper.is-loading:not(.is-complete) .spinner-icon {
-  animation: rotating 1.5s linear infinite;
+  animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
 }
 
 .progress-bar-wrapper {
@@ -124,19 +134,34 @@ const displayPercentage = computed(() => {
   padding: 0;
   margin: 0;
   overflow: hidden;
+  box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW');
 }
 
 .progress-bar:not(.is-loading) :deep(.el-progress-bar__inner) {
-  background: linear-gradient(90deg, #909399 0%, #a0a0a0 100%);
+  background: linear-gradient(90deg, v-bind('COLORS.INFO') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%);
+  transition: width v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION') v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING');
 }
 
 .progress-bar.is-loading:not(.is-complete) :deep(.el-progress-bar__inner) {
   background: linear-gradient(90deg, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR') 0%, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT') 100%);
+  animation: progress-stripes v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANIMATION_DURATION') linear infinite;
+  background-image: linear-gradient(
+      v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANGLE'),
+      rgba(255, 255, 255, v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_OPACITY')) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_OPACITY')) 50%,
+      rgba(255, 255, 255, v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_OPACITY')) 75%,
+      transparent 75%,
+      transparent
+  );
+  background-size: v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_WIDTH') v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_WIDTH');
 }
 
 .progress-bar.is-complete :deep(.el-progress-bar__inner),
 .progress-bar :deep(.el-progress-bar__inner.is-success) {
-  background: linear-gradient(90deg, #67c23a 0%, #85ce61 100%);
+  background: linear-gradient(90deg, v-bind('COLORS.SUCCESS') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM') 100%);
+  transition: width v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION') v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING');
 }
 
 .progress-bar :deep(.el-progress__text) {
@@ -156,6 +181,7 @@ const displayPercentage = computed(() => {
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
+  z-index: v-bind('CHUNK_PROGRESS_CONFIG.LOADED_Z_INDEX');
 }
 
 .progress-label {
@@ -173,8 +199,179 @@ const displayPercentage = computed(() => {
   white-space: nowrap;
 }
 
+/* Анимация полосок прогресса */
+@keyframes progress-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: v-bind('CHUNK_PROGRESS_CONFIG.STRIPES_ANIMATION_DISTANCE') 0;
+  }
+}
+
+/* Анимация вращения */
 @keyframes rotating {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Эффект shine на прогресс баре */
+.progress-bar.is-loading:not(.is-complete) :deep(.el-progress-bar__inner)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_LEFT_START');
+  width: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_WIDTH');
+  height: 100%;
+  background: linear-gradient(
+      to right,
+      transparent 0%,
+      v-bind('CHUNK_PROGRESS_CONFIG.SHINE_COLOR') 50%,
+      transparent 100%
+  );
+  transform: skewX(-25deg);
+  animation: shine v-bind('CHUNK_PROGRESS_CONFIG.SHINE_DURATION') ease-in-out infinite;
+  animation-delay: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_ANIMATION_DELAY');
+}
+
+@keyframes shine {
+  0% {
+    left: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_LEFT_START');
+  }
+  100% {
+    left: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_LEFT_END');
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
+  .chunk-progress-container {
+    gap: 8px;
+  }
+
+  .spinner-wrapper {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
+
+  .spinner-icon {
+    font-size: 12px;
+  }
+
+  .progress-label {
+    font-size: v-bind('CHUNK_PROGRESS_CONFIG.FONT_SIZE_PERCENTAGE');
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .chunk-progress-container {
+    gap: 6px;
+    padding: 3px 0;
+  }
+
+  .spinner-wrapper {
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+  }
+
+  .spinner-icon {
+    font-size: 11px;
+  }
+
+  .progress-bar :deep(.el-progress-bar__outer) {
+    height: 16px !important;
+    line-height: 16px !important;
+  }
+
+  .progress-text {
+    height: 16px;
+    line-height: 16px;
+  }
+
+  .progress-label {
+    font-size: 10px;
+  }
+
+  .progress-percentage {
+    font-size: 9px;
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .chunk-progress-container {
+    gap: 4px;
+    padding: 2px 0;
+  }
+
+  .spinner-wrapper {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+  }
+
+  .spinner-icon {
+    font-size: 10px;
+  }
+
+  .progress-bar :deep(.el-progress-bar__outer) {
+    height: 14px !important;
+    line-height: 14px !important;
+  }
+
+  .progress-text {
+    height: 14px;
+    line-height: 14px;
+  }
+
+  .progress-label {
+    font-size: 9px;
+  }
+
+  .progress-percentage {
+    font-size: 8px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) {
+  .spinner-wrapper {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+
+  .spinner-icon {
+    font-size: 16px;
+  }
+
+  .progress-bar :deep(.el-progress-bar__outer) {
+    height: 24px !important;
+    line-height: 24px !important;
+  }
+
+  .progress-text {
+    height: 24px;
+    line-height: 24px;
+  }
+
+  .progress-label {
+    font-size: 11px;
+  }
+
+  .progress-percentage {
+    font-size: 10px;
+  }
 }
 </style>
