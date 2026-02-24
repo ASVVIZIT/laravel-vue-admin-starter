@@ -24,21 +24,15 @@
             shadow="hover"
             class="link-row"
         >
-          <!-- Заголовок карточки -->
           <div class="card-header" slot="header">
-            <!-- Иконка соцсети -->
             <component :is="getIconComponent(link.icon)" class="header-icon" />
-            <!-- Название -->
             <span class="header-title">{{ link.name }}</span>
-            <!-- Иконка перетаскивания -->
             <div class="drag-handle" title="Перетащите для сортировки">
               <component :is="DragHandleIcon" />
             </div>
           </div>
 
-          <!-- Основной контент строки (тело карточки) -->
           <div class="row-content">
-            <!-- Колонка: URL и Описание -->
             <div class="col-info">
               <div class="url-label">URL:</div>
               <div class="url">{{ link.url }}</div>
@@ -46,12 +40,10 @@
               <div v-if="link.description" class="description">{{ link.description }}</div>
             </div>
 
-            <!-- Колонка: QR-код -->
             <div class="col-qr">
               <qr-code-generator :url="link.url" :name="link.name" :size="100" />
             </div>
 
-            <!-- Колонка: Кнопки -->
             <div class="col-controls">
               <el-button
                   size="small"
@@ -60,7 +52,6 @@
                   :icon="EditIcon"
                   class="square-button-style"
               >
-                <!-- Редактировать -->
               </el-button>
               <el-button
                   size="small"
@@ -69,7 +60,6 @@
                   :icon="DeleteIcon"
                   class="square-button-style"
               >
-                <!-- Удалить -->
               </el-button>
             </div>
           </div>
@@ -104,19 +94,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, markRaw } from 'vue';
 import { useSocialMediaLinksStore } from '@components/ContactManagement/SocialMediaLinks/store/socialMediaLinks.js';
 import { VueDraggableNext as Draggable } from 'vue-draggable-next';
 import SocialMediaForm from './SocialMediaForm.vue';
 import QrCodeGenerator from './QrCodeGenerator.vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import { Edit as EditIcon, Delete as DeleteIcon, Operation as DragHandleIcon, VideoCamera as VideoCameraIcon, ChatLineSquare as ChatLineSquareIcon, Position as PositionIcon, Guide as GuideIcon, Picture as PictureIcon, Connection as ConnectionIcon, Link as LinkIcon, Monitor as MonitorIcon } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Operation as DragHandleIcon,
+  Link as LinkIcon
+} from '@element-plus/icons-vue';
 import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
 
-// Инициализируем стор
 const fenixIconStore = useFenixIconsStore();
-
 const store = useSocialMediaLinksStore();
+
 const showForm = ref(false);
 const currentLink = ref({});
 const showDeleteConfirmDialog = ref(false);
@@ -125,33 +119,32 @@ const localLinks = ref([]);
 
 const sortedLinks = computed(() => store.sortedLinks);
 
-// --- Карта соответствия иконок (теперь использует стор) ---
-const iconMap = {
-  'fab fa-2gis': fenixIconStore.getIconByName('Fenix2gis'), // Используем новую иконку!
-  'fab fa-vk': fenixIconStore.getIconByName('FenixVk') || GuideIcon, // Замените FenixVk на реальное имя
-  'fab fa-telegram': fenixIconStore.getIconByName('FenixTelegram') || ChatLineSquareIcon, // Замените FenixTelegram на реальное имя
-  'fab fa-whatsapp': fenixIconStore.getIconByName('FenixWhatsApp') || ChatLineSquareIcon, // Замените FenixWhatsApp на реальное имя
-  'fab fa-instagram': fenixIconStore.getIconByName('FenixInstagram') || LinkIcon, // Замените FenixInstagram на реальное имя
-  'fab fa-facebook': fenixIconStore.getIconByName('FenixFacebook') || ConnectionIcon, // Замените FenixFacebook на реальное имя
-  'fab fa-youtube': fenixIconStore.getIconByName('FenixYoutube') || VideoCameraIcon, // Замените FenixYoutube на реальное имя
-  'fab fa-tiktok': fenixIconStore.getIconByName('FenixTikTok') || MonitorIcon, // Замените FenixTikTok на реальное имя
-  'fab fa-twitter': fenixIconStore.getIconByName('FenixTwitter') || PositionIcon, // Замените FenixTwitter на реальное имя
-  'fab fa-pinterest': fenixIconStore.getIconByName('FenixPinterest') || PictureIcon, // Замените FenixPinterest на реальное имя
-  'fab fa-linkedin': fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon, // Замените FenixLinkedIn на реальное имя
-  'default': LinkIcon
-};
+const getIconMap = () => ({
+  'fab fa-2gis': markRaw(fenixIconStore.getIconByName('Fenix2gis') || LinkIcon),
+  'fab fa-vk': markRaw(fenixIconStore.getIconByName('FenixVk') || LinkIcon),
+  'fab fa-telegram': markRaw(fenixIconStore.getIconByName('FenixTelegram') || LinkIcon),
+  'fab fa-whatsapp': markRaw(fenixIconStore.getIconByName('FenixWhatsApp') || LinkIcon),
+  'fab fa-instagram': markRaw(fenixIconStore.getIconByName('FenixInstagram') || LinkIcon),
+  'fab fa-facebook': markRaw(fenixIconStore.getIconByName('FenixFacebook') || LinkIcon),
+  'fab fa-youtube': markRaw(fenixIconStore.getIconByName('FenixYoutube') || LinkIcon),
+  'fab fa-tiktok': markRaw(fenixIconStore.getIconByName('FenixTikTok') || LinkIcon),
+  'fab fa-twitter': markRaw(fenixIconStore.getIconByName('FenixTwitter') || LinkIcon),
+  'fab fa-x-twitter': markRaw(fenixIconStore.getIconByName('FenixTwitter') || LinkIcon),
+  'fab fa-pinterest': markRaw(fenixIconStore.getIconByName('FenixPinterest') || LinkIcon),
+  'fab fa-linkedin': markRaw(fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon),
+  'default': markRaw(LinkIcon)
+});
 
 const getIconComponent = (iconString) => {
+  const iconMap = getIconMap();
   const mappedComponent = iconMap[iconString];
-  // Проверяем, что компонент найден в сторе или есть резервная иконка Element Plus
-  if (mappedComponent) {
+
+  if (mappedComponent && typeof mappedComponent === 'object') {
     return mappedComponent;
   } else {
-    console.warn(`Иконка для '${iconString}' не найдена, используется резервная.`); // Логирование
-    return iconMap.default; // Используем резервную иконку
+    return iconMap.default;
   }
 };
-// --- /Карта соответствия иконок ---
 
 watch(sortedLinks, (newSortedLinks) => {
   localLinks.value = [...newSortedLinks];
@@ -159,6 +152,7 @@ watch(sortedLinks, (newSortedLinks) => {
 
 onMounted(async () => {
   await store.fetchLinks();
+  await fenixIconStore.fetchIcons?.();
 });
 
 const editLink = (link) => {
@@ -170,7 +164,7 @@ const addLink = () => {
   currentLink.value = {
     name: '',
     url: '',
-    description: '', // Добавлено
+    description: '',
     icon: 'fab fa-instagram',
     order_column: store.linkCount
   };
@@ -202,14 +196,13 @@ const deleteLink = async (id) => {
 };
 
 const onDragStart = () => {
-  // Можно добавить логику при начале перетаскивания, если нужно
 };
 
 const onReorder = async () => {
   try {
     const newOrder = localLinks.value.map(link => link.id);
     await store.reorderLinks(newOrder);
-    ElMessage.success('Порядок обновлен');
+    ElMessage.success('Порядок обновлён');
   } catch (error) {
     ElMessage.error('Ошибка обновления порядка: ' + error.message);
     localLinks.value = [...store.sortedLinks];
@@ -263,18 +256,17 @@ const confirmDelete = async () => {
   background-color: #f0f9ff;
 }
 
-/* Заголовок карточки */
 .card-header {
-  padding: 8px 10px !important; /* Уменьшил отступы */
+  padding: 8px 10px !important;
   display: flex;
   align-items: center;
-  justify-content: space-between; /* Распределяем элементы по краям и центру */
+  justify-content: space-between;
   background-color: #fafafa;
   border-bottom: 1px solid #eee;
   border-radius: 8px 8px 0 0;
-  cursor: move; /* Показываем, что элемент можно двигать */
-  user-select: none; /* Запрещаем выделять текст внутри хэндла */
-  gap: 8px; /* Отступ между элементами */
+  cursor: move;
+  user-select: none;
+  gap: 8px;
 }
 
 .header-icon {
@@ -289,7 +281,7 @@ const confirmDelete = async () => {
 }
 
 .header-title {
-  flex: 1; /* Занимает оставшееся пространство */
+  flex: 1;
   font-weight: 600;
   font-size: 14px;
   color: #303133;
@@ -302,13 +294,13 @@ const confirmDelete = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px; /* Уменьшил размер хэндла */
+  width: 24px;
   height: 24px;
   color: #999;
   font-size: 14px;
   border-radius: 4px;
   transition: background-color 0.2s;
-  flex-shrink: 0; /* Не сжимаем хэндл */
+  flex-shrink: 0;
 }
 
 .drag-handle:hover {
@@ -321,19 +313,17 @@ const confirmDelete = async () => {
   fill: currentColor;
 }
 
-/* Основной контент строки */
 .row-content {
   display: grid;
-  grid-template-columns: 1fr auto auto; /* info qr buttons */
-  gap: 15px; /* Отступы между колонками */
-  align-items: start; /* Выравнивание по верхнему краю */
+  grid-template-columns: 1fr auto auto;
+  gap: 15px;
+  align-items: start;
 }
 
-/* Колонка информации */
 .col-info {
   display: flex;
   flex-direction: column;
-  gap: 2px; /* Меньший отступ между элементами */
+  gap: 2px;
 }
 
 .url-label, .description-label {
@@ -345,19 +335,15 @@ const confirmDelete = async () => {
 .url {
   font-size: 12px;
   color: #606266;
-  word-break: break-all; /* Перенос длинного URL */
+  word-break: break-all;
 }
 
 .description {
   font-size: 12px;
   color: #909399;
   line-height: 1.3;
-  /* Опционально: ограничить высоту и добавить скролл */
-  /* max-height: 3em; */
-  /* overflow-y: auto; */
 }
 
-/* Колонка QR */
 .col-qr {
   display: flex;
   flex-direction: column;
@@ -365,14 +351,12 @@ const confirmDelete = async () => {
   gap: 5px;
 }
 
-/* Колонка управления */
 .col-controls {
   display: flex;
   flex-direction: column;
   gap: 5px;
 }
 
-/* Общий класс для стилизации квадратных кнопок */
 .square-button-style {
   width: 24px !important;
   height: 24px !important;

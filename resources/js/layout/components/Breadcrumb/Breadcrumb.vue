@@ -61,7 +61,7 @@
         :data-path="currentItem.path"
     >
       <span class="current-item">
-        {{ truncatedCurrentTitle }}
+        {{ truncatedCurrentTitle }}  <!-- ✅ ТЕПЕРЬ РАБОТАЕТ -->
       </span>
     </el-breadcrumb-item>
   </el-breadcrumb>
@@ -86,31 +86,24 @@ const route = useRoute()
 const useAppStore = appStore()
 
 // Реактивные состояния
-const levelList = ref([]) // Основной список элементов крошки
-const breadcrumbRef = ref(null) // Ссылка на DOM-элемент хлебных крошек
-const containerWidth = ref(0) // Ширина контейнера для адаптивности
+const levelList = ref([])
+const breadcrumbRef = ref(null)
+const containerWidth = ref(0)
 
 // Логика построения корректной иерархии
 const getBreadcrumb = () => {
   try {
-    // 1. Получаем все совпавшие маршруты с мета-данными
     let matched = route.matched.filter(item => item.meta?.title)
 
-    // 2. Строим строгую иерархию (только прямые родители)
     const hierarchy = []
-    let parentPath = '' // Отслеживаем текущий родительский путь
+    let parentPath = ''
     matched.forEach(item => {
-      // Проверяем, что текущий путь начинается с родительского
-      // и не равен ему (вложенные маршруты)
       if (item.path.startsWith(parentPath) && item.path !== parentPath) {
         hierarchy.push(item)
-        parentPath = item.path // Обновляем родителя для следующей итерации
+        parentPath = item.path
       }
     })
 
-    // 3. Добавляем Dashboard только если:
-    // - Его нет в иерархии
-    // - Текущий путь не сам Dashboard
     if (
         !hierarchy.some(item => item.path === '/dashboard') &&
         route.path !== '/dashboard'
@@ -123,21 +116,20 @@ const getBreadcrumb = () => {
       })
     }
 
-    // 4. Фильтрация дубликатов и нежелательных элементов
     const uniquePaths = new Set()
     levelList.value = hierarchy
         .filter(item => {
           const isUnique = !uniquePaths.has(item.path)
-          uniquePaths.add(item.path) // Гарантируем уникальность путей
+          uniquePaths.add(item.path)
           return (
               isUnique &&
               item.meta?.title &&
-              item.meta.breadcrumb !== false // Пропускаем элементы с флагом breadcrumb: false
+              item.meta.breadcrumb !== false
           )
         })
         .map((item, index, arr) => ({
           ...item,
-          isLast: index === arr.length - 1 // Помечаем последний элемент
+          isLast: index === arr.length - 1
         }))
 
     log('Filtered breadcrumb items:', levelList.value)
@@ -146,28 +138,27 @@ const getBreadcrumb = () => {
   }
 }
 
-// Группировка элементов
-// Группа 1: Только Dashboard (если не последний элемент)
+// Группа 1: Только Dashboard
 const group1Items = computed(() =>
     levelList.value.filter(item =>
         item.path === '/dashboard' &&
-        !item.isLast // Исключаем Dashboard, если он текущая страница
+        !item.isLast
     )
 )
 
-// Группа 2: Прямые родители текущего элемента
+// Группа 2: Прямые родители
 const group2Items = computed(() => {
-  const startIndex = group1Items.value.length > 0 ? 1 : 0 // Пропускаем Dashboard, если он в группе 1
-  const lastIndex = levelList.value.findIndex(item => item.isLast) // Индекс текущей страницы
+  const startIndex = group1Items.value.length > 0 ? 1 : 0
+  const lastIndex = levelList.value.findIndex(item => item.isLast)
   return lastIndex > 0
-      ? levelList.value.slice(startIndex, lastIndex) // От Dashboard (или начала) до текущего элемента
+      ? levelList.value.slice(startIndex, lastIndex)
       : []
 })
 
-// Группа 3: Элементы для выпадающего меню (если цепочка длиннее 3 элементов)
+// Группа 3: Сворачиваемые элементы
 const group3Items = computed(() =>
     group2Items.value.length > 2
-        ? group2Items.value.slice(1, -1) // Берем средние элементы, исключая первый и последний
+        ? group2Items.value.slice(1, -1)
         : []
 )
 
@@ -176,12 +167,18 @@ const currentItem = computed(() =>
     levelList.value[levelList.value.length - 1] || {}
 )
 
+const truncatedCurrentTitle = computed(() => {
+  const title = currentItem.value?.meta?.title || ''
+  const translated = generateTitle(title)
+  // Обрезаем если длиннее 20 символов
+  return translated.length > 30 ? translated.slice(0, 30) + '...' : translated
+})
+
 // Навигация по клику
 const handleLink = (item) => {
   if (!item || item.redirect === 'noRedirect') return
 
   try {
-    // Компиляция динамических путей (например, /user/:id)
     const targetPath = item.redirect || compile(item.path)(route.params)
     router.push(targetPath)
     log('Navigation to:', targetPath)
@@ -190,7 +187,7 @@ const handleLink = (item) => {
   }
 }
 
-// Адаптивность: обновление размеров при ресайзе
+// Адаптивность
 const updateSizes = () => {
   if (!breadcrumbRef.value?.$el) return
   const container = breadcrumbRef.value.$el
@@ -201,10 +198,10 @@ const updateSizes = () => {
 // Следим за изменениями маршрута
 watch(() => route.path, getBreadcrumb, { immediate: true })
 
-// Реакция на изменение размеров контейнера
+// Реакция на изменение размеров
 useResizeObserver(breadcrumbRef, () => {
   updateSizes()
-  nextTick(updateSizes) // Двойное обновление для точности
+  nextTick(updateSizes)
 })
 </script>
 
@@ -217,9 +214,10 @@ useResizeObserver(breadcrumbRef, () => {
   padding: 0 8px 0 8px;
   overflow: hidden;
   font-size: 10px;
+
   :deep(.el-dropdown) {
     &.group-3 {
-      position: relative; /* Ключевое исправление */
+      position: relative;
 
       .dropdown-wrapper {
         display: inline-flex;
@@ -258,6 +256,7 @@ useResizeObserver(breadcrumbRef, () => {
       }
     }
   }
+
   :deep(.el-breadcrumb__item) {
     flex-shrink: 0;
     max-width: 150px;
