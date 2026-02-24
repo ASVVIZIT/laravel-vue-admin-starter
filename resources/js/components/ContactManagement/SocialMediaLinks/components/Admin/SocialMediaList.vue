@@ -45,22 +45,29 @@
             </div>
 
             <div class="col-controls">
-              <el-button
-                  size="small"
-                  type="primary"
-                  @click="editLink(link)"
-                  :icon="EditIcon"
-                  class="square-button-style"
-              >
-              </el-button>
-              <el-button
-                  size="small"
-                  type="danger"
-                  @click="showDeleteConfirm(link.id)"
-                  :icon="DeleteIcon"
-                  class="square-button-style"
-              >
-              </el-button>
+              <el-tooltip content="Редактировать" placement="top">
+                <el-button
+                    size="small"
+                    type="primary"
+                    @click="editLink(link)"
+                    :icon="EditIcon"
+                    circle
+                    :disabled="loading || link._updating || link._refreshing"
+                    class="action-btn action-btn-edit"
+                />
+              </el-tooltip>
+
+              <el-tooltip content="Удалить" placement="top">
+                <el-button
+                    size="small"
+                    type="danger"
+                    @click="showDeleteConfirm(link.id)"
+                    :icon="DeleteIcon"
+                    circle
+                    :disabled="loading || link._updating || link._refreshing"
+                    class="action-btn action-btn-delete"
+                />
+              </el-tooltip>
             </div>
           </div>
         </el-card>
@@ -94,7 +101,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, markRaw } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useSocialMediaLinksStore } from '@components/ContactManagement/SocialMediaLinks/store/socialMediaLinks.js';
 import { VueDraggableNext as Draggable } from 'vue-draggable-next';
 import SocialMediaForm from './SocialMediaForm.vue';
@@ -116,33 +123,42 @@ const currentLink = ref({});
 const showDeleteConfirmDialog = ref(false);
 const deleteLinkId = ref(null);
 const localLinks = ref([]);
+const loading = ref(false);
 
 const sortedLinks = computed(() => store.sortedLinks);
 
-const getIconMap = () => ({
-  'fab fa-2gis': markRaw(fenixIconStore.getIconByName('Fenix2gis') || LinkIcon),
-  'fab fa-vk': markRaw(fenixIconStore.getIconByName('FenixVk') || LinkIcon),
-  'fab fa-telegram': markRaw(fenixIconStore.getIconByName('FenixTelegram') || LinkIcon),
-  'fab fa-whatsapp': markRaw(fenixIconStore.getIconByName('FenixWhatsApp') || LinkIcon),
-  'fab fa-instagram': markRaw(fenixIconStore.getIconByName('FenixInstagram') || LinkIcon),
-  'fab fa-facebook': markRaw(fenixIconStore.getIconByName('FenixFacebook') || LinkIcon),
-  'fab fa-youtube': markRaw(fenixIconStore.getIconByName('FenixYoutube') || LinkIcon),
-  'fab fa-tiktok': markRaw(fenixIconStore.getIconByName('FenixTikTok') || LinkIcon),
-  'fab fa-twitter': markRaw(fenixIconStore.getIconByName('FenixTwitter') || LinkIcon),
-  'fab fa-x-twitter': markRaw(fenixIconStore.getIconByName('FenixTwitter') || LinkIcon),
-  'fab fa-pinterest': markRaw(fenixIconStore.getIconByName('FenixPinterest') || LinkIcon),
-  'fab fa-linkedin': markRaw(fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon),
-  'default': markRaw(LinkIcon)
-});
+// ✅ ИСПРАВЛЕНО: computed + без markRaw (уже в сторе) + без fa-x-twitter
+const iconMap = computed(() => ({
+  // Maps
+  'fab fa-2gis': fenixIconStore.getIconByName('Fenix2gis') || LinkIcon,
+  'fab fa-google-maps': fenixIconStore.getIconByName('FenixGoogleMaps') || LinkIcon,
+  'fab fa-yandex-maps': fenixIconStore.getIconByName('FenixYandexMaps') || LinkIcon,
+
+  // Social
+  'fab fa-vk': fenixIconStore.getIconByName('FenixVk') || LinkIcon,
+  'fab fa-telegram': fenixIconStore.getIconByName('FenixTelegram') || LinkIcon,
+  'fab fa-whatsapp': fenixIconStore.getIconByName('FenixWhatsApp') || LinkIcon,
+  'fab fa-youtube': fenixIconStore.getIconByName('FenixYouTube') || LinkIcon,
+  'fab fa-pinterest': fenixIconStore.getIconByName('FenixPinterest') || LinkIcon,
+  'fab fa-tiktok': fenixIconStore.getIconByName('FenixTikTok') || LinkIcon,
+  'fab fa-instagram': fenixIconStore.getIconByName('FenixInstagram') || LinkIcon,
+  'fab fa-twitter': fenixIconStore.getIconByName('FenixTwitter') || LinkIcon,
+  'fab fa-facebook': fenixIconStore.getIconByName('FenixFacebook') || LinkIcon,
+  'fab fa-linkedin': fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon,
+
+  // Default
+  'default': fenixIconStore.getIconByName('FenixDefault') || LinkIcon
+}));
 
 const getIconComponent = (iconString) => {
-  const iconMap = getIconMap();
-  const mappedComponent = iconMap[iconString];
-
-  if (mappedComponent && typeof mappedComponent === 'object') {
+  const mappedComponent = iconMap.value[iconString];
+  if (mappedComponent) {
     return mappedComponent;
   } else {
-    return iconMap.default;
+    if (import.meta.env.DEV) {
+      console.warn(`Иконка для '${iconString}' не найдена, используется резервная.`);
+    }
+    return iconMap.value.default;
   }
 };
 
@@ -151,8 +167,14 @@ watch(sortedLinks, (newSortedLinks) => {
 }, { immediate: true });
 
 onMounted(async () => {
-  await store.fetchLinks();
-  await fenixIconStore.fetchIcons?.();
+  loading.value = true;
+  try {
+    await store.fetchLinks();
+  } catch (error) {
+    ElMessage.error('Ошибка загрузки ссылок: ' + error.message);
+  } finally {
+    loading.value = false;
+  }
 });
 
 const editLink = (link) => {
@@ -357,11 +379,60 @@ const confirmDelete = async () => {
   gap: 5px;
 }
 
-.square-button-style {
-  width: 24px !important;
-  height: 24px !important;
-  padding: 0 !important;
-  margin-left: 0 !important;
-  border-radius: 4px !important;
+.action-buttons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.action-buttons .el-button + .el-button {
+  margin-left: 0px !important;
+}
+
+.action-btn {
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.action-btn-refresh {
+  color: #FF9500 !important;
+}
+
+.action-btn-refresh:hover:not(:disabled) {
+  color: #FFB140 !important;
+  transform: scale(1.15);
+}
+
+.action-btn-edit {
+  color: #409EFF !important;
+}
+
+.action-btn-edit:hover:not(:disabled) {
+  color: #66b1ff !important;
+  transform: scale(1.15);
+}
+
+.action-btn-delete {
+  color: #F56C6C !important;
+}
+
+.action-btn-delete:hover:not(:disabled) {
+  color: #f78989 !important;
+  transform: scale(1.15);
+}
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none !important;
+  color: #c0c4cc !important;
 }
 </style>

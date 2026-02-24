@@ -1,47 +1,98 @@
 // resources/js/components/FenixIconVue/store/fenixIconsStore.js
 import { defineStore } from 'pinia';
-// Импортируем иконку
-import Fenix2gis from '../icons/Fenix2gis.vue';
-// Импортируйте другие иконки по мере добавления
-// import FenixSomeOtherIcon from '../icons/FenixSomeOtherIcon.vue';
+import { markRaw } from 'vue';
 
+// ============================================================================
+// АВТО-ИМПОРТ ВСЕХ ИКОНОК ИЗ ПАПКИ icons/
+// ============================================================================
+const iconsModules = import.meta.glob('../icons/*.vue', { eager: true });
+
+// Преобразуем в объект { Fenix2gis: Component, FenixTikTok: Component, ... }
+const availableIcons = {};
+
+Object.entries(iconsModules).forEach(([path, module]) => {
+    // Извлекаем имя файла без расширения
+    const iconName = path
+        .replace('../icons/', '')
+        .replace('.vue', '');
+
+    // ✅ markRaw() ЗДЕСЬ — один раз для всех иконок!
+    availableIcons[iconName] = markRaw(module.default);
+});
+
+// ============================================================================
+// STORE
+// ============================================================================
 export const useFenixIconsStore = defineStore('fenixIcons', {
     state: () => ({
-        // Храним все иконки в объекте
-        availableIcons: {
-            Fenix2gis, // Ключ - имя, значение - компонент
-            // FenixSomeOtherIcon,
-            // ... другие иконки
-        },
-        // Пример категоризации (опционально)
+        // Все доступные иконки (уже не реактивные благодаря markRaw)
+        availableIcons,
+
+        // Категории иконок
         iconCategories: {
-            maps: ['Fenix2gis'],
-            // social: ['FenixTikTok'], // Пример
-            // ... другие категории
+            // Maps
+            maps: [
+                'Fenix2gis',
+                'FenixGoogleMaps',
+                'FenixYandexMaps'
+            ],
+
+            // Social
+            social: [
+                'FenixVk',
+                'FenixTelegram',
+                'FenixWhatsApp',
+                'FenixYouTube',
+                'FenixPinterest',
+                'FenixTikTok',
+                'FenixInstagram',
+                'FenixTwitter',
+                'FenixFacebook',
+                'FenixLinkedIn'
+            ],
+
+            // Default
+            default: [
+                'FenixDefault'
+            ]
         }
     }),
+
     getters: {
-        // Геттер для получения иконки по имени
+        // Получить иконку по имени (уже markRaw, ничего делать не нужно)
         getIconByName: (state) => (name) => {
             return state.availableIcons[name] || null;
         },
-        // Геттер для получения иконок по категории (опционально)
+
+        // Получить все имена иконок
+        getIconNames: (state) => {
+            return Object.keys(state.availableIcons);
+        },
+
+        // Получить иконки по категории
         getIconsByCategory: (state) => (category) => {
             const iconNames = state.iconCategories[category] || [];
-            return iconNames.map(name => ({ name, component: state.availableIcons[name] }));
+            return iconNames
+                .filter(name => state.availableIcons[name])
+                .map(name => ({ name, component: state.availableIcons[name] }));
+        },
+
+        // Получить все иконки как массив
+        getAllIcons: (state) => {
+            return Object.entries(state.availableIcons).map(([name, component]) => ({
+                name,
+                component
+            }));
+        },
+
+        // Проверить существует ли иконка
+        hasIcon: (state) => (name) => {
+            return !!state.availableIcons[name];
         }
     },
+
     actions: {
-        // Действие для добавления новой иконки (опционально, но полезно)
-        addIcon(name, component) {
-            if (!this.availableIcons[name]) {
-                this.availableIcons[name] = component;
-                console.log(`Иконка ${name} добавлена.`);
-            } else {
-                console.warn(`Иконка ${name} уже существует.`);
-            }
-        },
-        // Действие для добавления иконки в категорию (опционально)
+        // Добавить иконку в категорию
         addIconToCategory(category, iconName) {
             if (!this.iconCategories[category]) {
                 this.iconCategories[category] = [];
@@ -49,6 +100,16 @@ export const useFenixIconsStore = defineStore('fenixIcons', {
             if (!this.iconCategories[category].includes(iconName)) {
                 this.iconCategories[category].push(iconName);
             }
+        },
+
+        // Проверить существует ли иконка
+        iconExists(iconName) {
+            return !!this.availableIcons[iconName];
+        },
+
+        // Получить количество иконок
+        getIconsCount() {
+            return Object.keys(this.availableIcons).length;
         }
     }
 });

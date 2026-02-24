@@ -1,19 +1,43 @@
 // resources/js/components/FenixIconVue/FenixIconRegistry.js
 
-// Импортируем иконки
-import Fenix2gis from './icons/Fenix2gis.vue';
-import FenixTikTok from './icons/FenixTikTok.vue';
-// Импортируйте другие иконки по мере их добавления
-// import FenixSomeOtherIcon from './icons/FenixSomeOtherIcon.vue';
+// ============================================================================
+// АВТО-ИМПОРТ ВСЕХ ИКОНОК ИЗ ПАПКИ icons/
+// ============================================================================
+const iconsModules = import.meta.glob('./icons/*.vue', { eager: true });
 
-// Создаём объект, где ключ - имя иконки, значение - компонент
-export const FenixIcons = {
-    Fenix2gis,
-    FenixTikTok,
-    // FenixSomeOtherIcon,
-    // ... другие иконки
+// Создаём объект реестра
+export const FenixIcons = {};
+
+// Заполняем реестр
+Object.entries(iconsModules).forEach(([path, module]) => {
+    const iconName = path
+        .replace('./icons/', '')
+        .replace('.vue', '');
+
+    FenixIcons[iconName] = module.default;
+});
+
+// ============================================================================
+// ЭКСПОРТ ВСЕХ ИКОНОК
+// ============================================================================
+export default FenixIcons;
+
+// ============================================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================================
+
+// Получить иконку по имени
+export const getIcon = (name) => FenixIcons[name] || null;
+
+// Получить все имена иконок
+export const getIconNames = () => Object.keys(FenixIcons);
+
+// Проверить существование иконки
+export const hasIcon = (name) => !!FenixIcons[name];
+
+// Зарегистрировать все иконки глобально (опционально)
+export const registerIcons = (app) => {
+    Object.entries(FenixIcons).forEach(([name, component]) => {
+        app.component(name, component);
+    });
 };
-
-// Экспортируем отдельные иконки, если нужно импортировать конкретно
-export { Fenix2gis, FenixTikTok };
-// export { FenixSomeOtherIcon }; // и т.д.

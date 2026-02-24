@@ -19,7 +19,6 @@
         <el-input v-model="form.url" placeholder="https://example.com/path?query=value" />
       </el-form-item>
 
-      <!-- Новое поле Описание -->
       <el-form-item label="Описание" prop="description">
         <el-input
             v-model="form.description"
@@ -30,13 +29,27 @@
       </el-form-item>
 
       <el-form-item label="Иконка" prop="icon">
-        <el-select v-model="form.icon" placeholder="Выберите иконку">
+        <el-select
+            v-model="form.icon"
+            placeholder="Выберите иконку"
+            style="width: 100%"
+        >
           <el-option
-              v-for="icon in availableIcons"
-              :key="icon"
-              :label="icon"
-              :value="icon"
-          />
+              v-for="item in iconOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+          >
+            <div class="icon-option-wrapper">
+              <component
+                  v-if="item.component"
+                  :is="item.component"
+                  :size="20"
+                  class="option-icon"
+              />
+              <span class="option-label">{{ item.label }}</span>
+            </div>
+          </el-option>
         </el-select>
       </el-form-item>
 
@@ -59,6 +72,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
+import { Link as LinkIcon } from '@element-plus/icons-vue';
 
 const props = defineProps({
   link: {
@@ -73,31 +88,46 @@ const props = defineProps({
 
 const emits = defineEmits(['close', 'saved']);
 
+const fenixIconStore = useFenixIconsStore();
+
 const visible = ref(false);
 const form = ref({
   name: '',
   url: '',
-  description: '', // Добавлено
-  icon: 'fab fa-instagram',
+  description: '',
+  icon: 'default',
   order_column: 0
 });
 const formRef = ref(null);
 
-const availableIcons = ref([
-  'fab fa-2gis',
-  'fab fa-vk',
-  'fab fa-telegram',
-  'fab fa-whatsapp',
-  'fab fa-youtube',
-  'fab fa-facebook',
-  'fab fa-twitter',
-  'fab fa-instagram',
-  'fab fa-tiktok',
-  'fab fa-pinterest',
-  'fab fa-linkedin'
-]);
+// ✅ ИСПРАВЛЕНО: Массив иконок с компонентами
+const iconList = [
+  { value: 'fab fa-2gis', label: '2GIS', component: 'Fenix2gis' },
+  { value: 'fab fa-google-maps', label: 'Google Maps', component: 'FenixGoogleMaps' },
+  { value: 'fab fa-yandex-maps', label: 'Yandex Maps', component: 'FenixYandexMaps' },
+  { value: 'fab fa-vk', label: 'VK', component: 'FenixVk' },
+  { value: 'fab fa-telegram', label: 'Telegram', component: 'FenixTelegram' },
+  { value: 'fab fa-whatsapp', label: 'WhatsApp', component: 'FenixWhatsApp' },
+  { value: 'fab fa-youtube', label: 'YouTube', component: 'FenixYouTube' },
+  { value: 'fab fa-pinterest', label: 'Pinterest', component: 'FenixPinterest' },
+  { value: 'fab fa-tiktok', label: 'TikTok', component: 'FenixTikTok' },
+  { value: 'fab fa-instagram', label: 'Instagram', component: 'FenixInstagram' },
+  { value: 'fab fa-twitter', label: 'Twitter', component: 'FenixTwitter' },
+  { value: 'fab fa-facebook', label: 'Facebook', component: 'FenixFacebook' },
+  { value: 'fab fa-linkedin', label: 'LinkedIn', component: 'FenixLinkedIn' },
+  { value: 'default', label: 'Default', component: 'FenixDefault' }
+];
 
-// Функция проверки URL (используем ту же, что и раньше)
+// ✅ Получаем компоненты из стора
+const iconOptions = computed(() => {
+  return iconList.map(item => ({
+    value: item.value,
+    label: item.label,
+    component: fenixIconStore.getIconByName(item.component) || LinkIcon
+  }));
+});
+
+// Функция проверки URL
 const isValidUrl = (url) => {
   if (!url || !url.trim()) return false;
 
@@ -114,25 +144,7 @@ const isValidUrl = (url) => {
   }
 };
 
-const normalizeUrl = (url) => {
-  if (!url || !url.trim()) return '';
-
-  url = url.trim();
-
-  if (!url.startsWith('http://') && !url.startsWith('https://')) {
-    url = 'https://' + url;
-  }
-
-  try {
-    const parsed = new URL(url);
-    parsed.hostname = parsed.hostname.toLowerCase();
-    return parsed.toString();
-  } catch (e) {
-    return `https://${url.replace(/[^a-z0-9.-]/gi, '').toLowerCase()}`;
-  }
-};
-
-// Обновляем правила валидации
+// Правила валидации
 const rules = {
   name: [
     { required: true, message: 'Введите название', trigger: 'blur' },
@@ -153,7 +165,6 @@ const rules = {
       trigger: 'blur'
     }
   ],
-  // Новое правило для description
   description: [
     { max: 500, message: 'Максимум 500 символов', trigger: 'blur' }
   ],
@@ -166,15 +177,15 @@ const maxOrder = computed(() => {
   return props.links.length ? props.links.length - 1 : 0;
 });
 
-// Обновляем watch для инициализации формы с учётом description
+// Watch для инициализации формы
 watch(() => props.link, (newLink) => {
   if (newLink && Object.keys(newLink).length > 0) {
     form.value = {
       id: newLink.id || null,
       name: newLink.name || '',
       url: newLink.url || '',
-      description: newLink.description || '', // Добавлено
-      icon: newLink.icon || 'fab fa-instagram',
+      description: newLink.description || '',
+      icon: newLink.icon || 'default',
       order_column: newLink.order_column !== undefined ? newLink.order_column : 0
     };
     visible.value = true;
@@ -182,8 +193,8 @@ watch(() => props.link, (newLink) => {
     form.value = {
       name: '',
       url: '',
-      description: '', // Сброс поля при открытии новой формы
-      icon: 'fab fa-instagram',
+      description: '',
+      icon: 'default',
       order_column: 0
     };
   }
@@ -191,12 +202,11 @@ watch(() => props.link, (newLink) => {
 
 const onClose = () => {
   visible.value = false;
-  // Сбрасываем форму при закрытии
   form.value = {
     name: '',
     url: '',
-    description: '', // Добавлено
-    icon: 'fab fa-instagram',
+    description: '',
+    icon: 'default',
     order_column: 0
   };
   emits('close');
@@ -206,7 +216,6 @@ const submitForm = async () => {
   const valid = await formRef.value.validate();
   if (!valid) return;
 
-  // Нормализуем URL перед отправкой
   let normalizedUrl = form.value.url.trim();
   if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
     normalizedUrl = 'https://' + normalizedUrl;
@@ -217,3 +226,35 @@ const submitForm = async () => {
   visible.value = false;
 };
 </script>
+
+<style scoped>
+.icon-option-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Стили для dropdown (рендерится в body, вне scope) */
+:deep(.el-select-dropdown__item) {
+  padding: 8px 12px !important;
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  color: #409EFF;
+  font-weight: 600;
+}
+</style>

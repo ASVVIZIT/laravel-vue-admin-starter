@@ -1,13 +1,20 @@
 <!-- resources/js/components/FenixIconVue/icons/Fenix2gis.vue -->
 <template>
-  <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
-       viewBox="0 0 1000 325.8" style="enable-background:new 0 0 1000 325.8;">
-    <!-- Убран xml:space="preserve", так как не всегда критично в вебе -->
-    <!-- Встроим стили внутрь тегов, если нужно упростить -->
-    <!-- Оставим defs и mask, так как они используются -->
+  <svg
+      version="1.1"
+      xmlns="http://www.w3.org/2000/svg"
+      xmlns:xlink="http://www.w3.org/1999/xlink"
+      x="0px"
+      y="0px"
+      viewBox="0 0 1000 325.8"
+      style="enable-background:new 0 0 1000 325.8;"
+      :width="props.width || 48"
+      :height="props.height || 24"
+      preserveAspectRatio="xMidYMid meet"
+  >
     <defs>
       <filter id="Adobe_OpacityMaskFilter" filterUnits="userSpaceOnUse" x="0" y="0" width="323.9" height="325.8">
-        <feColorMatrix  type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
+        <feColorMatrix type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1 0"/>
       </filter>
     </defs>
     <mask maskUnits="userSpaceOnUse" x="0" y="0" width="323.9" height="325.8" id="iconLogo_svg__a_00000160876812373449314350000007244229659938221983_">
@@ -42,8 +49,26 @@
   </svg>
 </template>
 
+<script setup>
+const props = defineProps({
+  width: {
+    type: [Number, String],
+    default: 48
+  },
+  height: {
+    type: [Number, String],
+    default: 24
+  },
+  size: {
+    type: [Number, String],
+    default: null  // Для обратной совместимости
+  }
+})
+</script>
+
 <script>
 export default {
-  name: 'Fenix2gis' // Уникальное имя компонента
+  name: 'Fenix2gis',
+  inheritAttrs: false
 }
 </script>

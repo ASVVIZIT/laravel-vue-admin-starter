@@ -1,17 +1,14 @@
 <template>
   <div class="review-card" @click="openLink">
-    <!-- Иконка соцсети -->
     <component :is="getIconComponent(icon)" class="social-icon" />
     <span class="name">{{ name }}</span>
-    <!-- QR-код -->
     <qr-code-generator v-if="url && url.trim()" :url="url" :name="name" :size="120" />
     <div v-else class="missing-url-warning">QR-код недоступен: URL отсутствует.</div>
   </div>
 </template>
 
 <script setup>
-import { defineProps } from 'vue';
-// Импортируем иконки Element Plus (резервные)
+import { computed } from 'vue';
 import {
   VideoCamera as VideoCameraIcon,
   ChatLineSquare as ChatLineSquareIcon,
@@ -22,14 +19,8 @@ import {
   Link as LinkIcon,
   Monitor as MonitorIcon
 } from '@element-plus/icons-vue';
-// Импортируем компонент QR-кода
 import QrCodeGenerator from '@components/ContactManagement/SocialMediaLinks/components/Admin/QrCodeGenerator.vue';
-// --- Импортируем стор FenixIcon ---
 import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
-
-// --- Инициализируем стор FenixIcon ---
-const fenixIconStore = useFenixIconsStore();
-// --- /Инициализируем стор FenixIcon ---
 
 const props = defineProps({
   icon: {
@@ -46,41 +37,39 @@ const props = defineProps({
   }
 });
 
-// --- Карта соответствия иконок (теперь использует стор FenixIcon с резервом) ---
-const iconMap = {
-  // Пытаемся получить Fenix2gis, если нет - используем резервную иконку Element Plus
-  'fab fa-2gis': fenixIconStore.getIconByName('Fenix2gis') || GuideIcon, // Резерв: GuideIcon
-  'fab fa-vk': fenixIconStore.getIconByName('FenixVk') || GuideIcon, // Резерв: GuideIcon
-  'fab fa-telegram': fenixIconStore.getIconByName('FenixTelegram') || ChatLineSquareIcon, // Резерв: ChatLineSquareIcon
-  'fab fa-whatsapp': fenixIconStore.getIconByName('FenixWhatsApp') || ChatLineSquareIcon, // Резерв: ChatLineSquareIcon
-  'fab fa-instagram': fenixIconStore.getIconByName('FenixInstagram') || PictureIcon, // Резерв: PictureIcon
-  'fab fa-facebook': fenixIconStore.getIconByName('FenixFacebook') || ConnectionIcon, // Резерв: ConnectionIcon
-  'fab fa-youtube': fenixIconStore.getIconByName('FenixYoutube') || VideoCameraIcon, // Резерв: VideoCameraIcon
-  'fab fa-tiktok': fenixIconStore.getIconByName('FenixTikTok') || MonitorIcon, // Резерв: MonitorIcon
-  'fab fa-twitter': fenixIconStore.getIconByName('FenixTwitter') || PositionIcon, // Резерв: PositionIcon
-  'fab fa-pinterest': fenixIconStore.getIconByName('FenixPinterest') || PictureIcon, // Резерв: PictureIcon
-  'fab fa-linkedin': fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon, // Резерв: LinkIcon
-  'default': LinkIcon // Резервная иконка по умолчанию
-};
-// --- /Карта соответствия иконок ---
+const fenixIconStore = useFenixIconsStore();
 
-// --- Функция для получения компонента по строке иконки ---
+// ✅ ИСПРАВЛЕНО: Вычисляемое свойство + markRaw
+const iconMap = computed(() => ({
+  'fab fa-2gis': fenixIconStore.getIconByName('Fenix2gis') || GuideIcon,
+  'fab fa-vk': fenixIconStore.getIconByName('FenixVk') || GuideIcon,
+  'fab fa-telegram': fenixIconStore.getIconByName('FenixTelegram') || ChatLineSquareIcon,
+  'fab fa-whatsapp': fenixIconStore.getIconByName('FenixWhatsApp') || ChatLineSquareIcon,
+  'fab fa-instagram': fenixIconStore.getIconByName('FenixInstagram') || PictureIcon,
+  'fab fa-facebook': fenixIconStore.getIconByName('FenixFacebook') || ConnectionIcon,
+  'fab fa-youtube': fenixIconStore.getIconByName('FenixYoutube') || VideoCameraIcon,
+  'fab fa-tiktok': fenixIconStore.getIconByName('FenixTikTok') || MonitorIcon,
+  'fab fa-twitter': fenixIconStore.getIconByName('FenixTwitter') || PositionIcon,
+  'fab fa-x-twitter': fenixIconStore.getIconByName('FenixTwitter') || PositionIcon,
+  'fab fa-pinterest': fenixIconStore.getIconByName('FenixPinterest') || PictureIcon,
+  'fab fa-linkedin': fenixIconStore.getIconByName('FenixLinkedIn') || LinkIcon,
+  'default': LinkIcon
+}));
+
 const getIconComponent = (iconString) => {
-  const mappedComponent = iconMap[iconString];
-  // Проверяем, что компонент найден в map (сначала ищем в Fenix, потом резервный EP)
+  const mappedComponent = iconMap.value[iconString];
   if (mappedComponent) {
     return mappedComponent;
   } else {
-    console.warn(`Иконка для '${iconString}' не найдена в map, используется резервная.`); // Логирование
-    return iconMap.default; // Используем резервную иконку
+    if (import.meta.env.DEV) {
+      console.warn(`Иконка для '${iconString}' не найдена, используется резервная.`);
+    }
+    return iconMap.value.default;
   }
 };
-// --- /Функция для получения компонента по строке иконки ---
 
-// Функция открытия ссылки
 const openLink = () => {
   if (!props.url || !props.url.trim()) {
-    console.error('Invalid URL:', props.url);
     return;
   }
 
@@ -93,16 +82,12 @@ const openLink = () => {
     new URL(normalizedUrl);
     window.open(normalizedUrl, '_blank');
   } catch (e) {
-    console.error('Invalid URL format:', normalizedUrl);
     const domain = normalizedUrl.replace(/[^a-z0-9.-]/gi, '');
     if (domain) {
       window.open(`https://${domain}`, '_blank');
     }
   }
 };
-
-// Добавим логирование для отладки
-console.log('ReviewCard props:', props);
 </script>
 
 <style scoped>
@@ -125,13 +110,12 @@ console.log('ReviewCard props:', props);
   box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
 
-/* Обновлённый стиль для .social-icon */
 .social-icon {
   font-size: 48px;
   color: #333;
   margin-bottom: 10px;
-  width: 3em; /* Установлено для правильного масштаба */
-  height: 1em;
+  width: 3em;
+  height: 3em;
   vertical-align: middle;
 }
 
@@ -152,7 +136,6 @@ console.log('ReviewCard props:', props);
   margin-top: 10px;
 }
 
-/* Стили для QR-кода внутри карточки */
 .review-card :deep(.qr-wrapper),
 .review-card :deep(.qr-container) {
   display: flex;
@@ -172,7 +155,6 @@ console.log('ReviewCard props:', props);
   align-items: center;
 }
 
-/* Обновлённый стиль для .square-button-style */
 .review-card :deep(.square-button-style) {
   width: 24px !important;
   height: 24px !important;
