@@ -24,15 +24,21 @@
             shadow="hover"
             class="link-row"
         >
+          <!-- Заголовок карточки -->
           <div class="card-header" slot="header">
+            <!-- Иконка соцсети -->
             <component :is="getIconComponent(link.icon)" class="header-icon" />
+            <!-- Название -->
             <span class="header-title">{{ link.name }}</span>
+            <!-- Иконка перетаскивания -->
             <div class="drag-handle" title="Перетащите для сортировки">
               <component :is="DragHandleIcon" />
             </div>
           </div>
 
+          <!-- Основной контент строки (тело карточки) -->
           <div class="row-content">
+            <!-- Колонка: URL и Описание -->
             <div class="col-info">
               <div class="url-label">URL:</div>
               <div class="url">{{ link.url }}</div>
@@ -40,34 +46,31 @@
               <div v-if="link.description" class="description">{{ link.description }}</div>
             </div>
 
+            <!-- Колонка: QR-код -->
             <div class="col-qr">
               <qr-code-generator :url="link.url" :name="link.name" :size="100" />
             </div>
 
+            <!-- Колонка: Кнопки -->
             <div class="col-controls">
-              <el-tooltip content="Редактировать" placement="top">
-                <el-button
-                    size="small"
-                    type="primary"
-                    @click="editLink(link)"
-                    :icon="EditIcon"
-                    circle
-                    :disabled="loading || link._updating || link._refreshing"
-                    class="action-btn action-btn-edit"
-                />
-              </el-tooltip>
-
-              <el-tooltip content="Удалить" placement="top">
-                <el-button
-                    size="small"
-                    type="danger"
-                    @click="showDeleteConfirm(link.id)"
-                    :icon="DeleteIcon"
-                    circle
-                    :disabled="loading || link._updating || link._refreshing"
-                    class="action-btn action-btn-delete"
-                />
-              </el-tooltip>
+              <el-button
+                  size="small"
+                  type="primary"
+                  @click="editLink(link)"
+                  :icon="EditIcon"
+                  class="square-button-style"
+              >
+                <!-- Редактировать -->
+              </el-button>
+              <el-button
+                  size="small"
+                  type="danger"
+                  @click="showDeleteConfirm(link.id)"
+                  :icon="DeleteIcon"
+                  class="square-button-style"
+              >
+                <!-- Удалить -->
+              </el-button>
             </div>
           </div>
         </el-card>
@@ -123,11 +126,9 @@ const currentLink = ref({});
 const showDeleteConfirmDialog = ref(false);
 const deleteLinkId = ref(null);
 const localLinks = ref([]);
-const loading = ref(false);
 
 const sortedLinks = computed(() => store.sortedLinks);
 
-// ✅ ИСПРАВЛЕНО: computed + без markRaw (уже в сторе) + без fa-x-twitter
 const iconMap = computed(() => ({
   // Maps
   'fab fa-2gis': fenixIconStore.getIconByName('Fenix2gis') || LinkIcon,
