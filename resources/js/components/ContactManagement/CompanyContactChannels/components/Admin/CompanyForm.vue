@@ -25,7 +25,7 @@
             v-model="formData.name"
             :placeholder="COMPANY_FORM_FIELDS.NAME.placeholder"
             :maxlength="COMPANY_FORM_FIELDS.NAME.maxLength"
-            :disabled="props.loading"
+            :disabled="isFormDisabled"
             show-word-limit
             :clearable="true"
         />
@@ -45,9 +45,9 @@
           />
         </el-form-item>
 
+        <!-- ✅ ИСПРАВЛЕНО: ДОБАВЛЕН @clear ДЛЯ СБРОСА В "" -->
         <el-form-item
             :label="getFieldLabel('settings.icon', 'company')"
-            prop="settings.icon"
             class="form-item-inline"
         >
           <el-select
@@ -56,6 +56,7 @@
               :clearable="COMPANY_FORM_FIELDS.ICON.clearable"
               filterable
               class="icon-select"
+              @clear="onIconClear"
           >
             <el-option
                 v-for="icon in props.iconOptions"
@@ -83,7 +84,7 @@
             type="textarea"
             :rows="COMPANY_FORM_FIELDS.DESCRIPTION.rows"
             :placeholder="COMPANY_FORM_FIELDS.DESCRIPTION.placeholder"
-            :disabled="props.loading"
+            :disabled="isFormDisabled"
             :maxlength="COMPANY_FORM_FIELDS.DESCRIPTION.maxLength"
             show-word-limit
             :resize="COMPANY_FORM_UI.FORM_TEXTAREA_RESIZE || 'vertical'"
@@ -97,7 +98,7 @@
         <el-input
             v-model="formData.address"
             :placeholder="COMPANY_FORM_FIELDS.ADDRESS.placeholder"
-            :disabled="props.loading"
+            :disabled="isFormDisabled"
             :maxlength="COMPANY_FORM_FIELDS.ADDRESS.maxLength"
             show-word-limit
             :clearable="true"
@@ -109,14 +110,14 @@
       <div class="dialog-footer">
         <el-button
             @click="handleCancel"
-            :disabled="props.loading"
+            :disabled="isFormDisabled"
         >
           {{ COMPANY_FORM_MESSAGES.CANCEL }}
         </el-button>
         <el-button
             type="primary"
             @click="handleSubmit"
-            :loading="props.loading"
+            :loading="isFormLoading"
         >
           {{ editingCompany ? COMPANY_FORM_MESSAGES.SUBMIT_EDIT : COMPANY_FORM_MESSAGES.SUBMIT_CREATE }}
         </el-button>
@@ -128,6 +129,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
 import {
   COMPANY_FORM_PROPS_CONFIG,
   COMPANY_FORM_UI,
@@ -141,10 +143,19 @@ import {
   TIMINGS,
   COLORS,
   COMPANY_TABLE_UI,
+  EDITABLE_CELL_UI,
 } from '../../utils/appConfig.js';
 import { getFieldLabel } from '../../utils/fieldLabels.js';
 
-const props = defineProps(COMPANY_FORM_PROPS_CONFIG);
+const companyStore = useCompanyStore();
+
+const props = defineProps({
+  ...COMPANY_FORM_PROPS_CONFIG,
+  useStore: {
+    type: Boolean,
+    default: true,
+  },
+});
 
 const emit = defineEmits(['update:visible', 'submit']);
 
@@ -153,7 +164,6 @@ const formRef = ref(null);
 const localVisible = computed({
   get: () => props.visible,
   set: (val) => {
-    console.log('[CompanyForm] localVisible: SET', val);
     emit('update:visible', val);
   },
 });
@@ -163,12 +173,36 @@ const formRules = getDefaultCompanyFormValidation();
 const initialState = getInitialCompanyFormState();
 
 const formData = ref({
-  ...initialState.formData,
+  id: '',
+  name: '',
+  description: '',
+  address: '',
+  settings: {
+    icon: '',
+  },
+});
+
+const isUsingStore = computed(() => props.useStore && companyStore);
+
+const isFormLoading = computed(() => {
+  if (isUsingStore.value) {
+    return companyStore.loading;
+  }
+  return props.loading;
+});
+
+const isFormDisabled = computed(() => {
+  return isFormLoading.value || props.disabled;
 });
 
 const getIconComponent = (iconKey) => {
   if (!props.iconMap || !iconKey) return null;
   return props.iconMap[iconKey];
+};
+
+const onIconClear = () => {
+  console.log('🎨 [CompanyForm] Icon cleared');
+  formData.value.settings.icon = '';
 };
 
 watch(() => props.company, (newVal) => {
@@ -180,31 +214,70 @@ watch(() => props.company, (newVal) => {
       description: newVal.description || '',
       address: newVal.address || '',
       settings: {
-        icon: newVal.settings?.icon || '',
+        icon: newVal.settings?.icon || newVal.icon || '',
       },
     };
   } else {
     formData.value = {
-      ...initialState.formData,
+      id: '',
+      name: '',
+      description: '',
+      address: '',
+      settings: {
+        icon: '',
+      },
     };
   }
 }, { immediate: true });
 
 const handleCancel = () => {
   console.log('[CompanyForm] handleCancel');
+  if (formRef.value) {
+    formRef.value.resetFields();
+  }
   emit('update:visible', false);
 };
 
 const handleSubmit = async () => {
   console.log('[CompanyForm] handleSubmit: START');
-
   if (!formRef.value) return;
 
-  await formRef.value.validate((valid) => {
+  await formRef.value.validate(async (valid) => {
     console.log('[CompanyForm] handleSubmit: VALIDATE', { valid });
     if (valid) {
-      console.log('[CompanyForm] handleSubmit: EMIT SUBMIT', formData.value);
-      emit('submit', formData.value);
+      try {
+        const submitData = {
+          name: formData.value.name,
+          description: formData.value.description,
+          address: formData.value.address,
+          settings: {
+            icon: formData.value.settings?.icon || '',
+          },
+        };
+
+        console.log('[CompanyForm] submitData:', submitData);
+
+        if (isUsingStore.value) {
+          if (editingCompany.value) {
+            await companyStore.updateCompany(editingCompany.value.id, submitData);
+            ElMessage.success(COMPANY_FORM_MESSAGES.SUCCESS_COMPANY_UPDATED);
+          } else {
+            await companyStore.createCompany(submitData);
+            ElMessage.success(COMPANY_FORM_MESSAGES.SUCCESS_COMPANY_CREATED);
+          }
+          emit('update:visible', false);
+        } else {
+          console.log('[CompanyForm] EMIT SUBMIT:', submitData);
+          emit('submit', submitData);
+        }
+      } catch (error) {
+        console.error('[CompanyForm] handleSubmit: ERROR', error);
+        if (isUsingStore.value && companyStore.error) {
+          ElMessage.error(`Ошибка: ${companyStore.error}`);
+        } else {
+          ElMessage.error(`Ошибка сохранения: ${error.message}`);
+        }
+      }
     } else {
       console.warn('[CompanyForm] handleSubmit: VALIDATION FAILED');
       ElMessage.warning(COMPANY_FORM_MESSAGES.FIELD_REQUIRED(getFieldLabel('name', 'company')));
@@ -344,79 +417,58 @@ const handleSubmit = async () => {
   transform: scale(1.05);
 }
 
-/* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .company-form-dialog :deep(.el-dialog) {
     width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_TABLET') !important;
   }
-
   .form-row-inline {
     flex-direction: row;
     gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP_TABLET');
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .company-form-dialog :deep(.el-dialog) {
     width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_MOBILE') !important;
     margin: 10px auto;
   }
-
   .form-row-inline {
     flex-direction: column;
     gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP_MOBILE');
   }
-
   .form-item-inline {
     width: 100%;
   }
-
   .dialog-footer {
     flex-direction: column;
     gap: v-bind('COMPANY_FORM_UI.FORM_FOOTER_GAP_MOBILE');
   }
-
   .dialog-footer .el-button {
     width: 100%;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .company-form-dialog :deep(.el-dialog) {
     width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_SMALL') !important;
     margin: 5px auto;
   }
-
   .company-form-dialog :deep(.el-dialog__body) {
     padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING_SMALL');
   }
-
   .company-form-dialog :deep(.el-form-item__label) {
     font-size: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_SIZE_SMALL');
   }
-
   .company-form-dialog :deep(.el-input__wrapper),
   .company-form-dialog :deep(.el-textarea__inner) {
     font-size: v-bind('COMPANY_FORM_UI.FORM_INPUT_FONT_SIZE_SMALL');
   }
-
   .dialog-footer .el-button {
     min-width: auto;
     padding: 8px 12px;
   }
 }
 
-/* ============================================================================
-   АНИМАЦИИ ДИАЛОГА
-   ============================================================================ */
 .company-form-dialog :deep(.el-dialog) {
   animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE_OUT');
 }
@@ -445,9 +497,6 @@ const handleSubmit = async () => {
   }
 }
 
-/* ============================================================================
-   ВАЛИДАЦИЯ СТИЛИ
-   ============================================================================ */
 .company-form-dialog :deep(.el-form-item.is-error .el-input__wrapper),
 .company-form-dialog :deep(.el-form-item.is-error .el-textarea__inner) {
   box-shadow: 0 0 0 1px v-bind('EDITABLE_CELL_UI.ERROR_COLOR') inset !important;
@@ -461,5 +510,21 @@ const handleSubmit = async () => {
 
 .company-form-dialog :deep(.el-form-item.is-success .el-input__wrapper) {
   box-shadow: 0 0 0 1px v-bind('COLORS.SUCCESS') inset !important;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .dialog-footer .el-button {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  .company-form-dialog :deep(.el-input__wrapper),
+  .company-form-dialog :deep(.el-textarea__inner) {
+    font-size: 14px !important;
+    min-height: 40px;
+  }
+  .company-form-dialog :deep(.el-form-item__label) {
+    font-size: 13px;
+  }
 }
 </style>

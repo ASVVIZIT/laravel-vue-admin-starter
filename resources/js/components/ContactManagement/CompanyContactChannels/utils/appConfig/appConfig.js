@@ -8,35 +8,35 @@ if (typeof window !== 'undefined') {
 }
 
 // ============================================================================
-// BREAKPOINTS — АДАПТИВ (12 ВАРИАНТОВ)
+// BREAKPOINTS — АДАПТИВ (15 ВАРИАНТОВ)
 // ============================================================================
 
 export const BREAKPOINTS = {
     // Очень маленькие телефоны
-    XS: 320,      // iPhone SE, маленькие Android
-    SM: 375,      // iPhone 12/13 Mini
+    XS: 320,
+    SM: 375,
 
     // Маленькие телефоны
-    MD: 414,      // iPhone 12/13/14 Pro Max
+    MD: 414,
 
     // Большие телефоны / Маленькие планшеты
-    LG: 480,      // Большие телефоны
-    XL: 576,      // Маленькие планшеты в портрете
+    LG: 480,
+    XL: 576,
 
     // Планшеты
-    XXL: 640,     // Планшеты в портрете
-    XXXL: 768,    // iPad в портрете
+    XXL: 640,
+    XXXL: 768,
 
     // Большие планшеты / Маленькие десктопы
-    XXXXL: 834,   // iPad Pro в портрете
-    XXXXXL: 1024, // iPad Pro в ландшафте / маленькие ноутбуки
+    XXXXL: 834,
+    XXXXXL: 1024,
 
     // Десктопы
-    DESKTOP: 1280,   // Стандартные ноутбуки
-    DESKTOP_LARGE: 1440,  // Большие ноутбуки
-    DESKTOP_XL: 1920,     // Full HD мониторы
-    DESKTOP_2K: 2560,     // 2K мониторы
-    DESKTOP_4K: 3840,     // 4K мониторы
+    DESKTOP: 1280,
+    DESKTOP_LARGE: 1440,
+    DESKTOP_XL: 1920,
+    DESKTOP_2K: 2560,
+    DESKTOP_4K: 3840,
 };
 
 // ============================================================================
@@ -44,7 +44,6 @@ export const BREAKPOINTS = {
 // ============================================================================
 
 export const MEDIA_QUERIES = {
-    // Max-width (до указанного размера)
     MAX_XS: `@media (max-width: ${BREAKPOINTS.XS}px)`,
     MAX_SM: `@media (max-width: ${BREAKPOINTS.SM}px)`,
     MAX_MD: `@media (max-width: ${BREAKPOINTS.MD}px)`,
@@ -58,7 +57,6 @@ export const MEDIA_QUERIES = {
     MAX_DESKTOP_LARGE: `@media (max-width: ${BREAKPOINTS.DESKTOP_LARGE}px)`,
     MAX_DESKTOP_XL: `@media (max-width: ${BREAKPOINTS.DESKTOP_XL}px)`,
 
-    // Min-width (от указанного размера)
     MIN_XS: `@media (min-width: ${BREAKPOINTS.XS}px)`,
     MIN_SM: `@media (min-width: ${BREAKPOINTS.SM}px)`,
     MIN_MD: `@media (min-width: ${BREAKPOINTS.MD}px)`,
@@ -72,7 +70,6 @@ export const MEDIA_QUERIES = {
     MIN_DESKTOP_LARGE: `@media (min-width: ${BREAKPOINTS.DESKTOP_LARGE}px)`,
     MIN_DESKTOP_XL: `@media (min-width: ${BREAKPOINTS.DESKTOP_XL}px)`,
 
-    // Between (между двумя размерами)
     BETWEEN_XS_SM: `@media (min-width: ${BREAKPOINTS.XS}px) and (max-width: ${BREAKPOINTS.SM}px)`,
     BETWEEN_SM_MD: `@media (min-width: ${BREAKPOINTS.SM}px) and (max-width: ${BREAKPOINTS.MD}px)`,
     BETWEEN_MD_LG: `@media (min-width: ${BREAKPOINTS.MD}px) and (max-width: ${BREAKPOINTS.LG}px)`,
@@ -85,16 +82,13 @@ export const MEDIA_QUERIES = {
     BETWEEN_DESKTOP_DESKTOP_LARGE: `@media (min-width: ${BREAKPOINTS.DESKTOP}px) and (max-width: ${BREAKPOINTS.DESKTOP_LARGE}px)`,
     BETWEEN_DESKTOP_LARGE_DESKTOP_XL: `@media (min-width: ${BREAKPOINTS.DESKTOP_LARGE}px) and (max-width: ${BREAKPOINTS.DESKTOP_XL}px)`,
 
-    // Устройства
     MOBILE_ONLY: `@media (max-width: ${BREAKPOINTS.XL}px)`,
     TABLET_ONLY: `@media (min-width: ${BREAKPOINTS.XXL}px) and (max-width: ${BREAKPOINTS.XXXXXL}px)`,
     DESKTOP_ONLY: `@media (min-width: ${BREAKPOINTS.DESKTOP}px)`,
 
-    // Orientation
     PORTRAIT: '@media (orientation: portrait)',
     LANDSCAPE: '@media (orientation: landscape)',
 
-    // Touch / Hover
     TOUCH_ONLY: '@media (hover: none) and (pointer: coarse)',
     HOVER_CAPABLE: '@media (hover: hover)',
     FINE_POINTER: '@media (pointer: fine)',
@@ -105,7 +99,6 @@ export const MEDIA_QUERIES = {
 // ============================================================================
 
 export const ANIMATIONS = {
-    // Transition durations
     TRANSITION_INSTANT: '0s',
     TRANSITION_FASTEST: '0.1s',
     TRANSITION_FAST: '0.15s',
@@ -114,7 +107,6 @@ export const ANIMATIONS = {
     TRANSITION_SLOWER: '0.4s',
     TRANSITION_SLOWEST: '0.5s',
 
-    // Timing functions
     EASING_LINEAR: 'linear',
     EASING_EASE: 'ease',
     EASING_EASE_IN: 'ease-in',
@@ -124,7 +116,6 @@ export const ANIMATIONS = {
     EASING_BOUNCE: 'cubic-bezier(0.68, -0.55, 0.265, 1.55)',
     EASING_SPRING: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
 
-    // Specific animations
     FADE_IN: 'fadeIn 0.3s ease-in-out',
     FADE_OUT: 'fadeOut 0.3s ease-in-out',
     SLIDE_IN: 'slideIn 0.3s ease-out',
@@ -136,14 +127,12 @@ export const ANIMATIONS = {
     BOUNCE: 'bounce 1s ease-in-out infinite',
     SHAKE: 'shake 0.5s ease-in-out',
 
-    // Loading animations
     SPINNER_ROTATION: 'spin 1s linear infinite',
     PROGRESS_BAR: 'progress 2s ease-in-out infinite',
     SKELETON: 'skeleton 1.5s ease-in-out infinite',
 };
 
 export const TIMINGS = {
-    // Debounce / Throttle
     DEBOUNCE_INSTANT: 0,
     DEBOUNCE_FAST: 200,
     DEBOUNCE_NORMAL: 300,
@@ -155,14 +144,12 @@ export const TIMINGS = {
     THROTTLE_NORMAL: 200,
     THROTTLE_SLOW: 500,
 
-    // Delays
     DELAY_INSTANT: 0,
     DELAY_FAST: 100,
     DELAY_NORMAL: 200,
     DELAY_SLOW: 300,
     DELAY_VERY_SLOW: 500,
 
-    // Component specific
     TOOLTIP_DELAY: 200,
     TOOLTIP_HIDE_DELAY: 100,
     DROPDOWN_DELAY: 150,
@@ -170,19 +157,16 @@ export const TIMINGS = {
     TOAST_DURATION: 3000,
     TOAST_ERROR_DURATION: 5000,
 
-    // Filters & Pagination
     FILTER_TRANSITION_DELAY: 100,
     PAGE_SIZE_TRANSITION_DELAY: 150,
     RECALCULATING_DURATION: 150,
     TABLE_ROW_ANIMATION: 200,
 
-    // Loading
     CHUNK_LOAD_DELAY: 200,
     LOADING_MIN_DURATION: 500,
     LOADING_MAX_DURATION: 3000,
     REFRESH_COOLDOWN: 1000,
 
-    // Drag & Drop
     DRAG_ANIMATION: 200,
     DRAG_GHOST_OPACITY: 0.5,
     DROP_ANIMATION: 150,
@@ -213,8 +197,6 @@ export function getInitialCompanyListState() {
         searchQuery: '',
         filterHasIcon: '',
         sortBy: 'id_asc',
-        filteredCount: 0,
-        totalPages: 0,
     };
 }
 
@@ -225,7 +207,16 @@ export function getInitialCompanyFormState() {
 }
 
 // ============================================================================
-// PROPS CONFIGS
+// PROPS CONFIGS — БАЗОВЫЕ
+// ============================================================================
+
+export const COMMON_PROPS_CONFIG = {
+    loading: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
+};
+
+// ============================================================================
+// PROPS CONFIGS — КОМПОНЕНТЫ
 // ============================================================================
 
 export const COMPANY_LIST_PROPS_CONFIG = {
@@ -247,16 +238,16 @@ export const COMPANY_LIST_PROPS_CONFIG = {
 };
 
 export const COMPANY_FORM_PROPS_CONFIG = {
+    ...COMMON_PROPS_CONFIG,
     visible: { type: Boolean, default: false },
     company: { type: Object, default: null },
-    loading: { type: Boolean, default: false },
     iconOptions: { type: Array, default: () => [] },
     iconMap: { type: Object, default: () => ({}) },
 };
 
 export const COMPANY_TABLE_PROPS_CONFIG = {
+    ...COMMON_PROPS_CONFIG,
     data: { type: Array, required: true },
-    loading: { type: Boolean, default: false },
     iconMap: { type: Object, required: true },
     iconOptions: { type: Array, required: true },
     currentPage: { type: Number, default: 1 },
@@ -265,12 +256,12 @@ export const COMPANY_TABLE_PROPS_CONFIG = {
 };
 
 export const PAGINATION_PROPS_CONFIG = {
+    ...COMMON_PROPS_CONFIG,
     currentPage: { type: Number, default: 1 },
     pageSize: { type: Number, default: 15 },
     loadedCount: { type: Number, required: true },
     totalItems: { type: Number, default: 0 },
     availableSizes: { type: Array, required: true },
-    disabled: { type: Boolean, default: false },
 };
 
 export const PAGE_SIZE_SELECTOR_PROPS_CONFIG = {
@@ -329,11 +320,6 @@ export const LOADING_DATA_ACTIONS_PROPS_CONFIG = {
     showLoadAll: { type: Boolean, default: true },
     showRefresh: { type: Boolean, default: false },
     chunkProgress: { type: Number, default: 0 },
-};
-
-export const COMMON_PROPS_CONFIG = {
-    loading: { type: Boolean, default: false },
-    disabled: { type: Boolean, default: false },
 };
 
 export const CHUNK_PROGRESS_PROPS_CONFIG = {
@@ -487,6 +473,11 @@ export const COMPANY_TABLE_UI = {
 export const COMPANY_FORM_UI = {
     DIALOG_WIDTH: '500px',
     DIALOG_BODY_PADDING: '20px',
+    DIALOG_HEADER_PADDING: '16px 20px',
+    DIALOG_HEADER_BORDER_COLOR: '#EBEEF5',
+    DIALOG_TITLE_FONT_SIZE: '16px',
+    DIALOG_TITLE_FONT_WEIGHT: '600',
+    DIALOG_TITLE_COLOR: '#303133',
     LABEL_WIDTH: '80px',
     LABEL_POSITION: 'top',
     FORM_SIZE: 'small',
@@ -497,10 +488,12 @@ export const COMPANY_FORM_UI = {
     FORM_LABEL_MARGIN_BOTTOM: '4px',
     FORM_INPUT_FONT_SIZE: '13px',
     FORM_TEXTAREA_MIN_HEIGHT: '60px',
+    FORM_TEXTAREA_RESIZE: 'vertical',
     FORM_ROW_GAP: '16px',
     FORM_ROW_MARGIN_BOTTOM: '16px',
     FORM_ITEM_MARGIN_BOTTOM: '16px',
     FORM_FOOTER_GAP: '12px',
+    FORM_FOOTER_PADDING_TOP: '12px',
     FORM_FOOTER_BUTTON_MIN_WIDTH: '80px',
     FORM_ID_INPUT_BACKGROUND: '#f5f7fa',
     FORM_ID_INPUT_COLOR: '#909399',
@@ -508,6 +501,19 @@ export const COMPANY_FORM_UI = {
     FORM_SELECT_HEIGHT: '32px',
     FORM_ICON_OPTION_GAP: '6px',
     FORM_DROPDOWN_ITEM_PADDING: '8px 12px',
+    FORM_DROPDOWN_HOVER_BACKGROUND: '#f5f7fa',
+    FORM_DROPDOWN_SELECTED_BACKGROUND: '#f0f9eb',
+    FORM_ERROR_FONT_SIZE: '12px',
+    FORM_ERROR_PADDING_TOP: '4px',
+    DIALOG_WIDTH_TABLET: '450px',
+    DIALOG_WIDTH_MOBILE: '90%',
+    DIALOG_WIDTH_SMALL: '95%',
+    DIALOG_BODY_PADDING_SMALL: '16px 12px',
+    FORM_LABEL_FONT_SIZE_SMALL: '11px',
+    FORM_INPUT_FONT_SIZE_SMALL: '12px',
+    FORM_ROW_GAP_TABLET: '12px',
+    FORM_ROW_GAP_MOBILE: '8px',
+    FORM_FOOTER_GAP_MOBILE: '8px',
 };
 
 // ============================================================================
@@ -576,6 +582,46 @@ export const DELETE_CONFIRM_UI = {
     DIALOG_WIDTH: '400px',
     ICON_SIZE: '48px',
     ICON_COLOR: '#f56c6c',
+    CONTENT_PADDING: '8px 0',
+    MESSAGE_FONT_SIZE: '14px',
+    MESSAGE_COLOR: '#606266',
+    MESSAGE_LINE_HEIGHT: '1.6',
+    MESSAGE_MAX_WIDTH: '400px',
+    ITEM_NAME_FONT_WEIGHT: '600',
+    ITEM_NAME_COLOR: '#303133',
+    HINT_GAP: '6px',
+    HINT_FONT_SIZE: '12px',
+    HINT_COLOR: '#909399',
+    HINT_PADDING: '4px 8px',
+    HINT_BACKGROUND: '#f5f7fa',
+    HINT_BORDER_RADIUS: '4px',
+    FOOTER_GAP: '12px',
+    FOOTER_PADDING_TOP: '12px',
+    BUTTON_MIN_WIDTH: '80px',
+    HEADER_PADDING: '16px 20px',
+    HEADER_BORDER: '1px solid #EBEEF5',
+    HEADER_BACKGROUND: '#FFFFFF',
+    TITLE_FONT_SIZE: '16px',
+    TITLE_FONT_WEIGHT: '600',
+    TITLE_COLOR: '#303133',
+    BODY_PADDING: '24px 20px',
+    FOOTER_PADDING: '12px 20px 16px',
+    FOOTER_BORDER: '1px solid #EBEEF5',
+    FOOTER_BACKGROUND: '#FFFFFF',
+    DIALOG_WIDTH_TABLET: '450px',
+    DIALOG_WIDTH_MOBILE: '90%',
+    DIALOG_WIDTH_SMALL: '95%',
+    BODY_PADDING_SMALL: '16px 12px',
+    ICON_SIZE_TABLET: '42px',
+    ICON_SIZE_MOBILE: '36px',
+    ICON_SIZE_SMALL: '32px',
+    MESSAGE_FONT_SIZE_TABLET: '13px',
+    MESSAGE_FONT_SIZE_MOBILE: '12px',
+    MESSAGE_FONT_SIZE_SMALL: '11px',
+    HINT_FONT_SIZE_MOBILE: '11px',
+    HINT_FONT_SIZE_SMALL: '10px',
+    GAP_MOBILE: '12px',
+    FOOTER_GAP_MOBILE: '8px',
 };
 
 // ============================================================================
@@ -688,6 +734,9 @@ export const COMPANY_LIST_UI = {
     LOADING_SPINNER_COLOR: '#409EFF',
     LOADING_TEXT_COLOR: '#606266',
     LOADING_TEXT_SIZE: '12px',
+    TITLE_FONT_SIZE: '13px',
+    TITLE_FONT_WEIGHT: '600',
+    TITLE_COLOR: '#303133',
 };
 
 // ============================================================================
@@ -728,6 +777,8 @@ export const COMPANY_FORM_MESSAGES = {
     FIELD_REQUIRED: (field) => `Поле "${field}" обязательно`,
     FIELD_MIN_LENGTH: (field, min) => `Минимум ${min} символов`,
     FIELD_MAX_LENGTH: (field, max) => `Максимум ${max} символов`,
+    SUCCESS_COMPANY_CREATED: 'Компания создана',
+    SUCCESS_COMPANY_UPDATED: 'Компания обновлена',
 };
 
 export const COMPANY_LIST_MESSAGES = {
@@ -767,6 +818,7 @@ export const FILTERS_MESSAGES = {
     ICON_FILTER_WITHOUT: 'Без иконки',
     SORT_LABEL: 'Сортировка',
     FOUND_LABEL: 'Найдено',
+    RESET_TOOLTIP: 'Сбросить фильтры',
 };
 
 export const DELETE_CONFIRM_MESSAGES = {
@@ -774,6 +826,7 @@ export const DELETE_CONFIRM_MESSAGES = {
     MESSAGE: (name, label) => `Удалить ${label} "${name}"?`,
     CONFIRM: 'Удалить',
     CANCEL: 'Отмена',
+    HINT_TEXT: 'Это действие нельзя отменить',
 };
 
 export const LOADING_DATA_ACTIONS_MESSAGES = {

@@ -46,12 +46,12 @@
       <el-select
           v-model="localSortBy"
           :placeholder="FILTERS_MESSAGES.SORT_LABEL"
+          size="small"
           :disabled="props.disabled"
-          class="sort-select"
           @change="handleSortChange"
       >
         <el-option
-            v-for="option in sortOptionsList"
+            v-for="option in props.sortOptions"
             :key="option.value"
             :label="option.label"
             :value="option.value"
@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue';
 import { Search, RefreshLeft } from '@element-plus/icons-vue';
 import {
   FILTERS_PROPS_CONFIG,
@@ -92,6 +92,9 @@ import {
   TIMINGS,
   COLORS,
 } from '../../utils/appConfig.js';
+import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
+
+const companyStore = useCompanyStore();
 
 const props = defineProps({
   ...FILTERS_PROPS_CONFIG,
@@ -118,6 +121,34 @@ const hasActiveFilters = computed(() => {
       localHasIcon.value !== '' ||
       localSortBy.value !== SORT_OPTIONS.DEFAULT
   );
+});
+
+// ✅ СИНХРОНИЗАЦИЯ С STORE ПРИ ЗАГРУЗКЕ (localStorage)
+onMounted(() => {
+  setTimeout(() => {
+    localSearch.value = companyStore.searchQuery || '';
+    localHasIcon.value = companyStore.filterHasIcon || '';
+    localSortBy.value = companyStore.sortBy || SORT_OPTIONS.DEFAULT;
+
+    console.log('[Filters] Synced with store:', {
+      search: localSearch.value,
+      icon: localHasIcon.value,
+      sort: localSortBy.value,
+    });
+  }, 100);
+});
+
+// ✅ СИНХРОНИЗАЦИЯ ПРИ ИЗМЕНЕНИИ STORE
+watch(() => companyStore.searchQuery, (newVal) => {
+  localSearch.value = newVal || '';
+});
+
+watch(() => companyStore.filterHasIcon, (newVal) => {
+  localHasIcon.value = newVal || '';
+});
+
+watch(() => companyStore.sortBy, (newVal) => {
+  localSortBy.value = newVal || SORT_OPTIONS.DEFAULT;
 });
 
 const handleSearchInput = () => {
@@ -402,9 +433,6 @@ onUnmounted(() => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .filters-container {
     gap: 4px;
@@ -441,9 +469,6 @@ onUnmounted(() => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .filters-container {
     flex-direction: row;
@@ -481,9 +506,6 @@ onUnmounted(() => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .filters-container {
     flex-direction: column;
@@ -535,9 +557,6 @@ onUnmounted(() => {
   }
 }
 
-/* ============================================================================
-   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
-   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .search-input :deep(.el-input__wrapper),
   .icon-select :deep(.el-select__wrapper),

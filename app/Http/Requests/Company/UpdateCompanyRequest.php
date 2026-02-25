@@ -32,10 +32,10 @@ class UpdateCompanyRequest extends FormRequest
             $rules['name'] = 'string|max:255';
         }
         if ($this->filled('description')) {
-            $rules['description'] = 'string';
+            $rules['description'] = 'nullable|string';
         }
         if ($this->filled('address')) {
-            $rules['address'] = 'string|max:500';
+            $rules['address'] = 'nullable|string|max:500';
         }
         if ($this->filled('settings')) {
             $rules['settings'] = 'array';

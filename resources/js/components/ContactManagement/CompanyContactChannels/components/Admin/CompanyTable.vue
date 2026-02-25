@@ -12,6 +12,7 @@
         :cell-style="cellStyle"
         :element-loading-text="loadingText"
         :element-loading-background="COMPANY_TABLE_UI.LOADING_BACKGROUND"
+        :element-loading-spinner="COMPANY_LIST_UI.LOADING_SPINNER_SIZE"
         @row-dblclick="handleRowDblClick"
         class="company-table"
     >
@@ -51,11 +52,12 @@
               v-model="row.name"
               type="text"
               :placeholder="COMPANY_TABLE_UI.NAME_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing || props.loading"
+              :disabled="row._updating || row._refreshing"
               :loading="row._updating"
               :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
               :show-action-buttons="true"
+              :max-length="COMPANY_TABLE_UI.NAME_MAX_LENGTH || 255"
               @save="handleUpdateField(row.id, 'name', $event)"
               @error="handleEditError(row, 'name', $event)"
           />
@@ -74,7 +76,7 @@
               v-model="row.settings.icon"
               type="select"
               :placeholder="COMPANY_TABLE_UI.ICON_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing || props.loading"
+              :disabled="row._updating || row._refreshing"
               :loading="row._updating"
               :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
@@ -125,7 +127,7 @@
               type="textarea"
               :rows="1"
               :placeholder="COMPANY_TABLE_UI.DESCRIPTION_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing || props.loading"
+              :disabled="row._updating || row._refreshing"
               :loading="row._updating"
               :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
@@ -148,7 +150,7 @@
               v-model="row.address"
               type="text"
               :placeholder="COMPANY_TABLE_UI.ADDRESS_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing || props.loading"
+              :disabled="row._updating || row._refreshing"
               :loading="row._updating"
               :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
               :show-edit-button="true"
@@ -195,14 +197,15 @@
                 :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
             >
               <el-button
-                  size="small"
-                  :type="row._refreshing ? 'warning' : 'info'"
+                  :size="RECORD_REFRESH_CONFIG.BUTTON_SIZE"
+                  :type="row._refreshing ? 'warning' : RECORD_REFRESH_CONFIG.BUTTON_TYPE"
                   :icon="row._refreshing ? Loading : Refresh"
                   circle
                   :loading="row._refreshing"
-                  :disabled="props.loading || row._updating || row._refreshing"
+                  :disabled="row._updating || row._refreshing"
                   @click.stop="handleRefreshRecord(row.id)"
                   class="action-btn action-btn-refresh"
+                  :style="{ width: RECORD_REFRESH_CONFIG.BUTTON_WIDTH, height: RECORD_REFRESH_CONFIG.BUTTON_WIDTH }"
               />
             </el-tooltip>
 
@@ -217,7 +220,7 @@
                   type="primary"
                   :icon="Edit"
                   circle
-                  :disabled="props.loading || row._updating || row._refreshing"
+                  :disabled="row._updating || row._refreshing"
                   @click.stop="handleEdit(row)"
                   class="action-btn action-btn-edit"
               />
@@ -234,7 +237,7 @@
                   type="danger"
                   :icon="Delete"
                   circle
-                  :disabled="props.loading || row._updating || row._refreshing"
+                  :disabled="row._updating || row._refreshing"
                   @click.stop="handleDelete(row)"
                   class="action-btn action-btn-delete"
               />
@@ -256,23 +259,34 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Edit, Delete, Document, Refresh, Loading } from '@element-plus/icons-vue';
 import EditableCell from '../Common/EditableCell.vue';
 import { getFieldLabel } from '../../utils/fieldLabels.js';
+import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
 import {
   COMPANY_TABLE_PROPS_CONFIG,
   COMPANY_TABLE_UI,
   EDITABLE_CELL_UI,
   COMPANY_LIST_MESSAGES,
+  COMPANY_LIST_UI,
   LOADING_DATA_ACTIONS_MESSAGES,
+  RECORD_REFRESH_CONFIG,
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
   COLORS,
 } from '../../utils/appConfig.js';
 
-const props = defineProps(COMPANY_TABLE_PROPS_CONFIG);
+const companyStore = useCompanyStore();
+
+const props = defineProps({
+  ...COMPANY_TABLE_PROPS_CONFIG,
+  useStore: {
+    type: Boolean,
+    default: true,
+  },
+});
 
 const emit = defineEmits(['edit', 'delete', 'update-field', 'row-dblclick', 'refresh']);
 
@@ -305,24 +319,91 @@ const rowIndex = ($index) => {
   return (props.currentPage - 1) * props.pageSize + $index + 1;
 };
 
-const handleUpdateField = (companyId, fieldName, newValue) => {
-  emit('update-field', companyId, fieldName, newValue);
+const handleUpdateField = async (companyId, fieldName, newValue) => {
+  console.log('🔵 [CompanyTable] handleUpdateField:', { companyId, fieldName, newValue });
+
+  try {
+    // ✅ Находим компанию в store
+    const company = companyStore.allCompanies.find((c) => c.id === companyId);
+    if (!company) {
+      console.error('🔴 [CompanyTable] Company not found:', companyId);
+      return;
+    }
+
+    // ✅ Обновляем локально для мгновенной реактивности
+    if (fieldName === 'settings.icon') {
+      if (!company.settings) {
+        company.settings = {};
+      }
+      company.settings.icon = newValue;
+    } else {
+      company[fieldName] = newValue;
+    }
+
+    // ✅ Триггерим реактивность
+    company._updating = true;
+    companyStore.allCompanies = [...companyStore.allCompanies];
+
+    console.log('🔵 [CompanyTable] Local update complete:', company);
+
+    // ✅ Отправляем в API через store
+    if (props.useStore && companyStore) {
+      await companyStore.updateCompany(companyId, {
+        [fieldName === 'settings.icon' ? 'settings' : fieldName]:
+            fieldName === 'settings.icon' ? { icon: newValue } : newValue
+      });
+
+      console.log('🟢 [CompanyTable] API update complete:', companyId);
+    }
+
+    // ✅ Снимаем флаг загрузки
+    company._updating = false;
+    companyStore.allCompanies = [...companyStore.allCompanies];
+
+    emit('update-field', companyId, fieldName, newValue);
+  } catch (error) {
+    console.error('🔴 [CompanyTable] Update error:', { companyId, fieldName, error });
+
+    // ✅ Откат изменений при ошибке
+    const company = companyStore.allCompanies.find((c) => c.id === companyId);
+    if (company) {
+      company._updating = false;
+      companyStore.allCompanies = [...companyStore.allCompanies];
+    }
+  }
 };
 
 const handleEditError = (row, fieldName, error) => {
   console.warn('[CompanyTable] Edit error:', { companyId: row.id, fieldName, error });
 };
 
-const handleRefreshRecord = (id) => {
-  emit('refresh', id);
+const handleRefreshRecord = async (id) => {
+  try {
+    if (props.useStore && companyStore) {
+      const result = await companyStore.refreshSingleRecord(id);
+      if (!result.success) {
+        console.warn('[CompanyTable] Refresh failed:', result.error);
+      }
+    }
+    emit('refresh', id);
+  } catch (error) {
+    console.error('[CompanyTable] Refresh error:', { id, error });
+  }
 };
 
 const handleEdit = (row) => {
   emit('edit', row);
 };
 
-const handleDelete = (row) => {
-  emit('delete', row);
+const handleDelete = async (row) => {
+  try {
+    if (props.useStore && companyStore) {
+      await companyStore.deleteCompany(row.id);
+    }
+    emit('delete', row);
+  } catch (error) {
+    console.error('[CompanyTable] Delete error:', { id: row.id, error });
+  }
 };
 
 const handleRowDblClick = (row) => {
@@ -336,13 +417,15 @@ const getChannelCountType = (count) => {
   if (count <= COMPANY_TABLE_UI.CHANNEL_THRESHOLDS.MEDIUM) return COMPANY_TABLE_UI.CHANNEL_TAG_TYPES.MEDIUM;
   return COMPANY_TABLE_UI.CHANNEL_TAG_TYPES.HIGH;
 };
+
+onMounted(() => {
+  if (props.useStore && companyStore) {
+    console.log('[CompanyTable] Store connected successfully');
+  }
+});
 </script>
 
 <style>
-/* ============================================================================
-   GLOBAL STYLES — для dropdown (рендерится в body, вне scope компонента)
-   ============================================================================ */
-
 .el-select-dropdown__item {
   font-size: var(--el-font-size-base) !important;
   padding: 0 12px 0 12px !important;
@@ -357,13 +440,13 @@ const getChannelCountType = (count) => {
   cursor: pointer;
   display: flex;
   align-items: center;
-  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  transition: background-color 0.15s ease;
 }
 
 .el-select-dropdown__item .icon-option {
   display: flex;
   align-items: center;
-  gap: v-bind('COMPANY_TABLE_UI.ICON_OPTION_GAP');
+  gap: 4px;
   width: 100%;
   height: 22px;
   line-height: 22px;
@@ -392,7 +475,7 @@ const getChannelCountType = (count) => {
 }
 
 .el-select-dropdown__item.selected {
-  color: v-bind('COLORS.PRIMARY') !important;
+  color: #409EFF !important;
   font-weight: 600;
   background-color: #f0f9eb !important;
 }
@@ -423,7 +506,7 @@ const getChannelCountType = (count) => {
   position: relative;
   background: #FFFFFF;
   border-radius: 2px;
-  overflow: v-bind('COMPANY_TABLE_UI.CONTAINER_OVERFLOW');
+  overflow: hidden;
 }
 
 .company-table :deep(.el-table__header-wrapper) {
@@ -516,7 +599,6 @@ const getChannelCountType = (count) => {
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
-/* EditableCell стили */
 .company-table :deep(.editable-cell-input) {
   font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
   line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
@@ -633,69 +715,70 @@ const getChannelCountType = (count) => {
   border-radius: v-bind('COMPANY_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
 }
 
-/* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .company-table :deep(.el-table) {
     font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_MOBILE');
   }
-
   .action-btn {
     width: 22px;
     height: 22px;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .company-table :deep(.el-table) {
     font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_MOBILE');
   }
-
   .cell-row-number,
   .cell-id {
     font-size: v-bind('COMPANY_TABLE_UI.ROW_NUMBER_FONT_SIZE');
   }
-
   .action-btn {
     width: 20px;
     height: 20px;
   }
-
   .action-btn :deep(.el-icon) {
     font-size: 10px;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .company-table :deep(.el-table) {
     font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_SMALL');
   }
-
   .cell-row-number,
   .cell-id {
     font-size: 6px;
   }
-
   .action-btn {
     width: 18px;
     height: 18px;
   }
-
   .action-btn :deep(.el-icon) {
     font-size: 9px;
   }
-
   .channel-tag {
     height: 12px;
     padding: 0 2px;
     font-size: 6px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .action-btn {
+    width: 32px;
+    height: 32px;
+  }
+  .action-btn :deep(.el-icon) {
+    font-size: 16px;
+  }
+  .company-table :deep(.el-table) {
+    font-size: 10px;
+  }
+  .channel-tag {
+    height: 18px;
+    padding: 0 4px;
+    font-size: 8px;
   }
 }
 </style>

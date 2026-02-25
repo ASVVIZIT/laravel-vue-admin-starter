@@ -1,6 +1,5 @@
 <template>
   <div class="editable-cell" ref="cellRef">
-    <!-- ★★★ РЕЖИМ ПРОСМОТРА ★★★ -->
     <div
         v-if="!isEditing"
         class="cell-display"
@@ -21,7 +20,6 @@
       </el-button>
     </div>
 
-    <!-- ★★★ РЕЖИМ РЕДАКТИРОВАНИЯ (INLINE В ЯЧЕЙКЕ) ★★★ -->
     <div v-else class="cell-edit-inline">
       <el-input
           v-if="props.type === 'text'"
@@ -63,6 +61,7 @@
           clearable
           filterable
           :teleported="true"
+          @clear="onClear"
           @keyup.esc="cancelEdit"
           @blur="handleBlur"
           class="inline-select"
@@ -119,6 +118,7 @@ const tempValue = ref('');
 const hasError = ref(false);
 const isSaving = ref(false);
 const isCanceling = ref(false);
+const isClearing = ref(false);
 
 const displayValue = computed(() => {
   if (
@@ -139,6 +139,7 @@ const startEditing = () => {
   tempValue.value = props.modelValue ?? '';
   hasError.value = false;
   isCanceling.value = false;
+  isClearing.value = false;
 
   nextTick(() => {
     if (inputRef.value) {
@@ -154,9 +155,15 @@ const startEditing = () => {
   });
 };
 
+const onClear = () => {
+  isClearing.value = true;
+  tempValue.value = '';
+};
+
 const handleBlur = () => {
-  if (isCanceling.value) {
+  if (isCanceling.value || isClearing.value) {
     isCanceling.value = false;
+    isClearing.value = false;
     return;
   }
   if (props.showActionButtons) {
@@ -172,7 +179,7 @@ const saveEdit = () => {
 
   const newValue = tempValue.value ?? '';
 
-  if (props.validator && newValue !== '') {
+  if (props.type === 'select' && props.validator && newValue !== '') {
     const isValid = props.validator(newValue);
     if (!isValid) {
       hasError.value = true;
@@ -204,6 +211,7 @@ const finishEditing = () => {
   hasError.value = false;
   isSaving.value = false;
   isCanceling.value = false;
+  isClearing.value = false;
 };
 </script>
 
@@ -256,7 +264,6 @@ const finishEditing = () => {
   color: v-bind('COLORS.PRIMARY');
 }
 
-/* ★★★ INLINE РЕДАКТИРОВАНИЕ ★★★ */
 .cell-edit-inline {
   display: flex;
   align-items: center;
@@ -298,7 +305,6 @@ const finishEditing = () => {
   padding: 0 4px;
 }
 
-/* ★★★ КНОПКИ ДЕЙСТВИЙ ★★★ */
 .inline-actions {
   display: flex;
   align-items: center;
@@ -368,7 +374,6 @@ const finishEditing = () => {
   transform: none;
 }
 
-/* ★★★ ОШИБКА ВАЛИДАЦИИ ★★★ */
 .inline-input.error :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 1px v-bind('EDITABLE_CELL_UI.ERROR_COLOR') inset !important;
   animation: shake v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
@@ -409,14 +414,10 @@ const finishEditing = () => {
   font-size: 8px;
 }
 
-/* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .editable-cell {
     min-height: 20px;
   }
-
   .action-btn-save,
   .action-btn-cancel {
     width: 14px;
@@ -425,20 +426,15 @@ const finishEditing = () => {
     min-height: 18px;
     max-width: 14px;
   }
-
   .cell-text {
     font-size: 7px;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .editable-cell {
     min-height: 18px;
   }
-
   .action-btn-save,
   .action-btn-cancel {
     width: 12px;
@@ -447,31 +443,24 @@ const finishEditing = () => {
     min-height: 16px;
     max-width: 12px;
   }
-
   .action-btn-save :deep(.el-icon),
   .action-btn-cancel :deep(.el-icon) {
     font-size: 9px;
     width: 9px;
     height: 9px;
   }
-
   .cell-text {
     font-size: 7px;
   }
-
   .edit-button {
     font-size: 9px;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .editable-cell {
     min-height: 16px;
   }
-
   .action-btn-save,
   .action-btn-cancel {
     width: 10px;
@@ -480,26 +469,20 @@ const finishEditing = () => {
     min-height: 14px;
     max-width: 10px;
   }
-
   .action-btn-save :deep(.el-icon),
   .action-btn-cancel :deep(.el-icon) {
     font-size: 8px;
     width: 8px;
     height: 8px;
   }
-
   .cell-text {
     font-size: 6px;
   }
-
   .edit-button {
     display: none;
   }
 }
 
-/* ============================================================================
-   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
-   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .action-btn-save,
   .action-btn-cancel {
@@ -509,14 +492,12 @@ const finishEditing = () => {
     min-height: 24px;
     max-width: 24px;
   }
-
   .action-btn-save :deep(.el-icon),
   .action-btn-cancel :deep(.el-icon) {
     font-size: 14px;
     width: 14px;
     height: 14px;
   }
-
   .edit-button {
     opacity: 1;
   }

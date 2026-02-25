@@ -18,7 +18,7 @@
           :percentage="companyStore.loadedPercentage"
           :chunk-progress="companyStore.currentChunkProgress"
           :chunk-size="CHUNK_CONFIG.SIZE"
-          :disabled="isLoading"
+          :disabled="isLoading && !isLoadingAll"
           :is-loading="isLoadingAll"
           :is-paused="isLoadPaused"
           :show-load-more="showLoadMoreButton && !isLoadingAll"
@@ -59,6 +59,7 @@
           :current-page="companyStore.currentPage"
           :page-size="companyStore.perPage"
           :table-height="COMPANY_TABLE_UI.TABLE_HEIGHT"
+          :use-store="true"
           @edit="openEditDialog"
           @delete="showDeleteConfirm"
           @update-field="updateCompanyField"
@@ -84,11 +85,11 @@
     <CompanyForm
         :visible="dialogVisible"
         :company="editingCompany"
-        :loading="formLoading"
+        :loading="isLoading"
         :icon-map="iconMap"
         :icon-options="iconOptions"
+        :use-store="true"
         @update:visible="dialogVisible = $event"
-        @submit="submitForm"
     />
 
     <DeleteConfirm
@@ -96,7 +97,7 @@
         :item="companyToDelete"
         :item-name="companyToDelete?.name"
         :entity-label="COMPANY_LIST_MESSAGES.ENTITY_LABEL"
-        :loading="deletionLoading"
+        :loading="companyStore.loading"
         @update:visible="deleteConfirmDialogVisible = $event"
         @confirm="confirmDelete"
     />
@@ -139,12 +140,9 @@ const fenixIconStore = useFenixIconsStore();
 
 const dialogVisible = ref(false);
 const editingCompany = ref(null);
-const formLoading = ref(false);
 const deletionLoading = ref(false);
 const deleteConfirmDialogVisible = ref(false);
 const companyToDelete = ref(null);
-const filteringLoading = ref(false);
-const pageSizeLoading = ref(false);
 const tableKey = ref(0);
 
 const isLoadingAll = ref(false);
@@ -162,8 +160,7 @@ const isLoading = computed(() => {
   return (
       companyStore.loadingInitial ||
       companyStore.loading ||
-      filteringLoading.value ||
-      pageSizeLoading.value
+      companyStore.loadingChunks
   );
 });
 
@@ -186,83 +183,21 @@ const showLoadAllButton = computed(() => {
   );
 });
 
-const filteredCompanies = computed(() => {
-  let result = [...companyStore.allCompanies];
-
-  if (companyStore.searchQuery) {
-    const query = companyStore.searchQuery.toLowerCase();
-    result = result.filter((company) =>
-        (company.name && company.name.toLowerCase().includes(query)) ||
-        (company.address && company.address.toLowerCase().includes(query)) ||
-        (company.description && company.description.toLowerCase().includes(query))
-    );
-  }
-
-  if (companyStore.filterHasIcon !== '') {
-    const hasIcon = companyStore.filterHasIcon === 'true';
-    result = result.filter((company) => {
-      const companyHasIcon = company.settings?.icon && company.settings.icon !== '';
-      return hasIcon ? companyHasIcon : !companyHasIcon;
-    });
-  }
-
-  result = sortCompanies(result, companyStore.sortBy);
-
-  const paginationResult = companyStore.recalculatePagination(result);
-  console.log('[CompanyList] filteredCompanies:', {
-    total: result.length,
-    pages: paginationResult.filteredTotalPages,
-    current: paginationResult.currentPage,
-  });
-
-  return result;
-});
-
 const paginatedFilteredCompanies = computed(() => {
   const start = (companyStore.currentPage - 1) * companyStore.perPage;
   const end = start + companyStore.perPage;
-  return filteredCompanies.value.slice(start, end);
+  return companyStore.filteredData.slice(start, end);
 });
 
-const sortCompanies = (companies, sortValue) => {
-  const sorted = [...companies];
-  switch (sortValue) {
-    case 'id_asc': return sorted.sort((a, b) => a.id - b.id);
-    case 'id_desc': return sorted.sort((a, b) => b.id - a.id);
-    case 'name_asc': return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
-    case 'name_desc': return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''));
-    case 'created_at_desc': return sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    case 'created_at_asc': return sorted.sort((a, b) => new Date(a.created_at || 0) - new Date(a.created_at || 0));
-    default: return sorted;
+watch(() => companyStore.allCompanies, (newVal) => {
+  console.log('[CompanyList] allCompanies:', newVal.length);
+}, { immediate: true });
+
+watch(() => companyStore.error, (error) => {
+  if (error) {
+    ElMessage.error(`Ошибка: ${error}`);
   }
-};
-
-const submitForm = async (formData) => {
-  console.log('[CompanyList] submitForm: START', formData);
-
-  formLoading.value = true;
-
-  try {
-    if (editingCompany.value) {
-      await companyStore.updateCompany(editingCompany.value.id, formData);
-      ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_COMPANY_UPDATED);
-    } else {
-      await companyStore.createCompany(formData);
-      ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_COMPANY_CREATED);
-
-      if (companyStore.sortBy === 'id_desc' || companyStore.sortBy === 'created_at_desc') {
-        companyStore.currentPage = 1;
-      }
-    }
-    dialogVisible.value = false;
-    console.log('[CompanyList] submitForm: SUCCESS');
-  } catch (err) {
-    console.error('[CompanyList] submitForm: ERROR', err);
-    ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_SAVING);
-  } finally {
-    formLoading.value = false;
-  }
-};
+});
 
 const loadNextChunk = async () => {
   isRecalculatingPagination.value = true;
@@ -350,85 +285,54 @@ const refreshData = async () => {
 };
 
 const refreshSingleRecord = async (companyId) => {
-  console.log('[CompanyList] refreshSingleRecord: START', { companyId });
-
-  const row = companyStore.allCompanies.find((c) => c.id === companyId);
-  if (!row) {
-    console.error('[CompanyList] refreshSingleRecord: ROW NOT FOUND', { companyId });
-    ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH('Запись не найдена'));
-    return;
-  }
-
-  console.log('[CompanyList] refreshSingleRecord: ROW FOUND', {
-    id: row.id,
-    name: row.name,
-    _refreshing: row._refreshing,
-  });
-
-  row._refreshing = true;
-
   try {
-    console.log('[CompanyList] refreshSingleRecord: CALLING STORE');
-
-    const result = await companyStore.refreshSingleRecordWithRollback(companyId);
-
-    console.log('[CompanyList] refreshSingleRecord: STORE RESULT', { result });
+    const result = await companyStore.refreshSingleRecord(companyId);
 
     if (result.success) {
-      console.log('[CompanyList] refreshSingleRecord: SUCCESS');
-      ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_RECORD_REFRESHED(row.name || `ID: ${row.id}`));
+      ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_RECORD_REFRESHED(
+          companyStore.allCompanies.find(c => c.id === companyId)?.name || `ID: ${companyId}`
+      ));
     } else {
-      console.warn('[CompanyList] refreshSingleRecord: FAILED', { rolledBack: result.rolledBack });
-      if (result.rolledBack) {
-        ElMessage.warning(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(row.name || `ID: ${row.id}`) + ' (данные восстановлены)');
-      } else {
-        ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(row.name || `ID: ${row.id}`));
-      }
+      ElMessage.warning(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(
+          companyStore.allCompanies.find(c => c.id === companyId)?.name || `ID: ${companyId}`
+      ) + ' (данные восстановлены)');
     }
   } catch (err) {
-    console.error('[CompanyList] refreshSingleRecord: EXCEPTION', { error: err.message });
-    companyStore.rollbackRefresh(companyId);
-    ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(row.name || `ID: ${row.id}`) + ' (данные восстановлены)');
-  } finally {
-    console.log('[CompanyList] refreshSingleRecord: FINALLY');
-
-    const updatedRow = companyStore.allCompanies.find((c) => c.id === companyId);
-    if (updatedRow && updatedRow._refreshing === true) {
-      updatedRow._refreshing = false;
-      companyStore.allCompanies = [...companyStore.allCompanies];
-      companyStore.companies = [...companyStore.allCompanies];
-      console.log('[CompanyList] refreshSingleRecord: _refreshing RESET');
-    }
+    ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_RECORD_REFRESH(
+        companyStore.allCompanies.find(c => c.id === companyId)?.name || `ID: ${companyId}`
+    ) + ' (данные восстановлены)');
   }
 };
 
 const handleSearch = (query) => {
   companyStore.setFilters({ searchQuery: query });
-  filteringLoading.value = true;
-  nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handleFilter = (filters) => {
+  let iconFilter = '';
+  if (filters.hasIcon === 'with' || filters.hasIcon === true || filters.hasIcon === 'true') {
+    iconFilter = 'true';
+  } else if (filters.hasIcon === 'without' || filters.hasIcon === false || filters.hasIcon === 'false') {
+    iconFilter = 'false';
+  } else {
+    iconFilter = '';
+  }
+
   companyStore.setFilters({
     searchQuery: filters.search || '',
-    filterHasIcon: filters.hasIcon || '',
+    filterHasIcon: iconFilter,
     sortBy: filters.sortBy || SORT_OPTIONS.DEFAULT,
   });
-  filteringLoading.value = true;
-  nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handleResetFilters = () => {
   companyStore.resetFilters();
   ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_FILTERS_RESET);
-  filteringLoading.value = true;
-  nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handleSort = (sortValue) => {
+  console.log('🔵 [CompanyList] handleSort:', sortValue);
   companyStore.setFilters({ sortBy: sortValue });
-  filteringLoading.value = true;
-  nextTick(() => setTimeout(() => { filteringLoading.value = false; }, COMPANY_LIST_FILTERS.FILTER_TRANSITION_DELAY));
 };
 
 const handlePageChange = (newPage) => {
@@ -442,37 +346,29 @@ const handleSizeChange = (newSize) => {
   }
 
   if (newSize > PAGE_SIZE_OPTIONS.MAX) {
-    pageSizeLoading.value = true;
-    companyStore.loadPage(1, newSize).finally(() => {
-      pageSizeLoading.value = false;
-    });
+    companyStore.loadPage(1, newSize);
     return;
   }
 
   companyStore.perPage = newSize;
   companyStore.recalculatePagination();
-  pageSizeLoading.value = true;
-  nextTick(() => setTimeout(() => { pageSizeLoading.value = false; }, COMPANY_LIST_FILTERS.PAGE_SIZE_TRANSITION_DELAY));
 };
 
 const updateCompanyField = async (companyId, fieldName, newValue) => {
-  const company = companyStore.allCompanies.find((c) => c.id === companyId);
-  if (!company) return;
-
-  company._updating = true;
-
   try {
-    const updateData =
-        fieldName === 'settings.icon'
-            ? { settings: { ...company.settings, icon: newValue } }
-            : { [fieldName]: newValue };
+    const company = companyStore.allCompanies.find((c) => c.id === companyId);
+    if (!company) return;
 
-    await companyStore.updateCompany(companyId, updateData);
+    company._updating = true;
+    await companyStore.updateCompany(companyId, { [fieldName]: newValue });
     ElMessage.success(`Поле "${getFieldLabel(fieldName, 'company')}" обновлено`);
   } catch (err) {
     ElMessage.warning(`Поле "${getFieldLabel(fieldName, 'company')}" не обновлено`);
   } finally {
-    company._updating = false;
+    const company = companyStore.allCompanies.find((c) => c.id === companyId);
+    if (company) {
+      company._updating = false;
+    }
   }
 };
 
@@ -514,7 +410,23 @@ watch(() => companyStore.perPage, () => { tableKey.value++; });
 watch(() => dialogVisible.value, (newVal) => { if (!newVal) editingCompany.value = null; });
 
 onMounted(async () => {
+  console.log('[CompanyList] Component mounted');
+
+  // ✅ 1. Сначала восстанавливаем фильтры из localStorage
+  companyStore.restoreFiltersFromStorage();
+
+  console.log('[CompanyList] Filters restored:', {
+    searchQuery: companyStore.searchQuery,
+    filterHasIcon: companyStore.filterHasIcon,
+    sortBy: companyStore.sortBy,
+  });
+
+  // ✅ 2. Загружаем данные (фильтры применятся автоматически через getter)
+  console.log('[CompanyList] Fetching companies...');
   await companyStore.fetchAllCompanies();
+  console.log('[CompanyList] Fetch complete');
+  console.log('[CompanyList] allCompanies:', companyStore.allCompanies.length);
+  console.log('[CompanyList] filteredData:', companyStore.filteredData.length);
 });
 </script>
 
@@ -546,15 +458,17 @@ onMounted(async () => {
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
+.add-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .add-btn :deep(.el-icon) {
   font-size: 12px;
   margin-right: 3px;
   vertical-align: middle;
 }
 
-/* ============================================================================
-   ФИЛЬТРЫ — ЗАГОЛОВОК ВЛЕВО, БЛОК ФИЛЬТРОВ ВПРАВО (В СТРОКУ)
-   ============================================================================ */
 .filters-row {
   display: flex;
   align-items: center;
@@ -568,15 +482,14 @@ onMounted(async () => {
 
 .title {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: v-bind('COMPANY_LIST_UI.TITLE_FONT_SIZE');
+  font-weight: v-bind('COMPANY_LIST_UI.TITLE_FONT_WEIGHT');
   white-space: nowrap;
   flex-shrink: 0;
-  color: #303133;
+  color: v-bind('COMPANY_LIST_UI.TITLE_COLOR');
   text-align: left;
 }
 
-/* Блок фильтров (Filters.vue) — прижат вправо */
 .filters-row :deep(.filters-component-wrapper),
 .filters-row :deep(.filters) {
   flex: 1;
@@ -587,9 +500,6 @@ onMounted(async () => {
   min-width: 0;
 }
 
-/* ============================================================================
-   КОМПАКТНЫЕ INPUT / SELECT ЭЛЕМЕНТЫ
-   ============================================================================ */
 .filters-row :deep(.el-input__wrapper),
 .filters-row :deep(.el-select__wrapper) {
   height: 28px !important;
@@ -633,7 +543,6 @@ onMounted(async () => {
   line-height: 26px !important;
 }
 
-/* Dropdown опции */
 .filters-row :deep(.el-select-dropdown__item) {
   font-size: 12px !important;
   padding: 4px 10px !important;
@@ -642,9 +551,6 @@ onMounted(async () => {
   transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
-/* ============================================================================
-   TABLE WRAPPER
-   ============================================================================ */
 .table-wrapper {
   flex: 1;
   overflow: hidden;
@@ -670,9 +576,6 @@ onMounted(async () => {
   font-size: v-bind('COMPANY_LIST_UI.LOADING_TEXT_SIZE');
 }
 
-/* ============================================================================
-   ПЛАНШЕТЫ (577px - 768px) — ЗАГОЛОВОК СВЕРХУ, ФИЛЬТРЫ СНИЗУ
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .header-row {
     flex-wrap: wrap;
@@ -701,7 +604,6 @@ onMounted(async () => {
     gap: 4px;
   }
 
-  /* Компактные инпуты на планшете */
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
     height: 26px !important;
@@ -724,9 +626,6 @@ onMounted(async () => {
   }
 }
 
-/* ============================================================================
-   МОБИЛЬНЫЕ (321px - 576px) — ВСЁ ВЕРТИКАЛЬНО
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .company-list {
     padding: 8px;
@@ -752,7 +651,6 @@ onMounted(async () => {
     gap: 4px;
   }
 
-  /* Компактные инпуты на мобильном */
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
     height: 26px !important;
@@ -774,9 +672,6 @@ onMounted(async () => {
   }
 }
 
-/* ============================================================================
-   ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px) — МАКСИМАЛЬНО КОМПАКТНО
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .company-list {
     padding: 4px;
@@ -795,7 +690,6 @@ onMounted(async () => {
     gap: 3px;
   }
 
-  /* Максимально компактные инпуты */
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
     height: 24px !important;
@@ -826,6 +720,24 @@ onMounted(async () => {
   .add-btn :deep(.el-icon) {
     font-size: 10px !important;
     margin-right: 2px;
+  }
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .add-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .filters-row :deep(.el-input__wrapper),
+  .filters-row :deep(.el-select__wrapper) {
+    height: 36px !important;
+    font-size: 14px !important;
+  }
+
+  .title {
+    font-size: 16px;
   }
 }
 </style>
