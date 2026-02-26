@@ -330,6 +330,12 @@ export const CHUNK_PROGRESS_PROPS_CONFIG = {
     isLoading: { type: Boolean, default: false },
 };
 
+export const SETTINGS_MODAL_PROPS_CONFIG = {
+    visible: { type: Boolean, default: false },
+    disabled: { type: Boolean, default: false },
+    isSaving: { type: Boolean, default: false },
+};
+
 // ============================================================================
 // UI CONFIGS — PAGINATION
 // ============================================================================
@@ -625,6 +631,51 @@ export const DELETE_CONFIRM_UI = {
 };
 
 // ============================================================================
+// UI CONFIGS — SETTINGS MODAL
+// ============================================================================
+
+export const SETTINGS_UI = {
+    DIALOG_WIDTH: '480px',
+    DIALOG_WIDTH_TABLET: '460px',
+    DIALOG_WIDTH_MOBILE: '90%',
+    DIALOG_WIDTH_SMALL: '95%',
+    LABEL_WIDTH: '160px',
+    LABEL_POSITION: 'left',
+    FORM_SIZE: 'default',
+    HEADER_PADDING: '12px 16px',
+    BODY_PADDING: '14px',
+    FOOTER_PADDING: '12px 16px',
+    BODY_PADDING_SMALL: '10px',
+    HEADER_PADDING_SMALL: '10px 12px',
+    FOOTER_PADDING_SMALL: '10px 12px',
+    TITLE_FONT_SIZE: '14px',
+    TITLE_FONT_SIZE_MOBILE: '13px',
+    TITLE_FONT_SIZE_SMALL: '12px',
+    DIVIDER_MARGIN: '10px 0 8px',
+    DIVIDER_MARGIN_SMALL: '8px 0 6px',
+    DIVIDER_FONT_SIZE: '12px',
+    DIVIDER_FONT_SIZE_SMALL: '11px',
+    FORM_ITEM_MARGIN: '12px',
+    LABEL_FONT_SIZE: '12px',
+    LABEL_FONT_SIZE_MOBILE: '11px',
+    LABEL_FONT_SIZE_SMALL: '10px',
+    HINT_FONT_SIZE: '10px',
+    HINT_FONT_SIZE_MOBILE: '9px',
+    HINT_FONT_SIZE_SMALL: '8px',
+    SELECT_HEIGHT: '28px',
+    SELECT_HEIGHT_TOUCH: '36px',
+    BUTTON_FONT_SIZE: '12px',
+    BUTTON_FONT_SIZE_SMALL: '11px',
+    BUTTON_PADDING: '8px 14px',
+    BUTTON_PADDING_SMALL: '7px 12px',
+    BUTTON_MIN_WIDTH: '80px',
+    BUTTON_MIN_WIDTH_SMALL: '75px',
+    FOOTER_GAP: '8px',
+    FOOTER_GAP_MOBILE: '6px',
+    SCROLLBAR_WIDTH: '5px',
+};
+
+// ============================================================================
 // UI CONFIGS — LOADING DATA ACTIONS
 // ============================================================================
 
@@ -765,7 +816,7 @@ export function getSortOptions() {
 }
 
 // ============================================================================
-// MESSAGES
+// MESSAGES — COMPANY FORM
 // ============================================================================
 
 export const COMPANY_FORM_MESSAGES = {
@@ -780,6 +831,10 @@ export const COMPANY_FORM_MESSAGES = {
     SUCCESS_COMPANY_CREATED: 'Компания создана',
     SUCCESS_COMPANY_UPDATED: 'Компания обновлена',
 };
+
+// ============================================================================
+// MESSAGES — COMPANY LIST
+// ============================================================================
 
 export const COMPANY_LIST_MESSAGES = {
     LOADING_INITIAL: 'Загрузка...',
@@ -801,7 +856,8 @@ export const COMPANY_LIST_MESSAGES = {
     EMPTY_NO_DATA: 'Нет данных',
     TITLE: 'Список Компаний',
     BTN_ADD: 'Добавить',
-    ENTITY_LABEL: 'компанию',
+    ENTITY_LABEL: 'Компания',
+    ENTITY_LABEL_PLURAL: 'Компании',
     NO_NEW_RECORDS: 'Новых записей нет',
     NEW_RECORDS_LOADED: (count) => `Загружено ${count} новых записей`,
     REFRESH_ERROR: (error) => `Ошибка при обновлении: ${error}`,
@@ -809,6 +865,10 @@ export const COMPANY_LIST_MESSAGES = {
     LOAD_PAUSED: 'Загрузка приостановлена',
     LOAD_RESUMED: 'Загрузка возобновлена',
 };
+
+// ============================================================================
+// MESSAGES — FILTERS
+// ============================================================================
 
 export const FILTERS_MESSAGES = {
     SEARCH_PLACEHOLDER: 'Поиск...',
@@ -821,6 +881,10 @@ export const FILTERS_MESSAGES = {
     RESET_TOOLTIP: 'Сбросить фильтры',
 };
 
+// ============================================================================
+// MESSAGES — DELETE CONFIRM
+// ============================================================================
+
 export const DELETE_CONFIRM_MESSAGES = {
     TITLE: 'Подтверждение удаления',
     MESSAGE: (name, label) => `Удалить ${label} "${name}"?`,
@@ -828,6 +892,10 @@ export const DELETE_CONFIRM_MESSAGES = {
     CANCEL: 'Отмена',
     HINT_TEXT: 'Это действие нельзя отменить',
 };
+
+// ============================================================================
+// MESSAGES — LOADING DATA ACTIONS
+// ============================================================================
 
 export const LOADING_DATA_ACTIONS_MESSAGES = {
     TOOLTIP_LOAD_MORE: 'Загрузить ещё 500 записей',
@@ -837,6 +905,7 @@ export const LOADING_DATA_ACTIONS_MESSAGES = {
     TOOLTIP_REFRESH: 'Проверить новые записи',
     TOOLTIP_REFRESH_RECORD: 'Обновить запись',
     TOOLTIP_REFRESH_RECORD_LOADING: 'Обновление...',
+    TOOLTIP_SETTINGS: 'Настройки',
     BTN_LOAD_MORE: '+500',
     BTN_LOAD_ALL: 'Все',
     BTN_PAUSE: 'Пауза',
@@ -846,6 +915,61 @@ export const LOADING_DATA_ACTIONS_MESSAGES = {
     STATUS_COMPLETE: 'Готово',
     STATUS_WAITING: 'Ожидание',
 };
+
+// ============================================================================
+// MESSAGES — SETTINGS MODAL
+// ============================================================================
+
+export const SETTINGS_MESSAGES = {
+    TITLE_MAIN: 'Настройки',
+
+    // ✅ ЗАГОЛОВОК ФОРМИРУЕТСЯ ДИНАМИЧЕСКИ ЧЕРЕЗ GETTER
+    get TITLE() {
+        return `${this.TITLE_MAIN} — ${COMPANY_LIST_MESSAGES.ENTITY_LABEL}`;
+    },
+
+    SECTION_DATA_LOAD: 'Загрузка данных',
+    SECTION_DISPLAY: 'Отображение',
+    SECTION_DEFAULT_FILTERS: 'Фильтры по умолчанию',
+
+    LABEL_CHUNK_SIZE: 'Размер порции:',
+    PLACEHOLDER_CHUNK_SIZE: 'Выберите размер',
+    HINT_CHUNK_SIZE: 'Количество записей загружаемых за один раз',
+
+    LABEL_CONFIRM_LOAD_ALL: 'Подтверждение загрузки всех:',
+    HINT_CONFIRM_LOAD_ALL: 'Запрашивать подтверждение перед загрузкой всех записей',
+
+    LABEL_PAGE_SIZE: 'Записей на страницу:',
+    PLACEHOLDER_PAGE_SIZE: 'Выберите количество',
+    HINT_PAGE_SIZE: 'Количество записей отображаемых на странице',
+
+    LABEL_SHOW_LOAD_BUTTONS: 'Показывать кнопки загрузки:',
+    HINT_SHOW_LOAD_BUTTONS: 'Отображать кнопки "Загрузить ещё" и "Загрузить все"',
+
+    LABEL_DEFAULT_SORT: 'Сортировка по умолчанию:',
+    PLACEHOLDER_DEFAULT_SORT: 'Выберите сортировку',
+    HINT_DEFAULT_SORT: 'Сортировка применяемая при загрузке страницы',
+
+    LABEL_DEFAULT_ICON_FILTER: 'Фильтр по иконке:',
+    PLACEHOLDER_DEFAULT_ICON_FILTER: 'Выберите фильтр',
+    HINT_DEFAULT_ICON_FILTER: 'Фильтр по иконкам применяемый при загрузке',
+
+    ICON_FILTER_ALL: 'Все',
+    ICON_FILTER_WITH: 'С иконкой',
+    ICON_FILTER_WITHOUT: 'Без иконки',
+
+    SWITCH_ON: 'Вкл',
+    SWITCH_OFF: 'Выкл',
+
+    BTN_SAVE: 'Сохранить',
+    BTN_CANCEL: 'Отмена',
+    BTN_RESET_DEFAULTS: 'Сбросить',
+};
+
+// ✅ ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ ЗАГОЛОВКА (для использования в template)
+export function getSettingsTitle() {
+    return `${SETTINGS_MESSAGES.TITLE_MAIN} — ${COMPANY_LIST_MESSAGES.ENTITY_LABEL}`;
+}
 
 // ============================================================================
 // VALIDATION

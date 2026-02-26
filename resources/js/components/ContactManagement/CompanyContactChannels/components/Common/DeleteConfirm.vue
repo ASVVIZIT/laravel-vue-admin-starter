@@ -49,7 +49,7 @@
 </template>
 
 <script setup>
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { Warning, InfoFilled } from '@element-plus/icons-vue';
 import {
   DELETE_CONFIRM_PROPS_CONFIG,
@@ -65,37 +65,30 @@ const props = defineProps(DELETE_CONFIRM_PROPS_CONFIG);
 
 const emit = defineEmits(['update:visible', 'confirm', 'cancel']);
 
+// ✅ ДВУСТОРОННЯЯ СВЯЗЬ ЧЕРЕЗ COMPUTED
 const localVisible = computed({
   get: () => props.visible,
   set: (val) => {
-    console.log('[DeleteConfirm] localVisible: SET', val);
     emit('update:visible', val);
   },
 });
 
-watch(() => props.visible, (newVal) => {
-  console.log('[DeleteConfirm] watch visible:', newVal);
-  if (!newVal) {
-    emit('update:visible', false);
-  }
-});
-
+// ✅ ПОДТВЕРЖДЕНИЕ УДАЛЕНИЯ
 const handleConfirm = () => {
-  console.log('[DeleteConfirm] handleConfirm');
   if (props.loading) return;
   emit('confirm');
 };
 
+// ✅ ОТМЕНА УДАЛЕНИЯ
 const handleCancel = () => {
-  console.log('[DeleteConfirm] handleCancel');
   if (props.loading) return;
   emit('cancel');
-  emit('update:visible', false);
+  localVisible.value = false;
 };
 
+// ✅ СБРОС ПРИ ЗАКРЫТИИ ДИАЛОГА
 const resetForm = () => {
-  console.log('[DeleteConfirm] resetForm');
-  emit('update:visible', false);
+  emit('cancel');
 };
 </script>
 
@@ -204,9 +197,6 @@ const resetForm = () => {
   display: none;
 }
 
-/* ============================================================================
-   АНИМАЦИИ ДИАЛОГА
-   ============================================================================ */
 .delete-confirm-dialog :deep(.el-dialog) {
   animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') ease-out;
 }
@@ -246,9 +236,6 @@ const resetForm = () => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .delete-confirm-dialog :deep(.el-dialog) {
     width: 450px !important;
@@ -264,9 +251,6 @@ const resetForm = () => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .delete-confirm-dialog :deep(.el-dialog) {
     width: 90% !important;
@@ -300,9 +284,6 @@ const resetForm = () => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .delete-confirm-dialog :deep(.el-dialog) {
     width: 95% !important;
@@ -333,9 +314,6 @@ const resetForm = () => {
   }
 }
 
-/* ============================================================================
-   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
-   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .dialog-footer .el-button {
     min-height: 44px;

@@ -44,6 +44,27 @@
     </div>
 
     <div class="progress-wrapper">
+      <div class="status-above">
+        <div class="status-badge" :class="statusClass">
+          <el-icon v-if="isComplete"><Check /></el-icon>
+          <el-icon v-else-if="props.isLoading && !props.isPaused"><Loading /></el-icon>
+          <el-icon v-else-if="props.isPaused"><VideoPause /></el-icon>
+          <span>{{ statusText }}</span>
+        </div>
+
+        <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_SETTINGS" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
+          <el-button
+              size="small"
+              type="info"
+              :disabled="props.disabled"
+              @click="handleSettings"
+              class="settings-btn"
+          >
+            <el-icon><Setting /></el-icon>
+          </el-button>
+        </el-tooltip>
+      </div>
+
       <div class="progress-bar" :style="progressBarStyle">
         <div class="progress-background"></div>
 
@@ -70,19 +91,12 @@
         </div>
       </div>
     </div>
-
-    <div class="status-badge" :class="statusClass">
-      <el-icon v-if="isComplete"><Check /></el-icon>
-      <el-icon v-else-if="props.isLoading && !props.isPaused"><Loading /></el-icon>
-      <el-icon v-else-if="props.isPaused"><VideoPause /></el-icon>
-      <span>{{ statusText }}</span>
-    </div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import { Refresh, Loading, Check, VideoPause, VideoPlay } from '@element-plus/icons-vue';
+import { Refresh, Loading, Check, VideoPause, VideoPlay, Setting } from '@element-plus/icons-vue';
 import {
   CHUNK_PROGRESS_CONFIG,
   LOADING_DATA_ACTIONS_PROPS_CONFIG,
@@ -97,7 +111,7 @@ import {
 
 const props = defineProps(LOADING_DATA_ACTIONS_PROPS_CONFIG);
 
-const emit = defineEmits(['load-more', 'load-all', 'pause', 'resume', 'refresh']);
+const emit = defineEmits(['load-more', 'load-all', 'pause', 'resume', 'refresh', 'settings']);
 
 const isComplete = computed(() => props.percentage >= 100);
 
@@ -188,6 +202,10 @@ const handleMainClick = () => {
 const handleRefresh = () => {
   emit('refresh');
 };
+
+const handleSettings = () => {
+  emit('settings');
+};
 </script>
 
 <style scoped>
@@ -202,16 +220,15 @@ const handleRefresh = () => {
   width: 100%;
   height: v-bind('LOADING_DATA_ACTIONS_UI.HEIGHT');
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  position: relative;
 }
 
 .loading-data-actions.is-complete {
-  background: v-bind('COLORS.SUCCESS');
   background: linear-gradient(135deg, #f0f9eb 0%, #e6f7e6 100%);
   border-color: v-bind('COLORS.SUCCESS');
 }
 
 .loading-data-actions.is-loading {
-  background: v-bind('COLORS.INFO');
   background: linear-gradient(135deg, #e8f4ff 0%, #d9edff 100%);
   border-color: v-bind('COLORS.PRIMARY');
 }
@@ -224,11 +241,11 @@ const handleRefresh = () => {
 }
 
 .control-btn {
-  padding: v-bind('LOADING_DATA_ACTIONS_UI.BUTTON_PADDING');
-  font-size: v-bind('LOADING_DATA_ACTIONS_UI.BUTTON_FONT_SIZE');
-  height: v-bind('LOADING_DATA_ACTIONS_UI.BUTTON_HEIGHT');
+  padding: 4px 8px;
+  font-size: 11px;
+  height: 22px;
   min-width: auto;
-  border-radius: v-bind('LOADING_DATA_ACTIONS_UI.BUTTON_BORDER_RADIUS');
+  border-radius: 3px;
   border: none;
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
   cursor: pointer;
@@ -241,9 +258,23 @@ const handleRefresh = () => {
 }
 
 .control-btn :deep(.el-icon) {
-  font-size: v-bind('LOADING_DATA_ACTIONS_UI.ICON_SIZE');
-  margin-right: v-bind('LOADING_DATA_ACTIONS_UI.ICON_MARGIN');
+  font-size: 12px;
+  margin-right: 3px;
   vertical-align: middle;
+}
+
+.btn-main {
+  background: linear-gradient(135deg,
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_FROM'),
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_TO')
+  );
+  color: v-bind('LOADING_DATA_ACTIONS_COLORS.TEXT_COLOR');
+  min-width: auto;
+  padding: 4px 6px;
+}
+
+.btn-main:hover:not(:disabled) {
+  transform: scale(1.05);
 }
 
 .btn-more {
@@ -255,27 +286,6 @@ const handleRefresh = () => {
 }
 
 .btn-more:hover:not(:disabled) {
-  background: linear-gradient(135deg,
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM_HOVER'),
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_TO_HOVER')
-  );
-  transform: scale(1.05);
-}
-
-.btn-main {
-  background: linear-gradient(135deg,
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_FROM'),
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_TO')
-  );
-  color: v-bind('LOADING_DATA_ACTIONS_COLORS.TEXT_COLOR');
-  min-width: v-bind('LOADING_DATA_ACTIONS_UI.MAIN_BUTTON_MIN_WIDTH');
-}
-
-.btn-main:hover:not(:disabled) {
-  background: linear-gradient(135deg,
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_FROM_HOVER'),
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_TO_HOVER')
-  );
   transform: scale(1.05);
 }
 
@@ -285,14 +295,10 @@ const handleRefresh = () => {
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_TO')
   );
   color: v-bind('LOADING_DATA_ACTIONS_COLORS.TEXT_COLOR');
-  padding: v-bind('LOADING_DATA_ACTIONS_UI.REFRESH_BUTTON_PADDING');
+  padding: 4px 6px;
 }
 
 .btn-refresh:hover:not(:disabled) {
-  background: linear-gradient(135deg,
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM_HOVER'),
-  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_TO_HOVER')
-  );
   transform: scale(1.05);
 }
 
@@ -300,19 +306,105 @@ const handleRefresh = () => {
   flex: 1;
   min-width: 120px;
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.status-above {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  height: 20px;
+  position: absolute;
+  right: 10px;
+  z-index: 50;
+  white-space: nowrap;
+}
+
+.status-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  color: #FFFFFF;
+}
+
+.status-badge :deep(.el-icon) {
+  font-size: 12px;
+}
+
+/* ✅ ЗАГРУЗКА — СПИНЕР КРУТИТСЯ */
+.status-loading {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #409EFF 0%, #337ECC 100%);
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.4);
+}
+
+.status-loading :deep(.el-icon) {
+  animation: rotating 1s linear infinite;
+}
+
+.status-paused {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #E6A23C 0%, #C98B2F 100%);
+  box-shadow: 0 2px 6px rgba(230, 162, 60, 0.4);
+}
+
+.status-success {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #67C23A 0%, #52A32E 100%);
+  box-shadow: 0 2px 6px rgba(103, 194, 58, 0.4);
+}
+
+.status-waiting {
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #909399 0%, #787B80 100%);
+  box-shadow: 0 2px 6px rgba(144, 147, 153, 0.4);
+}
+
+.settings-btn {
+  padding: 0;
+  height: 18px;
+  width: 18px;
+  min-width: 18px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #909399 0%, #787B80 100%);
+  color: #FFFFFF;
+  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #409EFF 0%, #337ECC 100%);
+  color: #FFFFFF;
+  transform: rotate(90deg);
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.4);
+}
+
+.settings-btn :deep(.el-icon) {
+  font-size: 14px;
+  margin: 0;
+  color: #FFFFFF;
 }
 
 .progress-bar {
   position: relative;
   width: 100%;
+  height: v-bind('CHUNK_PROGRESS_CONFIG.HEIGHT');
   overflow: hidden;
   box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW');
-  animation: progressBarPulse v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION') ease-in-out infinite;
-}
-
-@keyframes progressBarPulse {
-  0%, 100% { box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW'); }
-  50% { box-shadow: 0 0 15px rgba(64, 158, 255, 0.3); }
+  border-radius: v-bind('CHUNK_PROGRESS_CONFIG.BORDER_RADIUS');
 }
 
 .progress-background {
@@ -363,8 +455,8 @@ const handleRefresh = () => {
   content: '';
   position: absolute;
   top: 0;
-  left: v-bind('CHUNK_PROGRESS_CONFIG.STRIPES_LEFT_OFFSET');
-  width: v-bind('CHUNK_PROGRESS_CONFIG.STRIPES_WIDTH');
+  left: 0;
+  width: 200%;
   height: 100%;
   background: repeating-linear-gradient(
       v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANGLE'),
@@ -374,9 +466,6 @@ const handleRefresh = () => {
       rgba(255, 255, 255, v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_OPACITY')) calc(v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_WIDTH') * 2)
   );
   z-index: 1;
-  backface-visibility: hidden;
-  transform: translateZ(0);
-  animation-delay: v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANIMATION_DELAY') !important;
 }
 
 .stripes-forward::before {
@@ -387,36 +476,27 @@ const handleRefresh = () => {
   animation: stripes-slide-left v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANIMATION_DURATION') linear infinite;
 }
 
-@keyframes stripes-slide-right {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(v-bind('CHUNK_PROGRESS_CONFIG.STRIPES_ANIMATION_DISTANCE')); }
-}
-
 @keyframes stripes-slide-left {
   0% { transform: translateX(0); }
-  100% { transform: translateX(calc(v-bind('CHUNK_PROGRESS_CONFIG.STRIPES_ANIMATION_DISTANCE') * -1)); }
+  100% { transform: translateX(-40px); }
 }
 
 .chunk-shine {
   position: absolute;
   top: 0;
-  left: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_LEFT_START');
-  width: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_WIDTH');
+  left: -50%;
+  width: 50%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, v-bind('CHUNK_PROGRESS_CONFIG.SHINE_COLOR'), transparent);
-  animation: shine-slow v-bind('CHUNK_PROGRESS_CONFIG.SHINE_DURATION') ease-in-out infinite;
-  animation-delay: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_ANIMATION_DELAY') !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shine-slow 2s ease-in-out infinite;
   z-index: 2;
   pointer-events: none;
-  backface-visibility: hidden;
-  transform: translateZ(0);
 }
 
 @keyframes shine-slow {
-  0% { left: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_LEFT_START'); opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { left: v-bind('CHUNK_PROGRESS_CONFIG.SHINE_LEFT_END'); opacity: 0; }
+  0% { left: -50%; opacity: 0; }
+  50% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
 }
 
 .progress-text {
@@ -439,7 +519,7 @@ const handleRefresh = () => {
 }
 
 .progress-text .count {
-  font-weight: v-bind('CHUNK_PROGRESS_CONFIG.FONT_WEIGHT');
+  font-weight: 600;
 }
 
 .progress-text .percent {
@@ -455,57 +535,16 @@ const handleRefresh = () => {
   font-weight: 700;
 }
 
-.status-badge {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: v-bind('CHUNK_PROGRESS_CONFIG.FONT_SIZE');
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
-}
-
-.status-badge :deep(.el-icon) {
-  font-size: 11px;
-}
-
-.status-loading {
-  color: v-bind('COLORS.PRIMARY');
-  background: rgba(64, 158, 255, 0.2);
-}
-
-.status-loading :deep(.el-icon) {
-  animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
-}
-
-.status-paused {
-  color: v-bind('CHUNK_PROGRESS_CONFIG.CHUNK_COLOR');
-  background: rgba(255, 149, 0, 0.2);
-}
-
-.status-success {
-  color: v-bind('COLORS.SUCCESS');
-  background: rgba(103, 194, 58, 0.2);
-}
-
-.status-waiting {
-  color: v-bind('COLORS.INFO');
-  background: rgba(144, 147, 153, 0.2);
-}
-
+/* ✅ АНИМАЦИЯ ВРАЩЕНИЯ СПИНЕРА */
 @keyframes rotating {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-/* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXL')) {
   .loading-data-actions {
     flex-wrap: wrap;
@@ -524,19 +563,19 @@ const handleRefresh = () => {
     order: 2;
   }
 
-  .status-badge {
-    width: 100%;
+  .status-above {
+    position: relative;
+    right: auto;
     justify-content: center;
-    order: 3;
+    width: 100%;
+    order: 0;
+    margin-bottom: 4px;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .loading-data-actions {
-    padding: v-bind('LOADING_DATA_ACTIONS_UI.PADDING');
+    padding: 6px;
     gap: 4px;
   }
 
@@ -555,14 +594,21 @@ const handleRefresh = () => {
   }
 
   .status-badge {
-    font-size: 10px;
-    padding: 2px 4px;
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+
+  .settings-btn {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+  }
+
+  .settings-btn :deep(.el-icon) {
+    font-size: 13px;
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .loading-data-actions {
     padding: 4px;
@@ -579,10 +625,6 @@ const handleRefresh = () => {
     padding: 1px 4px;
   }
 
-  .control-btn :deep(.el-icon) {
-    font-size: 9px;
-  }
-
   .progress-bar {
     height: 16px !important;
   }
@@ -591,51 +633,56 @@ const handleRefresh = () => {
     font-size: 9px;
   }
 
-  .progress-text .percent {
-    font-size: 8px;
-  }
-
   .status-badge {
-    font-size: 9px;
-    padding: 1px 3px;
-    gap: 2px;
+    font-size: 8px;
+    padding: 2px 5px;
   }
 
-  .status-badge :deep(.el-icon) {
-    font-size: 10px;
+  .settings-btn {
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+  }
+
+  .settings-btn :deep(.el-icon) {
+    font-size: 12px;
   }
 }
 
-/* ============================================================================
-   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
-   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .control-btn {
-    min-height: 44px;
-    min-width: 44px;
-    padding: 10px 16px;
-    font-size: 14px;
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px 12px;
+    font-size: 12px;
   }
 
   .control-btn :deep(.el-icon) {
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .progress-bar {
-    height: 24px !important;
+    height: 20px !important;
   }
 
   .progress-text {
-    font-size: 12px;
+    font-size: 11px;
   }
 
   .status-badge {
-    font-size: 12px;
+    font-size: 11px;
     padding: 4px 8px;
   }
 
-  .status-badge :deep(.el-icon) {
-    font-size: 14px;
+  .settings-btn {
+    min-width: 36px;
+    min-height: 36px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .settings-btn :deep(.el-icon) {
+    font-size: 18px;
   }
 }
 </style>

@@ -29,6 +29,7 @@
           @pause="pauseLoadAll"
           @resume="resumeLoadAll"
           @refresh="refreshData"
+          @settings="openSettingsDialog"
       />
     </div>
 
@@ -101,6 +102,13 @@
         @update:visible="deleteConfirmDialogVisible = $event"
         @confirm="confirmDelete"
     />
+
+    <SettingsModal
+        :visible="settingsDialogVisible"
+        :is-saving="isSavingSettings"
+        @update:visible="settingsDialogVisible = $event"
+        @save="handleSettingsSave"
+    />
   </div>
 </template>
 
@@ -115,6 +123,7 @@ import CompanyForm from './CompanyForm.vue';
 import Pagination from '../Common/Pagination.vue';
 import Filters from '../Common/Filters.vue';
 import DeleteConfirm from '../Common/DeleteConfirm.vue';
+import SettingsModal from '../Common/SettingsModal.vue';
 import LoadingDataActions from '../Common/LoadingDataActions.vue';
 import { getIconMap, getIconOptions } from '../../utils/iconConfig.js';
 import { getFieldLabel } from '../../utils/fieldLabels.js';
@@ -141,6 +150,7 @@ const fenixIconStore = useFenixIconsStore();
 const dialogVisible = ref(false);
 const editingCompany = ref(null);
 const deletionLoading = ref(false);
+const settingsDialogVisible = ref(false);
 const deleteConfirmDialogVisible = ref(false);
 const companyToDelete = ref(null);
 const tableKey = ref(0);
@@ -148,6 +158,7 @@ const tableKey = ref(0);
 const isLoadingAll = ref(false);
 const isLoadPaused = ref(false);
 const isRecalculatingPagination = ref(false);
+const isSavingSettings = ref(false);
 
 const iconMap = computed(() => getIconMap(fenixIconStore));
 const iconOptions = computed(() => getIconOptions());
@@ -188,6 +199,10 @@ const paginatedFilteredCompanies = computed(() => {
   const end = start + companyStore.perPage;
   return companyStore.filteredData.slice(start, end);
 });
+
+const openSettingsDialog = () => {
+  settingsDialogVisible.value = true;
+};
 
 watch(() => companyStore.allCompanies, (newVal) => {
   console.log('[CompanyList] allCompanies:', newVal.length);
@@ -352,6 +367,32 @@ const handleSizeChange = (newSize) => {
 
   companyStore.perPage = newSize;
   companyStore.recalculatePagination();
+};
+
+
+const handleSettingsSave = (settings) => {
+  console.log('[CompanyList] Settings saved:', settings);
+
+  // ✅ ВКЛЮЧАЕМ СПИНЕР ТОЛЬКО НА ВРЕМЯ СОХРАНЕНИЯ
+  isSavingSettings.value = true;
+
+  // Применяем настройки
+  if (settings.pageSize) {
+    companyStore.perPage = settings.pageSize;
+  }
+  if (settings.defaultSortBy) {
+    companyStore.sortBy = settings.defaultSortBy;
+  }
+  if (settings.defaultFilterHasIcon !== undefined) {
+    companyStore.filterHasIcon = settings.defaultFilterHasIcon;
+  }
+
+  setTimeout(() => {
+    isSavingSettings.value = false;
+  }, 500);
+
+  // Перезагружаем данные с новыми настройками
+  companyStore.fetchAllCompanies();
 };
 
 const updateCompanyField = async (companyId, fieldName, newValue) => {

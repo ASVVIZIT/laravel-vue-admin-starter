@@ -323,14 +323,12 @@ const handleUpdateField = async (companyId, fieldName, newValue) => {
   console.log('🔵 [CompanyTable] handleUpdateField:', { companyId, fieldName, newValue });
 
   try {
-    // ✅ Находим компанию в store
     const company = companyStore.allCompanies.find((c) => c.id === companyId);
     if (!company) {
       console.error('🔴 [CompanyTable] Company not found:', companyId);
       return;
     }
 
-    // ✅ Обновляем локально для мгновенной реактивности
     if (fieldName === 'settings.icon') {
       if (!company.settings) {
         company.settings = {};
@@ -340,13 +338,11 @@ const handleUpdateField = async (companyId, fieldName, newValue) => {
       company[fieldName] = newValue;
     }
 
-    // ✅ Триггерим реактивность
     company._updating = true;
     companyStore.allCompanies = [...companyStore.allCompanies];
 
     console.log('🔵 [CompanyTable] Local update complete:', company);
 
-    // ✅ Отправляем в API через store
     if (props.useStore && companyStore) {
       await companyStore.updateCompany(companyId, {
         [fieldName === 'settings.icon' ? 'settings' : fieldName]:
@@ -356,7 +352,6 @@ const handleUpdateField = async (companyId, fieldName, newValue) => {
       console.log('🟢 [CompanyTable] API update complete:', companyId);
     }
 
-    // ✅ Снимаем флаг загрузки
     company._updating = false;
     companyStore.allCompanies = [...companyStore.allCompanies];
 
@@ -364,7 +359,6 @@ const handleUpdateField = async (companyId, fieldName, newValue) => {
   } catch (error) {
     console.error('🔴 [CompanyTable] Update error:', { companyId, fieldName, error });
 
-    // ✅ Откат изменений при ошибке
     const company = companyStore.allCompanies.find((c) => c.id === companyId);
     if (company) {
       company._updating = false;

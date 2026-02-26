@@ -123,22 +123,14 @@ const hasActiveFilters = computed(() => {
   );
 });
 
-// ✅ СИНХРОНИЗАЦИЯ С STORE ПРИ ЗАГРУЗКЕ (localStorage)
 onMounted(() => {
   setTimeout(() => {
     localSearch.value = companyStore.searchQuery || '';
     localHasIcon.value = companyStore.filterHasIcon || '';
     localSortBy.value = companyStore.sortBy || SORT_OPTIONS.DEFAULT;
-
-    console.log('[Filters] Synced with store:', {
-      search: localSearch.value,
-      icon: localHasIcon.value,
-      sort: localSortBy.value,
-    });
   }, 100);
 });
 
-// ✅ СИНХРОНИЗАЦИЯ ПРИ ИЗМЕНЕНИИ STORE
 watch(() => companyStore.searchQuery, (newVal) => {
   localSearch.value = newVal || '';
 });
@@ -211,12 +203,13 @@ onUnmounted(() => {
 .filters-container {
   display: flex;
   align-items: center;
-  gap: v-bind('FILTERS_UI.GAP');
+  gap: 6px;
   flex-wrap: wrap;
   width: 100%;
   justify-content: flex-end;
   position: relative;
-  min-height: v-bind('FILTERS_UI.HEIGHT');
+  min-height: 20px;
+  padding: 2px 0;
 }
 
 .filter-item {
@@ -227,9 +220,9 @@ onUnmounted(() => {
 .search-filter {
   position: relative;
   z-index: 1;
-  flex: 0 0 v-bind('FILTERS_UI.INPUT_WIDTH') !important;
-  max-width: v-bind('FILTERS_UI.INPUT_WIDTH') !important;
-  transition: all v-bind('FILTERS_UI.TRANSITION_DURATION') v-bind('ANIMATIONS.EASING_EASE');
+  flex: 0 0 120px !important;
+  max-width: 120px !important;
+  transition: all 0.2s ease;
   margin-left: 0 !important;
 }
 
@@ -237,18 +230,19 @@ onUnmounted(() => {
   position: relative !important;
   right: auto !important;
   top: auto !important;
-  flex: 0 0 v-bind('FILTERS_UI.INPUT_WIDTH_FOCUSED') !important;
-  max-width: v-bind('FILTERS_UI.INPUT_WIDTH_FOCUSED') !important;
+  flex: 0 0 180px !important;
+  max-width: 180px !important;
   z-index: 100;
-  margin-left: calc(v-bind('FILTERS_UI.INPUT_WIDTH') - v-bind('FILTERS_UI.INPUT_WIDTH_FOCUSED')) !important;
+  margin-left: calc(120px - 180px) !important;
 }
 
 .search-input :deep(.el-input__wrapper) {
-  height: v-bind('FILTERS_UI.HEIGHT');
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
-  padding: 0 5px;
-  border-radius: 3px;
-  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  height: 20px !important;
+  min-height: 20px !important;
+  font-size: 11px;
+  padding: 0 3px;
+  border-radius: 2px;
+  transition: all 0.15s ease;
 }
 
 .search-input :deep(.el-input__wrapper:hover) {
@@ -260,12 +254,14 @@ onUnmounted(() => {
 }
 
 .search-input :deep(.el-input__inner) {
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
-  height: v-bind('FILTERS_UI.HEIGHT');
+  font-size: 11px;
+  height: 18px !important;
+  line-height: 18px !important;
+  padding: 0 !important;
 }
 
 .search-input :deep(.el-input__prefix) {
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
+  font-size: 11px;
   color: v-bind('COLORS.INFO');
 }
 
@@ -274,9 +270,13 @@ onUnmounted(() => {
   align-items: center;
 }
 
+.search-input :deep(.el-input__clear) {
+  font-size: 8px;
+}
+
 .icon-filter {
-  flex: 0 0 70px !important;
-  max-width: 70px !important;
+  flex: 0 0 60px !important;
+  max-width: 60px !important;
 }
 
 .icon-select {
@@ -284,11 +284,12 @@ onUnmounted(() => {
 }
 
 .icon-select :deep(.el-select__wrapper) {
-  height: v-bind('FILTERS_UI.HEIGHT');
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
-  padding: 0 5px;
-  border-radius: 3px;
-  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  height: 20px !important;
+  min-height: 20px !important;
+  font-size: 11px;
+  padding: 0 3px;
+  border-radius: 2px;
+  transition: all 0.15s ease;
 }
 
 .icon-select :deep(.el-select__wrapper:hover) {
@@ -296,12 +297,17 @@ onUnmounted(() => {
 }
 
 .icon-select :deep(.el-select__input) {
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
+  font-size: 11px;
+  height: 18px !important;
+}
+
+.icon-select :deep(.el-select__caret) {
+  font-size: 8px;
 }
 
 .sort-filter {
-  flex: 0 0 70px !important;
-  max-width: 70px !important;
+  flex: 0 0 60px !important;
+  max-width: 60px !important;
 }
 
 .sort-select {
@@ -309,11 +315,12 @@ onUnmounted(() => {
 }
 
 .sort-select :deep(.el-select__wrapper) {
-  height: v-bind('FILTERS_UI.HEIGHT');
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
-  padding: 0 5px;
-  border-radius: 3px;
-  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  height: 20px !important;
+  min-height: 20px !important;
+  font-size: 11px;
+  padding: 0 3px;
+  border-radius: 2px;
+  transition: all 0.15s ease;
 }
 
 .sort-select :deep(.el-select__wrapper:hover) {
@@ -321,7 +328,12 @@ onUnmounted(() => {
 }
 
 .sort-select :deep(.el-select__input) {
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
+  font-size: 11px;
+  height: 18px !important;
+}
+
+.sort-select :deep(.el-select__caret) {
+  font-size: 8px;
 }
 
 .filter-info {
@@ -331,12 +343,12 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 1px;
-  padding: 0 4px;
-  animation: fadeIn v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  padding: 0 3px;
+  animation: fadeIn 0.2s ease;
 }
 
 .info-label {
-  font-size: 6px;
+  font-size: 5px;
   font-weight: 600;
   color: v-bind('COLORS.INFO');
   text-transform: uppercase;
@@ -345,7 +357,7 @@ onUnmounted(() => {
 }
 
 .info-count {
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 700;
   color: v-bind('COLORS.PRIMARY');
   line-height: 1;
@@ -358,19 +370,11 @@ onUnmounted(() => {
 }
 
 :deep(.el-select-dropdown__item) {
-  font-size: v-bind('FILTERS_UI.FONT_SIZE') !important;
-  padding: 0 8px !important;
-  height: 20px !important;
-  line-height: 20px !important;
-  min-height: 20px !important;
-  position: relative;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--el-text-color-regular);
-  box-sizing: border-box;
-  cursor: pointer;
-  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  font-size: 11px !important;
+  padding: 0 6px !important;
+  height: 18px !important;
+  line-height: 18px !important;
+  min-height: 18px !important;
 }
 
 :deep(.el-select-dropdown__item:hover) {
@@ -383,14 +387,9 @@ onUnmounted(() => {
   background-color: #f0f9eb;
 }
 
-:deep(.el-select-dropdown__item.disabled) {
-  color: #c0c4cc;
-  cursor: not-allowed;
-}
-
 :deep(.el-select-dropdown__empty) {
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
-  padding: 8px 10px;
+  font-size: 11px;
+  padding: 6px 8px;
   color: #909399;
   text-align: center;
 }
@@ -400,21 +399,22 @@ onUnmounted(() => {
 }
 
 .filter-actions .el-button {
-  height: v-bind('FILTERS_UI.HEIGHT');
-  padding: 2px 5px;
-  font-size: v-bind('FILTERS_UI.FONT_SIZE');
-  border-radius: 3px;
+  height: 20px;
+  min-height: 20px;
+  padding: 0 4px;
+  font-size: 11px;
+  border-radius: 2px;
   min-width: auto;
   width: auto;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all 0.2s ease;
 }
 
 .filter-actions .el-button:hover:not(:disabled) {
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 .filter-actions :deep(.el-icon) {
-  font-size: 10px;
+  font-size: 9px;
   color: v-bind('COLORS.INFO');
 }
 
@@ -478,7 +478,7 @@ onUnmounted(() => {
 
   .filter-item {
     flex: 1;
-    min-width: 120px;
+    min-width: 100px;
   }
 
   .search-filter {
@@ -498,7 +498,7 @@ onUnmounted(() => {
   .filter-info {
     order: 4;
     width: 100%;
-    margin-top: 4px;
+    margin-top: 3px;
   }
 
   .filter-actions {
@@ -510,7 +510,8 @@ onUnmounted(() => {
   .filters-container {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: 4px;
+    padding: 2px 0;
   }
 
   .filter-item {
@@ -538,7 +539,7 @@ onUnmounted(() => {
     order: 4;
     flex-direction: row;
     justify-content: center;
-    gap: 4px;
+    gap: 3px;
   }
 
   .filter-actions {
@@ -553,7 +554,7 @@ onUnmounted(() => {
   }
 
   .info-count {
-    font-size: 7px;
+    font-size: 6px;
   }
 }
 
@@ -562,22 +563,32 @@ onUnmounted(() => {
   .icon-select :deep(.el-select__wrapper),
   .sort-select :deep(.el-select__wrapper) {
     height: 32px !important;
+    min-height: 32px !important;
   }
 
   .search-input :deep(.el-input__inner),
   .icon-select :deep(.el-select__input),
   .sort-select :deep(.el-select__input) {
     font-size: 14px !important;
+    height: 30px !important;
   }
 
   .filter-actions .el-button {
-    min-height: 44px;
-    min-width: 44px;
-    padding: 10px 16px;
+    min-height: 36px;
+    min-width: 36px;
+    padding: 8px 12px;
   }
 
   .filter-actions :deep(.el-icon) {
     font-size: 14px;
+  }
+
+  .info-label {
+    font-size: 9px;
+  }
+
+  .info-count {
+    font-size: 11px;
   }
 }
 </style>
