@@ -8,7 +8,7 @@ import {
     COMPANY_LIST_THRESHOLDS,
     COMPANY_LIST_FILTERS,
     SORT_OPTIONS,
-} from '../utils/appConfig.js';
+} from '../config/appConfigIndex.js';
 
 const companyResource = new CompanyResource();
 
@@ -30,6 +30,7 @@ export const useCompanyStore = defineStore('company', {
             loading: false,
             loadingInitial: false,
             loadingChunks: false,
+            deletionLoading: false,
             ...stateFromConfig,
             totalItems: 0,
             loadedChunks: 0,
@@ -37,6 +38,9 @@ export const useCompanyStore = defineStore('company', {
             chunkSize: CHUNK_CONFIG.SIZE,
             useServerPagination: false,
             allRecordsLoaded: false,
+            currentPage: 1,
+            perPage: PAGE_SIZE_OPTIONS.BASE_AVAILABLE[2],
+            lastPage: 1,
         };
     },
 
@@ -60,74 +64,73 @@ export const useCompanyStore = defineStore('company', {
                 return [];
             }
 
-            // ✅ 1. ФИЛЬТРАЦИЯ
+            // ✅ ЗАЩИТА ОТ null/undefined
+            const searchQuery = state.searchQuery || '';
+            const filterHasIcon = state.filterHasIcon || '';
+            const sortBy = state.sortBy || SORT_OPTIONS.DEFAULT;
+
             let filtered = state.allCompanies.filter(company => {
-                // Поиск по тексту + ID
-                const matchesSearch = state.searchQuery
-                    ? company.name?.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-                    company.address?.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-                    company.description?.toLowerCase().includes(state.searchQuery.toLowerCase()) ||
-                    String(company.id).includes(state.searchQuery)
+                // ✅ Поиск по тексту + ID
+                const matchesSearch = searchQuery
+                    ? company.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    company.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    company.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    String(company.id).includes(searchQuery)
                     : true;
 
-                // Фильтр по иконке
+                // ✅ Фильтр по иконке
                 const iconValue = company.settings?.icon ?? company.icon ?? '';
                 const hasIcon = iconValue !== '' && iconValue !== null && iconValue !== undefined;
 
-                const matchesIcon = state.filterHasIcon === '' || state.filterHasIcon === 'all'
+                // ✅ ЗАЩИТА ОТ null — ЯВНОЕ СРАВНЕНИЕ
+                const matchesIcon = filterHasIcon === '' || filterHasIcon === 'all' || filterHasIcon === null || filterHasIcon === undefined
                     ? true
-                    : state.filterHasIcon === 'true' || state.filterHasIcon === 'with' || state.filterHasIcon === true
+                    : filterHasIcon === 'with'
                         ? hasIcon
-                        : !hasIcon;
+                        : filterHasIcon === 'without'
+                            ? !hasIcon
+                            : true;
 
                 return matchesSearch && matchesIcon;
             });
 
-            // ✅ 2. СОРТИРОВКА
             if (state.sortBy) {
-                // ✅ ПРАВИЛЬНЫЙ ПАРСИНГ: "created_at_asc" → field="created_at", direction="asc"
                 const parts = state.sortBy.split('_');
-                const direction = parts.pop(); // "asc" или "desc"
-                const field = parts.join('_'); // "created_at" или "updated_at" или "id" или "name"
-
+                const direction = parts.pop();
+                const field = parts.join('_');
                 const multiplier = direction === 'desc' ? -1 : 1;
 
                 filtered.sort((a, b) => {
                     let valueA, valueB;
 
-                    // ✅ ID
                     if (field === 'id') {
                         valueA = a.id || 0;
                         valueB = b.id || 0;
                         return (valueA - valueB) * multiplier;
                     }
 
-                    // ✅ NAME
                     if (field === 'name') {
                         valueA = (a.name || '').toLowerCase();
                         valueB = (b.name || '').toLowerCase();
-                        return valueA.localeCompare(valueB, 'ru') * multiplier;
+                        return valueA.localeCompare(valueB, ['ru', 'en']) * multiplier;
                     }
 
-                    // ✅ CREATED_AT (ДАТА)
                     if (field === 'created_at' || field === 'createdAt') {
                         valueA = new Date(a.created_at || a.createdAt || 0).getTime();
                         valueB = new Date(b.created_at || b.createdAt || 0).getTime();
                         return (valueA - valueB) * multiplier;
                     }
 
-                    // ✅ UPDATED_AT (ДАТА)
                     if (field === 'updated_at' || field === 'updatedAt') {
                         valueA = new Date(a.updated_at || a.updatedAt || 0).getTime();
                         valueB = new Date(b.updated_at || b.updatedAt || 0).getTime();
                         return (valueA - valueB) * multiplier;
                     }
 
-                    // ✅ DEFAULT
                     valueA = a[field] || '';
                     valueB = b[field] || '';
                     if (typeof valueA === 'string' && typeof valueB === 'string') {
-                        return valueA.localeCompare(valueB, 'ru') * multiplier;
+                        return valueA.localeCompare(valueB, ['ru', 'en']) * multiplier;
                     }
                     return (valueA - valueB) * multiplier;
                 });
@@ -232,6 +235,9 @@ export const useCompanyStore = defineStore('company', {
 
         async fetchAllCompanies() {
             console.log('🔵 [Store] fetchAllCompanies: START');
+
+            // ✅ 1. СНАЧАЛА ВОССТАНАВЛИВАЕМ ФИЛЬТРЫ
+            this.restoreFiltersFromStorage();
 
             this.loadingInitial = true;
             this.loading = true;
@@ -527,6 +533,7 @@ export const useCompanyStore = defineStore('company', {
             }
         },
 
+        // ✅ ИСПРАВЛЕНО — С deletionLoading
         async deleteCompany(id) {
             console.log('🔵 [Store] deleteCompany: START', { id });
 
@@ -535,6 +542,7 @@ export const useCompanyStore = defineStore('company', {
                 throw new Error('Simulated delete error');
             }
 
+            this.deletionLoading = true;
             this.loading = true;
             this.error = null;
 
@@ -543,7 +551,7 @@ export const useCompanyStore = defineStore('company', {
 
                 this.allCompanies = this.allCompanies.filter((c) => c.id !== id);
                 this.companies = [...this.filteredData];
-                this.totalItems--;
+                this.totalItems = Math.max(0, this.totalItems - 1);
 
                 this.recalculatePagination();
 
@@ -553,6 +561,7 @@ export const useCompanyStore = defineStore('company', {
                 this.error = err.message || 'Failed to delete company';
                 throw err;
             } finally {
+                this.deletionLoading = false;
                 this.loading = false;
             }
         },
@@ -590,6 +599,7 @@ export const useCompanyStore = defineStore('company', {
             this.loading = false;
             this.loadingInitial = false;
             this.loadingChunks = false;
+            this.deletionLoading = false;
             this.chunkLoadingProgress = 0;
             this.error = null;
             this.totalItems = 0;
@@ -620,7 +630,17 @@ export const useCompanyStore = defineStore('company', {
                     console.log('🟢 [Store] Filters restored from localStorage:', filters);
                 } catch (e) {
                     console.error('🔴 [Store] Error reading filters from localStorage:', e);
+                    // ✅ СБРОС НА ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ ПРИ ОШИБКЕ
+                    this.searchQuery = '';
+                    this.filterHasIcon = '';
+                    this.sortBy = SORT_OPTIONS.DEFAULT;
                 }
+            } else {
+                // ✅ ЯВНО УСТАНАВЛИВАЕМ ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ
+                console.log('🟡 [Store] No filters in localStorage, using defaults');
+                this.searchQuery = '';
+                this.filterHasIcon = '';
+                this.sortBy = SORT_OPTIONS.DEFAULT;
             }
         },
     },

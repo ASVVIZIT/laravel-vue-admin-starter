@@ -12,248 +12,247 @@
         :cell-style="cellStyle"
         :element-loading-text="loadingText"
         :element-loading-background="COMPANY_TABLE_UI.LOADING_BACKGROUND"
-        :element-loading-spinner="COMPANY_LIST_UI.LOADING_SPINNER_SIZE"
         @row-dblclick="handleRowDblClick"
         class="company-table"
     >
-      <el-table-column
-          label="#"
-          :width="COMPANY_TABLE_UI.ROW_NUMBER_WIDTH"
-          align="center"
-          fixed="left"
-          :resizable="false"
-      >
-        <template #default="{ $index }">
-          <span class="cell-row-number">{{ rowIndex($index) }}</span>
-        </template>
-      </el-table-column>
+    <el-table-column
+        label="#"
+        :width="COMPANY_TABLE_UI.ROW_NUMBER_WIDTH"
+        align="center"
+        fixed="left"
+        :resizable="false"
+    >
+      <template #default="{ $index }">
+        <span class="cell-row-number">{{ rowIndex($index) }}</span>
+      </template>
+    </el-table-column>
 
-      <el-table-column
-          prop="id"
-          :label="getFieldLabel('id', 'company')"
-          :width="COMPANY_TABLE_UI.ID_WIDTH"
-          align="center"
-          fixed="left"
-          :resizable="false"
-      >
-        <template #default="{ row }">
-          <span class="cell-id">{{ row.id }}</span>
-        </template>
-      </el-table-column>
+    <el-table-column
+        prop="id"
+        :label="getFieldLabel('id', 'company')"
+        :width="COMPANY_TABLE_UI.ID_WIDTH"
+        align="center"
+        fixed="left"
+        :resizable="false"
+    >
+      <template #default="{ row }">
+        <span class="cell-id">{{ row.id }}</span>
+      </template>
+    </el-table-column>
 
-      <el-table-column
-          prop="name"
-          :label="getFieldLabel('name', 'company')"
-          :min-width="COMPANY_TABLE_UI.NAME_MIN_WIDTH"
-          :resizable="true"
-      >
-        <template #default="{ row }">
-          <EditableCell
-              v-model="row.name"
-              type="text"
-              :placeholder="COMPANY_TABLE_UI.NAME_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing"
-              :loading="row._updating"
-              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
-              :show-edit-button="true"
-              :show-action-buttons="true"
-              :max-length="COMPANY_TABLE_UI.NAME_MAX_LENGTH || 255"
-              @save="handleUpdateField(row.id, 'name', $event)"
-              @error="handleEditError(row, 'name', $event)"
-          />
-        </template>
-      </el-table-column>
+    <el-table-column
+        prop="name"
+        :label="getFieldLabel('name', 'company')"
+        :min-width="COMPANY_TABLE_UI.NAME_MIN_WIDTH"
+        :resizable="true"
+    >
+      <template #default="{ row }">
+        <EditableCell
+            v-model="row.name"
+            type="text"
+            :placeholder="COMPANY_TABLE_UI.NAME_PLACEHOLDER"
+            :disabled="row._updating || row._refreshing"
+            :loading="row._updating"
+            :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
+            :show-edit-button="true"
+            :show-action-buttons="true"
+            :max-length="COMPANY_TABLE_UI.NAME_MAX_LENGTH || 255"
+            @save="handleUpdateField(row.id, 'name', $event)"
+            @error="handleEditError(row, 'name', $event)"
+        />
+      </template>
+    </el-table-column>
 
-      <el-table-column
-          prop="settings.icon"
-          :label="getFieldLabel('settings.icon', 'company')"
-          :width="COMPANY_TABLE_UI.ICON_WIDTH"
-          align="center"
-          :resizable="true"
-      >
-        <template #default="{ row }">
-          <EditableCell
-              v-model="row.settings.icon"
-              type="select"
-              :placeholder="COMPANY_TABLE_UI.ICON_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing"
-              :loading="row._updating"
-              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
-              :show-edit-button="true"
-              :show-action-buttons="true"
-              @save="handleUpdateField(row.id, 'settings.icon', $event)"
-              @error="handleEditError(row, 'settings.icon', $event)"
-          >
-            <template #display="{ value }">
-              <div class="icon-display-wrapper">
-                <el-icon
-                    v-if="value && props.iconMap[value]"
-                    :size="COMPANY_TABLE_UI.ICON_DISPLAY_SIZE"
-                    :color="COMPANY_TABLE_UI.ICON_DISPLAY_COLOR"
-                >
-                  <component :is="props.iconMap[value]" />
-                </el-icon>
-                <span v-else class="icon-placeholder">{{ COMPANY_TABLE_UI.EMPTY_CELL_TEXT }}</span>
-              </div>
-            </template>
-            <template #options>
-              <el-option
-                  v-for="icon in props.iconOptions"
-                  :key="icon.value"
-                  :label="icon.label"
-                  :value="icon.value"
+    <el-table-column
+        prop="settings.icon"
+        :label="getFieldLabel('settings.icon', 'company')"
+        :width="COMPANY_TABLE_UI.ICON_WIDTH"
+        align="center"
+        :resizable="true"
+    >
+      <template #default="{ row }">
+        <EditableCell
+            v-model="row.settings.icon"
+            type="select"
+            :placeholder="COMPANY_TABLE_UI.ICON_PLACEHOLDER"
+            :disabled="row._updating || row._refreshing"
+            :loading="row._updating"
+            :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
+            :show-edit-button="true"
+            :show-action-buttons="true"
+            @save="handleUpdateField(row.id, 'settings.icon', $event)"
+            @error="handleEditError(row, 'settings.icon', $event)"
+        >
+          <template #display="{ value }">
+            <div class="icon-display-wrapper">
+              <el-icon
+                  v-if="value && props.iconMap[value]"
+                  :size="COMPANY_TABLE_UI.ICON_DISPLAY_SIZE"
+                  :color="COMPANY_TABLE_UI.ICON_DISPLAY_COLOR"
               >
+                <component :is="props.iconMap[value]" />
+              </el-icon>
+              <span v-else class="icon-placeholder">{{ COMPANY_TABLE_UI.EMPTY_CELL_TEXT }}</span>
+            </div>
+          </template>
+          <template #options>
+            <el-option
+                v-for="icon in props.iconOptions"
+                :key="icon.value"
+                :label="icon.label"
+                :value="icon.value"
+            >
                 <span class="icon-option">
                   <el-icon :size="COMPANY_TABLE_UI.ICON_SELECT_SIZE">
                     <component :is="props.iconMap[icon.value]" />
                   </el-icon>
                   <span>{{ icon.label }}</span>
                 </span>
-              </el-option>
-            </template>
-          </EditableCell>
-        </template>
-      </el-table-column>
+            </el-option>
+          </template>
+        </EditableCell>
+      </template>
+    </el-table-column>
 
-      <el-table-column
-          prop="description"
-          :label="getFieldLabel('description', 'company')"
-          :min-width="COMPANY_TABLE_UI.DESCRIPTION_MIN_WIDTH"
-          :resizable="true"
-      >
-        <template #default="{ row }">
-          <EditableCell
-              v-model="row.description"
-              type="textarea"
-              :rows="1"
-              :placeholder="COMPANY_TABLE_UI.DESCRIPTION_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing"
-              :loading="row._updating"
-              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
-              :show-edit-button="true"
-              :show-action-buttons="true"
-              :max-length="COMPANY_TABLE_UI.DESCRIPTION_MAX_LENGTH"
-              @save="handleUpdateField(row.id, 'description', $event)"
-              @error="handleEditError(row, 'description', $event)"
-          />
-        </template>
-      </el-table-column>
+    <el-table-column
+        prop="description"
+        :label="getFieldLabel('description', 'company')"
+        :min-width="COMPANY_TABLE_UI.DESCRIPTION_MIN_WIDTH"
+        :resizable="true"
+    >
+      <template #default="{ row }">
+        <EditableCell
+            v-model="row.description"
+            type="textarea"
+            :rows="1"
+            :placeholder="COMPANY_TABLE_UI.DESCRIPTION_PLACEHOLDER"
+            :disabled="row._updating || row._refreshing"
+            :loading="row._updating"
+            :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
+            :show-edit-button="true"
+            :show-action-buttons="true"
+            :max-length="COMPANY_TABLE_UI.DESCRIPTION_MAX_LENGTH"
+            @save="handleUpdateField(row.id, 'description', $event)"
+            @error="handleEditError(row, 'description', $event)"
+        />
+      </template>
+    </el-table-column>
 
-      <el-table-column
-          prop="address"
-          :label="getFieldLabel('address', 'company')"
-          :min-width="COMPANY_TABLE_UI.ADDRESS_MIN_WIDTH"
-          :resizable="true"
-      >
-        <template #default="{ row }">
-          <EditableCell
-              v-model="row.address"
-              type="text"
-              :placeholder="COMPANY_TABLE_UI.ADDRESS_PLACEHOLDER"
-              :disabled="row._updating || row._refreshing"
-              :loading="row._updating"
-              :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
-              :show-edit-button="true"
-              :show-action-buttons="true"
-              :max-length="COMPANY_TABLE_UI.ADDRESS_MAX_LENGTH"
-              @save="handleUpdateField(row.id, 'address', $event)"
-              @error="handleEditError(row, 'address', $event)"
-          />
-        </template>
-      </el-table-column>
+    <el-table-column
+        prop="address"
+        :label="getFieldLabel('address', 'company')"
+        :min-width="COMPANY_TABLE_UI.ADDRESS_MIN_WIDTH"
+        :resizable="true"
+    >
+      <template #default="{ row }">
+        <EditableCell
+            v-model="row.address"
+            type="text"
+            :placeholder="COMPANY_TABLE_UI.ADDRESS_PLACEHOLDER"
+            :disabled="row._updating || row._refreshing"
+            :loading="row._updating"
+            :empty-text="COMPANY_TABLE_UI.EMPTY_CELL_TEXT"
+            :show-edit-button="true"
+            :show-action-buttons="true"
+            :max-length="COMPANY_TABLE_UI.ADDRESS_MAX_LENGTH"
+            @save="handleUpdateField(row.id, 'address', $event)"
+            @error="handleEditError(row, 'address', $event)"
+        />
+      </template>
+    </el-table-column>
 
-      <el-table-column
-          prop="contact_channels_count"
-          label="Каналы"
-          :width="COMPANY_TABLE_UI.CHANNEL_WIDTH"
-          align="center"
-          :resizable="false"
-      >
-        <template #default="{ row }">
-          <el-tag
-              :type="getChannelCountType(row.contact_channels_count)"
-              :effect="COMPANY_TABLE_UI.TAG_PROPS.effect"
-              :size="COMPANY_TABLE_UI.TAG_PROPS.size"
-              class="channel-tag"
+    <el-table-column
+        prop="contact_channels_count"
+        label="Каналы"
+        :width="COMPANY_TABLE_UI.CHANNEL_WIDTH"
+        align="center"
+        :resizable="false"
+    >
+      <template #default="{ row }">
+        <el-tag
+            :type="getChannelCountType(row.contact_channels_count)"
+            :effect="COMPANY_TABLE_UI.TAG_PROPS.effect"
+            :size="COMPANY_TABLE_UI.TAG_PROPS.size"
+            class="channel-tag"
+        >
+          {{ row.contact_channels_count || 0 }}
+        </el-tag>
+      </template>
+    </el-table-column>
+
+    <el-table-column
+        label="Действия"
+        :width="COMPANY_TABLE_UI.ACTION_WIDTH"
+        fixed="right"
+        align="center"
+        :resizable="false"
+    >
+      <template #default="{ row }">
+        <div class="action-buttons">
+          <el-tooltip
+              :content="row._refreshing ? LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD_LOADING : LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD"
+              placement="top"
+              :show-after="TIMINGS.TOOLTIP_DELAY"
+              :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
           >
-            {{ row.contact_channels_count || 0 }}
-          </el-tag>
-        </template>
-      </el-table-column>
+            <el-button
+                :size="RECORD_REFRESH_CONFIG.BUTTON_SIZE"
+                :type="row._refreshing ? 'warning' : RECORD_REFRESH_CONFIG.BUTTON_TYPE"
+                :icon="row._refreshing ? Loading : Refresh"
+                circle
+                :loading="row._refreshing"
+                :disabled="row._updating || row._refreshing"
+                @click.stop="handleRefreshRecord(row.id)"
+                class="action-btn action-btn-refresh"
+                :style="{ width: RECORD_REFRESH_CONFIG.BUTTON_WIDTH, height: RECORD_REFRESH_CONFIG.BUTTON_WIDTH }"
+            />
+          </el-tooltip>
 
-      <el-table-column
-          label="Действия"
-          :width="COMPANY_TABLE_UI.ACTION_WIDTH"
-          fixed="right"
-          align="center"
-          :resizable="false"
-      >
-        <template #default="{ row }">
-          <div class="action-buttons">
-            <el-tooltip
-                :content="row._refreshing ? LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD_LOADING : LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH_RECORD"
-                placement="top"
-                :show-after="TIMINGS.TOOLTIP_DELAY"
-                :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
-            >
-              <el-button
-                  :size="RECORD_REFRESH_CONFIG.BUTTON_SIZE"
-                  :type="row._refreshing ? 'warning' : RECORD_REFRESH_CONFIG.BUTTON_TYPE"
-                  :icon="row._refreshing ? Loading : Refresh"
-                  circle
-                  :loading="row._refreshing"
-                  :disabled="row._updating || row._refreshing"
-                  @click.stop="handleRefreshRecord(row.id)"
-                  class="action-btn action-btn-refresh"
-                  :style="{ width: RECORD_REFRESH_CONFIG.BUTTON_WIDTH, height: RECORD_REFRESH_CONFIG.BUTTON_WIDTH }"
-              />
-            </el-tooltip>
+          <el-tooltip
+              content="Редактировать"
+              placement="top"
+              :show-after="TIMINGS.TOOLTIP_DELAY"
+              :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+          >
+            <el-button
+                size="small"
+                type="primary"
+                :icon="Edit"
+                circle
+                :disabled="row._updating || row._refreshing"
+                @click.stop="handleEdit(row)"
+                class="action-btn action-btn-edit"
+            />
+          </el-tooltip>
 
-            <el-tooltip
-                content="Редактировать"
-                placement="top"
-                :show-after="TIMINGS.TOOLTIP_DELAY"
-                :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
-            >
-              <el-button
-                  size="small"
-                  type="primary"
-                  :icon="Edit"
-                  circle
-                  :disabled="row._updating || row._refreshing"
-                  @click.stop="handleEdit(row)"
-                  class="action-btn action-btn-edit"
-              />
-            </el-tooltip>
-
-            <el-tooltip
-                content="Удалить"
-                placement="top"
-                :show-after="TIMINGS.TOOLTIP_DELAY"
-                :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
-            >
-              <el-button
-                  size="small"
-                  type="danger"
-                  :icon="Delete"
-                  circle
-                  :disabled="row._updating || row._refreshing"
-                  @click.stop="handleDelete(row)"
-                  class="action-btn action-btn-delete"
-              />
-            </el-tooltip>
-          </div>
-        </template>
-      </el-table-column>
-
-      <template #empty>
-        <div class="table-empty">
-          <el-icon :size="COMPANY_TABLE_UI.EMPTY_ICON_SIZE" :color="COMPANY_TABLE_UI.EMPTY_ICON_COLOR">
-            <Document />
-          </el-icon>
-          <p>{{ COMPANY_LIST_MESSAGES.EMPTY_NO_DATA }}</p>
+          <el-tooltip
+              content="Удалить"
+              placement="top"
+              :show-after="TIMINGS.TOOLTIP_DELAY"
+              :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+          >
+            <el-button
+                size="small"
+                type="danger"
+                :icon="Delete"
+                circle
+                :disabled="row._updating || row._refreshing"
+                @click.stop="handleDelete(row)"
+                class="action-btn action-btn-delete"
+            />
+          </el-tooltip>
         </div>
       </template>
+    </el-table-column>
+
+    <template #empty>
+      <div class="table-empty">
+        <el-icon :size="COMPANY_TABLE_UI.EMPTY_ICON_SIZE" :color="COMPANY_TABLE_UI.EMPTY_ICON_COLOR">
+          <Document />
+        </el-icon>
+        <p>{{ COMPANY_LIST_MESSAGES.EMPTY_NO_DATA }}</p>
+      </div>
+    </template>
     </el-table>
   </div>
 </template>
@@ -262,9 +261,9 @@
 import { ref, computed, onMounted } from 'vue';
 import { Edit, Delete, Document, Refresh, Loading } from '@element-plus/icons-vue';
 import EditableCell from '../Common/EditableCell.vue';
-import { getFieldLabel } from '../../utils/fieldLabels.js';
 import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
 import {
+  getFieldLabel,
   COMPANY_TABLE_PROPS_CONFIG,
   COMPANY_TABLE_UI,
   EDITABLE_CELL_UI,
@@ -276,17 +275,11 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
 const companyStore = useCompanyStore();
 
-const props = defineProps({
-  ...COMPANY_TABLE_PROPS_CONFIG,
-  useStore: {
-    type: Boolean,
-    default: true,
-  },
-});
+const props = defineProps({...COMPANY_TABLE_PROPS_CONFIG});
 
 const emit = defineEmits(['edit', 'delete', 'update-field', 'row-dblclick', 'refresh']);
 
@@ -390,14 +383,8 @@ const handleEdit = (row) => {
 };
 
 const handleDelete = async (row) => {
-  try {
-    if (props.useStore && companyStore) {
-      await companyStore.deleteCompany(row.id);
-    }
-    emit('delete', row);
-  } catch (error) {
-    console.error('[CompanyTable] Delete error:', { id: row.id, error });
-  }
+  console.log('🔴 [CompanyTable] handleDelete:', row);
+  emit('delete', row);
 };
 
 const handleRowDblClick = (row) => {
@@ -420,6 +407,9 @@ onMounted(() => {
 </script>
 
 <style>
+/* ============================================================================
+   GLOBAL STYLES — EDITABLE CELL DROPDOWN
+   ============================================================================ */
 .el-select-dropdown__item {
   font-size: var(--el-font-size-base) !important;
   padding: 0 12px 0 12px !important;
@@ -494,6 +484,9 @@ onMounted(() => {
 </style>
 
 <style scoped>
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
 .company-table-container {
   width: 100%;
   height: 100%;
@@ -503,6 +496,57 @@ onMounted(() => {
   overflow: hidden;
 }
 
+/* ============================================================================
+   LOADING SPINNER — ELEMENT PLUS SVG (ИСПРАВЛЕНО!)
+   ============================================================================ */
+
+/* ✅ MASK — ФОН ЗАГРУЗКИ */
+.company-table :deep(.el-loading-mask) {
+  background-color: v-bind('COMPANY_TABLE_UI.LOADING_BACKGROUND') !important;
+}
+
+/* ✅ SPINNER CONTAINER — ПОЗИЦИОНИРОВАНИЕ */
+.company-table :deep(.el-loading-spinner) {
+  top: 50% !important;
+  margin-top: calc(-1 * v-bind('COMPANY_LIST_UI.LOADING_SPINNER_SIZE') / 2) !important;
+}
+
+/* ✅ SVG CIRCLE — ВРАЩЕНИЕ */
+.company-table :deep(.el-loading-spinner .circular) {
+  width: v-bind('COMPANY_LIST_UI.LOADING_SPINNER_SIZE') !important;
+  height: v-bind('COMPANY_LIST_UI.LOADING_SPINNER_SIZE') !important;
+  animation: rotating 1s linear infinite;
+  transform-origin: 50% 50%;
+}
+
+/* ✅ SVG PATH — ЦВЕТ СПИННЕРА */
+.company-table :deep(.el-loading-spinner .path) {
+  stroke: v-bind('COMPANY_LIST_UI.LOADING_SPINNER_COLOR') !important;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+/* ✅ TEXT — ТЕКСТ ЗАГРУЗКИ */
+.company-table :deep(.el-loading-text) {
+  color: v-bind('COMPANY_LIST_UI.LOADING_TEXT_COLOR') !important;
+  font-size: v-bind('COMPANY_LIST_UI.LOADING_TEXT_SIZE') !important;
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* ✅ @keyframes rotating — ЛОКАЛЬНО В КОМПОНЕНТЕ */
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ============================================================================
+   TABLE HEADER
+   ============================================================================ */
 .company-table :deep(.el-table__header-wrapper) {
   background: v-bind('COMPANY_TABLE_UI.HEADER_BACKGROUND') !important;
 }
@@ -521,6 +565,9 @@ onMounted(() => {
   z-index: v-bind('COMPANY_TABLE_UI.FIXED_COLUMN_Z_INDEX') !important;
 }
 
+/* ============================================================================
+   TABLE CELLS
+   ============================================================================ */
 .company-table :deep(.el-table) {
   font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE');
 }
@@ -555,6 +602,9 @@ onMounted(() => {
   overflow: v-bind('COMPANY_TABLE_UI.CELL_OVERFLOW');
 }
 
+/* ============================================================================
+   CELL CONTENT
+   ============================================================================ */
 .cell-row-number {
   font-size: v-bind('COMPANY_TABLE_UI.ROW_NUMBER_FONT_SIZE');
   color: v-bind('COMPANY_TABLE_UI.ROW_NUMBER_COLOR');
@@ -593,6 +643,9 @@ onMounted(() => {
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
+/* ============================================================================
+   EDITABLE CELL
+   ============================================================================ */
 .company-table :deep(.editable-cell-input) {
   font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
   line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
@@ -608,6 +661,9 @@ onMounted(() => {
   font-size: v-bind('EDITABLE_CELL_UI.BUTTON_FONT_SIZE');
 }
 
+/* ============================================================================
+   ACTION BUTTONS
+   ============================================================================ */
 .action-buttons {
   display: flex;
   align-items: center;
@@ -678,6 +734,9 @@ onMounted(() => {
   color: v-bind('COLORS.INFO') !important;
 }
 
+/* ============================================================================
+   EMPTY STATE
+   ============================================================================ */
 .table-empty {
   display: flex;
   flex-direction: column;
@@ -694,6 +753,9 @@ onMounted(() => {
   color: v-bind('COMPANY_TABLE_UI.EMPTY_TEXT_COLOR');
 }
 
+/* ============================================================================
+   SCROLLBAR
+   ============================================================================ */
 .company-table :deep(.el-table__body-wrapper)::-webkit-scrollbar {
   width: v-bind('COMPANY_TABLE_UI.SCROLLBAR_WIDTH');
   height: v-bind('COMPANY_TABLE_UI.SCROLLBAR_WIDTH');
@@ -709,6 +771,9 @@ onMounted(() => {
   border-radius: v-bind('COMPANY_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
 }
 
+/* ============================================================================
+   АДАПТИВ — XXXL (≤1920px)
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .company-table :deep(.el-table) {
     font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_MOBILE');
@@ -719,6 +784,9 @@ onMounted(() => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XL (≤1400px)
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .company-table :deep(.el-table) {
     font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_MOBILE');
@@ -736,6 +804,9 @@ onMounted(() => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XS (≤576px)
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .company-table :deep(.el-table) {
     font-size: v-bind('COMPANY_TABLE_UI.CELL_FONT_SIZE_SMALL');
@@ -758,6 +829,9 @@ onMounted(() => {
   }
 }
 
+/* ============================================================================
+   TOUCH DEVICES
+   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .action-btn {
     width: 32px;

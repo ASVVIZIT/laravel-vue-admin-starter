@@ -107,9 +107,9 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
-const props = defineProps(LOADING_DATA_ACTIONS_PROPS_CONFIG);
+const props = defineProps({...LOADING_DATA_ACTIONS_PROPS_CONFIG});
 
 const emit = defineEmits(['load-more', 'load-all', 'pause', 'resume', 'refresh', 'settings']);
 

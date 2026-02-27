@@ -105,9 +105,9 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
-const props = defineProps(EDITABLE_CELL_PROPS_CONFIG);
+const props = defineProps({...EDITABLE_CELL_PROPS_CONFIG});
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel', 'start-edit', 'error']);
 

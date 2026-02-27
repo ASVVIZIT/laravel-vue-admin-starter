@@ -35,9 +35,9 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
-const props = defineProps(PAGE_SIZE_SELECTOR_PROPS_CONFIG);
+const props = defineProps({...PAGE_SIZE_SELECTOR_PROPS_CONFIG});
 
 const emit = defineEmits(['update:modelValue', 'change']);
 

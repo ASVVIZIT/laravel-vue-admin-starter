@@ -41,9 +41,9 @@ import {
   TIMINGS,
   COLORS,
   LOADING_DATA_ACTIONS_COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
-const props = defineProps(CHUNK_PROGRESS_PROPS_CONFIG);
+const props = defineProps({...CHUNK_PROGRESS_PROPS_CONFIG});
 
 // ✅ ОПРЕДЕЛЯЕМ ЗАВЕРШЕНИЕ
 const isComplete = computed(() => {

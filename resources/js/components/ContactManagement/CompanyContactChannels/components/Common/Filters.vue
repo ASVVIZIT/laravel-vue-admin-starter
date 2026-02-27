@@ -21,23 +21,17 @@
     <div v-if="props.showIconFilter" class="filter-item icon-filter">
       <el-select
           v-model="localHasIcon"
-          :placeholder="FILTERS_MESSAGES.ICON_FILTER_LABEL"
+          :placeholder="ICON_FILTER_MESSAGES.PLACEHOLDER"
           :disabled="props.disabled"
           clearable
           class="icon-select"
           @change="handleFilterChange"
       >
         <el-option
-            :label="FILTERS_MESSAGES.ICON_FILTER_ALL"
-            value=""
-        />
-        <el-option
-            :label="FILTERS_MESSAGES.ICON_FILTER_WITH"
-            value="true"
-        />
-        <el-option
-            :label="FILTERS_MESSAGES.ICON_FILTER_WITHOUT"
-            value="false"
+            v-for="option in ICON_FILTER_OPTIONS"
+            :key="option.value"
+            :label="option.label"
+            :value="option.value"
         />
       </el-select>
     </div>
@@ -51,7 +45,7 @@
           @change="handleSortChange"
       >
         <el-option
-            v-for="option in props.sortOptions"
+            v-for="option in sortOptionsList"
             :key="option.value"
             :label="option.label"
             :value="option.value"
@@ -70,7 +64,7 @@
           size="small"
           @click="handleReset"
           :disabled="props.disabled"
-          :title="FILTERS_MESSAGES.RESET_TOOLTIP ?? 'Сбросить фильтры'"
+          :title="FILTERS_MESSAGES.RESET_TOOLTIP"
       >
         <el-icon><RefreshLeft /></el-icon>
       </el-button>
@@ -84,22 +78,22 @@ import { Search, RefreshLeft } from '@element-plus/icons-vue';
 import {
   FILTERS_PROPS_CONFIG,
   FILTERS_UI,
+  FILTERS_FILTERS_UI,
   FILTERS_MESSAGES,
+  ICON_FILTER_OPTIONS,
+  ICON_FILTER_MESSAGES,
   SORT_OPTIONS,
   getSortOptions,
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
 
 const companyStore = useCompanyStore();
 
-const props = defineProps({
-  ...FILTERS_PROPS_CONFIG,
-  sortOptions: { type: Array, default: null },
-});
+const props = defineProps({...FILTERS_PROPS_CONFIG});
 
 const emit = defineEmits(['search', 'filter', 'reset', 'sort']);
 
@@ -155,6 +149,10 @@ const handleSearchInput = () => {
 };
 
 const handleFilterChange = () => {
+  console.log('🔵 [Filters] handleFilterChange:', {
+    localHasIcon: localHasIcon.value || '',
+    type: typeof (localHasIcon.value || ''),
+  });
   emitFilter();
 };
 
@@ -165,9 +163,9 @@ const handleSortChange = () => {
 
 const emitFilter = () => {
   emit('filter', {
-    search: localSearch.value,
-    hasIcon: localHasIcon.value,
-    sortBy: localSortBy.value,
+    search: localSearch.value || '',
+    hasIcon: localHasIcon.value || '',
+    sortBy: localSortBy.value || SORT_OPTIONS.DEFAULT,
   });
 };
 
@@ -203,13 +201,13 @@ onUnmounted(() => {
 .filters-container {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: v-bind('FILTERS_FILTERS_UI.CONTAINER_GAP');
   flex-wrap: wrap;
   width: 100%;
   justify-content: flex-end;
   position: relative;
-  min-height: 20px;
-  padding: 2px 0;
+  min-height: v-bind('FILTERS_FILTERS_UI.CONTAINER_MIN_HEIGHT');
+  padding: v-bind('FILTERS_FILTERS_UI.CONTAINER_PADDING');
 }
 
 .filter-item {
@@ -220,9 +218,9 @@ onUnmounted(() => {
 .search-filter {
   position: relative;
   z-index: 1;
-  flex: 0 0 120px !important;
-  max-width: 120px !important;
-  transition: all 0.2s ease;
+  flex: 0 0 v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH') !important;
+  max-width: v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH') !important;
+  transition: all v-bind('FILTERS_UI.TRANSITION_DURATION') ease;
   margin-left: 0 !important;
 }
 
@@ -230,18 +228,19 @@ onUnmounted(() => {
   position: relative !important;
   right: auto !important;
   top: auto !important;
-  flex: 0 0 180px !important;
-  max-width: 180px !important;
+  flex: 0 0 v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH_FOCUSED') !important;
+  max-width: v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH_FOCUSED') !important;
   z-index: 100;
-  margin-left: calc(120px - 180px) !important;
+  margin-left: calc(v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH') - v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH_FOCUSED')) !important;
 }
 
+/* ✅ SEARCH INPUT — ИЗ КОНФИГА */
 .search-input :deep(.el-input__wrapper) {
-  height: 20px !important;
-  min-height: 20px !important;
-  font-size: 11px;
-  padding: 0 3px;
-  border-radius: 2px;
+  height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  min-height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE');
+  padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING');
+  border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
   transition: all 0.15s ease;
 }
 
@@ -254,14 +253,14 @@ onUnmounted(() => {
 }
 
 .search-input :deep(.el-input__inner) {
-  font-size: 11px;
-  height: 18px !important;
-  line-height: 18px !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.INNER_FONT_SIZE');
+  height: v-bind('FILTERS_FILTERS_UI.INNER_HEIGHT') !important;
+  line-height: v-bind('FILTERS_FILTERS_UI.INNER_LINE_HEIGHT') !important;
   padding: 0 !important;
 }
 
 .search-input :deep(.el-input__prefix) {
-  font-size: 11px;
+  font-size: v-bind('FILTERS_FILTERS_UI.PREFIX_FONT_SIZE');
   color: v-bind('COLORS.INFO');
 }
 
@@ -271,12 +270,13 @@ onUnmounted(() => {
 }
 
 .search-input :deep(.el-input__clear) {
-  font-size: 8px;
+  font-size: v-bind('FILTERS_FILTERS_UI.CLEAR_FONT_SIZE');
 }
 
+/* ✅ ICON SELECT — ИЗ КОНФИГА */
 .icon-filter {
-  flex: 0 0 60px !important;
-  max-width: 60px !important;
+  flex: 0 0 v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
+  max-width: v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
 }
 
 .icon-select {
@@ -284,11 +284,11 @@ onUnmounted(() => {
 }
 
 .icon-select :deep(.el-select__wrapper) {
-  height: 20px !important;
-  min-height: 20px !important;
-  font-size: 11px;
-  padding: 0 3px;
-  border-radius: 2px;
+  height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  min-height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE');
+  padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING');
+  border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
   transition: all 0.15s ease;
 }
 
@@ -297,17 +297,18 @@ onUnmounted(() => {
 }
 
 .icon-select :deep(.el-select__input) {
-  font-size: 11px;
-  height: 18px !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.INNER_FONT_SIZE');
+  height: v-bind('FILTERS_FILTERS_UI.INNER_HEIGHT') !important;
 }
 
 .icon-select :deep(.el-select__caret) {
-  font-size: 8px;
+  font-size: v-bind('FILTERS_FILTERS_UI.CARET_FONT_SIZE');
 }
 
+/* ✅ SORT SELECT — ИЗ КОНФИГА */
 .sort-filter {
-  flex: 0 0 60px !important;
-  max-width: 60px !important;
+  flex: 0 0 v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
+  max-width: v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
 }
 
 .sort-select {
@@ -315,11 +316,11 @@ onUnmounted(() => {
 }
 
 .sort-select :deep(.el-select__wrapper) {
-  height: 20px !important;
-  min-height: 20px !important;
-  font-size: 11px;
-  padding: 0 3px;
-  border-radius: 2px;
+  height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  min-height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE');
+  padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING');
+  border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
   transition: all 0.15s ease;
 }
 
@@ -328,14 +329,15 @@ onUnmounted(() => {
 }
 
 .sort-select :deep(.el-select__input) {
-  font-size: 11px;
-  height: 18px !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.INNER_FONT_SIZE');
+  height: v-bind('FILTERS_FILTERS_UI.INNER_HEIGHT') !important;
 }
 
 .sort-select :deep(.el-select__caret) {
-  font-size: 8px;
+  font-size: v-bind('FILTERS_FILTERS_UI.CARET_FONT_SIZE');
 }
 
+/* ✅ FILTER INFO — ИЗ КОНФИГА */
 .filter-info {
   flex-shrink: 0;
   display: flex;
@@ -348,7 +350,7 @@ onUnmounted(() => {
 }
 
 .info-label {
-  font-size: 5px;
+  font-size: v-bind('FILTERS_FILTERS_UI.INFO_LABEL_FONT_SIZE');
   font-weight: 600;
   color: v-bind('COLORS.INFO');
   text-transform: uppercase;
@@ -357,12 +359,13 @@ onUnmounted(() => {
 }
 
 .info-count {
-  font-size: 7px;
+  font-size: v-bind('FILTERS_FILTERS_UI.INFO_COUNT_FONT_SIZE');
   font-weight: 700;
   color: v-bind('COLORS.PRIMARY');
   line-height: 1;
 }
 
+/* ✅ DROPDOWN — ИЗ КОНФИГА */
 :deep(.el-select-dropdown) {
   padding: 4px 0;
   border-radius: 4px;
@@ -370,11 +373,11 @@ onUnmounted(() => {
 }
 
 :deep(.el-select-dropdown__item) {
-  font-size: 11px !important;
-  padding: 0 6px !important;
-  height: 18px !important;
-  line-height: 18px !important;
-  min-height: 18px !important;
+  font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE') !important;
+  padding: v-bind('FILTERS_FILTERS_UI.DROPDOWN_PADDING') !important;
+  height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT') !important;
+  line-height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_LINE_HEIGHT') !important;
+  min-height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT') !important;
 }
 
 :deep(.el-select-dropdown__item:hover) {
@@ -388,22 +391,23 @@ onUnmounted(() => {
 }
 
 :deep(.el-select-dropdown__empty) {
-  font-size: 11px;
+  font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE');
   padding: 6px 8px;
   color: #909399;
   text-align: center;
 }
 
+/* ✅ FILTER ACTIONS — ИЗ КОНФИГА */
 .filter-actions {
   flex-shrink: 0;
 }
 
 .filter-actions .el-button {
-  height: 20px;
-  min-height: 20px;
-  padding: 0 4px;
-  font-size: 11px;
-  border-radius: 2px;
+  height: v-bind('FILTERS_FILTERS_UI.BUTTON_HEIGHT');
+  min-height: v-bind('FILTERS_FILTERS_UI.BUTTON_HEIGHT');
+  padding: v-bind('FILTERS_FILTERS_UI.BUTTON_PADDING');
+  font-size: v-bind('FILTERS_FILTERS_UI.BUTTON_FONT_SIZE');
+  border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
   min-width: auto;
   width: auto;
   transition: all 0.2s ease;
@@ -414,7 +418,7 @@ onUnmounted(() => {
 }
 
 .filter-actions :deep(.el-icon) {
-  font-size: 9px;
+  font-size: v-bind('FILTERS_FILTERS_UI.BUTTON_ICON_SIZE');
   color: v-bind('COLORS.INFO');
 }
 
@@ -433,9 +437,10 @@ onUnmounted(() => {
   }
 }
 
+/* ✅ АДАПТИВ — XXXL */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .filters-container {
-    gap: 4px;
+    gap: v-bind('FILTERS_FILTERS_UI.CONTAINER_GAP_MOBILE');
     justify-content: center;
   }
 
@@ -469,6 +474,7 @@ onUnmounted(() => {
   }
 }
 
+/* ✅ АДАПТИВ — XL */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .filters-container {
     flex-direction: row;
@@ -504,13 +510,34 @@ onUnmounted(() => {
   .filter-actions {
     order: 5;
   }
+
+  .search-input :deep(.el-input__wrapper),
+  .icon-select :deep(.el-select__wrapper),
+  .sort-select :deep(.el-select__wrapper) {
+    height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE_MOBILE') !important;
+    padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING_MOBILE') !important;
+  }
+
+  .search-input :deep(.el-input__inner),
+  .icon-select :deep(.el-select__input),
+  .sort-select :deep(.el-select__input) {
+    height: v-bind('FILTERS_FILTERS_UI.INNER_HEIGHT_MOBILE') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.INNER_FONT_SIZE_MOBILE') !important;
+  }
+
+  :deep(.el-select-dropdown__item) {
+    height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT_MOBILE') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE_MOBILE') !important;
+  }
 }
 
+/* ✅ АДАПТИВ — XS */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .filters-container {
     flex-direction: column;
     align-items: stretch;
-    gap: 4px;
+    gap: v-bind('FILTERS_FILTERS_UI.CONTAINER_GAP_SMALL');
     padding: 2px 0;
   }
 
@@ -550,45 +577,84 @@ onUnmounted(() => {
   }
 
   .info-label {
-    font-size: 5px;
+    font-size: v-bind('FILTERS_FILTERS_UI.INFO_LABEL_FONT_SIZE');
   }
 
   .info-count {
-    font-size: 6px;
+    font-size: v-bind('FILTERS_FILTERS_UI.INFO_COUNT_FONT_SIZE');
   }
-}
 
-@media (hover: none) and (pointer: coarse) {
   .search-input :deep(.el-input__wrapper),
   .icon-select :deep(.el-select__wrapper),
   .sort-select :deep(.el-select__wrapper) {
-    height: 32px !important;
-    min-height: 32px !important;
+    height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT_SMALL') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE_SMALL') !important;
+    padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING_SMALL') !important;
   }
 
   .search-input :deep(.el-input__inner),
   .icon-select :deep(.el-select__input),
   .sort-select :deep(.el-select__input) {
-    font-size: 14px !important;
-    height: 30px !important;
+    height: v-bind('FILTERS_FILTERS_UI.INNER_HEIGHT_SMALL') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.INNER_FONT_SIZE_SMALL') !important;
+  }
+
+  :deep(.el-select-dropdown__item) {
+    height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT_SMALL') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE_SMALL') !important;
+  }
+}
+
+/* ✅ TOUCH DEVICES — ИЗ КОНФИГА */
+@media (hover: none) and (pointer: coarse) {
+  .search-input :deep(.el-input__wrapper),
+  .icon-select :deep(.el-select__wrapper),
+  .sort-select :deep(.el-select__wrapper) {
+    height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    min-height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE_TOUCH') !important;
+    padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING_TOUCH') !important;
+  }
+
+  .search-input :deep(.el-input__inner),
+  .icon-select :deep(.el-select__input),
+  .sort-select :deep(.el-select__input) {
+    font-size: v-bind('FILTERS_FILTERS_UI.INNER_FONT_SIZE_TOUCH') !important;
+    height: v-bind('FILTERS_FILTERS_UI.INNER_HEIGHT_TOUCH') !important;
   }
 
   .filter-actions .el-button {
-    min-height: 36px;
-    min-width: 36px;
-    padding: 8px 12px;
+    min-height: v-bind('FILTERS_FILTERS_UI.BUTTON_HEIGHT_TOUCH');
+    min-width: v-bind('FILTERS_FILTERS_UI.BUTTON_HEIGHT_TOUCH');
+    padding: v-bind('FILTERS_FILTERS_UI.BUTTON_PADDING_TOUCH');
+    font-size: v-bind('FILTERS_FILTERS_UI.BUTTON_FONT_SIZE_TOUCH');
   }
 
   .filter-actions :deep(.el-icon) {
-    font-size: 14px;
+    font-size: v-bind('FILTERS_FILTERS_UI.BUTTON_ICON_SIZE_TOUCH');
   }
 
   .info-label {
-    font-size: 9px;
+    font-size: v-bind('FILTERS_FILTERS_UI.INFO_LABEL_FONT_SIZE_TOUCH');
   }
 
   .info-count {
-    font-size: 11px;
+    font-size: v-bind('FILTERS_FILTERS_UI.INFO_COUNT_FONT_SIZE_TOUCH');
+  }
+
+  .search-input :deep(.el-input__clear) {
+    font-size: v-bind('FILTERS_FILTERS_UI.CLEAR_FONT_SIZE_TOUCH');
+  }
+
+  .search-input :deep(.el-input__prefix) {
+    font-size: v-bind('FILTERS_FILTERS_UI.PREFIX_FONT_SIZE_TOUCH');
+  }
+
+  :deep(.el-select-dropdown__item) {
+    height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT_TOUCH') !important;
+    line-height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_LINE_HEIGHT_TOUCH') !important;
+    font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE_TOUCH') !important;
+    padding: v-bind('FILTERS_FILTERS_UI.DROPDOWN_PADDING_TOUCH') !important;
   }
 }
 </style>

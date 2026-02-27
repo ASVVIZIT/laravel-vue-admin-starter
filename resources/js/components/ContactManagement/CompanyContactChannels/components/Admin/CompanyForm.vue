@@ -45,7 +45,6 @@
           />
         </el-form-item>
 
-        <!-- ✅ ИСПРАВЛЕНО: ДОБАВЛЕН @clear ДЛЯ СБРОСА В "" -->
         <el-form-item
             :label="getFieldLabel('settings.icon', 'company')"
             class="form-item-inline"
@@ -133,29 +132,24 @@ import { useCompanyStore } from '@/components/ContactManagement/CompanyContactCh
 import {
   COMPANY_FORM_PROPS_CONFIG,
   COMPANY_FORM_UI,
+  COMPANY_FORM_FILTERS_UI,
   COMPANY_FORM_FIELDS,
   COMPANY_FORM_MESSAGES,
   COMPANY_FORM_VALIDATION,
   getDefaultCompanyFormValidation,
   getInitialCompanyFormState,
+  getFieldLabel,
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
   COLORS,
   COMPANY_TABLE_UI,
   EDITABLE_CELL_UI,
-} from '../../utils/appConfig.js';
-import { getFieldLabel } from '../../utils/fieldLabels.js';
+} from '../../config/appConfigIndex.js';
 
 const companyStore = useCompanyStore();
 
-const props = defineProps({
-  ...COMPANY_FORM_PROPS_CONFIG,
-  useStore: {
-    type: Boolean,
-    default: true,
-  },
-});
+const props = defineProps({...COMPANY_FORM_PROPS_CONFIG});
 
 const emit = defineEmits(['update:visible', 'submit']);
 
@@ -170,17 +164,8 @@ const localVisible = computed({
 
 const editingCompany = computed(() => props.company);
 const formRules = getDefaultCompanyFormValidation();
-const initialState = getInitialCompanyFormState();
 
-const formData = ref({
-  id: '',
-  name: '',
-  description: '',
-  address: '',
-  settings: {
-    icon: '',
-  },
-});
+const formData = ref(getInitialCompanyFormState());
 
 const isUsingStore = computed(() => props.useStore && companyStore);
 
@@ -218,15 +203,7 @@ watch(() => props.company, (newVal) => {
       },
     };
   } else {
-    formData.value = {
-      id: '',
-      name: '',
-      description: '',
-      address: '',
-      settings: {
-        icon: '',
-      },
-    };
+    formData.value = getInitialCompanyFormState();
   }
 }, { immediate: true });
 
@@ -287,6 +264,9 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   DIALOG
+   ============================================================================ */
 .company-form-dialog :deep(.el-dialog__body) {
   padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING');
 }
@@ -302,6 +282,9 @@ const handleSubmit = async () => {
   color: v-bind('COMPANY_FORM_UI.DIALOG_TITLE_COLOR');
 }
 
+/* ============================================================================
+   FORM ITEMS
+   ============================================================================ */
 .company-form-dialog :deep(.el-form-item) {
   margin-bottom: v-bind('COMPANY_FORM_UI.FORM_ITEM_MARGIN_BOTTOM');
   transition: margin-bottom v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
@@ -314,9 +297,16 @@ const handleSubmit = async () => {
   margin-bottom: v-bind('COMPANY_FORM_UI.FORM_LABEL_MARGIN_BOTTOM');
 }
 
+/* ============================================================================
+   INPUT / SELECT / TEXTAREA — DESKTOP
+   ============================================================================ */
 .company-form-dialog :deep(.el-input__wrapper),
 .company-form-dialog :deep(.el-textarea__inner) {
-  font-size: v-bind('COMPANY_FORM_UI.FORM_INPUT_FONT_SIZE');
+  font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE') !important;
+  height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  min-height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  padding: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_PADDING') !important;
+  border-radius: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_BORDER_RADIUS') !important;
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
@@ -330,15 +320,70 @@ const handleSubmit = async () => {
   box-shadow: 0 0 0 1px v-bind('COLORS.PRIMARY') inset;
 }
 
+.company-form-dialog :deep(.el-input__inner) {
+  height: v-bind('COMPANY_FORM_FILTERS_UI.INNER_HEIGHT') !important;
+  line-height: v-bind('COMPANY_FORM_FILTERS_UI.INNER_LINE_HEIGHT') !important;
+  font-size: v-bind('COMPANY_FORM_FILTERS_UI.INNER_FONT_SIZE') !important;
+}
+
 .company-form-dialog :deep(.el-textarea__inner) {
   resize: vertical;
   min-height: v-bind('COMPANY_FORM_UI.FORM_TEXTAREA_MIN_HEIGHT');
+  font-size: v-bind('COMPANY_FORM_FILTERS_UI.INNER_FONT_SIZE') !important;
 }
 
+/* ============================================================================
+   ICON SELECT — DESKTOP
+   ============================================================================ */
+.company-form-dialog .icon-select :deep(.el-select__wrapper) {
+  height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  min-height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE') !important;
+  padding: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_PADDING') !important;
+}
+
+.icon-option {
+  display: flex;
+  align-items: center;
+  gap: v-bind('COMPANY_FORM_FILTERS_UI.ICON_OPTION_GAP');
+  line-height: 1;
+}
+
+.icon-option :deep(.el-icon) {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================================
+   DROPDOWN — DESKTOP
+   ============================================================================ */
+:deep(.el-select-dropdown__item) {
+  padding: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_PADDING');
+  height: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_HEIGHT') !important;
+  line-height: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_LINE_HEIGHT') !important;
+  font-size: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_FONT_SIZE') !important;
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+:deep(.el-select-dropdown__item:hover) {
+  background-color: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_HOVER_BACKGROUND');
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  color: v-bind('COLORS.PRIMARY');
+  font-weight: 600;
+  background-color: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_SELECTED_BACKGROUND');
+}
+
+/* ============================================================================
+   FORM ROW
+   ============================================================================ */
 .form-row-inline {
   display: flex;
   align-items: flex-start;
-  gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP');
+  gap: v-bind('COMPANY_FORM_FILTERS_UI.ROW_GAP');
   margin-bottom: v-bind('COMPANY_FORM_UI.FORM_ROW_MARGIN_BOTTOM');
 }
 
@@ -354,6 +399,9 @@ const handleSubmit = async () => {
   margin-bottom: v-bind('COMPANY_FORM_UI.FORM_LABEL_MARGIN_BOTTOM');
 }
 
+/* ============================================================================
+   ID INPUT
+   ============================================================================ */
 .id-input :deep(.el-input__wrapper) {
   background-color: v-bind('COMPANY_FORM_UI.FORM_ID_INPUT_BACKGROUND');
   cursor: not-allowed;
@@ -364,43 +412,9 @@ const handleSubmit = async () => {
   font-weight: v-bind('COMPANY_FORM_UI.FORM_ID_INPUT_FONT_WEIGHT');
 }
 
-.icon-select {
-  width: 100%;
-}
-
-.icon-select :deep(.el-select__wrapper) {
-  height: v-bind('COMPANY_FORM_UI.FORM_SELECT_HEIGHT');
-}
-
-.icon-option {
-  display: flex;
-  align-items: center;
-  gap: v-bind('COMPANY_FORM_UI.FORM_ICON_OPTION_GAP');
-  line-height: 1;
-}
-
-.icon-option :deep(.el-icon) {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-:deep(.el-select-dropdown__item) {
-  padding: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_ITEM_PADDING');
-  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
-}
-
-:deep(.el-select-dropdown__item:hover) {
-  background-color: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_HOVER_BACKGROUND');
-}
-
-:deep(.el-select-dropdown__item.selected) {
-  color: v-bind('COLORS.PRIMARY');
-  font-weight: 600;
-  background-color: v-bind('COMPANY_FORM_UI.FORM_DROPDOWN_SELECTED_BACKGROUND');
-}
-
+/* ============================================================================
+   FOOTER — DESKTOP
+   ============================================================================ */
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
@@ -408,8 +422,12 @@ const handleSubmit = async () => {
   padding-top: v-bind('COMPANY_FORM_UI.FORM_FOOTER_PADDING_TOP');
 }
 
-.dialog-footer .el-button {
-  min-width: v-bind('COMPANY_FORM_UI.FORM_FOOTER_BUTTON_MIN_WIDTH');
+.company-form-dialog .dialog-footer .el-button {
+  min-width: v-bind('COMPANY_FORM_UI.FORM_FOOTER_BUTTON_MIN_WIDTH') !important;
+  height: v-bind('COMPANY_FORM_FILTERS_UI.BUTTON_HEIGHT') !important;
+  min-height: v-bind('COMPANY_FORM_FILTERS_UI.BUTTON_HEIGHT') !important;
+  font-size: v-bind('COMPANY_FORM_FILTERS_UI.BUTTON_FONT_SIZE') !important;
+  padding: v-bind('COMPANY_FORM_UI.BUTTON_PADDING') !important;
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
@@ -417,58 +435,9 @@ const handleSubmit = async () => {
   transform: scale(1.05);
 }
 
-@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
-  .company-form-dialog :deep(.el-dialog) {
-    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_TABLET') !important;
-  }
-  .form-row-inline {
-    flex-direction: row;
-    gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP_TABLET');
-  }
-}
-
-@media (max-width: v-bind('BREAKPOINTS.XL')) {
-  .company-form-dialog :deep(.el-dialog) {
-    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_MOBILE') !important;
-    margin: 10px auto;
-  }
-  .form-row-inline {
-    flex-direction: column;
-    gap: v-bind('COMPANY_FORM_UI.FORM_ROW_GAP_MOBILE');
-  }
-  .form-item-inline {
-    width: 100%;
-  }
-  .dialog-footer {
-    flex-direction: column;
-    gap: v-bind('COMPANY_FORM_UI.FORM_FOOTER_GAP_MOBILE');
-  }
-  .dialog-footer .el-button {
-    width: 100%;
-  }
-}
-
-@media (max-width: v-bind('BREAKPOINTS.XS')) {
-  .company-form-dialog :deep(.el-dialog) {
-    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_SMALL') !important;
-    margin: 5px auto;
-  }
-  .company-form-dialog :deep(.el-dialog__body) {
-    padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING_SMALL');
-  }
-  .company-form-dialog :deep(.el-form-item__label) {
-    font-size: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_SIZE_SMALL');
-  }
-  .company-form-dialog :deep(.el-input__wrapper),
-  .company-form-dialog :deep(.el-textarea__inner) {
-    font-size: v-bind('COMPANY_FORM_UI.FORM_INPUT_FONT_SIZE_SMALL');
-  }
-  .dialog-footer .el-button {
-    min-width: auto;
-    padding: 8px 12px;
-  }
-}
-
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
 .company-form-dialog :deep(.el-dialog) {
   animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE_OUT');
 }
@@ -497,34 +466,245 @@ const handleSubmit = async () => {
   }
 }
 
+/* ============================================================================
+   ERRORS — В SCOPED (для обёртки input)
+   ============================================================================ */
 .company-form-dialog :deep(.el-form-item.is-error .el-input__wrapper),
 .company-form-dialog :deep(.el-form-item.is-error .el-textarea__inner) {
   box-shadow: 0 0 0 1px v-bind('EDITABLE_CELL_UI.ERROR_COLOR') inset !important;
-}
-
-.company-form-dialog :deep(.el-form-item__error) {
-  color: v-bind('EDITABLE_CELL_UI.ERROR_COLOR');
-  font-size: v-bind('COMPANY_FORM_UI.FORM_ERROR_FONT_SIZE');
-  padding-top: v-bind('COMPANY_FORM_UI.FORM_ERROR_PADDING_TOP');
 }
 
 .company-form-dialog :deep(.el-form-item.is-success .el-input__wrapper) {
   box-shadow: 0 0 0 1px v-bind('COLORS.SUCCESS') inset !important;
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .dialog-footer .el-button {
-    min-height: 44px;
-    padding: 10px 16px;
-    font-size: 14px;
+/* ============================================================================
+   АДАПТИВ — XXXL (≤1920px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XXXL')) {
+  .company-form-dialog :deep(.el-dialog) {
+    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_TABLET') !important;
   }
+  .form-row-inline {
+    flex-direction: row;
+    gap: v-bind('COMPANY_FORM_FILTERS_UI.ROW_GAP_TABLET');
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — XL (≤1400px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XL')) {
+  .company-form-dialog :deep(.el-dialog) {
+    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_MOBILE') !important;
+    margin: 10px auto;
+  }
+  .form-row-inline {
+    flex-direction: column;
+    gap: v-bind('COMPANY_FORM_FILTERS_UI.ROW_GAP_MOBILE');
+  }
+  .form-item-inline {
+    width: 100%;
+  }
+  .dialog-footer {
+    flex-direction: column;
+    gap: v-bind('COMPANY_FORM_UI.FORM_FOOTER_GAP_MOBILE');
+  }
+  .dialog-footer .el-button {
+    width: 100%;
+  }
+
   .company-form-dialog :deep(.el-input__wrapper),
   .company-form-dialog :deep(.el-textarea__inner) {
-    font-size: 14px !important;
-    min-height: 40px;
+    height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE_MOBILE') !important;
+  }
+
+  .company-form-dialog :deep(.el-input__inner) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.INNER_HEIGHT_MOBILE') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.INNER_FONT_SIZE_MOBILE') !important;
+  }
+
+  .company-form-dialog .icon-select :deep(.el-select__wrapper) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE_MOBILE') !important;
+  }
+
+  :deep(.el-select-dropdown__item) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_HEIGHT_MOBILE') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_FONT_SIZE_MOBILE') !important;
+  }
+
+  .icon-option :deep(.el-icon) {
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.ICON_OPTION_FONT_SIZE_MOBILE');
+  }
+}
+
+/* ============================================================================
+   АДАПТИВ — XS (≤576px)
+   ============================================================================ */
+@media (max-width: v-bind('BREAKPOINTS.XS')) {
+  .company-form-dialog :deep(.el-dialog) {
+    width: v-bind('COMPANY_FORM_UI.DIALOG_WIDTH_SMALL') !important;
+    margin: 5px auto;
+  }
+  .company-form-dialog :deep(.el-dialog__body) {
+    padding: v-bind('COMPANY_FORM_UI.DIALOG_BODY_PADDING_SMALL');
   }
   .company-form-dialog :deep(.el-form-item__label) {
-    font-size: 13px;
+    font-size: v-bind('COMPANY_FORM_UI.FORM_LABEL_FONT_SIZE_SMALL');
+  }
+
+  .company-form-dialog :deep(.el-input__wrapper),
+  .company-form-dialog :deep(.el-textarea__inner) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT_SMALL') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE_SMALL') !important;
+  }
+
+  .company-form-dialog :deep(.el-input__inner) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.INNER_HEIGHT_SMALL') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.INNER_FONT_SIZE_SMALL') !important;
+  }
+
+  :deep(.el-select-dropdown__item) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_HEIGHT_SMALL') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_FONT_SIZE_SMALL') !important;
+  }
+
+  .icon-option :deep(.el-icon) {
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.ICON_OPTION_FONT_SIZE_SMALL');
+  }
+
+  .dialog-footer .el-button {
+    min-width: auto;
+    padding: 8px 12px;
+  }
+}
+
+/* ============================================================================
+   TOUCH DEVICES — ТОЛЬКО ЕСЛИ ЭКРАН МАЛЕНЬКИЙ (≤576px)
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) and (max-width: v-bind('BREAKPOINTS.XS')) {
+  .company-form-dialog .dialog-footer .el-button {
+    min-height: v-bind('COMPANY_FORM_FILTERS_UI.BUTTON_HEIGHT_TOUCH') !important;
+    height: v-bind('COMPANY_FORM_FILTERS_UI.BUTTON_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.BUTTON_FONT_SIZE_TOUCH') !important;
+    padding: 10px 16px !important;
+  }
+
+  .company-form-dialog :deep(.el-input__wrapper),
+  .company-form-dialog :deep(.el-textarea__inner) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    min-height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE_TOUCH') !important;
+  }
+
+  .company-form-dialog :deep(.el-input__inner) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.INNER_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.INNER_FONT_SIZE_TOUCH') !important;
+  }
+
+  .company-form-dialog .icon-select :deep(.el-select__wrapper) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE_TOUCH') !important;
+  }
+
+  :deep(.el-select-dropdown__item) {
+    height: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.DROPDOWN_FONT_SIZE_TOUCH') !important;
+  }
+
+  .icon-option :deep(.el-icon) {
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.ICON_OPTION_FONT_SIZE_TOUCH');
+  }
+
+  .company-form-dialog :deep(.el-form-item__label) {
+    font-size: v-bind('COMPANY_FORM_FILTERS_UI.WRAPPER_FONT_SIZE_TOUCH') !important;
+  }
+}
+</style>
+
+<style>
+/* ============================================================================
+   GLOBAL STYLES — DESKTOP (МАКСИМАЛЬНАЯ СПЕЦИФИЧНОСТЬ!)
+   ============================================================================ */
+.company-form-dialog .el-form-item--small .el-form-item__label {
+  height: 14px !important;
+  line-height: 14px !important;
+  min-height: 14px !important;
+  max-height: 14px !important;
+  font-size: 14px !important;
+  margin-bottom: 2px !important;
+}
+
+.company-form-dialog .el-form-item {
+  /* margin-bottom удалено — используется из scoped styles */
+}
+
+.company-form-dialog .el-form-item .el-select .el-select__wrapper,
+.company-form-dialog .icon-select .el-select__wrapper {
+  height: 20px !important;
+  min-height: 20px !important;
+  max-height: 20px !important;
+  font-size: 11px !important;
+  padding: 0 6px !important;
+}
+
+.company-form-dialog .el-form-item .el-input__inner,
+.company-form-dialog .icon-select .el-input__inner {
+  height: 18px !important;
+  font-size: 11px !important;
+  line-height: 18px !important;
+}
+
+.company-form-dialog .el-button {
+  height: 30px !important;
+  min-height: 30px !important;
+  font-size: 10px !important;
+  padding: 5px 10px !important;
+}
+
+/* ============================================================================
+   ERRORS — ГЛОБАЛЬНО (ПЕРЕБИВАЕМ ELEMENT PLUS!)
+   ============================================================================ */
+.company-form-dialog .el-form-item__error {
+  color: #F56C6C !important;
+  font-size: 10px !important;
+  padding-top: 2px !important;
+}
+
+/* ============================================================================
+   MOBILE (≤768px)
+   ============================================================================ */
+@media (max-width: 768px) {
+  .company-form-dialog .el-form-item__label {
+    height: 12px !important;
+    line-height: 12px !important;
+    font-size: 11px !important;
+  }
+
+  .company-form-dialog .el-form-item .el-select .el-select__wrapper,
+  .company-form-dialog .icon-select .el-select__wrapper {
+    height: 22px !important;
+  }
+
+  .company-form-dialog .el-button {
+    height: 32px !important;
+  }
+}
+
+/* ============================================================================
+   TOUCH — ТОЛЬКО ЕСЛИ ЭКРАН МАЛЕНЬКИЙ (≤576px)
+   ============================================================================ */
+@media (hover: none) and (pointer: coarse) and (max-width: 576px) {
+  .company-form-dialog .el-form-item .el-select .el-select__wrapper,
+  .company-form-dialog .icon-select .el-select__wrapper {
+    height: 32px !important;
+    font-size: 14px !important;
+  }
+
+  .company-form-dialog .el-button {
+    height: 36px !important;
   }
 }
 </style>

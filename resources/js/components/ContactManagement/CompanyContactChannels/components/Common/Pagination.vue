@@ -74,9 +74,9 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
-const props = defineProps(PAGINATION_PROPS_CONFIG);
+const props = defineProps({...PAGINATION_PROPS_CONFIG});
 
 const emit = defineEmits(['page-change', 'size-change']);
 
@@ -111,7 +111,7 @@ const startRecalculation = () => {
   isRecalculating.value = true;
   setTimeout(() => {
     isRecalculating.value = false;
-  }, TIMINGS.RECALCULATING_DURATION);
+  }, PAGINATION_UI.RECALCULATING_DURATION);
 };
 
 const goToFirstPage = () => {

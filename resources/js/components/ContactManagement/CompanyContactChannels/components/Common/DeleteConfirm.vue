@@ -18,13 +18,11 @@
         <Warning />
       </el-icon>
 
-      <p class="message">
-        {{ DELETE_CONFIRM_MESSAGES.MESSAGE(props.itemName, props.entityLabel) }}
-      </p>
+      <p class="message" v-html="DELETE_CONFIRM_MESSAGES.MESSAGE(props.itemName, props.entityLabel)"></p>
 
       <p class="hint">
         <el-icon><InfoFilled /></el-icon>
-        Это действие нельзя отменить
+        {{ DELETE_CONFIRM_MESSAGES.HINT_TEXT }}
       </p>
     </div>
 
@@ -59,9 +57,9 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
-const props = defineProps(DELETE_CONFIRM_PROPS_CONFIG);
+const props = defineProps({...DELETE_CONFIRM_PROPS_CONFIG});
 
 const emit = defineEmits(['update:visible', 'confirm', 'cancel']);
 
@@ -76,6 +74,7 @@ const localVisible = computed({
 // ✅ ПОДТВЕРЖДЕНИЕ УДАЛЕНИЯ
 const handleConfirm = () => {
   if (props.loading) return;
+  console.log('🔴 [DeleteConfirm] handleConfirm');
   emit('confirm');
 };
 

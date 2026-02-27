@@ -54,7 +54,7 @@
       <CompanyTable
           :key="tableKey"
           :data="paginatedFilteredCompanies"
-          :loading="companyStore.loading"
+          :loading="companyStore.loadingInitial || companyStore.loading"
           :icon-map="iconMap"
           :icon-options="iconOptions"
           :current-page="companyStore.currentPage"
@@ -96,9 +96,9 @@
     <DeleteConfirm
         :visible="deleteConfirmDialogVisible"
         :item="companyToDelete"
-        :item-name="companyToDelete?.name"
+        :item-name="companyToDelete?.name || 'неизвестно'"
         :entity-label="COMPANY_LIST_MESSAGES.ENTITY_LABEL"
-        :loading="companyStore.loading"
+        :loading="companyStore.deletionLoading"
         @update:visible="deleteConfirmDialogVisible = $event"
         @confirm="confirmDelete"
     />
@@ -125,31 +125,34 @@ import Filters from '../Common/Filters.vue';
 import DeleteConfirm from '../Common/DeleteConfirm.vue';
 import SettingsModal from '../Common/SettingsModal.vue';
 import LoadingDataActions from '../Common/LoadingDataActions.vue';
-import { getIconMap, getIconOptions } from '../../utils/iconConfig.js';
-import { getFieldLabel } from '../../utils/fieldLabels.js';
+
 import {
+  getIconMap,
+  getIconOptions,
+  parseIconFilterValue,
   generateAvailablePageSizes,
   PAGE_SIZE_OPTIONS,
   CHUNK_CONFIG,
   COMPANY_LIST_THRESHOLDS,
   COMPANY_LIST_FILTERS,
   COMPANY_LIST_UI,
+  COMPANY_LIST_FILTERS_UI,
   COMPANY_LIST_MESSAGES,
   COMPANY_TABLE_UI,
   PAGINATOR_DISPLAY,
   SORT_OPTIONS,
+  getFieldLabel,
   getSortOptions,
   BREAKPOINTS,
   TIMINGS,
   ANIMATIONS,
-} from '../../utils/appConfig.js';
+} from '../../config/appConfigIndex.js';
 
 const companyStore = useCompanyStore();
 const fenixIconStore = useFenixIconsStore();
 
 const dialogVisible = ref(false);
 const editingCompany = ref(null);
-const deletionLoading = ref(false);
 const settingsDialogVisible = ref(false);
 const deleteConfirmDialogVisible = ref(false);
 const companyToDelete = ref(null);
@@ -195,9 +198,26 @@ const showLoadAllButton = computed(() => {
 });
 
 const paginatedFilteredCompanies = computed(() => {
+
+  console.log('🔵 [CompanyList] paginatedFilteredCompanies computed:', {
+    currentPage: companyStore.currentPage,
+    perPage: companyStore.perPage,
+    filteredDataLength: companyStore.filteredData.length,
+    allCompaniesLength: companyStore.allCompanies.length,
+  });
+
   const start = (companyStore.currentPage - 1) * companyStore.perPage;
   const end = start + companyStore.perPage;
-  return companyStore.filteredData.slice(start, end);
+
+  const result = companyStore.filteredData.slice(start, end);
+
+  console.log('🔵 [CompanyList] paginatedFilteredCompanies result:', {
+    start,
+    end,
+    resultLength: result.length,
+  });
+
+  return result;
 });
 
 const openSettingsDialog = () => {
@@ -324,18 +344,14 @@ const handleSearch = (query) => {
 };
 
 const handleFilter = (filters) => {
-  let iconFilter = '';
-  if (filters.hasIcon === 'with' || filters.hasIcon === true || filters.hasIcon === 'true') {
-    iconFilter = 'true';
-  } else if (filters.hasIcon === 'without' || filters.hasIcon === false || filters.hasIcon === 'false') {
-    iconFilter = 'false';
-  } else {
-    iconFilter = '';
-  }
+  console.log('🔵 [CompanyList] handleFilter:', {
+    hasIcon: filters.hasIcon || '',
+    type: typeof (filters.hasIcon || ''),
+  });
 
   companyStore.setFilters({
     searchQuery: filters.search || '',
-    filterHasIcon: iconFilter,
+    filterHasIcon: filters.hasIcon || '',
     sortBy: filters.sortBy || SORT_OPTIONS.DEFAULT,
   });
 };
@@ -369,14 +385,11 @@ const handleSizeChange = (newSize) => {
   companyStore.recalculatePagination();
 };
 
-
 const handleSettingsSave = (settings) => {
   console.log('[CompanyList] Settings saved:', settings);
 
-  // ✅ ВКЛЮЧАЕМ СПИНЕР ТОЛЬКО НА ВРЕМЯ СОХРАНЕНИЯ
   isSavingSettings.value = true;
 
-  // Применяем настройки
   if (settings.pageSize) {
     companyStore.perPage = settings.pageSize;
   }
@@ -391,7 +404,6 @@ const handleSettingsSave = (settings) => {
     isSavingSettings.value = false;
   }, 500);
 
-  // Перезагружаем данные с новыми настройками
   companyStore.fetchAllCompanies();
 };
 
@@ -425,6 +437,7 @@ const openEditDialog = (company) => {
 };
 
 const showDeleteConfirm = (company) => {
+  console.log('🔵 [CompanyList] showDeleteConfirm:', company);
   companyToDelete.value = company;
   deleteConfirmDialogVisible.value = true;
 };
@@ -432,28 +445,28 @@ const showDeleteConfirm = (company) => {
 const confirmDelete = async () => {
   if (!companyToDelete.value) return;
 
-  deletionLoading.value = true;
-
   try {
     await companyStore.deleteCompany(companyToDelete.value.id);
     ElMessage.success(COMPANY_LIST_MESSAGES.SUCCESS_COMPANY_DELETED(companyToDelete.value.name));
   } catch (err) {
     ElMessage.error(COMPANY_LIST_MESSAGES.ERROR_DELETING);
   } finally {
-    deletionLoading.value = false;
     companyToDelete.value = null;
     deleteConfirmDialogVisible.value = false;
   }
 };
 
+watch(() => dialogVisible.value, (newVal) => { if (!newVal) editingCompany.value = null; });
 watch(() => companyStore.currentPage, () => { tableKey.value++; });
 watch(() => companyStore.perPage, () => { tableKey.value++; });
-watch(() => dialogVisible.value, (newVal) => { if (!newVal) editingCompany.value = null; });
+watch(() => companyStore.filteredData.length, () => {
+  tableKey.value++;
+  console.log('🔵 [CompanyList] filteredData changed, tableKey++');
+}, { immediate: false });
 
 onMounted(async () => {
   console.log('[CompanyList] Component mounted');
 
-  // ✅ 1. Сначала восстанавливаем фильтры из localStorage
   companyStore.restoreFiltersFromStorage();
 
   console.log('[CompanyList] Filters restored:', {
@@ -462,7 +475,6 @@ onMounted(async () => {
     sortBy: companyStore.sortBy,
   });
 
-  // ✅ 2. Загружаем данные (фильтры применятся автоматически через getter)
   console.log('[CompanyList] Fetching companies...');
   await companyStore.fetchAllCompanies();
   console.log('[CompanyList] Fetch complete');
@@ -510,15 +522,16 @@ onMounted(async () => {
   vertical-align: middle;
 }
 
+/* ✅ FILTERS ROW — ИЗ КОНФИГА */
 .filters-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  height: 28px;
+  gap: v-bind('COMPANY_LIST_FILTERS_UI.ROW_GAP');
+  height: v-bind('COMPANY_LIST_FILTERS_UI.ROW_HEIGHT');
   flex-wrap: nowrap;
   width: 100%;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .title {
@@ -537,58 +550,64 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: v-bind('COMPANY_LIST_FILTERS_UI.CONTAINER_GAP');
   min-width: 0;
 }
 
+/* ✅ WRAPPER — ИЗ КОНФИГА */
 .filters-row :deep(.el-input__wrapper),
 .filters-row :deep(.el-select__wrapper) {
-  height: 28px !important;
-  min-height: 28px !important;
-  padding: 0 8px !important;
-  border-radius: 3px !important;
-  font-size: 12px !important;
+  height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  min-height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT') !important;
+  padding: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_PADDING') !important;
+  border-radius: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_BORDER_RADIUS') !important;
+  font-size: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_FONT_SIZE') !important;
   box-shadow: none !important;
   border: 1px solid #dcdfe6 !important;
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
+/* ✅ INNER — ИЗ КОНФИГА */
 .filters-row :deep(.el-input__inner) {
-  height: 26px !important;
-  line-height: 26px !important;
-  font-size: 12px !important;
+  height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT') !important;
+  line-height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_LINE_HEIGHT') !important;
+  font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE') !important;
   padding: 0 !important;
 }
 
+/* ✅ SELECT INPUT — ИЗ КОНФИГА */
 .filters-row :deep(.el-select__input) {
-  font-size: 12px !important;
-  height: 26px !important;
+  font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE') !important;
+  height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT') !important;
 }
 
+/* ✅ PREFIX / SUFFIX — ИЗ КОНФИГА */
 .filters-row :deep(.el-input__prefix),
 .filters-row :deep(.el-input__suffix) {
   display: flex;
   align-items: center;
-  height: 26px !important;
+  height: v-bind('COMPANY_LIST_FILTERS_UI.PREFIX_HEIGHT') !important;
 }
 
 .filters-row :deep(.el-input__prefix-inner > .el-icon),
 .filters-row :deep(.el-input__suffix-inner > .el-icon) {
-  font-size: 12px !important;
+  font-size: v-bind('COMPANY_LIST_FILTERS_UI.PREFIX_FONT_SIZE') !important;
 }
 
+/* ✅ CARET / ARROW — ИЗ КОНФИГА */
 .filters-row :deep(.el-select__caret),
 .filters-row :deep(.el-select__arrow) {
-  font-size: 12px !important;
-  height: 26px !important;
-  line-height: 26px !important;
+  font-size: v-bind('COMPANY_LIST_FILTERS_UI.CARET_FONT_SIZE') !important;
+  height: v-bind('COMPANY_LIST_FILTERS_UI.CARET_HEIGHT') !important;
+  line-height: v-bind('COMPANY_LIST_FILTERS_UI.CARET_LINE_HEIGHT') !important;
 }
 
+/* ✅ DROPDOWN — ИЗ КОНФИГА */
 .filters-row :deep(.el-select-dropdown__item) {
-  font-size: 12px !important;
-  padding: 4px 10px !important;
-  height: 28px !important;
-  line-height: 28px !important;
+  font-size: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_FONT_SIZE') !important;
+  padding: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_PADDING') !important;
+  height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_HEIGHT') !important;
+  line-height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_LINE_HEIGHT') !important;
   transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
@@ -617,6 +636,7 @@ onMounted(async () => {
   font-size: v-bind('COMPANY_LIST_UI.LOADING_TEXT_SIZE');
 }
 
+/* ✅ АДАПТИВ — XXXL */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .header-row {
     flex-wrap: wrap;
@@ -627,7 +647,7 @@ onMounted(async () => {
   .filters-row {
     flex-wrap: wrap;
     height: auto;
-    gap: 6px;
+    gap: v-bind('COMPANY_LIST_FILTERS_UI.ROW_GAP_MOBILE');
   }
 
   .title {
@@ -647,26 +667,27 @@ onMounted(async () => {
 
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
-    height: 26px !important;
-    min-height: 26px !important;
-    padding: 0 6px !important;
-    font-size: 11px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    min-height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    padding: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_PADDING_MOBILE') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_FONT_SIZE_MOBILE') !important;
   }
 
   .filters-row :deep(.el-input__inner) {
-    height: 24px !important;
-    line-height: 24px !important;
-    font-size: 11px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT_MOBILE') !important;
+    line-height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_LINE_HEIGHT_MOBILE') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE_MOBILE') !important;
   }
 
   .filters-row :deep(.el-select-dropdown__item) {
-    font-size: 11px !important;
-    padding: 3px 8px !important;
-    height: 26px !important;
-    line-height: 26px !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_FONT_SIZE_MOBILE') !important;
+    padding: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_PADDING_MOBILE') !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_HEIGHT_MOBILE') !important;
+    line-height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_LINE_HEIGHT_MOBILE') !important;
   }
 }
 
+/* ✅ АДАПТИВ — XL */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .company-list {
     padding: 8px;
@@ -675,7 +696,7 @@ onMounted(async () => {
   .filters-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 6px;
+    gap: v-bind('COMPANY_LIST_FILTERS_UI.ROW_GAP_MOBILE');
   }
 
   .title {
@@ -694,16 +715,16 @@ onMounted(async () => {
 
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
-    height: 26px !important;
-    min-height: 26px !important;
-    padding: 0 6px !important;
-    font-size: 11px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    min-height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_MOBILE') !important;
+    padding: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_PADDING_MOBILE') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_FONT_SIZE_MOBILE') !important;
   }
 
   .filters-row :deep(.el-input__inner) {
-    height: 24px !important;
-    line-height: 24px !important;
-    font-size: 11px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT_MOBILE') !important;
+    line-height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_LINE_HEIGHT_MOBILE') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE_MOBILE') !important;
   }
 
   .add-btn {
@@ -713,6 +734,7 @@ onMounted(async () => {
   }
 }
 
+/* ✅ АДАПТИВ — XS */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .company-list {
     padding: 4px;
@@ -723,7 +745,7 @@ onMounted(async () => {
   }
 
   .filters-row {
-    gap: 4px;
+    gap: v-bind('COMPANY_LIST_FILTERS_UI.ROW_GAP_SMALL');
   }
 
   .filters-row :deep(.filters-component-wrapper),
@@ -733,23 +755,23 @@ onMounted(async () => {
 
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
-    height: 24px !important;
-    min-height: 24px !important;
-    padding: 0 4px !important;
-    font-size: 10px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_SMALL') !important;
+    min-height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_SMALL') !important;
+    padding: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_PADDING_SMALL') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_FONT_SIZE_SMALL') !important;
   }
 
   .filters-row :deep(.el-input__inner) {
-    height: 22px !important;
-    line-height: 22px !important;
-    font-size: 10px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT_SMALL') !important;
+    line-height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_LINE_HEIGHT_SMALL') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE_SMALL') !important;
   }
 
   .filters-row :deep(.el-select-dropdown__item) {
-    font-size: 10px !important;
-    padding: 2px 6px !important;
-    height: 24px !important;
-    line-height: 24px !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_FONT_SIZE_SMALL') !important;
+    padding: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_PADDING_SMALL') !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_HEIGHT_SMALL') !important;
+    line-height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_LINE_HEIGHT_SMALL') !important;
   }
 
   .add-btn {
@@ -764,17 +786,32 @@ onMounted(async () => {
   }
 }
 
-@media (hover: none) and (pointer: coarse) {
+/* ✅ TOUCH DEVICES — ТОЛЬКО ЕСЛИ ЭКРАН МАЛЕНЬКИЙ (≤576px) */
+@media (hover: none) and (pointer: coarse) and (max-width: v-bind('BREAKPOINTS.XS')) {
   .add-btn {
-    min-height: 44px;
+    min-height: v-bind('COMPANY_LIST_FILTERS_UI.BUTTON_HEIGHT_TOUCH');
     padding: 10px 16px;
-    font-size: 14px;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.BUTTON_FONT_SIZE_TOUCH');
   }
 
   .filters-row :deep(.el-input__wrapper),
   .filters-row :deep(.el-select__wrapper) {
-    height: 36px !important;
-    font-size: 14px !important;
+    height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    min-height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_FONT_SIZE_TOUCH') !important;
+  }
+
+  .filters-row :deep(.el-input__inner),
+  .filters-row :deep(.el-select__input) {
+    height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE_TOUCH') !important;
+  }
+
+  .filters-row :deep(.el-select-dropdown__item) {
+    height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_HEIGHT_TOUCH') !important;
+    line-height: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_LINE_HEIGHT_TOUCH') !important;
+    font-size: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_FONT_SIZE_TOUCH') !important;
+    padding: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_PADDING_TOUCH') !important;
   }
 
   .title {
