@@ -62,6 +62,7 @@
 </template>
 
 <script setup>
+import {useCompanyStore} from "@components/ContactManagement/CompanyContactChannels/store/companyStore.js";
 import { ref, computed, watch } from 'vue';
 import { Loading, DArrowLeft, DArrowRight } from '@element-plus/icons-vue';
 import PageSizeSelector from './PageSizeSelector.vue';
@@ -75,6 +76,8 @@ import {
   TIMINGS,
   COLORS,
 } from '../../config/appConfigIndex.js';
+
+const companyStore = useCompanyStore();
 
 const props = defineProps({...PAGINATION_PROPS_CONFIG});
 
@@ -131,6 +134,7 @@ const handlePageChange = (newPage) => {
 
 const handleSizeChange = (newSize) => {
   if (isRecalculating.value) return;
+  companyStore.setPageSize(newSize);
   emit('size-change', newSize);
 };
 </script>

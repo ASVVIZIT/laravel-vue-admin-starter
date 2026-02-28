@@ -1,3 +1,11 @@
+// ============================================================================
+// COMPANY STORE — PINIA (ПОЛНОСТЬЮ ИСПРАВЛЕННЫЙ)
+// ============================================================================
+// 📁 Путь: src/components/ContactManagement/CompanyContactChannels/store/companyStore.js
+// ✅ Используется: CompanyList.vue, CompanyTable.vue, CompanyForm.vue
+// ✅ Безопасно менять — влияет только на управление компаниями
+// ============================================================================
+
 import { defineStore } from 'pinia';
 import { CompanyResource } from '../api/core/CompanyResource.js';
 import {
@@ -13,7 +21,14 @@ import {
 const companyResource = new CompanyResource();
 
 export const useCompanyStore = defineStore('company', {
+    // ============================================================================
+    // STATE — НАЧАЛЬНОЕ СОСТОЯНИЕ
+    // ============================================================================
     state: () => {
+        // ✅ 1. Получаем начальные значения пагинации из конфига
+        const paginationState = getInitialPaginationState();
+
+        // ✅ 2. Получаем значения из COMPANY_LIST_PROPS_CONFIG
         const stateFromConfig = Object.fromEntries(
             Object.entries(COMPANY_LIST_PROPS_CONFIG).map(([key, config]) => [
                 key,
@@ -21,29 +36,112 @@ export const useCompanyStore = defineStore('company', {
             ])
         );
 
+        // ✅ 3. ЧИТАЕМ company_user_settings (глобальные настройки пользователя)
+        let userSettings = null;
+        try {
+            const saved = localStorage.getItem('company_user_settings');
+            if (saved) {
+                userSettings = JSON.parse(saved);
+                console.log('🟢 [Store] User settings loaded:', userSettings);
+            } else {
+                console.log('🟡 [Store] No company_user_settings in localStorage');
+            }
+        } catch (e) {
+            console.error('🔴 [Store] Error loading user settings:', e);
+        }
+
+        // ✅ 4. ЧИТАЕМ company_filters (фильтры сессии)
+        let sessionFilters = null;
+        try {
+            const saved = localStorage.getItem('company_filters');
+            if (saved) {
+                sessionFilters = JSON.parse(saved);
+                console.log('🟢 [Store] Session filters loaded:', sessionFilters);
+            } else {
+                console.log('🟡 [Store] No company_filters in localStorage');
+            }
+        } catch (e) {
+            console.error('🔴 [Store] Error loading session filters:', e);
+        }
+
+        // ✅ 5. ОПРЕДЕЛЯЕМ ФИНАЛЬНЫЕ ЗНАЧЕНИЯ (filters > settings > defaults)
+        const finalPageSize = sessionFilters?.pageSize || userSettings?.pageSize || paginationState.perPage;
+        const finalSortBy = sessionFilters?.sortBy || userSettings?.defaultSortBy || SORT_OPTIONS.DEFAULT;
+        const finalFilterHasIcon = sessionFilters?.filterHasIcon ?? userSettings?.defaultFilterHasIcon ?? '';
+        const finalSearchQuery = sessionFilters?.searchQuery || '';
+        const finalChunkSize = userSettings?.chunkSize || CHUNK_CONFIG.SIZE;
+
+        // ✅ 6. Сохраняем в company_filters (если не было)
+        if (!sessionFilters) {
+            try {
+                localStorage.setItem('company_filters', JSON.stringify({
+                    searchQuery: finalSearchQuery,
+                    filterHasIcon: finalFilterHasIcon,
+                    sortBy: finalSortBy,
+                    pageSize: finalPageSize,
+                }));
+                console.log('🟢 [Store] company_filters initialized from settings');
+            } catch (e) {
+                console.error('🔴 [Store] Error saving company_filters:', e);
+            }
+        }
+
         return {
+            // ========================================================================
+            // ДАННЫЕ
+            // ========================================================================
             companies: [],
             allCompanies: [],
+
+            // ========================================================================
+            // ОШИБКИ И ЗАГРУЗКА
+            // ========================================================================
             error: null,
-            chunkLoadingProgress: 0,
-            refreshBackup: null,
             loading: false,
             loadingInitial: false,
             loadingChunks: false,
             deletionLoading: false,
-            ...stateFromConfig,
+
+            // ========================================================================
+            // ПРОГРЕСС ЗАГРУЗКИ ЧАНКА (0-100)
+            // ========================================================================
+            chunkLoadingProgress: 0,
+            refreshBackup: null,
+
+            // ========================================================================
+            // ПАГИНАЦИЯ (с учётом настроек)
+            // ========================================================================
+            currentPage: 1,
+            perPage: finalPageSize,              // ✅ ИЗ НАСТРОЕК (15 по умолчанию)
+            lastPage: 1,
+
+            // ========================================================================
+            // ФИЛЬТРЫ (с учётом настроек)
+            // ========================================================================
+            searchQuery: finalSearchQuery,       // ✅ ИЗ НАСТРОЕК
+            filterHasIcon: finalFilterHasIcon,   // ✅ ИЗ НАСТРОЕК
+            sortBy: finalSortBy,                 // ✅ ИЗ НАСТРОЕК ('id_asc')
+
+            // ========================================================================
+            // CHUNKED ЗАГРУЗКА (из настроек пользователя)
+            // ========================================================================
             totalItems: 0,
             loadedChunks: 0,
             totalChunks: 0,
-            chunkSize: CHUNK_CONFIG.SIZE,
+            chunkSize: finalChunkSize,           // ✅ ИЗ company_user_settings (500 по умолчанию)
             useServerPagination: false,
             allRecordsLoaded: false,
-            currentPage: 1,
-            perPage: PAGE_SIZE_OPTIONS.BASE_AVAILABLE[2],
-            lastPage: 1,
+
+            // ========================================================================
+            // ИЗ COMPANY_LIST_PROPS_CONFIG
+            // ========================================================================
+            ...stateFromConfig
         };
     },
 
+    // ============================================================================
+    // GETTERS — ВЫЧИСЛЯЕМЫЕ СВОЙСТВА
+    // ============================================================================
     getters: {
         loadedCount: (state) => state.allCompanies.length,
 
@@ -57,7 +155,7 @@ export const useCompanyStore = defineStore('company', {
             return Math.round((state.loadedChunks / state.totalChunks) * 100);
         },
 
-        currentChunkProgress: (state) => state.chunkLoadingProgress,
+        currentChunkProgress: (state) => state.chunkLoadingProgress,  // ✅ 0-100
 
         filteredData: (state) => {
             if (!state.allCompanies || state.allCompanies.length === 0) {
@@ -69,8 +167,11 @@ export const useCompanyStore = defineStore('company', {
             const filterHasIcon = state.filterHasIcon || '';
             const sortBy = state.sortBy || SORT_OPTIONS.DEFAULT;
 
+            // ========================================================================
+            // 1. ФИЛЬТРАЦИЯ
+            // ========================================================================
             let filtered = state.allCompanies.filter(company => {
-                // ✅ Поиск по тексту + ID
+                // Поиск по тексту + ID
                 const matchesSearch = searchQuery
                     ? company.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     company.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -78,7 +179,7 @@ export const useCompanyStore = defineStore('company', {
                     String(company.id).includes(searchQuery)
                     : true;
 
-                // ✅ Фильтр по иконке
+                // Фильтр по иконке
                 const iconValue = company.settings?.icon ?? company.icon ?? '';
                 const hasIcon = iconValue !== '' && iconValue !== null && iconValue !== undefined;
 
@@ -94,8 +195,11 @@ export const useCompanyStore = defineStore('company', {
                 return matchesSearch && matchesIcon;
             });
 
-            if (state.sortBy) {
-                const parts = state.sortBy.split('_');
+            // ========================================================================
+            // 2. СОРТИРОВКА
+            // ========================================================================
+            if (sortBy) {
+                const parts = sortBy.split('_');
                 const direction = parts.pop();
                 const field = parts.join('_');
                 const multiplier = direction === 'desc' ? -1 : 1;
@@ -112,6 +216,7 @@ export const useCompanyStore = defineStore('company', {
                     if (field === 'name') {
                         valueA = (a.name || '').toLowerCase();
                         valueB = (b.name || '').toLowerCase();
+                        // ✅ ПОДДЕРЖКА КИРИЛЛИЦЫ + ЛАТИНИЦЫ
                         return valueA.localeCompare(valueB, ['ru', 'en']) * multiplier;
                     }
 
@@ -130,6 +235,7 @@ export const useCompanyStore = defineStore('company', {
                     valueA = a[field] || '';
                     valueB = b[field] || '';
                     if (typeof valueA === 'string' && typeof valueB === 'string') {
+                        // ✅ ПОДДЕРЖКА КИРИЛЛИЦЫ + ЛАТИНИЦЫ
                         return valueA.localeCompare(valueB, ['ru', 'en']) * multiplier;
                     }
                     return (valueA - valueB) * multiplier;
@@ -184,6 +290,9 @@ export const useCompanyStore = defineStore('company', {
         },
     },
 
+    // ============================================================================
+    // ACTIONS — МЕТОДЫ
+    // ============================================================================
     actions: {
         recalculatePagination(filteredData = null) {
             const dataToUse = filteredData || this.filteredData;
@@ -211,6 +320,7 @@ export const useCompanyStore = defineStore('company', {
             if (sortBy !== undefined) this.sortBy = sortBy || SORT_OPTIONS.DEFAULT;
             this.currentPage = 1;
 
+            // ✅ СОХРАНЯЕМ В company_filters (сессия)
             localStorage.setItem('company_filters', JSON.stringify({
                 searchQuery: this.searchQuery,
                 filterHasIcon: this.filterHasIcon,
@@ -233,11 +343,89 @@ export const useCompanyStore = defineStore('company', {
             localStorage.removeItem('company_filters');
         },
 
+        // ✅ ЗАГРУЗКА НАСТРОЕК ИЗ SETTINGS MODAL
+        applyUserSettings(settings) {
+            console.log('🔵 [Store] applyUserSettings:', settings);
+
+            // ✅ Обновляем chunkSize
+            if (settings.chunkSize && settings.chunkSize !== this.chunkSize) {
+                this.chunkSize = settings.chunkSize;
+
+                // ✅ Пересчитываем totalChunks для нового chunkSize
+                if (this.totalItems > 0) {
+                    this.totalChunks = Math.ceil(this.totalItems / this.chunkSize);
+                }
+
+                console.log('🟢 [Store] chunkSize updated:', this.chunkSize);
+            }
+
+            // ✅ Обновляем pageSize
+            if (settings.pageSize) {
+                this.perPage = settings.pageSize;
+            }
+
+            // ✅ Обновляем фильтры по умолчанию
+            if (settings.defaultSortBy) {
+                this.sortBy = settings.defaultSortBy;
+            }
+            if (settings.defaultFilterHasIcon !== undefined) {
+                this.filterHasIcon = settings.defaultFilterHasIcon;
+            }
+
+            // ✅ Сохраняем в company_user_settings
+            localStorage.setItem('company_user_settings', JSON.stringify(settings));
+
+            // ✅ Обновляем company_filters (синхронизируем)
+            localStorage.setItem('company_filters', JSON.stringify({
+                searchQuery: this.searchQuery,
+                filterHasIcon: this.filterHasIcon,
+                sortBy: this.sortBy,
+                pageSize: this.perPage,
+            }));
+
+            console.log('🟢 [Store] User settings applied');
+        },
+
+        // ✅ ИЗМЕНЕНИЕ PAGE SIZE (С СОХРАНЕНИЕМ В company_filters)
+        setPageSize(pageSize) {
+            this.perPage = pageSize;
+            this.currentPage = 1;
+
+            // ✅ Сохраняем в company_filters
+            const filters = {
+                searchQuery: this.searchQuery,
+                filterHasIcon: this.filterHasIcon,
+                sortBy: this.sortBy,
+                pageSize: this.perPage,
+            };
+            localStorage.setItem('company_filters', JSON.stringify(filters));
+
+            console.log('🟢 [Store] pageSize changed:', pageSize);
+        },
+
+        // ✅ ИМИТАЦИЯ ПРОГРЕССА ЗАГРУЗКИ ЧАНКА
+        simulateChunkProgress() {
+            this.chunkLoadingProgress = 0;
+
+            const interval = setInterval(() => {
+                if (!this.loadingChunks) {
+                    clearInterval(interval);
+                    this.chunkLoadingProgress = 0;
+                    return;
+                }
+
+                this.chunkLoadingProgress = Math.min(this.chunkLoadingProgress + 10, 90);
+
+                if (this.chunkLoadingProgress >= 90) {
+                    clearInterval(interval);
+                }
+            }, 100);
+
+            return interval;
+        },
+
         async fetchAllCompanies() {
             console.log('🔵 [Store] fetchAllCompanies: START');
-
-            // ✅ 1. СНАЧАЛА ВОССТАНАВЛИВАЕМ ФИЛЬТРЫ
-            this.restoreFiltersFromStorage();
 
             this.loadingInitial = true;
             this.loading = true;
@@ -296,11 +484,16 @@ export const useCompanyStore = defineStore('company', {
             }
         },
 
+        // ✅ ИСПРАВЛЕНО — С chunkLoadingProgress
         async loadNextChunk() {
             if (this.allRecordsLoaded || this.loadingChunks) return false;
 
             this.loadingChunks = true;
+            this.chunkLoadingProgress = 0;  // ✅ СБРОС ПРОГРЕССА
             this.error = null;
+
+            // ✅ ЗАПУСКАЕМ ИМИТАЦИЮ ПРОГРЕССА
+            const progressInterval = this.simulateChunkProgress();
 
             try {
                 const nextPage = this.loadedChunks + 1;
@@ -327,7 +520,12 @@ export const useCompanyStore = defineStore('company', {
 
                 this.allCompanies.push(...data);
                 this.companies = [...this.allCompanies];
+
+                // ✅ УВЕЛИЧИВАЕМ loadedChunks НА 1 (не пересчитываем!)
                 this.loadedChunks++;
+
+                // ✅ ЗАВЕРШАЕМ ПРОГРЕСС
+                this.chunkLoadingProgress = 100;
 
                 if (this.allCompanies.length >= this.totalItems) {
                     this.allRecordsLoaded = true;
@@ -341,7 +539,10 @@ export const useCompanyStore = defineStore('company', {
                 this.error = err.message || 'Failed to load chunk';
                 throw err;
             } finally {
+                // ✅ ОСТАНАВЛИВАЕМ ИМИТАЦИЮ
+                clearInterval(progressInterval);
                 this.loadingChunks = false;
+                this.chunkLoadingProgress = 0;  // ✅ СБРОС
             }
         },
 
@@ -533,7 +734,6 @@ export const useCompanyStore = defineStore('company', {
             }
         },
 
-        // ✅ ИСПРАВЛЕНО — С deletionLoading
         async deleteCompany(id) {
             console.log('🔵 [Store] deleteCompany: START', { id });
 
@@ -625,27 +825,20 @@ export const useCompanyStore = defineStore('company', {
                     this.searchQuery = filters.searchQuery || '';
                     this.filterHasIcon = filters.filterHasIcon || '';
                     this.sortBy = filters.sortBy || SORT_OPTIONS.DEFAULT;
-                    this.perPage = filters.pageSize || PAGE_SIZE_OPTIONS.BASE_AVAILABLE[2];
+                    this.perPage = filters.perPage || filters.pageSize || PAGE_SIZE_OPTIONS.BASE_AVAILABLE[2];
 
                     console.log('🟢 [Store] Filters restored from localStorage:', filters);
                 } catch (e) {
                     console.error('🔴 [Store] Error reading filters from localStorage:', e);
-                    // ✅ СБРОС НА ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ ПРИ ОШИБКЕ
-                    this.searchQuery = '';
-                    this.filterHasIcon = '';
-                    this.sortBy = SORT_OPTIONS.DEFAULT;
                 }
-            } else {
-                // ✅ ЯВНО УСТАНАВЛИВАЕМ ЗНАЧЕНИЯ ПО УМОЛЧАНИЮ
-                console.log('🟡 [Store] No filters in localStorage, using defaults');
-                this.searchQuery = '';
-                this.filterHasIcon = '';
-                this.sortBy = SORT_OPTIONS.DEFAULT;
             }
         },
     },
 });
 
+// ============================================================================
+// GLOBAL DEBUG FLAGS
+// ============================================================================
 if (typeof window !== 'undefined') {
     window.SIMULATE_API_ERROR = false;
     window.DEBUG_LOGS = true;

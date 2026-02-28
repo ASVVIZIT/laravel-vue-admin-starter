@@ -17,7 +17,7 @@
           :total="companyStore.totalItems"
           :percentage="companyStore.loadedPercentage"
           :chunk-progress="companyStore.currentChunkProgress"
-          :chunk-size="CHUNK_CONFIG.SIZE"
+          :chunk-size="companyStore.chunkSize"
           :disabled="isLoading && !isLoadingAll"
           :is-loading="isLoadingAll"
           :is-paused="isLoadPaused"
@@ -198,7 +198,6 @@ const showLoadAllButton = computed(() => {
 });
 
 const paginatedFilteredCompanies = computed(() => {
-
   console.log('🔵 [CompanyList] paginatedFilteredCompanies computed:', {
     currentPage: companyStore.currentPage,
     perPage: companyStore.perPage,
@@ -385,26 +384,29 @@ const handleSizeChange = (newSize) => {
   companyStore.recalculatePagination();
 };
 
+// ✅ Сохраняем настройки!
 const handleSettingsSave = (settings) => {
   console.log('[CompanyList] Settings saved:', settings);
 
   isSavingSettings.value = true;
 
-  if (settings.pageSize) {
-    companyStore.perPage = settings.pageSize;
-  }
-  if (settings.defaultSortBy) {
-    companyStore.sortBy = settings.defaultSortBy;
-  }
-  if (settings.defaultFilterHasIcon !== undefined) {
-    companyStore.filterHasIcon = settings.defaultFilterHasIcon;
-  }
+  // ✅ Применяем настройки (сохраняет в localStorage и store)
+  companyStore.applyUserSettings(settings);
 
+  // ✅ Если изменился pageSize — пересчитываем пагинацию
+  if (settings.pageSize) {
+    companyStore.recalculatePagination();
+  }
+  // ✅ Если изменился chunkSize — он применится к СЛЕДУЮЩИМ чанкам
+  // (не требует перезагрузки)
   setTimeout(() => {
     isSavingSettings.value = false;
   }, 500);
 
-  companyStore.fetchAllCompanies();
+  // ✅ Закрываем модалку
+  settingsDialogVisible.value = false;
+
+  console.log('🟢 [CompanyList] Settings applied without reload');
 };
 
 const updateCompanyField = async (companyId, fieldName, newValue) => {
@@ -467,12 +469,12 @@ watch(() => companyStore.filteredData.length, () => {
 onMounted(async () => {
   console.log('[CompanyList] Component mounted');
 
-  companyStore.restoreFiltersFromStorage();
-
-  console.log('[CompanyList] Filters restored:', {
+  console.log('[CompanyList] Initial state:', {
     searchQuery: companyStore.searchQuery,
     filterHasIcon: companyStore.filterHasIcon,
     sortBy: companyStore.sortBy,
+    perPage: companyStore.perPage,
+    chunkSize: companyStore.chunkSize,
   });
 
   console.log('[CompanyList] Fetching companies...');
@@ -484,6 +486,9 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   COMPANY LIST — СТИЛИ (БЕЗ ИЗМЕНЕНИЙ)
+   ============================================================================ */
 .company-list {
   padding: v-bind('COMPANY_LIST_UI.PADDING');
   display: flex;

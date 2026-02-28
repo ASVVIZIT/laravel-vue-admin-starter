@@ -7,7 +7,7 @@
             size="small"
             type="success"
             :disabled="props.disabled || isComplete"
-            @click="handleLoadMore"
+            @click="$emit('load-more')"
             class="control-btn btn-more"
         >
           +{{ props.chunkSize }}
@@ -68,6 +68,7 @@
       <div class="progress-bar" :style="progressBarStyle">
         <div class="progress-background"></div>
 
+        <!-- ✅ 1. ОРАНЖЕВАЯ ПОЛОСА (CHUNK) — z-index: 10 (СНИЗУ, растёт ИЗ-ПОД синей) -->
         <div
             v-if="props.isLoading && !isComplete && showChunkRod"
             class="progress-chunk-rod"
@@ -77,6 +78,7 @@
           <div class="chunk-shine"></div>
         </div>
 
+        <!-- ✅ 2. СИНЯЯ ПОЛОСА (LOADED) — z-index: 20 (СВЕРХУ, закрывает оранжевую когда догоняет) -->
         <div
             class="progress-loaded"
             :style="loadedLayerStyle"
@@ -84,9 +86,16 @@
           <div v-if="props.isLoading && !isComplete" class="progress-stripes stripes-forward"></div>
         </div>
 
+        <!-- ✅ 3. ТЕКСТ С ИНФОРМАЦИЕЙ О ЧАНКЕ -->
         <div class="progress-text">
           <span class="count">{{ props.loaded }}/{{ props.total }}</span>
           <span class="percent">({{ props.percentage }}%)</span>
+
+          <span v-if="props.isLoading && !isComplete" class="chunk-info">
+            | Чанк {{ currentChunk }}/{{ totalChunks }}
+            <span class="chunk-remaining">({{ chunkRemaining }}/{{ props.chunkSize }})</span>
+          </span>
+
           <span v-if="props.isPaused" class="paused-badge">⏸</span>
         </div>
       </div>
@@ -111,7 +120,14 @@ import {
 
 const props = defineProps({...LOADING_DATA_ACTIONS_PROPS_CONFIG});
 
-const emit = defineEmits(['load-more', 'load-all', 'pause', 'resume', 'refresh', 'settings']);
+const emit = defineEmits([
+  'load-more',
+  'load-all',
+  'pause',
+  'resume',
+  'refresh',
+  'settings',
+]);
 
 const isComplete = computed(() => props.percentage >= 100);
 
@@ -154,40 +170,67 @@ const showChunkRod = computed(() => {
   return props.isLoading && !isComplete.value && props.percentage > 0;
 });
 
+// ✅ НОМЕР ТЕКУЩЕГО ЧАНКА
+const currentChunk = computed(() => {
+  if (props.chunkSize <= 0) return 1;
+  return Math.floor((props.loaded / props.chunkSize) + 1);
+});
+
+// ✅ ВСЕГО ЧАНКОВ
+const totalChunks = computed(() => {
+  if (props.chunkSize <= 0 || props.total <= 0) return 1;
+  return Math.ceil(props.total / props.chunkSize);
+});
+
+// ✅ ОСТАЛОСЬ В ТЕКУЩЕМ ЧАНКЕ
+const chunkRemaining = computed(() => {
+  if (props.chunkProgress <= 0) return props.chunkSize;
+  return Math.round((props.chunkProgress / 100) * props.chunkSize);
+});
+
 const progressBarStyle = computed(() => ({
   height: CHUNK_PROGRESS_CONFIG.HEIGHT,
   borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
   boxShadow: CHUNK_PROGRESS_CONFIG.BOX_SHADOW,
 }));
 
+// ✅ ОРАНЖЕВАЯ ПОЛОСА — z-index: 10 (СНИЗУ, растёт ИЗ-ПОД синей)
 const chunkRodStyle = computed(() => {
-  const overshootValue = parseFloat(CHUNK_PROGRESS_CONFIG.CHUNK_OVERSHOOT_PERCENT);
-  const isChunkLoading = props.chunkProgress > 0;
-  const orangeWidth = isChunkLoading
-      ? props.percentage + (props.chunkProgress / 100) * overshootValue
-      : props.percentage;
+  const isChunkLoading = props.isLoading && props.chunkProgress > 0;
+
+  let orangeWidth = props.percentage;
+
+  if (isChunkLoading && props.total > 0 && props.chunkSize > 0) {
+    // Сколько процентов от total составляет один чанк
+    const chunkPercentOfTotal = (props.chunkSize / props.total) * 100;
+
+    // ✅ ВИЗУАЛЬНЫЙ МНОЖИТЕЛЬ (минимум 5% для видимости)
+    const visualChunkPercent = Math.max(chunkPercentOfTotal, 5);
+
+    // Прогресс текущего чанка
+    const chunkProgressPercent = (props.chunkProgress / 100) * visualChunkPercent;
+
+    orangeWidth = props.percentage + chunkProgressPercent;
+  }
 
   return {
     width: `${Math.min(orangeWidth, 100)}%`,
     minWidth: props.isLoading ? `${CHUNK_PROGRESS_CONFIG.CHUNK_MIN_WIDTH}` : '0',
-    background: `linear-gradient(${CHUNK_PROGRESS_CONFIG.CHUNK_GRADIENT_ANGLE}, ${CHUNK_PROGRESS_CONFIG.CHUNK_COLOR} 0%, ${CHUNK_PROGRESS_CONFIG.CHUNK_COLOR_LIGHT} 100%)`,
+    background: `linear-gradient(90deg, #FF9800 0%, #FFB74D 100%)`,
     transition: `width ${CHUNK_PROGRESS_CONFIG.CHUNK_GROWTH_DURATION} ${CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING}`,
-    zIndex: CHUNK_PROGRESS_CONFIG.CHUNK_Z_INDEX,
+    zIndex: 10,  // ← ← ← СНИЗУ! (под синей)
     borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
   };
 });
 
+// ✅ СИНЯЯ ПОЛОСА — z-index: 20 (СВЕРХУ, закрывает оранжевую когда догоняет)
 const loadedLayerStyle = computed(() => ({
   width: `${props.percentage}%`,
-  background: `linear-gradient(${CHUNK_PROGRESS_CONFIG.CHUNK_GRADIENT_ANGLE}, ${CHUNK_PROGRESS_CONFIG.LOADING_COLOR} 0%, ${CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT} 100%)`,
+  background: `linear-gradient(90deg, #409EFF 0%, #66B1FF 100%)`,
   transition: `width ${CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION} ${CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING}`,
-  zIndex: CHUNK_PROGRESS_CONFIG.LOADED_Z_INDEX,
+  zIndex: 20,  // ← ← ← СВЕРХУ! (над оранжевой)
   borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
 }));
-
-const handleLoadMore = () => {
-  emit('load-more');
-};
 
 const handleMainClick = () => {
   if (props.isLoading && !props.isPaused) {
@@ -341,7 +384,6 @@ const handleSettings = () => {
   font-size: 12px;
 }
 
-/* ✅ ЗАГРУЗКА — СПИНЕР КРУТИТСЯ */
 .status-loading {
   color: #FFFFFF;
   background: linear-gradient(135deg, #409EFF 0%, #337ECC 100%);
@@ -418,23 +460,25 @@ const handleSettings = () => {
   z-index: 0;
 }
 
+/* ✅ ОРАНЖЕВАЯ ПОЛОСА — СНИЗУ (z-index: 10) */
 .progress-chunk-rod {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
-  z-index: v-bind('CHUNK_PROGRESS_CONFIG.CHUNK_Z_INDEX');
+  z-index: 10;  /* ← ← ← СНИЗУ! */
   overflow: visible;
   border-radius: v-bind('CHUNK_PROGRESS_CONFIG.BORDER_RADIUS');
 }
 
+/* ✅ СИНЯЯ ПОЛОСА — СВЕРХУ (z-index: 20) */
 .progress-loaded {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
   border-radius: v-bind('CHUNK_PROGRESS_CONFIG.BORDER_RADIUS');
-  z-index: v-bind('CHUNK_PROGRESS_CONFIG.LOADED_Z_INDEX');
+  z-index: 20;  /* ← ← ← СВЕРХУ! */
   overflow: hidden;
 }
 
@@ -514,8 +558,10 @@ const handleSettings = () => {
   font-weight: v-bind('CHUNK_PROGRESS_CONFIG.FONT_WEIGHT');
   text-shadow: v-bind('CHUNK_PROGRESS_CONFIG.TEXT_SHADOW');
   white-space: nowrap;
-  z-index: 100;
+  z-index: 100;  /* ← ← ← ТЕКСТ СВЕРХУ ВСЕГО */
   pointer-events: none;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .progress-text .count {
@@ -527,6 +573,19 @@ const handleSettings = () => {
   opacity: 0.9;
 }
 
+/* ✅ ИНФОРМАЦИЯ О ЧАНКЕ */
+.chunk-info {
+  font-size: 9px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.chunk-remaining {
+  color: #FFB74D;
+  font-weight: 600;
+}
+
 .progress-text .paused-badge {
   background: rgba(0, 0, 0, 0.4);
   padding: 1px 4px;
@@ -535,7 +594,6 @@ const handleSettings = () => {
   font-weight: 700;
 }
 
-/* ✅ АНИМАЦИЯ ВРАЩЕНИЯ СПИНЕРА */
 @keyframes rotating {
   from {
     transform: rotate(0deg);
@@ -607,6 +665,10 @@ const handleSettings = () => {
   .settings-btn :deep(.el-icon) {
     font-size: 13px;
   }
+
+  .chunk-info {
+    font-size: 8px;
+  }
 }
 
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
@@ -647,6 +709,10 @@ const handleSettings = () => {
   .settings-btn :deep(.el-icon) {
     font-size: 12px;
   }
+
+  .chunk-info {
+    font-size: 7px;
+  }
 }
 
 @media (hover: none) and (pointer: coarse) {
@@ -683,6 +749,10 @@ const handleSettings = () => {
 
   .settings-btn :deep(.el-icon) {
     font-size: 18px;
+  }
+
+  .chunk-info {
+    font-size: 10px;
   }
 }
 </style>
