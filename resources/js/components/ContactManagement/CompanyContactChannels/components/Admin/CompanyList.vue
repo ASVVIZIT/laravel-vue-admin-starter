@@ -113,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick, watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore';
@@ -129,7 +129,6 @@ import LoadingDataActions from '../Common/LoadingDataActions.vue';
 import {
   getIconMap,
   getIconOptions,
-  parseIconFilterValue,
   generateAvailablePageSizes,
   PAGE_SIZE_OPTIONS,
   CHUNK_CONFIG,
@@ -198,25 +197,9 @@ const showLoadAllButton = computed(() => {
 });
 
 const paginatedFilteredCompanies = computed(() => {
-  console.log('🔵 [CompanyList] paginatedFilteredCompanies computed:', {
-    currentPage: companyStore.currentPage,
-    perPage: companyStore.perPage,
-    filteredDataLength: companyStore.filteredData.length,
-    allCompaniesLength: companyStore.allCompanies.length,
-  });
-
   const start = (companyStore.currentPage - 1) * companyStore.perPage;
   const end = start + companyStore.perPage;
-
-  const result = companyStore.filteredData.slice(start, end);
-
-  console.log('🔵 [CompanyList] paginatedFilteredCompanies result:', {
-    start,
-    end,
-    resultLength: result.length,
-  });
-
-  return result;
+  return companyStore.filteredData.slice(start, end);
 });
 
 const openSettingsDialog = () => {
@@ -343,11 +326,6 @@ const handleSearch = (query) => {
 };
 
 const handleFilter = (filters) => {
-  console.log('🔵 [CompanyList] handleFilter:', {
-    hasIcon: filters.hasIcon || '',
-    type: typeof (filters.hasIcon || ''),
-  });
-
   companyStore.setFilters({
     searchQuery: filters.search || '',
     filterHasIcon: filters.hasIcon || '',
@@ -361,7 +339,6 @@ const handleResetFilters = () => {
 };
 
 const handleSort = (sortValue) => {
-  console.log('🔵 [CompanyList] handleSort:', sortValue);
   companyStore.setFilters({ sortBy: sortValue });
 };
 
@@ -384,26 +361,20 @@ const handleSizeChange = (newSize) => {
   companyStore.recalculatePagination();
 };
 
-// ✅ Сохраняем настройки!
 const handleSettingsSave = (settings) => {
   console.log('[CompanyList] Settings saved:', settings);
-
   isSavingSettings.value = true;
 
-  // ✅ Применяем настройки (сохраняет в localStorage и store)
   companyStore.applyUserSettings(settings);
 
-  // ✅ Если изменился pageSize — пересчитываем пагинацию
   if (settings.pageSize) {
     companyStore.recalculatePagination();
   }
-  // ✅ Если изменился chunkSize — он применится к СЛЕДУЮЩИМ чанкам
-  // (не требует перезагрузки)
+
   setTimeout(() => {
     isSavingSettings.value = false;
   }, 500);
 
-  // ✅ Закрываем модалку
   settingsDialogVisible.value = false;
 
   console.log('🟢 [CompanyList] Settings applied without reload');
@@ -463,12 +434,10 @@ watch(() => companyStore.currentPage, () => { tableKey.value++; });
 watch(() => companyStore.perPage, () => { tableKey.value++; });
 watch(() => companyStore.filteredData.length, () => {
   tableKey.value++;
-  console.log('🔵 [CompanyList] filteredData changed, tableKey++');
 }, { immediate: false });
 
 onMounted(async () => {
   console.log('[CompanyList] Component mounted');
-
   console.log('[CompanyList] Initial state:', {
     searchQuery: companyStore.searchQuery,
     filterHasIcon: companyStore.filterHasIcon,
@@ -476,7 +445,6 @@ onMounted(async () => {
     perPage: companyStore.perPage,
     chunkSize: companyStore.chunkSize,
   });
-
   console.log('[CompanyList] Fetching companies...');
   await companyStore.fetchAllCompanies();
   console.log('[CompanyList] Fetch complete');
@@ -486,9 +454,6 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* ============================================================================
-   COMPANY LIST — СТИЛИ (БЕЗ ИЗМЕНЕНИЙ)
-   ============================================================================ */
 .company-list {
   padding: v-bind('COMPANY_LIST_UI.PADDING');
   display: flex;
@@ -527,7 +492,6 @@ onMounted(async () => {
   vertical-align: middle;
 }
 
-/* ✅ FILTERS ROW — ИЗ КОНФИГА */
 .filters-row {
   display: flex;
   align-items: center;
@@ -559,7 +523,6 @@ onMounted(async () => {
   min-width: 0;
 }
 
-/* ✅ WRAPPER — ИЗ КОНФИГА */
 .filters-row :deep(.el-input__wrapper),
 .filters-row :deep(.el-select__wrapper) {
   height: v-bind('COMPANY_LIST_FILTERS_UI.WRAPPER_HEIGHT') !important;
@@ -572,7 +535,6 @@ onMounted(async () => {
   transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
-/* ✅ INNER — ИЗ КОНФИГА */
 .filters-row :deep(.el-input__inner) {
   height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT') !important;
   line-height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_LINE_HEIGHT') !important;
@@ -580,13 +542,11 @@ onMounted(async () => {
   padding: 0 !important;
 }
 
-/* ✅ SELECT INPUT — ИЗ КОНФИГА */
 .filters-row :deep(.el-select__input) {
   font-size: v-bind('COMPANY_LIST_FILTERS_UI.INNER_FONT_SIZE') !important;
   height: v-bind('COMPANY_LIST_FILTERS_UI.INNER_HEIGHT') !important;
 }
 
-/* ✅ PREFIX / SUFFIX — ИЗ КОНФИГА */
 .filters-row :deep(.el-input__prefix),
 .filters-row :deep(.el-input__suffix) {
   display: flex;
@@ -599,7 +559,6 @@ onMounted(async () => {
   font-size: v-bind('COMPANY_LIST_FILTERS_UI.PREFIX_FONT_SIZE') !important;
 }
 
-/* ✅ CARET / ARROW — ИЗ КОНФИГА */
 .filters-row :deep(.el-select__caret),
 .filters-row :deep(.el-select__arrow) {
   font-size: v-bind('COMPANY_LIST_FILTERS_UI.CARET_FONT_SIZE') !important;
@@ -607,7 +566,6 @@ onMounted(async () => {
   line-height: v-bind('COMPANY_LIST_FILTERS_UI.CARET_LINE_HEIGHT') !important;
 }
 
-/* ✅ DROPDOWN — ИЗ КОНФИГА */
 .filters-row :deep(.el-select-dropdown__item) {
   font-size: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_FONT_SIZE') !important;
   padding: v-bind('COMPANY_LIST_FILTERS_UI.DROPDOWN_PADDING') !important;
@@ -641,7 +599,6 @@ onMounted(async () => {
   font-size: v-bind('COMPANY_LIST_UI.LOADING_TEXT_SIZE');
 }
 
-/* ✅ АДАПТИВ — XXXL */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .header-row {
     flex-wrap: wrap;
@@ -692,7 +649,6 @@ onMounted(async () => {
   }
 }
 
-/* ✅ АДАПТИВ — XL */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .company-list {
     padding: 8px;
@@ -739,7 +695,6 @@ onMounted(async () => {
   }
 }
 
-/* ✅ АДАПТИВ — XS */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .company-list {
     padding: 4px;
@@ -791,7 +746,6 @@ onMounted(async () => {
   }
 }
 
-/* ✅ TOUCH DEVICES — ТОЛЬКО ЕСЛИ ЭКРАН МАЛЕНЬКИЙ (≤576px) */
 @media (hover: none) and (pointer: coarse) and (max-width: v-bind('BREAKPOINTS.XS')) {
   .add-btn {
     min-height: v-bind('COMPANY_LIST_FILTERS_UI.BUTTON_HEIGHT_TOUCH');
