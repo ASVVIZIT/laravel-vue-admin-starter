@@ -247,21 +247,20 @@
           @refresh="handleRefreshRow"
       />
 
-      <div class="pagination-section">
-        <Pagination
-            :layout="PAGINATOR_DISPLAY.LAYOUT"
-            :current-page="channelStore.currentPage"
-            :page-size="channelStore.perPage"
-            :loaded-count="channelStore.filteredCount"
-            :total-items="channelStore.totalItems"
-            :available-sizes="availablePageSizes"
-            :disabled="channelStore.loadingChunks"
-            :pager-count="PAGINATOR_DISPLAY.PAGER_COUNT"
-            :hide-on-single-page="PAGINATOR_DISPLAY.HIDE_ON_SINGLE"
-            @page-change="handlePageChange"
-            @size-change="handleSizeChange"
-        />
-      </div>
+      <!-- ✅ ПАГИНАЦИЯ -->
+      <Pagination
+          :layout="PAGINATOR_DISPLAY.LAYOUT"
+          :current-page="channelStore.currentPage"
+          :page-size="channelStore.perPage"
+          :loaded-count="channelStore.filteredCount"
+          :total-items="channelStore.totalItems"
+          :available-sizes="availablePageSizes"
+          :disabled="channelStore.loadingChunks"
+          :pager-count="PAGINATOR_DISPLAY.PAGER_COUNT"
+          :hide-on-single-page="PAGINATOR_DISPLAY.HIDE_ON_SINGLE"
+          @page-change="handlePageChange"
+          @size-change="handleSizeChange"
+      />
     </div>
 
     <div v-else class="empty-wrapper">
@@ -324,7 +323,6 @@ import ChannelTable from './ChannelTable.vue';
 import ChannelForm from './ChannelForm.vue';
 import DeleteConfirm from '../Common/DeleteConfirm.vue';
 import LoadingDataActions from '../Common/LoadingDataActions.vue';
-import PageSizeSelector from '../Common/PageSizeSelector.vue';
 import Pagination from '../Common/Pagination.vue';
 import SettingsModal from '../Common/SettingsModal.vue';
 import SettingsModalEntity from '../Common/SettingsModalEntity.vue';
@@ -370,8 +368,6 @@ const selectedType = ref(null);
 const selectedIsActive = ref(null);
 const selectedSortBy = ref(CHANNEL_SORT_OPTIONS.DEFAULT);
 const selectedSearch = ref('');
-const currentPage = ref(1);
-const localPageSize = ref(CHANNEL_USER_SETTINGS.DEFAULT_PAGE_SIZE);
 
 // ============================================================================
 // COMPUTED
@@ -385,7 +381,7 @@ const paginatedChannels = computed(() => {
 });
 
 const availablePageSizes = computed(() => {
-  const baseSizes = CHANNEL_LIST_FILTERS.PAGE_SIZE_OPTIONS;
+  const baseSizes = PAGE_SIZE_OPTIONS.BASE_AVAILABLE;
   const filtered = baseSizes.filter(size => size <= channelStore.totalItems);
   if (channelStore.totalItems > 0 && !filtered.includes(channelStore.totalItems)) {
     filtered.push(channelStore.totalItems);
@@ -410,44 +406,36 @@ const hasActiveFilters = computed(() => {
 // ============================================================================
 watch(() => channelStore.filters.sort_by, (newVal) => {
   if (newVal && newVal !== selectedSortBy.value) {
-    console.log('🔵 [ChannelList] Watch: sort_by changed:', newVal);
     selectedSortBy.value = newVal;
   }
 }, { immediate: true });
 
 watch(() => channelStore.filters.type, (newVal) => {
   if (newVal !== selectedType.value) {
-    console.log('🔵 [ChannelList] Watch: type changed:', newVal);
     selectedType.value = newVal;
   }
 }, { immediate: true });
 
 watch(() => channelStore.filters.is_active, (newVal) => {
   if (newVal !== selectedIsActive.value) {
-    console.log('🔵 [ChannelList] Watch: is_active changed:', newVal);
     selectedIsActive.value = newVal;
   }
 }, { immediate: true });
 
 watch(() => channelStore.filters.company_id, (newVal) => {
   if (newVal !== selectedCompanyId.value) {
-    console.log('🔵 [ChannelList] Watch: company_id changed:', newVal);
     selectedCompanyId.value = newVal;
   }
 }, { immediate: true });
 
 watch(() => channelStore.filters.search, (newVal) => {
   if (newVal !== selectedSearch.value) {
-    console.log('🔵 [ChannelList] Watch: search changed:', newVal);
     selectedSearch.value = newVal;
   }
 }, { immediate: true });
 
 watch(() => channelStore.perPage, (newVal) => {
-  if (newVal && newVal !== localPageSize.value) {
-    console.log('🔵 [ChannelList] Watch: perPage changed:', newVal);
-    localPageSize.value = newVal;
-  }
+  console.log('🔵 [ChannelList] Watch: perPage changed:', newVal);
 }, { immediate: true });
 
 // ============================================================================
@@ -461,13 +449,12 @@ onMounted(async () => {
     await companyStore.fetchAllCompanies();
   }
 
-  // ✅ 2. ВОССТАНАВЛИВАЕМ ФИЛЬТРЫ ИЗ STORE (НЕ ИЗ userSettings!)
+  // ✅ 2. ВОССТАНАВЛИВАЕМ ФИЛЬТРЫ ИЗ STORE
   selectedCompanyId.value = channelStore.filters.company_id;
   selectedType.value = channelStore.filters.type;
   selectedIsActive.value = channelStore.filters.is_active;
   selectedSortBy.value = channelStore.filters.sort_by;
   selectedSearch.value = channelStore.filters.search || '';
-  localPageSize.value = channelStore.perPage;
 
   console.log('🟢 [ChannelList] Filters restored from store:', {
     companyId: selectedCompanyId.value,
@@ -475,7 +462,6 @@ onMounted(async () => {
     isActive: selectedIsActive.value,
     sortBy: selectedSortBy.value,
     search: selectedSearch.value,
-    pageSize: localPageSize.value,
   });
 
   await loadChannels();
@@ -694,7 +680,6 @@ function handleNewSettingsSave(settings) {
   // ✅ 2. СИНХРОНИЗАЦИЯ UI — PAGE SIZE
   if (settings.pageSize) {
     channelStore.recalculatePagination();
-    localPageSize.value = settings.pageSize;
   }
 
   // ✅ 3. СИНХРОНИЗАЦИЯ UI — СОРТИРОВКА
@@ -732,6 +717,10 @@ function handleNewSettingsSave(settings) {
   loadChannels();
   ElMessage.success('Настройки применены и синхронизированы с фильтром');
 }
+
+// ============================================================================
+// ⭐ PAGINATION HANDLERS — КАК В COMPANIES!
+// ============================================================================
 function handleSizeChange(newSize) {
   if (newSize >= channelStore.loadedCount && channelStore.loadedCount > 0) {
     handleLoadAll();
@@ -745,6 +734,10 @@ function handleSizeChange(newSize) {
 
   channelStore.perPage = newSize;
   channelStore.recalculatePagination();
+}
+
+function handlePageChange(newPage) {
+  channelStore.currentPage = newPage;
 }
 
 function handleSettingsReset(defaultSettings) {
@@ -772,8 +765,6 @@ function handleSettingsReset(defaultSettings) {
 }
 
 function handleRefresh() { loadChannels(); }
-
-function handlePageChange(newPage) { currentPage.value = newPage; }
 </script>
 
 <style scoped>
