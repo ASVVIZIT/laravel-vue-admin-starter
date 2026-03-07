@@ -1,13 +1,13 @@
 // ============================================================================
 // APP CONFIG FIELD LABELS — ПОЛЯ И МЕТОК
 // ============================================================================
-// 📁 Путь: config/appConfigFieldLabels.js
+// 📁 Путь: config/common/appConfigFieldLabels.js
 // ✅ Используется: CompanyForm.vue, CompanyList.vue, CompanyTable.vue
 // ✅ Безопасно менять — влияет только на отображение меток полей
 // ============================================================================
 
 // ============================================================================
-// COMPANY FIELD LABELS
+// COMPANY FIELD LABELS (метки полей компании)
 // ============================================================================
 
 export const COMPANY_FIELD_LABELS = {
@@ -25,7 +25,7 @@ export const COMPANY_FIELD_LABELS = {
 };
 
 // ============================================================================
-// CONTACT CHANNEL FIELD LABELS
+// CONTACT CHANNEL FIELD LABELS (метки полей каналов связи)
 // ============================================================================
 
 export const CONTACT_CHANNEL_FIELD_LABELS = {
@@ -41,6 +41,7 @@ export const CONTACT_CHANNEL_FIELD_LABELS = {
 // HELPER FUNCTIONS
 // ============================================================================
 
+// ✅ Получить метку поля
 export function getFieldLabel(fieldName, entityType = 'company', fallback = fieldName) {
     const labelsMap = {
         company: COMPANY_FIELD_LABELS,
@@ -51,6 +52,7 @@ export function getFieldLabel(fieldName, entityType = 'company', fallback = fiel
     return labels[fieldName] || fallback;
 }
 
+// ✅ Получить все метки полей
 export function getFieldLabels(entityType = 'company') {
     const labelsMap = {
         company: COMPANY_FIELD_LABELS,
@@ -60,6 +62,7 @@ export function getFieldLabels(entityType = 'company') {
     return labelsMap[entityType] || COMPANY_FIELD_LABELS;
 }
 
+// ✅ Установить метку поля
 export function setFieldLabel(fieldName, label, entityType = 'company') {
     const labelsMap = {
         company: COMPANY_FIELD_LABELS,
@@ -70,6 +73,7 @@ export function setFieldLabel(fieldName, label, entityType = 'company') {
     labels[fieldName] = label;
 }
 
+// ✅ Проверить наличие метки поля
 export function hasFieldLabel(fieldName, entityType = 'company') {
     const labelsMap = {
         company: COMPANY_FIELD_LABELS,
@@ -78,4 +82,9 @@ export function hasFieldLabel(fieldName, entityType = 'company') {
 
     const labels = labelsMap[entityType] || COMPANY_FIELD_LABELS;
     return fieldName in labels;
+}
+
+// ✅ Получить все доступные типы сущностей
+export function getEntityTypes() {
+    return ['company', 'contactChannel'];
 }

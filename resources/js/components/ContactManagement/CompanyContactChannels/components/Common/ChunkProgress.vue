@@ -1,6 +1,15 @@
 <template>
   <div class="chunk-progress-container">
-    <div class="spinner-wrapper" :class="{ 'is-complete': isComplete, 'is-loading': props.isLoading, 'is-error': isError }">
+    <!-- ========================================================================
+         SPINNER ICON
+         ======================================================================== -->
+    <div class="spinner-wrapper"
+         :class="{
+           'is-complete': isComplete,
+           'is-loading': props.isLoading,
+           'is-error': isError
+         }"
+    >
       <el-icon class="spinner-icon">
         <Loading v-if="!isComplete && !isError" />
         <Check v-else-if="isComplete" />
@@ -8,6 +17,9 @@
       </el-icon>
     </div>
 
+    <!-- ========================================================================
+         PROGRESS BAR
+         ======================================================================== -->
     <div class="progress-bar-wrapper">
       <el-progress
           :percentage="displayPercentage"
@@ -16,8 +28,12 @@
           :text-inside="true"
           :show-text="true"
           class="progress-bar"
-          :class="{ 'is-loading': props.isLoading, 'is-complete': isComplete, 'is-error': isError }"
-          :duration="CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION.replace('s', '')"
+          :class="{
+            'is-loading': props.isLoading,
+            'is-complete': isComplete,
+            'is-error': isError
+          }"
+          :duration="parseFloat(CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION)"
       >
         <template #default="{ percentage: progressPercentage }">
           <div class="progress-text">
@@ -43,26 +59,39 @@ import {
   LOADING_DATA_ACTIONS_COLORS,
 } from '../../config/appConfigIndex.js';
 
-const props = defineProps({...CHUNK_PROGRESS_PROPS_CONFIG});
+// ✅ ДОБАВЛЯЕМ error И status В PROPS
+const props = defineProps({
+  ...CHUNK_PROGRESS_PROPS_CONFIG,
+  error: { type: Boolean, default: false },
+  status: { type: String, default: '' },
+});
 
-// ✅ ОПРЕДЕЛЯЕМ ЗАВЕРШЕНИЕ
+// ============================================================================
+// COMPUTED — ЗАВЕРШЕНИЕ
+// ============================================================================
 const isComplete = computed(() => {
   return props.percentage >= 100 && !props.error;
 });
 
-// ✅ ОПРЕДЕЛЯЕМ ОШИБКУ
+// ============================================================================
+// COMPUTED — ОШИБКА
+// ============================================================================
 const isError = computed(() => {
   return props.error === true || props.status === 'exception';
 });
 
-// ✅ СТАТУС ДЛЯ EL-PROGRESS
+// ============================================================================
+// COMPUTED — СТАТУС ДЛЯ EL-PROGRESS
+// ============================================================================
 const progressStatus = computed(() => {
   if (isError.value) return 'exception';
   if (isComplete.value) return 'success';
   return undefined;
 });
 
-// ✅ РАСЧЁТ ПРОЦЕНТА С УЧЁТОМ CHUNK PROGRESS
+// ============================================================================
+// COMPUTED — ПРОЦЕНТ С CHUNK PROGRESS
+// ============================================================================
 const displayPercentage = computed(() => {
   if (isError.value) return 100;
   if (isComplete.value) return 100;
@@ -74,6 +103,9 @@ const displayPercentage = computed(() => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
 .chunk-progress-container {
   width: 100%;
   padding: 4px 0;
@@ -82,37 +114,57 @@ const displayPercentage = computed(() => {
   gap: 10px;
 }
 
+/* ============================================================================
+   SPINNER WRAPPER
+   ============================================================================ */
 .spinner-wrapper {
   width: 24px;
   height: 24px;
   min-width: 24px;
   border-radius: 50%;
-  background: linear-gradient(135deg, v-bind('COLORS.INFO') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%);
+  background: linear-gradient(135deg,
+  v-bind('COLORS.INFO') 0%,
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
   box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW');
-  transition: background v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE'),
-  box-shadow v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: background v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE'),
+  box-shadow v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .spinner-wrapper:not(.is-loading):not(.is-complete):not(.is-error) {
-  background: linear-gradient(135deg, v-bind('COLORS.INFO') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%);
+  background: linear-gradient(135deg,
+  v-bind('COLORS.INFO') 0%,
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%
+  );
 }
 
 .spinner-wrapper.is-loading:not(.is-complete):not(.is-error) {
-  background: linear-gradient(135deg, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR') 0%, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT') 100%);
+  background: linear-gradient(135deg,
+  v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR') 0%,
+  v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT') 100%
+  );
   box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.CHUNK_SHADOW');
 }
 
 .spinner-wrapper.is-complete {
-  background: linear-gradient(135deg, v-bind('COLORS.SUCCESS') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM') 100%);
+  background: linear-gradient(135deg,
+  v-bind('COLORS.SUCCESS') 0%,
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM') 100%
+  );
   box-shadow: 0 2px 4px rgba(103, 194, 58, 0.3);
 }
 
+/* ✅ ИСПРАВЛЕНО — BTN_DELETE_GRADIENT_FROM НЕ СУЩЕСТВУЕТ */
 .spinner-wrapper.is-error {
-  background: linear-gradient(135deg, v-bind('COLORS.DANGER') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_DELETE_GRADIENT_FROM') 100%);
+  background: linear-gradient(135deg,
+  v-bind('COLORS.DANGER') 0%,
+  v-bind('COLORS.DANGER') 100%
+  );
   box-shadow: 0 2px 4px rgba(245, 108, 108, 0.3);
 }
 
@@ -128,6 +180,9 @@ const displayPercentage = computed(() => {
   animation: rotating 1s linear infinite;
 }
 
+/* ============================================================================
+   PROGRESS BAR WRAPPER
+   ============================================================================ */
 .progress-bar-wrapper {
   flex: 1;
   display: flex;
@@ -148,6 +203,9 @@ const displayPercentage = computed(() => {
   padding: 0;
 }
 
+/* ============================================================================
+   PROGRESS BAR OUTER
+   ============================================================================ */
 .progress-bar :deep(.el-progress-bar__outer) {
   background-color: v-bind('CHUNK_PROGRESS_CONFIG.BACKGROUND_COLOR');
   border-radius: v-bind('CHUNK_PROGRESS_CONFIG.BORDER_RADIUS');
@@ -159,13 +217,26 @@ const displayPercentage = computed(() => {
   box-shadow: v-bind('CHUNK_PROGRESS_CONFIG.BOX_SHADOW');
 }
 
+/* ============================================================================
+   PROGRESS BAR INNER — DEFAULT
+   ============================================================================ */
 .progress-bar:not(.is-loading):not(.is-error) :deep(.el-progress-bar__inner) {
-  background: linear-gradient(90deg, v-bind('COLORS.INFO') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%);
-  transition: width v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION') v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING');
+  background: linear-gradient(90deg,
+  v-bind('COLORS.INFO') 0%,
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_REFRESH_GRADIENT_FROM') 100%
+  );
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД */
+  transition: width v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
+/* ============================================================================
+   PROGRESS BAR INNER — LOADING (С ПОЛОСКАМИ)
+   ============================================================================ */
 .progress-bar.is-loading:not(.is-complete):not(.is-error) :deep(.el-progress-bar__inner) {
-  background: linear-gradient(90deg, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR') 0%, v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT') 100%);
+  background: linear-gradient(90deg,
+  v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR') 0%,
+  v-bind('CHUNK_PROGRESS_CONFIG.LOADING_COLOR_LIGHT') 100%
+  );
   animation: progress-stripes v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANIMATION_DURATION') linear infinite;
   background-image: linear-gradient(
       v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_ANGLE'),
@@ -180,21 +251,37 @@ const displayPercentage = computed(() => {
   background-size: v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_WIDTH') v-bind('CHUNK_PROGRESS_CONFIG.STRIPE_WIDTH');
 }
 
+/* ============================================================================
+   PROGRESS BAR INNER — COMPLETE
+   ============================================================================ */
 .progress-bar.is-complete :deep(.el-progress-bar__inner),
 .progress-bar :deep(.el-progress-bar__inner.is-success) {
-  background: linear-gradient(90deg, v-bind('COLORS.SUCCESS') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM') 100%);
-  transition: width v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_DURATION') v-bind('CHUNK_PROGRESS_CONFIG.TRANSITION_TIMING');
+  background: linear-gradient(90deg,
+  v-bind('COLORS.SUCCESS') 0%,
+  v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MORE_GRADIENT_FROM') 100%
+  );
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД */
+  transition: width v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
+/* ============================================================================
+   PROGRESS BAR INNER — ERROR (ИСПРАВЛЕНО)
+   ============================================================================ */
 .progress-bar.is-error :deep(.el-progress-bar__inner),
 .progress-bar :deep(.el-progress-bar__inner.is-exception) {
-  background: linear-gradient(90deg, v-bind('COLORS.DANGER') 0%, v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_DELETE_GRADIENT_FROM') 100%);
+  background: linear-gradient(90deg,
+  v-bind('COLORS.DANGER') 0%,
+  v-bind('COLORS.DANGER') 100%
+  );
 }
 
 .progress-bar :deep(.el-progress__text) {
   display: none;
 }
 
+/* ============================================================================
+   PROGRESS TEXT
+   ============================================================================ */
 .progress-text {
   display: flex;
   align-items: center;
@@ -226,6 +313,9 @@ const displayPercentage = computed(() => {
   white-space: nowrap;
 }
 
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
 @keyframes progress-stripes {
   from {
     background-position: 0 0;
@@ -240,6 +330,9 @@ const displayPercentage = computed(() => {
   to { transform: rotate(360deg); }
 }
 
+/* ============================================================================
+   SHINE EFFECT
+   ============================================================================ */
 .progress-bar.is-loading:not(.is-complete):not(.is-error) :deep(.el-progress-bar__inner)::before {
   content: '';
   position: absolute;
@@ -267,6 +360,9 @@ const displayPercentage = computed(() => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XXXL
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .chunk-progress-container {
     gap: 8px;
@@ -287,6 +383,9 @@ const displayPercentage = computed(() => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XL
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .chunk-progress-container {
     gap: 6px;
@@ -322,6 +421,9 @@ const displayPercentage = computed(() => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XS
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .chunk-progress-container {
     gap: 4px;
@@ -357,6 +459,9 @@ const displayPercentage = computed(() => {
   }
 }
 
+/* ============================================================================
+   TOUCH DEVICES
+   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .spinner-wrapper {
     width: 28px;

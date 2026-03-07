@@ -1,16 +1,16 @@
 // ============================================================================
 // APP CONFIG PAGINATION — PAGINATION COMPONENT
 // ============================================================================
-// 📁 Путь: config/appConfigPagination.js
+// 📁 Путь: config/common/appConfigPagination.js
 // ✅ Используется: Pagination.vue, CompanyList.vue, companyStore.js
 // ✅ Безопасно менять — влияет только на компонент пагинации
-// ✅ Зависит от: appConfigPageSizeSelector.js (PAGE_SIZE_OPTIONS)
+// ✅ Зависит от: config/common/index.js (PAGE_SIZE_OPTIONS)
 // ============================================================================
 
-import { PAGE_SIZE_OPTIONS } from './appConfigPageSizeSelector.js';
+import { PAGE_SIZE_OPTIONS } from './index.js';
 
 // ============================================================================
-// UI CONFIGS
+// UI CONFIGS (размеры и отступы)
 // ============================================================================
 
 export const PAGINATION_FILTERS_UI = {
@@ -66,40 +66,51 @@ export const PAGINATION_FILTERS_UI = {
 };
 
 export const PAGINATION_UI = {
+    // ✅ РАЗМЕРЫ
     GAP: '8px',
     MARGIN_TOP: '8px',
     PADDING: '4px 0',
     FONT_SIZE: '8.5px',
+
+    // ✅ BUTTON
     BUTTON_HEIGHT: '17px',
     BUTTON_WIDTH: '17px',
     BUTTON_PADDING: '0 4px',
     BUTTON_MARGIN: '0 1.5px',
     BORDER_RADIUS: '2px',
+
+    // ✅ INPUT
     INPUT_WIDTH: '32px',
     INPUT_HEIGHT: '17px',
     INPUT_PADDING: '1px 4px',
+
+    // ✅ SELECT
     SELECT_WIDTH: '70px',
     SELECT_HEIGHT: '17px',
     DROPDOWN_PADDING: '3px 7px',
+
+    // ✅ TOTAL / JUMP
     TOTAL_MARGIN: '6px',
     JUMP_MARGIN: '6px',
+
+    // ✅ RECALCULATING
     RECALCULATING_DURATION: 150,
     RECALCULATING_BANNER_TOP: '-16px',
     RECALCULATING_BANNER_TOP_MOBILE: '-20px',
 };
 
 // ============================================================================
-// PAGINATOR DISPLAY
+// PAGINATOR DISPLAY (макет пагинации)
 // ============================================================================
 
 export const PAGINATOR_DISPLAY = {
-    LAYOUT: 'total, prev, pager, next, last, jumper',
+    LAYOUT: 'total, prev, pager, next, jumper',
     PAGER_COUNT: 5,
     HIDE_ON_SINGLE: true,
 };
 
 // ============================================================================
-// MESSAGES
+// MESSAGES (тексты интерфейса)
 // ============================================================================
 
 export const PAGINATION_MESSAGES = {
@@ -111,7 +122,7 @@ export const PAGINATION_MESSAGES = {
 };
 
 // ============================================================================
-// PROPS CONFIG
+// PROPS CONFIG (для Pagination.vue)
 // ============================================================================
 
 export const PAGINATION_PROPS_CONFIG = {
@@ -128,10 +139,33 @@ export const PAGINATION_PROPS_CONFIG = {
 // HELPER FUNCTIONS
 // ============================================================================
 
+// ✅ Получить начальное состояние пагинации
 export function getInitialPaginationState() {
     return {
         currentPage: 1,
         perPage: PAGE_SIZE_OPTIONS.BASE_AVAILABLE[2],
         lastPage: 1,
     };
+}
+
+// ✅ Получить макет пагинации
+export function getPaginationLayout() {
+    return PAGINATOR_DISPLAY.LAYOUT;
+}
+
+// ✅ Получить количество pager
+export function getPagerCount() {
+    return PAGINATOR_DISPLAY.PAGER_COUNT;
+}
+
+export function getHideOnSingle() {
+    return PAGINATOR_DISPLAY.HIDE_ON_SINGLE;
+}
+
+export function getDefaultPageSize() {
+    return PAGE_SIZE_OPTIONS.DEFAULT_PAGE_SIZE;
+}
+
+export function getAvailablePageSizes() {
+    return PAGE_SIZE_OPTIONS.BASE_AVAILABLE;
 }

@@ -1,16 +1,20 @@
 // ============================================================================
 // APP CONFIG COMPANY FORM — COMPANY FORM COMPONENT
 // ============================================================================
-// 📁 Путь: config/appConfigCompanyForm.js
+// 📁 Путь: config/companies/appConfigCompanyForm.js
 // ✅ Используется: CompanyForm.vue, CompanyList.vue
 // ✅ Безопасно менять — влияет только на форму компании
+// ✅ Зависит от: config/global/index.js (COLORS, BREAKPOINTS)
 // ============================================================================
 
+import { COLORS, BREAKPOINTS } from '../global/index.js';
+
 // ============================================================================
-// UI CONFIGS
+// UI CONFIGS (размеры и отступы)
 // ============================================================================
 
 export const COMPANY_FORM_UI = {
+    // ✅ DIALOG
     DIALOG_WIDTH: '500px',
     DIALOG_WIDTH_TABLET: '450px',
     DIALOG_WIDTH_MOBILE: '90%',
@@ -25,6 +29,8 @@ export const COMPANY_FORM_UI = {
     DIALOG_TITLE_FONT_SIZE_SMALL: '13px',
     DIALOG_TITLE_FONT_WEIGHT: '600',
     DIALOG_TITLE_COLOR: '#303133',
+
+    // ✅ FORM
     LABEL_WIDTH: '80px',
     LABEL_POSITION: 'top',
     FORM_SIZE: 'small',
@@ -49,20 +55,28 @@ export const COMPANY_FORM_UI = {
     FORM_FOOTER_GAP_MOBILE: '8px',
     FORM_FOOTER_PADDING_TOP: '12px',
     FORM_FOOTER_BUTTON_MIN_WIDTH: '80px',
+
+    // ✅ ID INPUT
     FORM_ID_INPUT_BACKGROUND: '#f5f7fa',
     FORM_ID_INPUT_COLOR: '#909399',
     FORM_ID_INPUT_FONT_WEIGHT: '600',
+
+    // ✅ SELECT
     FORM_SELECT_HEIGHT: '20px',
     FORM_ICON_OPTION_GAP: '6px',
     FORM_DROPDOWN_ITEM_PADDING: '8px 12px',
     FORM_DROPDOWN_HOVER_BACKGROUND: '#f5f7fa',
     FORM_DROPDOWN_SELECTED_BACKGROUND: '#f0f9eb',
+
+    // ✅ ERROR
     FORM_ERROR_FONT_SIZE: '10px',
     FORM_ERROR_PADDING_TOP: '2px',
+
+    BUTTON_PADDING: '5px 10px',
 };
 
 // ============================================================================
-// FORM FILTERS UI CONFIGS (НОВЫЙ РАЗДЕЛ)
+// FORM FILTERS UI CONFIGS (настройки полей формы)
 // ============================================================================
 
 export const COMPANY_FORM_FILTERS_UI = {
@@ -142,24 +156,31 @@ export const COMPANY_FORM_FILTERS_UI = {
 };
 
 // ============================================================================
-// MESSAGES
+// MESSAGES (тексты интерфейса)
 // ============================================================================
 
 export const COMPANY_FORM_MESSAGES = {
+    // ✅ ЗАГОЛОВКИ
     TITLE_CREATE: 'Добавить Компанию',
     TITLE_EDIT: 'Редактировать Компанию',
+
+    // ✅ КНОПКИ
     SUBMIT_CREATE: 'Создать',
     SUBMIT_EDIT: 'Сохранить',
     CANCEL: 'Отмена',
+
+    // ✅ ВАЛИДАЦИЯ
     FIELD_REQUIRED: (field) => `Поле "${field}" обязательно`,
     FIELD_MIN_LENGTH: (field, min) => `Минимум ${min} символов`,
     FIELD_MAX_LENGTH: (field, max) => `Максимум ${max} символов`,
+
+    // ✅ УСПЕХ
     SUCCESS_COMPANY_CREATED: 'Компания создана',
     SUCCESS_COMPANY_UPDATED: 'Компания обновлена',
 };
 
 // ============================================================================
-// PROPS CONFIG
+// PROPS CONFIG (для CompanyForm.vue)
 // ============================================================================
 
 export const COMPANY_FORM_PROPS_CONFIG = {
@@ -173,7 +194,7 @@ export const COMPANY_FORM_PROPS_CONFIG = {
 };
 
 // ============================================================================
-// VALIDATION
+// VALIDATION (правила валидации)
 // ============================================================================
 
 export const COMPANY_FORM_VALIDATION = {
@@ -181,6 +202,10 @@ export const COMPANY_FORM_VALIDATION = {
     DESCRIPTION: { required: false, max: 1000, trigger: ['blur', 'change'] },
     ADDRESS: { required: false, max: 500, trigger: ['blur', 'change'] },
 };
+
+// ============================================================================
+// DEFAULT VALIDATION RULES (правила по умолчанию)
+// ============================================================================
 
 export function getDefaultCompanyFormValidation() {
     return {
@@ -200,7 +225,7 @@ export function getDefaultCompanyFormValidation() {
 }
 
 // ============================================================================
-// FIELD CONFIGS
+// FIELD CONFIGS (конфигурация полей)
 // ============================================================================
 
 export const COMPANY_FORM_FIELDS = {
@@ -214,6 +239,7 @@ export const COMPANY_FORM_FIELDS = {
 // HELPER FUNCTIONS
 // ============================================================================
 
+// ✅ Получить начальное состояние формы
 export function getInitialCompanyFormState() {
     return {
         id: '',
@@ -224,4 +250,28 @@ export function getInitialCompanyFormState() {
             icon: '',
         },
     };
+}
+
+// ✅ Получить правила валидации по умолчанию
+export function getFormValidationRules() {
+    return getDefaultCompanyFormValidation();
+}
+
+// ✅ Получить конфигурацию поля
+export function getFieldConfig(fieldName) {
+    return COMPANY_FORM_FIELDS[fieldName.toUpperCase()] || null;
+}
+
+// ✅ Получить сообщение об ошибке валидации
+export function getValidationErrorMessage(field, type, value) {
+    if (type === 'required') {
+        return COMPANY_FORM_MESSAGES.FIELD_REQUIRED(field);
+    }
+    if (type === 'min') {
+        return COMPANY_FORM_MESSAGES.FIELD_MIN_LENGTH(field, value);
+    }
+    if (type === 'max') {
+        return COMPANY_FORM_MESSAGES.FIELD_MAX_LENGTH(field, value);
+    }
+    return '';
 }

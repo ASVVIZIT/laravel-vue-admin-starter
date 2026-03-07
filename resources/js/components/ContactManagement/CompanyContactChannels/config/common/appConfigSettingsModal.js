@@ -1,20 +1,20 @@
 // ============================================================================
 // APP CONFIG SETTINGS MODAL — SETTINGS MODAL COMPONENT
 // ============================================================================
-// 📁 Путь: config/appConfigSettingsModal.js
+// 📁 Путь: config/common/appConfigSettingsModal.js
 // ✅ Используется: SettingsModal.vue, CompanyList.vue
 // ✅ Безопасно менять — влияет только на модалку настроек
-// ✅ Зависит от: appConfigCompanyList.js (COMPANY_LIST_MESSAGES)
+// ✅ Зависит от: config/companies/index.js (COMPANY_LIST_MESSAGES)
 // ============================================================================
 
-import { COMPANY_LIST_MESSAGES } from './appConfigCompanyList.js';
+import { COMPANY_LIST_MESSAGES } from '../companies/index.js';
 
 // ============================================================================
-// UI CONFIGS
+// UI CONFIGS (размеры и отступы)
 // ============================================================================
 
 export const SETTINGS_UI = {
-    // ✅ РАЗМЕРЫ ДИАЛОГА
+    // ✅ DIALOG
     DIALOG_WIDTH: '460px',
     DIALOG_WIDTH_TABLET: '440px',
     DIALOG_WIDTH_MOBILE: '90%',
@@ -22,7 +22,7 @@ export const SETTINGS_UI = {
     DIALOG_BORDER_RADIUS: '6px',
     DIALOG_BOX_SHADOW: '0 4px 20px rgba(0, 0, 0, 0.15)',
 
-    // ✅ LABEL — БАЗОВЫЕ (ПК)
+    // ✅ LABEL (ПК)
     LABEL_WIDTH: '140px',
     LABEL_POSITION: 'right',
     LABEL_HEIGHT: '14px',
@@ -31,7 +31,7 @@ export const SETTINGS_UI = {
     LABEL_MARGIN_BOTTOM: '0px',
     LABEL_LETTER_SPACING: '0.2px',
 
-    // ✅ LABEL — МОБИЛЬНЫЕ
+    // ✅ LABEL (МОБИЛЬНЫЕ)
     LABEL_POSITION_MOBILE_BREAKPOINT: 768,
     LABEL_WIDTH_MOBILE: '100%',
     LABEL_HEIGHT_MOBILE: '12px',
@@ -99,7 +99,7 @@ export const SETTINGS_UI = {
 };
 
 // ============================================================================
-// SETTINGS FILTERS UI CONFIGS (НОВЫЙ РАЗДЕЛ)
+// SETTINGS FILTERS UI CONFIGS (настройки полей формы)
 // ============================================================================
 
 export const SETTINGS_FILTERS_UI = {
@@ -176,7 +176,7 @@ export const SETTINGS_FILTERS_UI = {
 };
 
 // ============================================================================
-// MESSAGES
+// MESSAGES (тексты интерфейса)
 // ============================================================================
 
 export const SETTINGS_MESSAGES = {
@@ -186,42 +186,51 @@ export const SETTINGS_MESSAGES = {
         return `${this.TITLE_MAIN} — ${COMPANY_LIST_MESSAGES.ENTITY_LABEL}`;
     },
 
+    // ✅ РАЗДЕЛЫ
     SECTION_DATA_LOAD: 'Загрузка данных',
     SECTION_DISPLAY: 'Отображение',
     SECTION_DEFAULT_FILTERS: 'Фильтры по умолчанию',
 
+    // ✅ CHUNK SIZE
     LABEL_CHUNK_SIZE: 'Размер порции:',
     PLACEHOLDER_CHUNK_SIZE: 'Выберите размер',
     HINT_CHUNK_SIZE: 'Количество записей загружаемых за один раз',
 
+    // ✅ CONFIRM LOAD ALL
     LABEL_CONFIRM_LOAD_ALL: 'Подтверждение загрузки всех:',
     HINT_CONFIRM_LOAD_ALL: 'Запрашивать подтверждение перед загрузкой всех записей',
 
+    // ✅ PAGE SIZE
     LABEL_PAGE_SIZE: 'Записей на страницу:',
     PLACEHOLDER_PAGE_SIZE: 'Выберите количество',
     HINT_PAGE_SIZE: 'Количество записей отображаемых на странице',
 
+    // ✅ SHOW LOAD BUTTONS
     LABEL_SHOW_LOAD_BUTTONS: 'Показывать кнопки загрузки:',
     HINT_SHOW_LOAD_BUTTONS: 'Отображать кнопки "Загрузить ещё" и "Загрузить все"',
 
+    // ✅ DEFAULT SORT
     LABEL_DEFAULT_SORT: 'Сортировка по умолчанию:',
     PLACEHOLDER_DEFAULT_SORT: 'Выберите сортировку',
     HINT_DEFAULT_SORT: 'Сортировка применяемая при загрузке страницы',
 
+    // ✅ DEFAULT ICON FILTER
     LABEL_DEFAULT_ICON_FILTER: 'Фильтр по иконке:',
     PLACEHOLDER_DEFAULT_ICON_FILTER: 'Выберите фильтр',
     HINT_DEFAULT_ICON_FILTER: 'Фильтр по иконкам применяемый при загрузке',
 
+    // ✅ SWITCH
     SWITCH_ON: 'Вкл',
     SWITCH_OFF: 'Выкл',
 
+    // ✅ BUTTONS
     BTN_SAVE: 'Сохранить',
     BTN_CANCEL: 'Отмена',
     BTN_RESET_DEFAULTS: 'Сбросить',
 };
 
 // ============================================================================
-// PROPS CONFIG
+// PROPS CONFIG (для SettingsModal.vue)
 // ============================================================================
 
 export const SETTINGS_MODAL_PROPS_CONFIG = {
@@ -229,3 +238,21 @@ export const SETTINGS_MODAL_PROPS_CONFIG = {
     disabled: { type: Boolean, default: false },
     isSaving: { type: Boolean, default: false },
 };
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
+
+// ✅ Получить заголовок модалки
+export function getSettingsTitle() {
+    return SETTINGS_MESSAGES.TITLE;
+}
+
+// ✅ Получить опции разделов
+export function getSettingsSections() {
+    return [
+        SETTINGS_MESSAGES.SECTION_DATA_LOAD,
+        SETTINGS_MESSAGES.SECTION_DISPLAY,
+        SETTINGS_MESSAGES.SECTION_DEFAULT_FILTERS,
+    ];
+}

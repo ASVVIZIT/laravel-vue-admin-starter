@@ -8,16 +8,61 @@
       <slot name="display" :value="props.modelValue">
         <span class="cell-text" :title="displayValue">{{ displayValue }}</span>
       </slot>
-      <el-button
+
+      <el-tooltip
           v-if="!props.disabled && props.showEditButton"
-          link
-          type="primary"
-          size="small"
-          class="edit-button"
-          @click.stop="startEditing"
+          content="Редактировать (DblClick)"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
       >
-        <el-icon><Edit /></el-icon>
-      </el-button>
+        <el-button
+            link
+            type="primary"
+            size="small"
+            class="edit-button"
+            @click.stop="startEditing"
+        >
+          <el-icon><Edit /></el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <!-- ✅ TOOLTIPS ДЛЯ КНОПОК ДЕЙСТВИЙ -->
+      <el-tooltip
+          v-if="isEditing && props.showActionButtons"
+          content="Сохранить (Enter)"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+      >
+        <el-button
+            size="small"
+            type="success"
+            @click="saveEdit"
+            :disabled="props.loading || isSaving"
+            class="action-btn-save"
+        >
+          <el-icon><Check /></el-icon>
+        </el-button>
+      </el-tooltip>
+
+      <el-tooltip
+          v-if="isEditing && props.showActionButtons"
+          content="Отмена (Esc)"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+      >
+        <el-button
+            size="small"
+            type="info"
+            @click="cancelEdit"
+            :disabled="props.loading || isSaving"
+            class="action-btn-cancel"
+        >
+          <el-icon><Close /></el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
 
     <div v-else class="cell-edit-inline">
@@ -69,34 +114,48 @@
         <slot name="options" />
       </el-select>
 
+      <!-- ✅ КНОПКИ ДЕЙСТВИЙ (если showActionButtons) -->
       <div v-if="props.showActionButtons" class="inline-actions">
-        <el-button
-            size="small"
-            type="success"
-            @click="saveEdit"
-            :disabled="props.loading"
-            class="action-btn-save"
-            title="Сохранить (Enter)"
+        <el-tooltip
+            content="Сохранить (Enter)"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
         >
-          <el-icon><Check /></el-icon>
-        </el-button>
-        <el-button
-            size="small"
-            type="info"
-            @click="cancelEdit"
-            :disabled="props.loading"
-            class="action-btn-cancel"
-            title="Отмена (Esc)"
+          <el-button
+              size="small"
+              type="success"
+              @click="saveEdit"
+              :disabled="props.loading || isSaving"
+              class="action-btn-save"
+          >
+            <el-icon><Check /></el-icon>
+          </el-button>
+        </el-tooltip>
+
+        <el-tooltip
+            content="Отмена (Esc)"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
         >
-          <el-icon><Close /></el-icon>
-        </el-button>
+          <el-button
+              size="small"
+              type="info"
+              @click="cancelEdit"
+              :disabled="props.loading || isSaving"
+              class="action-btn-cancel"
+          >
+            <el-icon><Close /></el-icon>
+          </el-button>
+        </el-tooltip>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, nextTick, onUnmounted } from 'vue';
 import { Edit, Check, Close } from '@element-plus/icons-vue';
 import {
   EDITABLE_CELL_PROPS_CONFIG,
@@ -119,6 +178,9 @@ const hasError = ref(false);
 const isSaving = ref(false);
 const isCanceling = ref(false);
 const isClearing = ref(false);
+
+let saveTimeout = null;
+let blurTimeout = null;
 
 const displayValue = computed(() => {
   if (
@@ -166,10 +228,31 @@ const handleBlur = () => {
     isClearing.value = false;
     return;
   }
+
   if (props.showActionButtons) {
     return;
   }
-  saveEdit();
+
+  // Отложенное сохранение при blur
+  if (blurTimeout) {
+    clearTimeout(blurTimeout);
+  }
+
+  blurTimeout = setTimeout(() => {
+    if (!isCanceling.value && !isClearing.value) {
+      saveEdit();
+    }
+  }, TIMINGS.DEBOUNCE_FILTER);
+};
+
+const debouncedSave = () => {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+
+  saveTimeout = setTimeout(() => {
+    saveEdit();
+  }, TIMINGS.DEBOUNCE_FILTER);
 };
 
 const saveEdit = () => {
@@ -213,6 +296,16 @@ const finishEditing = () => {
   isCanceling.value = false;
   isClearing.value = false;
 };
+
+// ✅ ОЧИСТКА ТАЙМЕРОВ ПРИ УНИЧТОЖЕНИИ
+onUnmounted(() => {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  if (blurTimeout) {
+    clearTimeout(blurTimeout);
+  }
+});
 </script>
 
 <style scoped>
@@ -243,13 +336,13 @@ const finishEditing = () => {
   font-size: v-bind('EDITABLE_CELL_UI.FONT_SIZE');
   line-height: v-bind('EDITABLE_CELL_UI.LINE_HEIGHT');
   color: #303133;
-  transition: color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  transition: color v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .edit-button {
   flex-shrink: 0;
   opacity: 0;
-  transition: opacity v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: opacity v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
   font-size: v-bind('EDITABLE_CELL_UI.BUTTON_FONT_SIZE');
   width: auto;
   height: auto;
@@ -270,7 +363,7 @@ const finishEditing = () => {
   gap: 2px;
   width: 100%;
   min-height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
-  animation: fadeIn v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  animation: fadeIn v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .inline-input,
@@ -285,7 +378,7 @@ const finishEditing = () => {
   padding: 0 4px;
   box-shadow: none;
   border-radius: 2px;
-  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .inline-input :deep(.el-input__wrapper:hover),
@@ -312,6 +405,7 @@ const finishEditing = () => {
   flex-shrink: 0;
   padding: 0;
   margin: 0;
+  animation-delay: v-bind('TIMINGS.DELAY_FAST');
 }
 
 .inline-actions :deep(.el-button) {
@@ -333,7 +427,7 @@ const finishEditing = () => {
   justify-content: center;
   border-radius: 2px;
   border: 1px solid transparent;
-  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .action-btn-save :deep(.el-icon),
@@ -376,7 +470,7 @@ const finishEditing = () => {
 
 .inline-input.error :deep(.el-input__wrapper) {
   box-shadow: 0 0 0 1px v-bind('EDITABLE_CELL_UI.ERROR_COLOR') inset !important;
-  animation: shake v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  animation: shake v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE') !important;
 }
 
 @keyframes shake {

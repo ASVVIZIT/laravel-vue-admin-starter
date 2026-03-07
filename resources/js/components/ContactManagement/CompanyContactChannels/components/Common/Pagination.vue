@@ -1,5 +1,8 @@
 <template>
   <div class="pagination-wrapper" :class="{ 'is-recalculating': isRecalculating }">
+    <!-- ========================================================================
+         БАННЕР ПЕРЕСЧЕТА
+         ======================================================================== -->
     <transition name="fade-slide">
       <div v-if="isRecalculating" class="recalculating-banner">
         <el-icon class="is-loading"><Loading /></el-icon>
@@ -7,8 +10,12 @@
       </div>
     </transition>
 
+    <!-- ========================================================================
+         ОСНОВНОЙ КОНТЕНТ
+         ======================================================================== -->
     <transition name="fade-in" appear>
       <div class="pagination-content">
+        <!-- ✅ PageSizeSelector -->
         <PageSizeSelector
             v-model="localPageSize"
             :loaded-count="props.loadedCount"
@@ -17,19 +24,28 @@
             @change="handleSizeChange"
         />
 
+        <!-- ✅ Навигация + Пагинация -->
         <div class="pagination-with-nav">
-          <el-button
+          <!-- ✅ КНОПКА "НА ПЕРВУЮ" С TOOLTIP -->
+          <el-tooltip
               v-if="showNavigation"
-              size="small"
-              :disabled="isFirstPage || isRecalculating || props.disabled"
-              @click="goToFirstPage"
-              class="pagination-nav-btn pagination-btn-first"
-              :title="PAGINATION_MESSAGES.FIRST_PAGE"
-              round
+              :content="PAGINATION_MESSAGES.FIRST_PAGE"
+              placement="top"
+              :show-after="TIMINGS.TOOLTIP_DELAY"
+              :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
           >
-            <el-icon><DArrowLeft /></el-icon>
-          </el-button>
+            <el-button
+                size="small"
+                :disabled="isFirstPage || isRecalculating || props.disabled"
+                @click="goToFirstPage"
+                class="pagination-nav-btn pagination-btn-first"
+                round
+            >
+              <el-icon><DArrowLeft /></el-icon>
+            </el-button>
+          </el-tooltip>
 
+          <!-- ✅ Element Plus Pagination -->
           <el-pagination
               background
               :layout="PAGINATOR_DISPLAY.LAYOUT"
@@ -44,17 +60,24 @@
               class="compact-pagination"
           />
 
-          <el-button
+          <!-- ✅ КНОПКА "НА ПОСЛЕДНЮЮ" С TOOLTIP -->
+          <el-tooltip
               v-if="showNavigation"
-              size="small"
-              :disabled="isLastPage || isRecalculating || props.disabled"
-              @click="goToLastPage"
-              class="pagination-nav-btn pagination-btn-last"
-              :title="PAGINATION_MESSAGES.LAST_PAGE"
-              round
+              :content="PAGINATION_MESSAGES.LAST_PAGE"
+              placement="top"
+              :show-after="TIMINGS.TOOLTIP_DELAY"
+              :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
           >
-            <el-icon><DArrowRight /></el-icon>
-          </el-button>
+            <el-button
+                size="small"
+                :disabled="isLastPage || isRecalculating || props.disabled"
+                @click="goToLastPage"
+                class="pagination-nav-btn pagination-btn-last"
+                round
+            >
+              <el-icon><DArrowRight /></el-icon>
+            </el-button>
+          </el-tooltip>
         </div>
       </div>
     </transition>
@@ -62,8 +85,8 @@
 </template>
 
 <script setup>
-import {useCompanyStore} from "@components/ContactManagement/CompanyContactChannels/store/companyStore.js";
-import { ref, computed, watch } from 'vue';
+import { useCompanyStore } from "@components/ContactManagement/CompanyContactChannels/store/companyStore.js";
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { Loading, DArrowLeft, DArrowRight } from '@element-plus/icons-vue';
 import PageSizeSelector from './PageSizeSelector.vue';
 import {
@@ -87,6 +110,10 @@ const localPageSize = ref(props.pageSize);
 const isRecalculating = ref(false);
 const showFirstLastButtons = ref(true);
 
+// ✅ ТАЙМЕРЫ ДЛЯ DEBOUNCE
+let pageChangeTimeout = null;
+let sizeChangeTimeout = null;
+
 const totalPages = computed(() => {
   if (props.loadedCount === 0) return 1;
   return Math.ceil(props.loadedCount / localPageSize.value);
@@ -100,6 +127,9 @@ const showNavigation = computed(() => {
   return showFirstLastButtons.value && totalPages.value > 1;
 });
 
+// ============================================================================
+// СЛЕЖЕНИЕ ЗА ИЗМЕНЕНИЯМИ
+// ============================================================================
 watch(() => props.loadedCount, (newVal, oldVal) => {
   if (newVal !== oldVal && newVal > 0) {
     startRecalculation();
@@ -110,6 +140,9 @@ watch(() => props.pageSize, (newVal) => {
   localPageSize.value = newVal;
 });
 
+// ============================================================================
+// НАЧАЛО ПЕРЕСЧЕТА
+// ============================================================================
 const startRecalculation = () => {
   isRecalculating.value = true;
   setTimeout(() => {
@@ -117,29 +150,72 @@ const startRecalculation = () => {
   }, PAGINATION_UI.RECALCULATING_DURATION);
 };
 
+// ============================================================================
+// ПЕРЕЙТИ НА ПЕРВУЮ СТРАНИЦУ
+// ============================================================================
 const goToFirstPage = () => {
   if (isFirstPage.value || isRecalculating.value || props.disabled) return;
   emit('page-change', 1);
 };
 
+// ============================================================================
+// ПЕРЕЙТИ НА ПОСЛЕДНЮЮ СТРАНИЦУ
+// ============================================================================
 const goToLastPage = () => {
   if (isLastPage.value || isRecalculating.value || props.disabled) return;
   emit('page-change', totalPages.value);
 };
 
+// ============================================================================
+// ИЗМЕНЕНИЕ СТРАНИЦЫ (С DEBOUNCE)
+// ============================================================================
 const handlePageChange = (newPage) => {
   if (isRecalculating.value) return;
-  emit('page-change', newPage);
+
+  // ✅ DEBOUNCE ПРИ СМЕНЕ СТРАНИЦЫ
+  if (pageChangeTimeout) {
+    clearTimeout(pageChangeTimeout);
+  }
+
+  pageChangeTimeout = setTimeout(() => {
+    emit('page-change', newPage);
+  }, TIMINGS.DEBOUNCE_FILTER);  // ← ← ← 200ms
 };
 
+// ============================================================================
+// ИЗМЕНЕНИЕ РАЗМЕРА СТРАНИЦЫ (С DEBOUNCE)
+// ============================================================================
 const handleSizeChange = (newSize) => {
   if (isRecalculating.value) return;
-  companyStore.setPageSize(newSize);
-  emit('size-change', newSize);
+
+  // ✅ DEBOUNCE ПРИ СМЕНЕ РАЗМЕРА
+  if (sizeChangeTimeout) {
+    clearTimeout(sizeChangeTimeout);
+  }
+
+  sizeChangeTimeout = setTimeout(() => {
+    companyStore.setPageSize(newSize);
+    emit('size-change', newSize);
+  }, TIMINGS.DEBOUNCE_FILTER);  // ← ← ← 200ms
 };
+
+// ============================================================================
+// ОЧИСТКА ТАЙМЕРОВ ПРИ УНИЧТОЖЕНИИ
+// ============================================================================
+onUnmounted(() => {
+  if (pageChangeTimeout) {
+    clearTimeout(pageChangeTimeout);
+  }
+  if (sizeChangeTimeout) {
+    clearTimeout(sizeChangeTimeout);
+  }
+});
 </script>
 
 <style scoped>
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
 .pagination-wrapper {
   position: relative;
   width: 100%;
@@ -147,6 +223,9 @@ const handleSizeChange = (newSize) => {
   padding: v-bind('PAGINATION_UI.PADDING');
 }
 
+/* ============================================================================
+   RECALCULATING BANNER
+   ============================================================================ */
 .recalculating-banner {
   position: absolute;
   top: v-bind('PAGINATION_UI.RECALCULATING_BANNER_TOP');
@@ -165,7 +244,7 @@ const handleSizeChange = (newSize) => {
   white-space: nowrap;
   z-index: 10;
   box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
-  animation: bannerPulse v-bind('ANIMATIONS.TRANSITION_SLOW') ease-in-out infinite;
+  animation: bannerPulse v-bind('TIMINGS.DELAY_FAST') ease-in-out infinite;
 }
 
 @keyframes bannerPulse {
@@ -178,6 +257,9 @@ const handleSizeChange = (newSize) => {
   animation: v-bind('ANIMATIONS.SPINNER_ROTATION');
 }
 
+/* ============================================================================
+   PAGINATION CONTENT
+   ============================================================================ */
 .pagination-content {
   display: flex;
   align-items: center;
@@ -195,6 +277,9 @@ const handleSizeChange = (newSize) => {
   justify-content: flex-end;
 }
 
+/* ============================================================================
+   NAVIGATION BUTTONS
+   ============================================================================ */
 .pagination-nav-btn {
   height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
   min-width: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
@@ -203,7 +288,7 @@ const handleSizeChange = (newSize) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
   font-weight: 500;
 }
 
@@ -250,6 +335,9 @@ const handleSizeChange = (newSize) => {
   color: v-bind('COLORS.PRIMARY');
 }
 
+/* ============================================================================
+   COMPACT PAGINATION
+   ============================================================================ */
 .compact-pagination {
   justify-content: flex-end;
   flex-wrap: wrap;
@@ -268,7 +356,7 @@ const handleSizeChange = (newSize) => {
   border-radius: v-bind('PAGINATION_UI.BORDER_RADIUS');
   padding: v-bind('PAGINATION_UI.BUTTON_PADDING');
   font-weight: 400;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-pagination :deep(.el-pagination .el-pager li.is-active) {
@@ -290,7 +378,7 @@ const handleSizeChange = (newSize) => {
   border-radius: v-bind('PAGINATION_UI.BORDER_RADIUS');
   min-width: v-bind('PAGINATION_UI.BUTTON_WIDTH');
   font-weight: 500;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-pagination :deep(.el-pagination .btn-prev),
@@ -348,7 +436,7 @@ const handleSizeChange = (newSize) => {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   padding: v-bind('PAGINATION_UI.DROPDOWN_PADDING');
   min-height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
-  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  transition: background-color v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 /* ============================================================================
@@ -356,8 +444,8 @@ const handleSizeChange = (newSize) => {
    ============================================================================ */
 .fade-in-enter-active,
 .fade-in-leave-active {
-  transition: opacity v-bind('ANIMATIONS.TRANSITION_SLOW') v-bind('ANIMATIONS.EASING_EASE'),
-  transform v-bind('ANIMATIONS.TRANSITION_SLOW') v-bind('ANIMATIONS.EASING_EASE');
+  transition: opacity v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE'),
+  transform v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .fade-in-enter-from,
@@ -368,7 +456,7 @@ const handleSizeChange = (newSize) => {
 
 .fade-slide-enter-active,
 .fade-slide-leave-active {
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .fade-slide-enter-from {
@@ -382,7 +470,7 @@ const handleSizeChange = (newSize) => {
 }
 
 /* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   АДАПТИВ
    ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .pagination-with-nav {
@@ -401,9 +489,6 @@ const handleSizeChange = (newSize) => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .pagination-wrapper {
     margin-top: 6px;
@@ -433,9 +518,6 @@ const handleSizeChange = (newSize) => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .pagination-wrapper {
     margin-top: 4px;
@@ -498,7 +580,7 @@ const handleSizeChange = (newSize) => {
 }
 
 /* ============================================================================
-   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   TOUCH DEVICES
    ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .pagination-nav-btn {

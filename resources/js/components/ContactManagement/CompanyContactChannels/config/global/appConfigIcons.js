@@ -1,7 +1,7 @@
 // ============================================================================
 // APP CONFIG ICONS — ICON CONFIGURATION
 // ============================================================================
-// 📁 Путь: config/appConfigIcons.js
+// 📁 Путь: config/global/appConfigIcons.js
 // ✅ Используется: CompanyTable.vue, CompanyForm.vue, CompanyList.vue,
 //                  Filters.vue, SettingsModal.vue
 // ✅ Безопасно менять — влияет только на отображение иконок

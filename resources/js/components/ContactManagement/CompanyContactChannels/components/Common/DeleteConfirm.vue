@@ -10,6 +10,7 @@
       class="delete-confirm-dialog"
   >
     <div class="delete-confirm">
+      <!-- ✅ WARNING ICON -->
       <el-icon
           class="warning-icon"
           :size="DELETE_CONFIRM_UI.ICON_SIZE"
@@ -18,14 +19,17 @@
         <Warning />
       </el-icon>
 
+      <!-- ✅ MESSAGE -->
       <p class="message" v-html="DELETE_CONFIRM_MESSAGES.MESSAGE(props.itemName, props.entityLabel)"></p>
 
+      <!-- ✅ HINT -->
       <p class="hint">
         <el-icon><InfoFilled /></el-icon>
         {{ DELETE_CONFIRM_MESSAGES.HINT_TEXT }}
       </p>
     </div>
 
+    <!-- ✅ FOOTER BUTTONS -->
     <template #footer>
       <span class="dialog-footer">
         <el-button
@@ -63,7 +67,9 @@ const props = defineProps({...DELETE_CONFIRM_PROPS_CONFIG});
 
 const emit = defineEmits(['update:visible', 'confirm', 'cancel']);
 
-// ✅ ДВУСТОРОННЯЯ СВЯЗЬ ЧЕРЕЗ COMPUTED
+// ============================================================================
+// COMPUTED — VISIBLE (ДВУСТОРОННЯЯ СВЯЗЬ)
+// ============================================================================
 const localVisible = computed({
   get: () => props.visible,
   set: (val) => {
@@ -71,54 +77,72 @@ const localVisible = computed({
   },
 });
 
-// ✅ ПОДТВЕРЖДЕНИЕ УДАЛЕНИЯ
+// ============================================================================
+// HANDLE CONFIRM
+// ============================================================================
 const handleConfirm = () => {
   if (props.loading) return;
   console.log('🔴 [DeleteConfirm] handleConfirm');
   emit('confirm');
 };
 
-// ✅ ОТМЕНА УДАЛЕНИЯ
+// ============================================================================
+// HANDLE CANCEL
+// ============================================================================
 const handleCancel = () => {
   if (props.loading) return;
   emit('cancel');
   localVisible.value = false;
 };
 
-// ✅ СБРОС ПРИ ЗАКРЫТИИ ДИАЛОГА
+// ============================================================================
+// RESET FORM (ПРИ ЗАКРЫТИИ ДИАЛОГА)
+// ============================================================================
 const resetForm = () => {
   emit('cancel');
 };
 </script>
 
 <style scoped>
+/* ============================================================================
+   DELETE CONFIRM CONTAINER
+   ============================================================================ */
 .delete-confirm {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 16px;
-  padding: 8px 0;
+  /* ✅ TIMINGS — ИЗ CONFIG */
+  gap: v-bind('DELETE_CONFIRM_UI.CONTENT_PADDING');
+  padding: v-bind('DELETE_CONFIRM_UI.CONTENT_PADDING');
 }
 
+/* ============================================================================
+   WARNING ICON
+   ============================================================================ */
 .warning-icon {
   flex-shrink: 0;
-  animation: scaleIn v-bind('TIMINGS.MODAL_ANIMATION') ease-out;
+  /* ✅ TIMINGS — АНИМАЦИЯ ПОЯВЛЕНИЯ (300ms) */
+  animation: scaleIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE_OUT');
 }
 
+/* ============================================================================
+   MESSAGE
+   ============================================================================ */
 .message {
-  font-size: 14px;
-  color: #606266;
+  /* ✅ ИЗ CONFIG */
+  font-size: v-bind('DELETE_CONFIRM_UI.MESSAGE_FONT_SIZE');
+  color: v-bind('DELETE_CONFIRM_UI.MESSAGE_COLOR');
   margin: 0;
-  line-height: 1.6;
-  max-width: 400px;
+  line-height: v-bind('DELETE_CONFIRM_UI.MESSAGE_LINE_HEIGHT');
+  max-width: v-bind('DELETE_CONFIRM_UI.MESSAGE_MAX_WIDTH');
 }
 
 .message .item-name {
   display: block;
   margin-top: 4px;
-  font-weight: 600;
-  color: #303133;
+  font-weight: v-bind('DELETE_CONFIRM_UI.ITEM_NAME_FONT_WEIGHT');
+  color: v-bind('DELETE_CONFIRM_UI.ITEM_NAME_COLOR');
 }
 
 .message strong {
@@ -126,17 +150,21 @@ const resetForm = () => {
   font-weight: 600;
 }
 
+/* ============================================================================
+   HINT
+   ============================================================================ */
 .hint {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #909399;
+  /* ✅ ИЗ CONFIG */
+  gap: v-bind('DELETE_CONFIRM_UI.HINT_GAP');
+  font-size: v-bind('DELETE_CONFIRM_UI.HINT_FONT_SIZE');
+  color: v-bind('DELETE_CONFIRM_UI.HINT_COLOR');
   margin: 0;
-  padding: 4px 8px;
-  background-color: #f5f7fa;
-  border-radius: 4px;
+  padding: v-bind('DELETE_CONFIRM_UI.HINT_PADDING');
+  background-color: v-bind('DELETE_CONFIRM_UI.HINT_BACKGROUND');
+  border-radius: v-bind('DELETE_CONFIRM_UI.HINT_BORDER_RADIUS');
 }
 
 .hint :deep(.el-icon) {
@@ -144,16 +172,21 @@ const resetForm = () => {
   flex-shrink: 0;
 }
 
+/* ============================================================================
+   DIALOG FOOTER
+   ============================================================================ */
 .dialog-footer {
   display: flex;
   justify-content: center;
-  gap: 12px;
-  padding-top: 12px;
+  /* ✅ ИЗ CONFIG */
+  gap: v-bind('DELETE_CONFIRM_UI.FOOTER_GAP');
+  padding-top: v-bind('DELETE_CONFIRM_UI.FOOTER_PADDING_TOP');
 }
 
 .dialog-footer .el-button {
-  min-width: 80px;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  min-width: v-bind('DELETE_CONFIRM_UI.BUTTON_MIN_WIDTH');
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .dialog-footer .el-button:hover:not(:disabled) {
@@ -170,34 +203,50 @@ const resetForm = () => {
   filter: brightness(1.1);
 }
 
+/* ============================================================================
+   DIALOG HEADER
+   ============================================================================ */
 :deep(.el-dialog__header) {
-  padding: 16px 20px;
-  border-bottom: 1px solid #EBEEF5;
-  background-color: #FFFFFF;
+  /* ✅ ИЗ CONFIG */
+  padding: v-bind('DELETE_CONFIRM_UI.HEADER_PADDING');
+  border-bottom: v-bind('DELETE_CONFIRM_UI.HEADER_BORDER');
+  background-color: v-bind('DELETE_CONFIRM_UI.HEADER_BACKGROUND');
 }
 
 :deep(.el-dialog__title) {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
+  font-size: v-bind('DELETE_CONFIRM_UI.TITLE_FONT_SIZE');
+  font-weight: v-bind('DELETE_CONFIRM_UI.TITLE_FONT_WEIGHT');
+  color: v-bind('DELETE_CONFIRM_UI.TITLE_COLOR');
 }
 
+/* ============================================================================
+   DIALOG BODY
+   ============================================================================ */
 :deep(.el-dialog__body) {
-  padding: 24px 20px;
+  /* ✅ ИЗ CONFIG */
+  padding: v-bind('DELETE_CONFIRM_UI.BODY_PADDING');
 }
 
+/* ============================================================================
+   DIALOG FOOTER (DEEP)
+   ============================================================================ */
 :deep(.el-dialog__footer) {
-  padding: 12px 20px 16px;
-  border-top: 1px solid #EBEEF5;
-  background-color: #FFFFFF;
+  /* ✅ ИЗ CONFIG */
+  padding: v-bind('DELETE_CONFIRM_UI.FOOTER_PADDING');
+  border-top: v-bind('DELETE_CONFIRM_UI.FOOTER_BORDER');
+  background-color: v-bind('DELETE_CONFIRM_UI.FOOTER_BACKGROUND');
 }
 
 :deep(.el-dialog__headerbtn) {
   display: none;
 }
 
+/* ============================================================================
+   DIALOG ANIMATION
+   ============================================================================ */
 .delete-confirm-dialog :deep(.el-dialog) {
-  animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') ease-out;
+  /* ✅ TIMINGS — АНИМАЦИЯ ПОЯВЛЕНИЯ (300ms) */
+  animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE_OUT');
 }
 
 @keyframes dialogFadeIn {
@@ -212,7 +261,8 @@ const resetForm = () => {
 }
 
 .delete-confirm-dialog :deep(.el-overlay) {
-  animation: overlayFadeIn v-bind('TIMINGS.MODAL_ANIMATION') ease;
+  /* ✅ TIMINGS — АНИМАЦИЯ ПОЯВЛЕНИЯ (300ms) */
+  animation: overlayFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 @keyframes overlayFadeIn {
@@ -235,47 +285,53 @@ const resetForm = () => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XXXL
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .delete-confirm-dialog :deep(.el-dialog) {
-    width: 450px !important;
+    width: v-bind('DELETE_CONFIRM_UI.DIALOG_WIDTH_TABLET') !important;
   }
 
   .warning-icon {
-    width: 42px;
-    height: 42px;
+    width: v-bind('DELETE_CONFIRM_UI.ICON_SIZE_TABLET');
+    height: v-bind('DELETE_CONFIRM_UI.ICON_SIZE_TABLET');
   }
 
   .message {
-    font-size: 13px;
+    font-size: v-bind('DELETE_CONFIRM_UI.MESSAGE_FONT_SIZE_TABLET');
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XL
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .delete-confirm-dialog :deep(.el-dialog) {
-    width: 90% !important;
+    width: v-bind('DELETE_CONFIRM_UI.DIALOG_WIDTH_MOBILE') !important;
     margin: 10px auto;
   }
 
   .delete-confirm {
-    gap: 12px;
+    gap: v-bind('DELETE_CONFIRM_UI.HINT_GAP_MOBILE');
   }
 
   .warning-icon {
-    width: 36px;
-    height: 36px;
+    width: v-bind('DELETE_CONFIRM_UI.ICON_SIZE_MOBILE');
+    height: v-bind('DELETE_CONFIRM_UI.ICON_SIZE_MOBILE');
   }
 
   .message {
-    font-size: 12px;
+    font-size: v-bind('DELETE_CONFIRM_UI.MESSAGE_FONT_SIZE_MOBILE');
   }
 
   .hint {
-    font-size: 11px;
+    font-size: v-bind('DELETE_CONFIRM_UI.HINT_FONT_SIZE_MOBILE');
   }
 
   .dialog-footer {
     flex-direction: column;
-    gap: 8px;
+    gap: v-bind('DELETE_CONFIRM_UI.FOOTER_GAP_MOBILE');
   }
 
   .dialog-footer .el-button {
@@ -283,27 +339,30 @@ const resetForm = () => {
   }
 }
 
+/* ============================================================================
+   АДАПТИВ — XS
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .delete-confirm-dialog :deep(.el-dialog) {
-    width: 95% !important;
+    width: v-bind('DELETE_CONFIRM_UI.DIALOG_WIDTH_SMALL') !important;
     margin: 5px auto;
   }
 
   .delete-confirm-dialog :deep(.el-dialog__body) {
-    padding: 16px 12px;
+    padding: v-bind('DELETE_CONFIRM_UI.BODY_PADDING_SMALL');
   }
 
   .warning-icon {
-    width: 32px;
-    height: 32px;
+    width: v-bind('DELETE_CONFIRM_UI.ICON_SIZE_SMALL');
+    height: v-bind('DELETE_CONFIRM_UI.ICON_SIZE_SMALL');
   }
 
   .message {
-    font-size: 11px;
+    font-size: v-bind('DELETE_CONFIRM_UI.MESSAGE_FONT_SIZE_SMALL');
   }
 
   .hint {
-    font-size: 10px;
+    font-size: v-bind('DELETE_CONFIRM_UI.HINT_FONT_SIZE_SMALL');
   }
 
   .dialog-footer .el-button {
@@ -313,6 +372,9 @@ const resetForm = () => {
   }
 }
 
+/* ============================================================================
+   TOUCH DEVICES
+   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .dialog-footer .el-button {
     min-height: 44px;
@@ -320,8 +382,8 @@ const resetForm = () => {
   }
 
   .warning-icon {
-    width: 48px;
-    height: 48px;
+    width: v-bind('DELETE_CONFIRM_UI.ICON_SIZE');
+    height: v-bind('DELETE_CONFIRM_UI.ICON_SIZE');
   }
 }
 </style>

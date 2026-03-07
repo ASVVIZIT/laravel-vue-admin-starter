@@ -1,7 +1,16 @@
 <template>
   <div class="loading-data-actions" :class="{ 'is-complete': isComplete, 'is-loading': props.isLoading }">
+    <!-- ========================================================================
+         КНОПКИ УПРАВЛЕНИЯ
+         ======================================================================== -->
     <div class="control-buttons">
-      <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_LOAD_MORE" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
+      <!-- ✅ КНОПКА "+N" (LOAD MORE) С ДИНАМИЧЕСКИМ TOOLTIP -->
+      <el-tooltip
+          :content="getLoadMoreTooltip(props.chunkSize)"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+      >
         <el-button
             v-if="props.showLoadMore && !props.isLoading"
             size="small"
@@ -10,11 +19,17 @@
             @click="$emit('load-more')"
             class="control-btn btn-more"
         >
-          +{{ props.chunkSize }}
+          {{ getLoadMoreButtonText(props.chunkSize) }}
         </el-button>
       </el-tooltip>
 
-      <el-tooltip :content="mainButtonTooltip" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
+      <!-- ✅ КНОПКА ПАУЗА/ВСЕ (MAIN) -->
+      <el-tooltip
+          :content="mainButtonTooltip"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+      >
         <el-button
             v-if="showMainButton"
             size="small"
@@ -29,7 +44,13 @@
         </el-button>
       </el-tooltip>
 
-      <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
+      <!-- ✅ КНОПКА ОБНОВИТЬ (REFRESH) -->
+      <el-tooltip
+          :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_REFRESH"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+      >
         <el-button
             v-if="props.showRefresh && !props.isLoading"
             size="small"
@@ -43,6 +64,9 @@
       </el-tooltip>
     </div>
 
+    <!-- ========================================================================
+         ПРОГРЕСС БАР
+         ======================================================================== -->
     <div class="progress-wrapper">
       <div class="status-above">
         <div class="status-badge" :class="statusClass">
@@ -52,7 +76,12 @@
           <span>{{ statusText }}</span>
         </div>
 
-        <el-tooltip :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_SETTINGS" placement="top" :show-after="TIMINGS.TOOLTIP_DELAY" :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY">
+        <el-tooltip
+            :content="LOADING_DATA_ACTIONS_MESSAGES.TOOLTIP_SETTINGS"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+        >
           <el-button
               size="small"
               type="info"
@@ -111,6 +140,8 @@ import {
   LOADING_DATA_ACTIONS_UI,
   LOADING_DATA_ACTIONS_COLORS,
   LOADING_DATA_ACTIONS_MESSAGES,
+  getLoadMoreButtonText,
+  getLoadMoreTooltip,
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
@@ -128,6 +159,9 @@ const emit = defineEmits([
   'settings',
 ]);
 
+// ============================================================================
+// COMPUTED — СТАТУСЫ
+// ============================================================================
 const isComplete = computed(() => props.percentage >= 100);
 
 const showMainButton = computed(() => {
@@ -165,6 +199,9 @@ const statusClass = computed(() => {
   return 'status-waiting';
 });
 
+// ============================================================================
+// COMPUTED — ЧАНКИ
+// ============================================================================
 const showChunkRod = computed(() => {
   return props.isLoading && !isComplete.value && props.percentage > 0;
 });
@@ -184,6 +221,9 @@ const chunkRemaining = computed(() => {
   return Math.round((props.chunkProgress / 100) * props.chunkSize);
 });
 
+// ============================================================================
+// COMPUTED — СТИЛИ ПРОГРЕСС БАРА
+// ============================================================================
 const progressBarStyle = computed(() => ({
   height: CHUNK_PROGRESS_CONFIG.HEIGHT,
   borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
@@ -206,8 +246,7 @@ const chunkRodStyle = computed(() => {
     width: `${Math.min(orangeWidth, 100)}%`,
     minWidth: props.isLoading ? `${CHUNK_PROGRESS_CONFIG.CHUNK_MIN_WIDTH}` : '0',
     background: `linear-gradient(90deg, #FF9800 0%, #FFB74D 100%)`,
-    transition: `width 0.3s ease-out`,
-    zIndex: 10,
+    transition: `width ${TIMINGS.DELAY_FAST} ${ANIMATIONS.EASING_EASE_OUT}`,
     borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
   };
 });
@@ -216,11 +255,13 @@ const chunkRodStyle = computed(() => {
 const loadedLayerStyle = computed(() => ({
   width: `${props.percentage}%`,
   background: `linear-gradient(90deg, #409EFF 0%, #66B1FF 100%)`,
-  transition: `width 0.6s ease-out`,
-  zIndex: 20,
+  transition: `width ${TIMINGS.RECALCULATING_DURATION} ${ANIMATIONS.EASING_EASE_OUT}`,
   borderRadius: CHUNK_PROGRESS_CONFIG.BORDER_RADIUS,
 }));
 
+// ============================================================================
+// ОБРАБОТЧИКИ СОБЫТИЙ
+// ============================================================================
 const handleMainClick = () => {
   if (props.isLoading && !props.isPaused) {
     emit('pause');
@@ -241,6 +282,9 @@ const handleSettings = () => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
 .loading-data-actions {
   display: flex;
   align-items: center;
@@ -251,7 +295,7 @@ const handleSettings = () => {
   border: v-bind('LOADING_DATA_ACTIONS_UI.BORDER');
   width: 100%;
   height: v-bind('LOADING_DATA_ACTIONS_UI.HEIGHT');
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
   position: relative;
 }
 
@@ -265,6 +309,9 @@ const handleSettings = () => {
   border-color: v-bind('COLORS.PRIMARY');
 }
 
+/* ============================================================================
+   CONTROL BUTTONS
+   ============================================================================ */
 .control-buttons {
   display: flex;
   align-items: center;
@@ -279,7 +326,7 @@ const handleSettings = () => {
   min-width: auto;
   border-radius: 3px;
   border: none;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
   cursor: pointer;
 }
 
@@ -295,6 +342,9 @@ const handleSettings = () => {
   vertical-align: middle;
 }
 
+/* ============================================================================
+   BUTTON GRADIENTS
+   ============================================================================ */
 .btn-main {
   background: linear-gradient(135deg,
   v-bind('LOADING_DATA_ACTIONS_COLORS.BTN_MAIN_GRADIENT_FROM'),
@@ -334,6 +384,9 @@ const handleSettings = () => {
   transform: scale(1.05);
 }
 
+/* ============================================================================
+   PROGRESS WRAPPER
+   ============================================================================ */
 .progress-wrapper {
   flex: 1;
   min-width: 120px;
@@ -355,6 +408,9 @@ const handleSettings = () => {
   white-space: nowrap;
 }
 
+/* ============================================================================
+   STATUS BADGE
+   ============================================================================ */
 .status-badge {
   display: flex;
   align-items: center;
@@ -365,7 +421,7 @@ const handleSettings = () => {
   font-weight: 600;
   white-space: nowrap;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
   color: #FFFFFF;
 }
 
@@ -401,6 +457,9 @@ const handleSettings = () => {
   box-shadow: 0 2px 6px rgba(144, 147, 153, 0.4);
 }
 
+/* ============================================================================
+   SETTINGS BUTTON
+   ============================================================================ */
 .settings-btn {
   padding: 0;
   height: 18px;
@@ -410,7 +469,7 @@ const handleSettings = () => {
   border: none;
   background: linear-gradient(135deg, #909399 0%, #787B80 100%);
   color: #FFFFFF;
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
   display: flex;
   align-items: center;
   justify-content: center;
@@ -429,6 +488,9 @@ const handleSettings = () => {
   color: #FFFFFF;
 }
 
+/* ============================================================================
+   PROGRESS BAR
+   ============================================================================ */
 .progress-bar {
   position: relative;
   width: 100%;
@@ -449,6 +511,7 @@ const handleSettings = () => {
   z-index: 0;
 }
 
+/* ✅ ОРАНЖЕВАЯ ПОЛОСА — z-index: 10 (СНИЗУ) */
 .progress-chunk-rod {
   position: absolute;
   top: 0;
@@ -459,6 +522,7 @@ const handleSettings = () => {
   border-radius: v-bind('CHUNK_PROGRESS_CONFIG.BORDER_RADIUS');
 }
 
+/* ✅ СИНЯЯ ПОЛОСА — z-index: 20 (СВЕРХУ) */
 .progress-loaded {
   position: absolute;
   top: 0;
@@ -469,6 +533,9 @@ const handleSettings = () => {
   overflow: hidden;
 }
 
+/* ============================================================================
+   STRIPES ANIMATION
+   ============================================================================ */
 .progress-stripes,
 .chunk-stripes {
   position: absolute;
@@ -512,6 +579,9 @@ const handleSettings = () => {
   100% { transform: translateX(-40px); }
 }
 
+/* ============================================================================
+   CHUNK SHINE
+   ============================================================================ */
 .chunk-shine {
   position: absolute;
   top: 0;
@@ -530,6 +600,9 @@ const handleSettings = () => {
   100% { left: 100%; opacity: 0; }
 }
 
+/* ============================================================================
+   PROGRESS TEXT — z-index: 100 (СВЕРХУ ВСЕГО)
+   ============================================================================ */
 .progress-text {
   position: absolute;
   width: 100%;
@@ -580,11 +653,17 @@ const handleSettings = () => {
   font-weight: 700;
 }
 
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
 @keyframes rotating {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
 
+/* ============================================================================
+   АДАПТИВ
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXL')) {
   .loading-data-actions {
     flex-wrap: wrap;

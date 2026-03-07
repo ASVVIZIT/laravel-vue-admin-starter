@@ -1,30 +1,40 @@
 <template>
   <div class="page-size-selector" :class="[props.className, { 'is-disabled': props.disabled }]">
+    <!-- ✅ LABEL -->
     <span v-if="props.showLabel" class="page-size-label" :style="labelStyle">
       {{ props.label }}
     </span>
-    <el-select
-        v-model="localSize"
-        @change="handleChange"
-        :size="props.selectSize"
-        :class="props.selectClass"
-        :disabled="props.disabled"
-        class="compact-size-selector"
-        :teleported="true"
+
+    <!-- ✅ SELECT С TOOLTIP -->
+    <el-tooltip
+        :content="tooltipContent"
+        placement="top"
+        :show-after="TIMINGS.TOOLTIP_DELAY"
+        :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
     >
-      <el-option
-          v-for="(size, index) in calculatedSizes"
-          :key="size"
-          :label="getOptionLabel(size, index)"
-          :value="size"
-          :disabled="size > props.loadedCount"
-      />
-    </el-select>
+      <el-select
+          v-model="localSize"
+          @change="handleChange"
+          :size="props.selectSize"
+          :class="props.selectClass"
+          :disabled="props.disabled"
+          class="compact-size-selector"
+          :teleported="true"
+      >
+        <el-option
+            v-for="(size, index) in calculatedSizes"
+            :key="size"
+            :label="getOptionLabel(size, index)"
+            :value="size"
+            :disabled="size > props.loadedCount"
+        />
+      </el-select>
+    </el-tooltip>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import {
   PAGE_SIZE_SELECTOR_PROPS_CONFIG,
   PAGE_SIZE_SELECTOR_UI,
@@ -45,6 +55,12 @@ const localSize = ref(props.modelValue);
 const suffix = PAGINATION_LABELS.PAGE_SIZE_SUFFIX;
 const allLabel = props.allLabel || PAGINATION_LABELS.ALL_ITEMS;
 
+// ✅ ТАЙМЕР ДЛЯ DEBOUNCE
+let changeTimeout = null;
+
+// ============================================================================
+// COMPUTED — РАЗМЕРЫ СТРАНИЦ
+// ============================================================================
 const calculatedSizes = computed(() => {
   const baseSizes = props.availableSizes || PAGE_SIZE_OPTIONS.BASE_AVAILABLE;
 
@@ -61,12 +77,25 @@ const calculatedSizes = computed(() => {
   return filtered.sort((a, b) => a - b);
 });
 
+// ============================================================================
+// COMPUTED — СТИЛИ LABEL
+// ============================================================================
 const labelStyle = computed(() => ({
   color: PAGE_SIZE_SELECTOR_UI.LABEL_COLOR,
   fontSize: PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE,
   marginRight: PAGE_SIZE_SELECTOR_UI.GAP,
 }));
 
+// ============================================================================
+// COMPUTED — TOOLTIP CONTENT
+// ============================================================================
+const tooltipContent = computed(() => {
+  return `Записей на страницу: ${localSize.value} из ${props.loadedCount}`;
+});
+
+// ============================================================================
+// HELPER — LABEL ОПЦИИ
+// ============================================================================
 const getOptionLabel = (size, index) => {
   const isAllItems = size >= props.loadedCount && props.loadedCount > 0;
   if (isAllItems) {
@@ -75,28 +104,58 @@ const getOptionLabel = (size, index) => {
   return `${size} ${suffix}`;
 };
 
+// ============================================================================
+// WATCH — MODEL VALUE
+// ============================================================================
 watch(() => props.modelValue, (newVal) => {
   localSize.value = newVal;
 });
 
+// ============================================================================
+// WATCH — LOADED COUNT
+// ============================================================================
 watch(() => props.loadedCount, (newVal) => {
   if (localSize.value > newVal && newVal > 0) {
     localSize.value = newVal;
   }
 });
 
+// ============================================================================
+// HANDLE CHANGE (С DEBOUNCE)
+// ============================================================================
 const handleChange = (value) => {
-  emit('update:modelValue', value);
-  emit('change', value);
+  // ✅ ОЧИСТКА ПРЕДЫДУЩЕГО ТАЙМЕРА
+  if (changeTimeout) {
+    clearTimeout(changeTimeout);
+  }
+
+  // ✅ DEBOUNCE 200ms
+  changeTimeout = setTimeout(() => {
+    emit('update:modelValue', value);
+    emit('change', value);
+  }, TIMINGS.DEBOUNCE_FILTER);
 };
+
+// ============================================================================
+// CLEANUP — ОЧИСТКА ТАЙМЕРА
+// ============================================================================
+onUnmounted(() => {
+  if (changeTimeout) {
+    clearTimeout(changeTimeout);
+  }
+});
 </script>
 
 <style scoped>
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
 .page-size-selector {
   display: flex;
   align-items: center;
   gap: v-bind('PAGE_SIZE_SELECTOR_UI.GAP');
-  transition: all v-bind('ANIMATIONS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .page-size-selector.is-disabled {
@@ -104,6 +163,9 @@ const handleChange = (value) => {
   pointer-events: none;
 }
 
+/* ============================================================================
+   SELECT
+   ============================================================================ */
 .page-size-selector .el-select {
   width: v-bind('PAGE_SIZE_SELECTOR_UI.SELECT_WIDTH');
 }
@@ -115,6 +177,9 @@ const handleChange = (value) => {
   color: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_COLOR');
 }
 
+/* ============================================================================
+   COMPACT SELECT
+   ============================================================================ */
 .compact-size-selector :deep(.el-select) {
   --el-select-font-size: v-bind('PAGE_SIZE_SELECTOR_UI.LABEL_FONT_SIZE');
 }
@@ -125,7 +190,8 @@ const handleChange = (value) => {
   box-shadow: none;
   padding: 0 4px;
   border-radius: v-bind('PAGINATION_UI.BORDER_RADIUS');
-  transition: all v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (100ms) */
+  transition: all v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-size-selector :deep(.el-select__wrapper:hover) {
@@ -141,11 +207,15 @@ const handleChange = (value) => {
   height: v-bind('PAGINATION_UI.SELECT_HEIGHT');
 }
 
+/* ============================================================================
+   DROPDOWN ITEMS
+   ============================================================================ */
 .compact-size-selector :deep(.el-select-dropdown__item) {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   padding: v-bind('PAGINATION_UI.DROPDOWN_PADDING');
   min-height: v-bind('PAGINATION_UI.BUTTON_HEIGHT');
-  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (100ms) */
+  transition: background-color v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-size-selector :deep(.el-select-dropdown__item:hover) {
@@ -158,10 +228,14 @@ const handleChange = (value) => {
   background-color: #f0f9eb;
 }
 
+/* ============================================================================
+   CARET
+   ============================================================================ */
 .compact-size-selector :deep(.el-select__caret) {
   font-size: v-bind('PAGINATION_UI.FONT_SIZE');
   color: v-bind('COLORS.INFO');
-  transition: color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (100ms) */
+  transition: color v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .compact-size-selector :deep(.el-select__caret:hover) {
@@ -175,7 +249,7 @@ const handleChange = (value) => {
 }
 
 /* ============================================================================
-   АДАПТИВ — ПЛАНШЕТЫ (577px - 768px)
+   АДАПТИВ
    ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .page-size-selector {
@@ -191,9 +265,6 @@ const handleChange = (value) => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — МОБИЛЬНЫЕ (321px - 576px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .page-size-selector {
     gap: 4px;
@@ -221,9 +292,6 @@ const handleChange = (value) => {
   }
 }
 
-/* ============================================================================
-   АДАПТИВ — ОЧЕНЬ МАЛЕНЬКИЕ ЭКРАНЫ (≤320px)
-   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .page-size-selector {
     gap: 3px;
@@ -258,7 +326,7 @@ const handleChange = (value) => {
 }
 
 /* ============================================================================
-   TOUCH DEVICES — УЛУЧШЕННАЯ ВИДИМОСТЬ
+   TOUCH DEVICES
    ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .page-size-selector .el-select {

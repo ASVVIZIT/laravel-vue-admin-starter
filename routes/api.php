@@ -489,13 +489,44 @@ Route::get('/companies/meta/total', [CompanyController::class, 'count']);
 Route::apiResource('companies', CompanyController::class)->where([
     'company' => '[0-9]+',
 ]);
-Route::apiResource('companies', CompanyController::class);
+
+// ============================================================================
+// CHANNELS — ОТДЕЛЬНЫЙ РАЗДЕЛ (С ПАГИНАЦИЕЙ)
+// ============================================================================
+
+// Получить все каналы (с пагинацией и фильтрами)
+Route::get('/channels', [ContactChannelController::class, 'index'])->name('api.channels.index');
+
+// Получить количество каналов (для прогресс бара)
+Route::get('/channels/meta/total', [ContactChannelController::class, 'count'])->name('api.channels.count');
+
+// Получить один канал
+Route::get('/channels/{contactChannel}', [ContactChannelController::class, 'show'])->name('api.channels.show');
+
+// Создать канал
+Route::post('/channels', [ContactChannelController::class, 'store'])->name('api.channels.store');
+
+// Обновить канал
+Route::put('/channels/{contactChannel}', [ContactChannelController::class, 'update'])->name('api.channels.update');
+
+// Удалить канал
+Route::delete('/channels/{contactChannel}', [ContactChannelController::class, 'destroy'])->name('api.channels.destroy');
+
+// Сортировка каналов
+Route::put('/channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.channels.reorder');
+
+// ============================================================================
+// CHANNELS BY COMPANY (для совместимости)
+// ============================================================================
+
 Route::prefix('companies/{company}')->group(function () {
-    Route::apiResource('contact-channels', ContactChannelController::class);
-    Route::put('contact-channels/reorder', [ContactChannelController::class, 'reorder'])->name('contact-channels.reorder');
-})->where([
-    'company' => '[0-9]+',
-]);
+    Route::get('/contact-channels', [ContactChannelController::class, 'indexByCompany'])->name('api.companies.channels.index');
+    Route::post('/contact-channels', [ContactChannelController::class, 'store'])->name('api.companies.channels.store');
+    Route::put('/contact-channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.companies.channels.reorder');
+    Route::get('/contact-channels/{contactChannel}', [ContactChannelController::class, 'show'])->name('api.companies.channels.show');
+    Route::put('/contact-channels/{contactChannel}', [ContactChannelController::class, 'update'])->name('api.companies.channels.update');
+    Route::delete('/contact-channels/{contactChannel}', [ContactChannelController::class, 'destroy'])->name('api.companies.channels.destroy');
+});
 
 // ===================================================
 // Регистрация middleware для роутов

@@ -18,111 +18,157 @@
         class="settings-form"
         :style="formStyle"
     >
+      <!-- ✅ РАЗДЕЛ: ЗАГРУЗКА ДАННЫХ -->
       <el-divider content-position="left">
         <el-icon><Download /></el-icon>
         {{ SETTINGS_MESSAGES.SECTION_DATA_LOAD }}
       </el-divider>
 
       <el-form-item :label="SETTINGS_MESSAGES.LABEL_CHUNK_SIZE">
-        <el-select
-            v-model="formData.chunkSize"
-            :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_CHUNK_SIZE"
-            :disabled="props.disabled"
-            class="settings-select"
+        <el-tooltip
+            :content="SETTINGS_MESSAGES.HINT_CHUNK_SIZE"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
         >
-          <el-option
-              v-for="size in CHUNK_SIZE_OPTIONS"
-              :key="size.value"
-              :label="size.label"
-              :value="size.value"
-          />
-        </el-select>
+          <el-select
+              v-model="formData.chunkSize"
+              :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_CHUNK_SIZE"
+              :disabled="props.disabled"
+              class="settings-select"
+          >
+            <el-option
+                v-for="size in CHUNK_SIZE_OPTIONS"
+                :key="size.value"
+                :label="size.label"
+                :value="size.value"
+            />
+          </el-select>
+        </el-tooltip>
         <div class="form-hint">{{ SETTINGS_MESSAGES.HINT_CHUNK_SIZE }}</div>
       </el-form-item>
 
       <el-form-item :label="SETTINGS_MESSAGES.LABEL_CONFIRM_LOAD_ALL">
-        <el-switch
-            v-model="formData.confirmBeforeLoadAll"
-            :disabled="props.disabled"
-            :active-text="SETTINGS_MESSAGES.SWITCH_ON"
-            :inactive-text="SETTINGS_MESSAGES.SWITCH_OFF"
-        />
+        <el-tooltip
+            :content="SETTINGS_MESSAGES.HINT_CONFIRM_LOAD_ALL"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+        >
+          <el-switch
+              v-model="formData.confirmBeforeLoadAll"
+              :disabled="props.disabled"
+              :active-text="SETTINGS_MESSAGES.SWITCH_ON"
+              :inactive-text="SETTINGS_MESSAGES.SWITCH_OFF"
+          />
+        </el-tooltip>
         <div class="form-hint">{{ SETTINGS_MESSAGES.HINT_CONFIRM_LOAD_ALL }}</div>
       </el-form-item>
 
+      <!-- ✅ РАЗДЕЛ: ОТОБРАЖЕНИЕ -->
       <el-divider content-position="left">
         <el-icon><View /></el-icon>
         {{ SETTINGS_MESSAGES.SECTION_DISPLAY }}
       </el-divider>
 
       <el-form-item :label="SETTINGS_MESSAGES.LABEL_PAGE_SIZE">
-        <el-select
-            v-model="formData.pageSize"
-            :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_PAGE_SIZE"
-            :disabled="props.disabled"
-            class="settings-select"
+        <el-tooltip
+            :content="SETTINGS_MESSAGES.HINT_PAGE_SIZE"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
         >
-          <el-option
-              v-for="size in PAGE_SIZE_OPTIONS_LIST"
-              :key="size"
-              :label="size"
-              :value="size"
-          />
-        </el-select>
+          <el-select
+              v-model="formData.pageSize"
+              :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_PAGE_SIZE"
+              :disabled="props.disabled"
+              class="settings-select"
+          >
+            <el-option
+                v-for="size in PAGE_SIZE_OPTIONS_LIST"
+                :key="size"
+                :label="size"
+                :value="size"
+            />
+          </el-select>
+        </el-tooltip>
         <div class="form-hint">{{ SETTINGS_MESSAGES.HINT_PAGE_SIZE }}</div>
       </el-form-item>
 
       <el-form-item :label="SETTINGS_MESSAGES.LABEL_SHOW_LOAD_BUTTONS">
-        <el-switch
-            v-model="formData.showLoadButtons"
-            :disabled="props.disabled"
-            :active-text="SETTINGS_MESSAGES.SWITCH_ON"
-            :inactive-text="SETTINGS_MESSAGES.SWITCH_OFF"
-        />
+        <el-tooltip
+            :content="SETTINGS_MESSAGES.HINT_SHOW_LOAD_BUTTONS"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+        >
+          <el-switch
+              v-model="formData.showLoadButtons"
+              :disabled="props.disabled"
+              :active-text="SETTINGS_MESSAGES.SWITCH_ON"
+              :inactive-text="SETTINGS_MESSAGES.SWITCH_OFF"
+          />
+        </el-tooltip>
         <div class="form-hint">{{ SETTINGS_MESSAGES.HINT_SHOW_LOAD_BUTTONS }}</div>
       </el-form-item>
 
+      <!-- ✅ РАЗДЕЛ: ФИЛЬТРЫ ПО УМОЛЧАНИЮ -->
       <el-divider content-position="left">
         <el-icon><Filter /></el-icon>
         {{ SETTINGS_MESSAGES.SECTION_DEFAULT_FILTERS }}
       </el-divider>
 
       <el-form-item :label="SETTINGS_MESSAGES.LABEL_DEFAULT_SORT">
-        <el-select
-            v-model="formData.defaultSortBy"
-            :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_DEFAULT_SORT"
-            :disabled="props.disabled"
-            class="settings-select"
+        <el-tooltip
+            :content="SETTINGS_MESSAGES.HINT_DEFAULT_SORT"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
         >
-          <el-option
-              v-for="option in SORT_OPTIONS_LIST"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-          />
-        </el-select>
+          <el-select
+              v-model="formData.defaultSortBy"
+              :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_DEFAULT_SORT"
+              :disabled="props.disabled"
+              class="settings-select"
+          >
+            <el-option
+                v-for="option in SORT_OPTIONS_LIST"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+            />
+          </el-select>
+        </el-tooltip>
         <div class="form-hint">{{ SETTINGS_MESSAGES.HINT_DEFAULT_SORT }}</div>
       </el-form-item>
 
       <el-form-item :label="SETTINGS_MESSAGES.LABEL_DEFAULT_ICON_FILTER">
-        <el-select
-            v-model="formData.defaultFilterHasIcon"
-            :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_DEFAULT_ICON_FILTER"
-            :disabled="props.disabled"
-            clearable
-            class="settings-select"
+        <el-tooltip
+            :content="SETTINGS_MESSAGES.HINT_DEFAULT_ICON_FILTER"
+            placement="top"
+            :show-after="TIMINGS.TOOLTIP_DELAY"
+            :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
         >
-          <el-option
-              v-for="option in ICON_FILTER_OPTIONS"
-              :key="option.value"
-              :label="option.label"
-              :value="option.value"
-          />
-        </el-select>
+          <el-select
+              v-model="formData.defaultFilterHasIcon"
+              :placeholder="SETTINGS_MESSAGES.PLACEHOLDER_DEFAULT_ICON_FILTER"
+              :disabled="props.disabled"
+              clearable
+              class="settings-select"
+          >
+            <el-option
+                v-for="option in ICON_FILTER_OPTIONS"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+            />
+          </el-select>
+        </el-tooltip>
         <div class="form-hint">{{ SETTINGS_MESSAGES.HINT_DEFAULT_ICON_FILTER }}</div>
       </el-form-item>
     </el-form>
 
+    <!-- ✅ FOOTER С КНОПКАМИ -->
     <template #footer>
       <div class="dialog-footer">
         <el-button
@@ -150,7 +196,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { Download, View, Filter } from '@element-plus/icons-vue';
 import {
   SETTINGS_MODAL_PROPS_CONFIG,
@@ -175,6 +221,9 @@ const emit = defineEmits(['update:visible', 'save', 'cancel']);
 
 const formRef = ref(null);
 
+// ============================================================================
+// COMPUTED — VISIBLE
+// ============================================================================
 const localVisible = computed({
   get: () => props.visible,
   set: (val) => {
@@ -182,6 +231,9 @@ const localVisible = computed({
   },
 });
 
+// ============================================================================
+// COMPUTED — FORM STYLE (CSS VARIABLES)
+// ============================================================================
 const formStyle = computed(() => ({
   '--label-width': SETTINGS_UI.LABEL_WIDTH,
   '--label-position': SETTINGS_UI.LABEL_POSITION,
@@ -222,12 +274,18 @@ const formStyle = computed(() => ({
   '--modal-breakpoint': `${SETTINGS_UI.LABEL_POSITION_MOBILE_BREAKPOINT}px`,
 }));
 
+// ============================================================================
+// COMPUTED — СПИСКИ ОПЦИЙ
+// ============================================================================
 const PAGE_SIZE_OPTIONS_LIST = PAGE_SIZE_OPTIONS.BASE_AVAILABLE;
 
 const SORT_OPTIONS_LIST = computed(() => {
   return getSortOptions();
 });
 
+// ============================================================================
+// STATE — ФОРМА
+// ============================================================================
 const formData = ref({
   chunkSize: CHUNK_CONFIG.SIZE,
   confirmBeforeLoadAll: true,
@@ -237,6 +295,9 @@ const formData = ref({
   defaultFilterHasIcon: '',
 });
 
+// ============================================================================
+// LOAD SETTINGS — ИЗ LOCALSTORAGE
+// ============================================================================
 const loadSettings = () => {
   const saved = localStorage.getItem('company_user_settings');
   if (saved) {
@@ -253,12 +314,18 @@ const loadSettings = () => {
   }
 };
 
+// ============================================================================
+// SAVE SETTINGS — В LOCALSTORAGE
+// ============================================================================
 const saveSettings = () => {
   localStorage.setItem('company_user_settings', JSON.stringify(formData.value));
   console.log('🟢 [SettingsModal] Settings saved to localStorage:', formData.value);
   emit('save', { ...formData.value });
 };
 
+// ============================================================================
+// RESET DEFAULTS
+// ============================================================================
 const handleResetDefaults = () => {
   formData.value = {
     chunkSize: CHUNK_CONFIG.SIZE,
@@ -272,22 +339,38 @@ const handleResetDefaults = () => {
   console.log('🟢 [SettingsModal] Settings reset to defaults');
 };
 
+// ============================================================================
+// CANCEL
+// ============================================================================
 const handleCancel = () => {
   loadSettings();
   emit('cancel');
   localVisible.value = false;
 };
 
+// ============================================================================
+// SAVE
+// ============================================================================
 const handleSave = () => {
   saveSettings();
   localVisible.value = false;
 };
 
+// ============================================================================
+// WATCH — VISIBLE
+// ============================================================================
 watch(() => props.visible, (newVal) => {
   if (newVal) {
     loadSettings();
   }
 }, { immediate: true });
+
+// ============================================================================
+// CLEANUP — ON UNMOUNTED
+// ============================================================================
+onUnmounted(() => {
+  // Очистка если нужна
+});
 </script>
 
 <style scoped>
@@ -332,7 +415,7 @@ watch(() => props.visible, (newVal) => {
   --scrollbar-width: v-bind('SETTINGS_UI.SCROLLBAR_WIDTH');
   --dialog-border-radius: v-bind('SETTINGS_UI.DIALOG_BORDER_RADIUS');
   --dialog-box-shadow: v-bind('SETTINGS_UI.DIALOG_BOX_SHADOW');
-  --modal-breakpoint: v-bind('`${SETTINGS_UI.LABEL_POSITION_MOBILE_BREAKPOINT}px`');
+  --modal-breakpoint: v-bind('SETTINGS_UI.LABEL_POSITION_MOBILE_BREAKPOINT') + 'px';
 }
 
 /* ============================================================================
@@ -342,7 +425,8 @@ watch(() => props.visible, (newVal) => {
   width: v-bind('SETTINGS_UI.DIALOG_WIDTH') !important;
   border-radius: var(--dialog-border-radius);
   box-shadow: var(--dialog-box-shadow);
-  animation: dialogFadeIn 300ms ease-out;
+  /* ✅ TIMINGS — АНИМАЦИЯ ПОЯВЛЕНИЯ (300ms) */
+  animation: dialogFadeIn v-bind('TIMINGS.MODAL_ANIMATION') v-bind('ANIMATIONS.EASING_EASE_OUT');
 }
 
 .settings-modal :deep(.el-dialog__header) {
@@ -367,7 +451,8 @@ watch(() => props.visible, (newVal) => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  transition: 0.2s ease;
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: v-bind('TIMINGS.DELAY_FAST') ease;
 }
 
 .settings-modal :deep(.el-dialog__headerbtn:hover) {
@@ -413,7 +498,7 @@ watch(() => props.visible, (newVal) => {
 }
 
 /* ============================================================================
-   SELECT — DESKTOP (УСИЛЕННАЯ СПЕЦИФИЧНОСТЬ!)
+   SELECT
    ============================================================================ */
 .settings-modal .settings-select :deep(.el-select__wrapper) {
   height: var(--select-height) !important;
@@ -422,7 +507,8 @@ watch(() => props.visible, (newVal) => {
   padding: var(--select-padding) !important;
   font-size: var(--select-font-size) !important;
   border-radius: 3px;
-  transition: 0.2s ease;
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: v-bind('TIMINGS.RECALCULATING_DURATION') ease;
   gap: 4px;
 }
 
@@ -462,7 +548,8 @@ watch(() => props.visible, (newVal) => {
 
 :deep(.el-switch__core) {
   border-radius: 10px;
-  transition: 0.2s ease;
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: v-bind('TIMINGS.RECALCULATING_DURATION') ease;
   height: v-bind('SETTINGS_FILTERS_UI.SWITCH_HEIGHT');
 }
 
@@ -471,7 +558,7 @@ watch(() => props.visible, (newVal) => {
 }
 
 /* ============================================================================
-   FOOTER BUTTONS — DESKTOP (УСИЛЕННАЯ СПЕЦИФИЧНОСТЬ!)
+   FOOTER BUTTONS
    ============================================================================ */
 .settings-modal .dialog-footer .el-button {
   height: v-bind('SETTINGS_FILTERS_UI.BUTTON_HEIGHT') !important;
@@ -481,7 +568,8 @@ watch(() => props.visible, (newVal) => {
   min-width: v-bind('SETTINGS_UI.BUTTON_MIN_WIDTH') !important;
   border-radius: 4px;
   font-weight: 500;
-  transition: 0.2s ease;
+  /* ✅ TIMINGS — ПЛАВНЫЙ ПЕРЕХОД (150ms) */
+  transition: v-bind('TIMINGS.RECALCULATING_DURATION') ease;
 }
 
 .settings-modal .dialog-footer {
@@ -562,14 +650,12 @@ watch(() => props.visible, (newVal) => {
     padding: v-bind('SETTINGS_UI.FOOTER_PADDING_MOBILE');
   }
 
-  /* Mobile select */
   .settings-modal .settings-select :deep(.el-select__wrapper) {
     height: var(--select-height-mobile) !important;
     font-size: var(--select-font-size-mobile) !important;
     padding: var(--select-padding-mobile) !important;
   }
 
-  /* Mobile buttons */
   .settings-modal .dialog-footer {
     flex-direction: column;
     gap: var(--footer-gap-mobile);
@@ -581,10 +667,8 @@ watch(() => props.visible, (newVal) => {
     min-height: v-bind('SETTINGS_FILTERS_UI.BUTTON_HEIGHT_MOBILE') !important;
     font-size: v-bind('SETTINGS_UI.BUTTON_FONT_SIZE_MOBILE') !important;
     padding: v-bind('SETTINGS_UI.BUTTON_PADDING_MOBILE') !important;
-    min-width: v-bind('SETTINGS_UI.BUTTON_MIN_WIDTH_MOBILE') !important;
   }
 
-  /* Mobile divider */
   .settings-modal :deep(.el-divider) {
     margin: var(--divider-margin-mobile);
   }
@@ -593,14 +677,13 @@ watch(() => props.visible, (newVal) => {
     font-size: v-bind('SETTINGS_UI.DIVIDER_FONT_SIZE_MOBILE');
   }
 
-  /* Mobile hint */
   .form-hint {
     font-size: var(--hint-font-size-mobile);
   }
 }
 
 /* ============================================================================
-   TOUCH DEVICES — ТОЛЬКО ЕСЛИ ЭКРАН МАЛЕНЬКИЙ (≤576px)
+   TOUCH DEVICES
    ============================================================================ */
 @media (hover: none) and (pointer: coarse) and (max-width: v-bind('BREAKPOINTS.XS')) {
   .settings-modal :deep(.el-dialog) {
@@ -619,14 +702,12 @@ watch(() => props.visible, (newVal) => {
     padding: v-bind('SETTINGS_UI.FOOTER_PADDING_SMALL');
   }
 
-  /* Touch buttons */
   .settings-modal .dialog-footer .el-button {
     min-height: v-bind('SETTINGS_FILTERS_UI.BUTTON_HEIGHT_TOUCH') !important;
     height: v-bind('SETTINGS_FILTERS_UI.BUTTON_HEIGHT_TOUCH') !important;
     font-size: v-bind('SETTINGS_FILTERS_UI.BUTTON_FONT_SIZE_TOUCH') !important;
   }
 
-  /* Touch select */
   .settings-modal .settings-select :deep(.el-select__wrapper) {
     height: v-bind('SETTINGS_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
     min-height: v-bind('SETTINGS_FILTERS_UI.WRAPPER_HEIGHT_TOUCH') !important;
@@ -634,7 +715,6 @@ watch(() => props.visible, (newVal) => {
     padding: v-bind('SETTINGS_FILTERS_UI.WRAPPER_PADDING_TOUCH') !important;
   }
 
-  /* Touch switch */
   :deep(.el-switch__core) {
     height: v-bind('SETTINGS_FILTERS_UI.SWITCH_HEIGHT_TOUCH');
   }
@@ -643,87 +723,8 @@ watch(() => props.visible, (newVal) => {
     font-size: v-bind('SETTINGS_FILTERS_UI.SWITCH_FONT_SIZE_TOUCH');
   }
 
-  /* Touch hint */
   .form-hint {
     font-size: v-bind('SETTINGS_FILTERS_UI.HINT_FONT_SIZE_TOUCH');
-  }
-}
-</style>
-
-<style>
-/* ============================================================================
-   GLOBAL STYLES — DESKTOP (МАКСИМАЛЬНАЯ СПЕЦИФИЧНОСТЬ!)
-   ============================================================================ */
-.settings-modal .el-form-item--small .el-form-item__label {
-  height: 14px !important;
-  line-height: 14px !important;
-  min-height: 14px !important;
-  max-height: 14px !important;
-  font-size: 14px !important;
-  margin-bottom: 2px !important;
-}
-
-.settings-modal .el-form-item {
-  margin-bottom: 6px !important;
-}
-
-/* ✅ УСИЛЕННАЯ СПЕЦИФИЧНОСТЬ — 0-4-0 */
-
-.settings-modal .el-button {
-  height: 30px !important;
-  min-height: 30px !important;
-  font-size: 10px !important;
-  padding: 5px 10px !important;
-}
-
-.settings-modal .el-form-item .el-select .el-select__wrapper,
-.settings-modal .settings-select .el-select__wrapper {
-  height: 20px !important;
-  min-height: 20px !important;
-  max-height: 20px !important;
-  font-size: 11px !important;
-  padding: 0 6px !important;
-}
-
-.settings-modal .el-form-item .el-input__inner,
-.settings-modal .settings-select .el-input__inner {
-  height: 18px !important;
-  font-size: 11px !important;
-  line-height: 18px !important;
-}
-
-/* ============================================================================
-   MOBILE (≤768px)
-   ============================================================================ */
-@media (max-width: 768px) {
-  .settings-modal .el-form-item__label {
-    height: 12px !important;
-    line-height: 12px !important;
-    font-size: 11px !important;
-  }
-
-  .settings-modal .el-form-item .el-select .el-select__wrapper,
-  .settings-modal .settings-select .el-select__wrapper {
-    height: 22px !important;
-  }
-
-  .settings-modal .el-button {
-    height: 32px !important;
-  }
-}
-
-/* ============================================================================
-   TOUCH — ТОЛЬКО ЕСЛИ ЭКРАН МАЛЕНЬКИЙ (≤576px)
-   ============================================================================ */
-@media (hover: none) and (pointer: coarse) and (max-width: 576px) {
-  .settings-modal .el-form-item .el-select .el-select__wrapper,
-  .settings-modal .settings-select .el-select__wrapper {
-    height: 32px !important;
-    font-size: 14px !important;
-  }
-
-  .settings-modal .el-button {
-    height: 36px !important;
   }
 }
 </style>

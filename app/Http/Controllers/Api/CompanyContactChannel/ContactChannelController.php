@@ -4,123 +4,203 @@ namespace App\Http\Controllers\Api\CompanyContactChannel;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company\Company;
-use App\Models\Company\CompanyContactChannel; // Обновлённый путь к модели
-use App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource; // Обновлённый путь к ресурсу
+use App\Models\Company\CompanyContactChannel;
+use App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource;
+use App\Http\Resources\Company\CompanyResource;
 use App\Http\Requests\CompanyContactChannel\StoreContactChannelRequest;
 use App\Http\Requests\CompanyContactChannel\UpdateContactChannelRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\DB; // Для транзакции при сортировке
+use Illuminate\Support\Facades\DB;
 
 class ContactChannelController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     *
-     * @param  \App\Models\Company\Company  $company
-     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
+     * Display a listing of the resource (ВСЕ КАНАЛЫ — С ПАГИНАЦИЕЙ)
      */
-    public function index(Company $company): AnonymousResourceCollection
+    public function index(Request $request): AnonymousResourceCollection
     {
-        // Получаем каналы связи для конкретной компании, отсортированные по order_column
+        $query = CompanyContactChannel::with('company');
+
+        // ✅ ФИЛЬТР ПО КОМПАНИИ (опционально)
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->get('company_id'));
+        }
+
+        // ✅ ФИЛЬТР ПО ТИПУ
+        if ($request->filled('type')) {
+            $query->where('type', $request->get('type'));
+        }
+
+        // ✅ ФИЛЬТР ПО АКТИВНОСТИ
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->get('is_active') === 'true' || $request->get('is_active') === '1');
+        }
+
+        // ✅ ПОИСК
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                    ->orWhere('identifier', 'LIKE', "%{$search}%")
+                    ->orWhere('url', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // ✅ СОРТИРОВКА — ПАРСИМ sort_by (order_asc, title_desc, id_asc)
+        $sortBy = $request->get('sort_by', 'order_asc');
+        $sortDirection = $request->get('sort_direction', 'asc');
+
+        // ✅ РАЗБИРАЕМ sort_by НА ПОЛЕ И НАПРАВЛЕНИЕ
+        $sortParts = explode('_', $sortBy);
+        $direction = array_pop($sortParts); // Последний элемент - направление (asc/desc)
+        $field = implode('_', $sortParts);  // Остальное - имя поля
+
+        // ✅ МАППИНГ ИМЕН ПОЛЕЙ (frontend → database)
+        $fieldMap = [
+            'order' => 'order_column',
+            'id' => 'id',
+            'title' => 'title',
+            'type' => 'type',
+            'company' => 'company_id',
+            'created_at' => 'created_at',
+            'updated_at' => 'updated_at',
+            'is_active' => 'is_active',
+        ];
+
+        // ✅ ПОЛУЧАЕМ РЕАЛЬНОЕ ИМЯ КОЛОНКИ
+        $column = $fieldMap[$field] ?? 'order_column';
+
+        // ✅ НАПРАВЛЕНИЕ СОРТИРОВКИ
+        $direction = in_array(strtolower($direction), ['asc', 'desc']) ? $direction : 'asc';
+
+        // ✅ ПРИМЕНЯЕМ СОРТИРОВКУ
+        $query->orderBy($column, $direction);
+
+        // ✅ ПАГИНАЦИЯ
+        $perPage = max((int)$request->get('per_page', 500), 1);
+        $page = $request->get('page', 1);
+
+        $total = $query->count();
+        $channels = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return CompanyContactChannelResource::collection($channels);
+    }
+
+    /**
+     * Get total count of channels (для прогресс бара)
+     */
+    public function count(Request $request)
+    {
+        $query = CompanyContactChannel::query();
+
+        // Применить те же фильтры что и в index()
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->get('company_id'));
+        }
+
+        if ($request->filled('type')) {
+            $query->where('type', $request->get('type'));
+        }
+
+        if ($request->filled('is_active')) {
+            $query->where('is_active', $request->get('is_active') === 'true' || $request->get('is_active') === '1');
+        }
+
+        if ($request->filled('search')) {
+            $search = $request->get('search');
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'LIKE', "%{$search}%")
+                    ->orWhere('identifier', 'LIKE', "%{$search}%")
+                    ->orWhere('url', 'LIKE', "%{$search}%")
+                    ->orWhere('description', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $total = $query->count();
+
+        return response()->json(['total' => (int) $total]);
+    }
+
+    /**
+     * Display a listing of the resource (через компанию)
+     */
+    public function indexByCompany(Company $company): AnonymousResourceCollection
+    {
         $channels = $company->contactChannels()
-            ->orderBy('order_column')
+            ->with('company')
+            ->orderBy('order_column', 'asc')
             ->get();
+
         return CompanyContactChannelResource::collection($channels);
     }
 
     /**
      * Store a newly created resource in storage.
-     *
-     * @param  \App\Http\Requests\CompanyContactChannel\StoreContactChannelRequest  $request
-     * @param  \App\Models\Company\Company  $company
-     * @return \App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource
      */
-    public function store(StoreContactChannelRequest $request, Company $company): CompanyContactChannelResource
+    public function store(StoreContactChannelRequest $request): CompanyContactChannelResource
     {
         $data = $request->validated();
-        $data['company_id'] = $company->id;
 
-        // Если order_column не передан, устанавливаем его как max + 1 для этой компании
+        if (!isset($data['company_id'])) {
+            abort(422, 'company_id is required');
+        }
+
         if (!isset($data['order_column'])) {
-            $maxOrder = $company->contactChannels()->max('order_column') ?? -1;
+            $maxOrder = CompanyContactChannel::where('company_id', $data['company_id'])->max('order_column') ?? -1;
             $data['order_column'] = $maxOrder + 1;
         }
 
-        $channel = $company->contactChannels()->create($data);
+        $channel = CompanyContactChannel::create($data);
+        $channel->load('company');
+
         return new CompanyContactChannelResource($channel);
     }
 
     /**
      * Display the specified resource.
-     *
-     * @param  \App\Models\Company\Company  $company
-     * @param  \App\Models\Company\CompanyContactChannel  $contactChannel
-     * @return \App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource
      */
-    public function show(Company $company, CompanyContactChannel $contactChannel): CompanyContactChannelResource
+    public function show(CompanyContactChannel $contactChannel): CompanyContactChannelResource
     {
-        // Проверяем, принадлежит ли канал указанной компании
-        abort_if($contactChannel->company_id !== $company->id, 404);
-
+        $contactChannel->load('company');
         return new CompanyContactChannelResource($contactChannel);
     }
 
     /**
      * Update the specified resource in storage.
-     *
-     * @param  \App\Http\Requests\CompanyContactChannel\UpdateContactChannelRequest  $request
-     * @param  \App\Models\Company\Company  $company
-     * @param  \App\Models\Company\CompanyContactChannel  $contactChannel
-     * @return \App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource
      */
-    public function update(UpdateContactChannelRequest $request, Company $company, CompanyContactChannel $contactChannel): CompanyContactChannelResource
+    public function update(UpdateContactChannelRequest $request, CompanyContactChannel $contactChannel): CompanyContactChannelResource
     {
-        // Проверяем, принадлежит ли канал указанной компании
-        abort_if($contactChannel->company_id !== $company->id, 404);
-
         $contactChannel->update($request->validated());
+        $contactChannel->load('company');
         return new CompanyContactChannelResource($contactChannel);
     }
 
     /**
      * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Company\Company  $company
-     * @param  \App\Models\Company\CompanyContactChannel  $contactChannel
-     * @return \Illuminate\Http\JsonResponse
      */
-    public function destroy(Company $company, CompanyContactChannel $contactChannel)
+    public function destroy(CompanyContactChannel $contactChannel)
     {
-        // Проверяем, принадлежит ли канал указанной компании
-        abort_if($contactChannel->company_id !== $company->id, 404);
-
         $contactChannel->delete();
         return response()->json(['message' => 'Contact channel deleted']);
     }
 
     /**
-     * Update the order of contact channels for a specific company.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Company\Company  $company
-     * @return \Illuminate\Http\JsonResponse
+     * Update the order of contact channels.
      */
-    public function reorder(Request $request, Company $company)
+    public function reorder(Request $request)
     {
         $request->validate([
             'order' => 'required|array',
-            'order.*' => 'integer|exists:company_contact_channels,id', // Проверяем, что ID существует в правильной таблице
+            'order.*' => 'integer|exists:company_contact_channels,id',
         ]);
 
         $order = $request->input('order');
         DB::beginTransaction();
         try {
             foreach ($order as $index => $id) {
-                // Обновляем order_column для каждого канала, принадлежащего компании
-                $company->contactChannels()
-                    ->where('id', $id)
-                    ->update(['order_column' => $index]);
+                CompanyContactChannel::where('id', $id)->update(['order_column' => $index]);
             }
             DB::commit();
         } catch (\Exception $e) {

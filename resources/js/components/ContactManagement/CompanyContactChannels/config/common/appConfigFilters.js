@@ -1,13 +1,13 @@
 // ============================================================================
 // APP CONFIG FILTERS — FILTERS COMPONENT & SORT OPTIONS
 // ============================================================================
-// 📁 Путь: config/appConfigFilters.js
+// 📁 Путь: config/common/appConfigFilters.js
 // ✅ Используется: Filters.vue, CompanyList.vue, companyStore.js
 // ✅ Безопасно менять — влияет на фильтры и сортировку
 // ============================================================================
 
 // ============================================================================
-// SORT OPTIONS
+// SORT OPTIONS (варианты сортировки)
 // ============================================================================
 
 export const SORT_OPTIONS = {
@@ -20,6 +20,11 @@ export const SORT_OPTIONS = {
     DEFAULT: 'id_asc',
 };
 
+// ============================================================================
+// HELPER FUNCTIONS (сортировка)
+// ============================================================================
+
+// ✅ Получить все опции сортировки
 export function getSortOptions() {
     return [
         SORT_OPTIONS.ID_ASC,
@@ -29,6 +34,17 @@ export function getSortOptions() {
         SORT_OPTIONS.CREATED_AT_DESC,
         SORT_OPTIONS.CREATED_AT_ASC,
     ];
+}
+
+// ✅ Получить опцию сортировки по значению
+export function getSortOptionByValue(value) {
+    return Object.values(SORT_OPTIONS).find(opt => opt.value === value);
+}
+
+// ✅ Получить label сортировки по значению (для опций)
+export function getSortLabelByValue(value) {
+    const option = getSortOptionByValue(value);
+    return option ? option.label : '';
 }
 
 // ============================================================================
@@ -46,7 +62,7 @@ export const FILTERS_UI = {
 };
 
 // ============================================================================
-// FILTERS FILTERS UI CONFIGS (НОВЫЙ РАЗДЕЛ)
+// FILTERS FILTERS UI CONFIGS (настройки фильтров)
 // ============================================================================
 
 export const FILTERS_FILTERS_UI = {
@@ -144,18 +160,30 @@ export const FILTERS_FILTERS_UI = {
 };
 
 // ============================================================================
-// MESSAGES
+// MESSAGES (тексты интерфейса — С TOOLTIP!)
 // ============================================================================
 
 export const FILTERS_MESSAGES = {
+    // ✅ SEARCH
     SEARCH_PLACEHOLDER: 'Поиск...',
+    SEARCH_TOOLTIP: 'Поиск по названию, описанию, адресу',
+
+    // ✅ SORT
     SORT_LABEL: 'Сортировка',
+    SORT_TOOLTIP: 'Сортировка списка компаний',
+
+    // ✅ ICON FILTER
+    ICON_FILTER_TOOLTIP: 'Фильтр по наличию иконки',
+
+    // ✅ INFO
     FOUND_LABEL: 'Найдено',
-    RESET_TOOLTIP: 'Сбросить фильтры',
+
+    // ✅ RESET
+    RESET_TOOLTIP: 'Сбросить все фильтры',
 };
 
 // ============================================================================
-// PROPS CONFIG
+// PROPS CONFIG (для Filters.vue)
 // ============================================================================
 
 export const FILTERS_PROPS_CONFIG = {
@@ -167,3 +195,42 @@ export const FILTERS_PROPS_CONFIG = {
     searchDebounce: { type: Number, default: 700 },
     sortOptions: { type: Array, default: null },
 };
+
+// ============================================================================
+// HELPER FUNCTIONS (фильтры)
+// ============================================================================
+
+// ✅ Получить placeholder поиска
+export function getSearchPlaceholder() {
+    return FILTERS_MESSAGES.SEARCH_PLACEHOLDER;
+}
+
+// ✅ Получить tooltip поиска
+export function getSearchTooltip() {
+    return FILTERS_MESSAGES.SEARCH_TOOLTIP;
+}
+
+// ✅ Получить label для селекта сортировки
+export function getSortSelectLabel() {
+    return FILTERS_MESSAGES.SORT_LABEL;
+}
+
+// ✅ Получить tooltip сортировки
+export function getSortTooltip() {
+    return FILTERS_MESSAGES.SORT_TOOLTIP;
+}
+
+// ✅ Получить tooltip фильтра иконок
+export function getIconFilterTooltip() {
+    return FILTERS_MESSAGES.ICON_FILTER_TOOLTIP;
+}
+
+// ✅ Получить label найденных
+export function getFoundLabel() {
+    return FILTERS_MESSAGES.FOUND_LABEL;
+}
+
+// ✅ Получить tooltip сброса
+export function getResetTooltip() {
+    return FILTERS_MESSAGES.RESET_TOOLTIP;
+}

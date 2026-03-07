@@ -1,43 +1,52 @@
 // ============================================================================
 // APP CONFIG COMPANY LIST — COMPANY LIST COMPONENT
 // ============================================================================
-// 📁 Путь: config/appConfigCompanyList.js
-// ✅ Используется: CompanyList.vue (главный компонент)
+// 📁 Путь: config/companies/appConfigCompanyList.js
+// ✅ Используется: CompanyList.vue (главный компонент списка)
 // ✅ Безопасно менять — влияет только на список компаний
-// ✅ Зависит от: appConfigGlobal.js (COLORS, ANIMATIONS, TIMINGS, BREAKPOINTS)
-// ✅ Зависит от: appConfigChunk.js (CHUNK_CONFIG, THRESHOLDS, FILTERS)
+// ✅ Зависит от: config/global/index.js (COLORS, ANIMATIONS, BREAKPOINTS)
+// ✅ Зависит от: config/chunk/index.js (CHUNK_CONFIG, THRESHOLDS)
 // ============================================================================
 
-import { COLORS, ANIMATIONS, TIMINGS, BREAKPOINTS } from './appConfigGlobal.js';
-import { CHUNK_CONFIG, COMPANY_LIST_THRESHOLDS, COMPANY_LIST_FILTERS } from './appConfigChunk.js';
+import { COLORS, ANIMATIONS, BREAKPOINTS } from '../global/index.js';
+import { CHUNK_CONFIG, COMPANY_LIST_THRESHOLDS, COMPANY_LIST_FILTERS } from '../chunk/index.js';
 
 // ============================================================================
-// UI CONFIGS
+// UI CONFIGS (размеры и отступы)
 // ============================================================================
 
 export const COMPANY_LIST_UI = {
+    // ✅ КОНТЕЙНЕР
     PADDING: '5px',
     HEADER_GAP: '8px',
     HEADER_ACTIONS_GAP: '8px',
     HEADER_TITLE_FILTERS_GAP: '12px',
-    LOAD_STATUS_TAG_HEIGHT: '20px',
-    LOAD_STATUS_TAG_PADDING: '0 6px',
-    LOAD_STATUS_TAG_FONT_SIZE: '10px',
+
+    // ✅ ТАБЛИЦА
     TABLE_WRAPPER_MARGIN_BOTTOM: '10px',
     TABLE_WRAPPER_BORDER: '0.01rem solid #e9e9e9',
     TABLE_WRAPPER_BORDER_RADIUS: '2px',
     TABLE_WRAPPER_MIN_HEIGHT: '300px',
+
+    // ✅ LOADING
     LOADING_SPINNER_SIZE: '32px',
     LOADING_SPINNER_COLOR: COLORS.PRIMARY,
     LOADING_TEXT_COLOR: '#606266',
     LOADING_TEXT_SIZE: '12px',
+
+    // ✅ ЗАГОЛОВОК
     TITLE_FONT_SIZE: '13px',
     TITLE_FONT_WEIGHT: '600',
     TITLE_COLOR: '#303133',
+
+    // ✅ СТАТУС ЗАГРУЗКИ
+    LOAD_STATUS_TAG_HEIGHT: '20px',
+    LOAD_STATUS_TAG_PADDING: '0 6px',
+    LOAD_STATUS_TAG_FONT_SIZE: '10px',
 };
 
 // ============================================================================
-// FILTERS UI CONFIGS (НОВЫЙ РАЗДЕЛ)
+// FILTERS UI CONFIGS (настройки фильтров)
 // ============================================================================
 
 export const COMPANY_LIST_FILTERS_UI = {
@@ -116,26 +125,36 @@ export const COMPANY_LIST_FILTERS_UI = {
 };
 
 // ============================================================================
-// MESSAGES
+// MESSAGES (тексты интерфейса)
 // ============================================================================
 
 export const COMPANY_LIST_MESSAGES = {
+    // ✅ СТАТУСЫ
     LOADING_INITIAL: 'Загрузка...',
+
+    // ✅ УСПЕХ
     SUCCESS_CHUNK_LOADED: (count) => `Загружено ещё ${count} записей`,
     SUCCESS_ALL_LOADED: (total) => `Загружено все ${total} записей`,
     SUCCESS_COMPANY_CREATED: 'Компания создана',
     SUCCESS_COMPANY_UPDATED: 'Компания обновлена',
     SUCCESS_COMPANY_DELETED: (name) => `Компания "${name}" удалена`,
     SUCCESS_RECORD_REFRESHED: (name) => `Запись "${name}" обновлена`,
+    SUCCESS_FILTERS_RESET: 'Фильтры сброшены',
+
+    // ✅ ОШИБКИ
     ERROR_RECORD_REFRESH: (name) => `Ошибка обновления "${name}"`,
     ERROR_LOADING: 'Ошибка при загрузке',
     ERROR_DELETING: 'Ошибка при удалении',
     ERROR_SAVING: 'Ошибка при сохранении',
+    REFRESH_ERROR: (error) => `Ошибка при обновлении: ${error}`,
+
+    // ✅ ПОДТВЕРЖДЕНИЯ
     CONFIRM_LOAD_ALL_TITLE: 'Предупреждение',
     CONFIRM_LOAD_ALL_CONFIRM: 'Да',
     CONFIRM_LOAD_ALL_CANCEL: 'Нет',
     CONFIRM_LOAD_ALL_MESSAGE: (total) => `Загрузка ${total} записей займёт 1-2 минуты. Продолжить?`,
-    SUCCESS_FILTERS_RESET: 'Фильтры сброшены',
+
+    // ✅ ИНФОРМАЦИЯ
     EMPTY_NO_DATA: 'Нет данных',
     TITLE: 'Список Компаний',
     BTN_ADD: 'Добавить',
@@ -143,14 +162,13 @@ export const COMPANY_LIST_MESSAGES = {
     ENTITY_LABEL_PLURAL: 'Компании',
     NO_NEW_RECORDS: 'Новых записей нет',
     NEW_RECORDS_LOADED: (count) => `Загружено ${count} новых записей`,
-    REFRESH_ERROR: (error) => `Ошибка при обновлении: ${error}`,
     ALL_RECORDS_LOADED: 'Все записи уже загружены',
     LOAD_PAUSED: 'Загрузка приостановлена',
     LOAD_RESUMED: 'Загрузка возобновлена',
 };
 
 // ============================================================================
-// PROPS CONFIG
+// PROPS CONFIG (для CompanyList.vue)
 // ============================================================================
 
 export const COMPANY_LIST_PROPS_CONFIG = {
@@ -172,7 +190,30 @@ export const COMPANY_LIST_PROPS_CONFIG = {
 };
 
 // ============================================================================
-// ЭКСПОРТЫ (ПЕРЕЭКСПОРТ ИЗ appConfigChunk.js)
+// HELPER FUNCTIONS
 // ============================================================================
 
-export { CHUNK_CONFIG, COMPANY_LIST_THRESHOLDS, COMPANY_LIST_FILTERS } from './appConfigChunk.js';
+// ✅ Получить порог для кнопок загрузки
+export function getShowLoadButtonsThreshold() {
+    return COMPANY_LIST_THRESHOLDS.SHOW_LOAD_BUTTONS_MIN;
+}
+
+// ✅ Получить порог для подтверждения загрузки всех
+export function getConfirmLoadAllThreshold() {
+    return COMPANY_LIST_THRESHOLDS.CONFIRM_LOAD_ALL_MIN;
+}
+
+// ✅ Получить задержку поиска
+export function getSearchDebounce() {
+    return COMPANY_LIST_FILTERS.SEARCH_DEBOUNCE;
+}
+
+// ✅ Получить сообщение об успешной загрузке чанка
+export function getSuccessChunkLoadedMessage(count) {
+    return COMPANY_LIST_MESSAGES.SUCCESS_CHUNK_LOADED(count);
+}
+
+// ✅ Получить сообщение об успешной загрузке всех
+export function getSuccessAllLoadedMessage(total) {
+    return COMPANY_LIST_MESSAGES.SUCCESS_ALL_LOADED(total);
+}

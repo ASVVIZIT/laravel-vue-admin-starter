@@ -1,73 +1,125 @@
 <template>
   <div class="filters-container">
+    <!-- ========================================================================
+         SEARCH FILTER С TOOLTIP
+         ======================================================================== -->
     <div class="filter-item search-filter" :class="{ 'is-focused': isSearchFocused }">
-      <el-input
-          ref="searchInputRef"
-          v-model="localSearch"
-          :placeholder="FILTERS_MESSAGES.SEARCH_PLACEHOLDER"
-          :disabled="props.disabled"
-          clearable
-          class="search-input"
-          @input="handleSearchInput"
-          @focus="isSearchFocused = true"
-          @blur="isSearchFocused = false"
+      <el-tooltip
+          :content="FILTERS_MESSAGES.SEARCH_TOOLTIP"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
       >
-        <template #prefix>
-          <el-icon><Search /></el-icon>
-        </template>
-      </el-input>
+        <el-input
+            ref="searchInputRef"
+            v-model="localSearch"
+            :placeholder="FILTERS_MESSAGES.SEARCH_PLACEHOLDER"
+            :disabled="props.disabled"
+            clearable
+            class="search-input"
+            @input="handleSearchInput"
+            @focus="isSearchFocused = true"
+            @blur="isSearchFocused = false"
+        >
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+        </el-input>
+      </el-tooltip>
     </div>
 
+    <!-- ========================================================================
+         ICON FILTER С TOOLTIP
+         ======================================================================== -->
     <div v-if="props.showIconFilter" class="filter-item icon-filter">
-      <el-select
-          v-model="localHasIcon"
-          :placeholder="ICON_FILTER_MESSAGES.PLACEHOLDER"
-          :disabled="props.disabled"
-          clearable
-          class="icon-select"
-          @change="handleFilterChange"
+      <el-tooltip
+          :content="FILTERS_MESSAGES.ICON_FILTER_TOOLTIP"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
       >
-        <el-option
-            v-for="option in ICON_FILTER_OPTIONS"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-        />
-      </el-select>
+        <el-select
+            v-model="localHasIcon"
+            :placeholder="ICON_FILTER_MESSAGES.PLACEHOLDER"
+            :disabled="props.disabled"
+            clearable
+            class="icon-select"
+            @change="handleFilterChange"
+        >
+          <el-option
+              v-for="option in ICON_FILTER_OPTIONS"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+          />
+        </el-select>
+      </el-tooltip>
     </div>
 
+    <!-- ========================================================================
+         SORT FILTER С TOOLTIP
+         ======================================================================== -->
     <div class="filter-item sort-filter">
-      <el-select
-          v-model="localSortBy"
-          :placeholder="FILTERS_MESSAGES.SORT_LABEL"
-          size="small"
-          :disabled="props.disabled"
-          @change="handleSortChange"
+      <el-tooltip
+          :content="FILTERS_MESSAGES.SORT_TOOLTIP"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
       >
-        <el-option
-            v-for="option in sortOptionsList"
-            :key="option.value"
-            :label="option.label"
-            :value="option.value"
-        />
-      </el-select>
+        <el-select
+            v-model="localSortBy"
+            :placeholder="FILTERS_MESSAGES.SORT_LABEL"
+            size="small"
+            :disabled="props.disabled"
+            @change="handleSortChange"
+        >
+          <el-option
+              v-for="option in sortOptionsList"
+              :key="option.value"
+              :label="option.label"
+              :value="option.value"
+          />
+        </el-select>
+      </el-tooltip>
     </div>
 
+    <!-- ========================================================================
+         FILTER INFO С TOOLTIP
+         ======================================================================== -->
     <div class="filter-info">
-      <div class="info-label">{{ FILTERS_MESSAGES.FOUND_LABEL }}</div>
-      <div class="info-count">{{ props.totalFiltered }}/{{ props.totalItems }}</div>
+      <el-tooltip
+          :content="getFilterInfoTooltip()"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
+      >
+        <div class="info-count-wrapper">
+          <div class="info-label">{{ FILTERS_MESSAGES.FOUND_LABEL }}</div>
+          <div class="info-count">{{ props.totalFiltered }}/{{ props.totalItems }}</div>
+        </div>
+      </el-tooltip>
     </div>
 
+    <!-- ========================================================================
+         FILTER ACTIONS (RESET BUTTON) С TOOLTIP
+         ======================================================================== -->
     <div class="filter-actions">
-      <el-button
-          v-if="hasActiveFilters"
-          size="small"
-          @click="handleReset"
-          :disabled="props.disabled"
-          :title="FILTERS_MESSAGES.RESET_TOOLTIP"
+      <el-tooltip
+          :content="FILTERS_MESSAGES.RESET_TOOLTIP"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
       >
-        <el-icon><RefreshLeft /></el-icon>
-      </el-button>
+        <el-button
+            v-if="hasActiveFilters"
+            size="small"
+            @click="handleReset"
+            :disabled="props.disabled"
+            class="reset-btn"
+        >
+          <el-icon><RefreshLeft /></el-icon>
+        </el-button>
+      </el-tooltip>
     </div>
   </div>
 </template>
@@ -97,18 +149,28 @@ const props = defineProps({...FILTERS_PROPS_CONFIG});
 
 const emit = defineEmits(['search', 'filter', 'reset', 'sort']);
 
+// ============================================================================
+// STATE
+// ============================================================================
 const searchInputRef = ref(null);
 const localSearch = ref('');
 const localHasIcon = ref('');
 const localSortBy = ref(SORT_OPTIONS.DEFAULT);
 const isSearchFocused = ref(false);
 
+// ✅ ТАЙМЕР ДЛЯ DEBOUNCE
 let searchTimeout = null;
 
+// ============================================================================
+// COMPUTED — SORT OPTIONS
+// ============================================================================
 const sortOptionsList = computed(() => {
   return props.sortOptions || getSortOptions();
 });
 
+// ============================================================================
+// COMPUTED — ACTIVE FILTERS
+// ============================================================================
 const hasActiveFilters = computed(() => {
   return (
       localSearch.value !== '' ||
@@ -117,14 +179,30 @@ const hasActiveFilters = computed(() => {
   );
 });
 
+// ============================================================================
+// HELPER — FILTER INFO TOOLTIP
+// ============================================================================
+const getFilterInfoTooltip = () => {
+  const percentage = props.totalItems > 0
+      ? Math.round((props.totalFiltered / props.totalItems) * 100)
+      : 0;
+  return `${FILTERS_MESSAGES.FOUND_LABEL}: ${props.totalFiltered} из ${props.totalItems} (${percentage}%)`;
+};
+
+// ============================================================================
+// MOUNTED — LOAD FROM STORE
+// ============================================================================
 onMounted(() => {
   setTimeout(() => {
     localSearch.value = companyStore.searchQuery || '';
     localHasIcon.value = companyStore.filterHasIcon || '';
     localSortBy.value = companyStore.sortBy || SORT_OPTIONS.DEFAULT;
-  }, 100);
+  }, TIMINGS.DELAY_FAST);
 });
 
+// ============================================================================
+// WATCH — STORE CHANGES
+// ============================================================================
 watch(() => companyStore.searchQuery, (newVal) => {
   localSearch.value = newVal || '';
 });
@@ -137,6 +215,9 @@ watch(() => companyStore.sortBy, (newVal) => {
   localSortBy.value = newVal || SORT_OPTIONS.DEFAULT;
 });
 
+// ============================================================================
+// HANDLE SEARCH INPUT (С DEBOUNCE)
+// ============================================================================
 const handleSearchInput = () => {
   if (searchTimeout) {
     clearTimeout(searchTimeout);
@@ -148,6 +229,9 @@ const handleSearchInput = () => {
   }, props.searchDebounce || TIMINGS.DEBOUNCE_SEARCH);
 };
 
+// ============================================================================
+// HANDLE FILTER CHANGE
+// ============================================================================
 const handleFilterChange = () => {
   console.log('🔵 [Filters] handleFilterChange:', {
     localHasIcon: localHasIcon.value || '',
@@ -156,11 +240,17 @@ const handleFilterChange = () => {
   emitFilter();
 };
 
+// ============================================================================
+// HANDLE SORT CHANGE
+// ============================================================================
 const handleSortChange = () => {
   emit('sort', localSortBy.value);
   emitFilter();
 };
 
+// ============================================================================
+// EMIT FILTER
+// ============================================================================
 const emitFilter = () => {
   emit('filter', {
     search: localSearch.value || '',
@@ -169,6 +259,9 @@ const emitFilter = () => {
   });
 };
 
+// ============================================================================
+// HANDLE RESET
+// ============================================================================
 const handleReset = () => {
   if (searchTimeout) {
     clearTimeout(searchTimeout);
@@ -186,10 +279,16 @@ const handleReset = () => {
   }, TIMINGS.DELAY_FAST);
 };
 
+// ============================================================================
+// WATCH — TOTAL ITEMS (DEBUG)
+// ============================================================================
 watch(() => props.totalItems, (newVal) => {
   console.log('[Filters] totalItems changed:', newVal);
 }, { immediate: true });
 
+// ============================================================================
+// UNMOUNTED — CLEANUP
+// ============================================================================
 onUnmounted(() => {
   if (searchTimeout) {
     clearTimeout(searchTimeout);
@@ -198,6 +297,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ============================================================================
+   CONTAINER
+   ============================================================================ */
 .filters-container {
   display: flex;
   align-items: center;
@@ -215,12 +317,15 @@ onUnmounted(() => {
   align-items: center;
 }
 
+/* ============================================================================
+   SEARCH FILTER
+   ============================================================================ */
 .search-filter {
   position: relative;
   z-index: 1;
   flex: 0 0 v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH') !important;
   max-width: v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH') !important;
-  transition: all v-bind('FILTERS_UI.TRANSITION_DURATION') ease;
+  transition: all v-bind('TIMINGS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
   margin-left: 0 !important;
 }
 
@@ -234,14 +339,16 @@ onUnmounted(() => {
   margin-left: calc(v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH') - v-bind('FILTERS_FILTERS_UI.SEARCH_WIDTH_FOCUSED')) !important;
 }
 
-/* ✅ SEARCH INPUT — ИЗ КОНФИГА */
+/* ============================================================================
+   SEARCH INPUT
+   ============================================================================ */
 .search-input :deep(.el-input__wrapper) {
   height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
   min-height: v-bind('FILTERS_FILTERS_UI.WRAPPER_HEIGHT') !important;
   font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE');
   padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING');
   border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
-  transition: all 0.15s ease;
+  transition: all v-bind('TIMINGS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .search-input :deep(.el-input__wrapper:hover) {
@@ -273,7 +380,9 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_FILTERS_UI.CLEAR_FONT_SIZE');
 }
 
-/* ✅ ICON SELECT — ИЗ КОНФИГА */
+/* ============================================================================
+   ICON FILTER
+   ============================================================================ */
 .icon-filter {
   flex: 0 0 v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
   max-width: v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
@@ -289,7 +398,7 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE');
   padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING');
   border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
-  transition: all 0.15s ease;
+  transition: all v-bind('TIMINGS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .icon-select :deep(.el-select__wrapper:hover) {
@@ -305,7 +414,9 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_FILTERS_UI.CARET_FONT_SIZE');
 }
 
-/* ✅ SORT SELECT — ИЗ КОНФИГА */
+/* ============================================================================
+   SORT FILTER
+   ============================================================================ */
 .sort-filter {
   flex: 0 0 v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
   max-width: v-bind('FILTERS_FILTERS_UI.SELECT_WIDTH') !important;
@@ -321,7 +432,7 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_FILTERS_UI.WRAPPER_FONT_SIZE');
   padding: v-bind('FILTERS_FILTERS_UI.WRAPPER_PADDING');
   border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
-  transition: all 0.15s ease;
+  transition: all v-bind('TIMINGS.TRANSITION_NORMAL') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .sort-select :deep(.el-select__wrapper:hover) {
@@ -337,7 +448,9 @@ onUnmounted(() => {
   font-size: v-bind('FILTERS_FILTERS_UI.CARET_FONT_SIZE');
 }
 
-/* ✅ FILTER INFO — ИЗ КОНФИГА */
+/* ============================================================================
+   FILTER INFO
+   ============================================================================ */
 .filter-info {
   flex-shrink: 0;
   display: flex;
@@ -346,7 +459,14 @@ onUnmounted(() => {
   justify-content: center;
   gap: 1px;
   padding: 0 3px;
-  animation: fadeIn 0.2s ease;
+  animation: fadeIn v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+.info-count-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: help;
 }
 
 .info-label {
@@ -365,39 +485,9 @@ onUnmounted(() => {
   line-height: 1;
 }
 
-/* ✅ DROPDOWN — ИЗ КОНФИГА */
-:deep(.el-select-dropdown) {
-  padding: 4px 0;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-}
-
-:deep(.el-select-dropdown__item) {
-  font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE') !important;
-  padding: v-bind('FILTERS_FILTERS_UI.DROPDOWN_PADDING') !important;
-  height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT') !important;
-  line-height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_LINE_HEIGHT') !important;
-  min-height: v-bind('FILTERS_FILTERS_UI.DROPDOWN_HEIGHT') !important;
-}
-
-:deep(.el-select-dropdown__item:hover) {
-  background-color: #f5f7fa;
-}
-
-:deep(.el-select-dropdown__item.selected) {
-  color: v-bind('COLORS.PRIMARY');
-  font-weight: 600;
-  background-color: #f0f9eb;
-}
-
-:deep(.el-select-dropdown__empty) {
-  font-size: v-bind('FILTERS_FILTERS_UI.DROPDOWN_FONT_SIZE');
-  padding: 6px 8px;
-  color: #909399;
-  text-align: center;
-}
-
-/* ✅ FILTER ACTIONS — ИЗ КОНФИГА */
+/* ============================================================================
+   FILTER ACTIONS
+   ============================================================================ */
 .filter-actions {
   flex-shrink: 0;
 }
@@ -410,7 +500,7 @@ onUnmounted(() => {
   border-radius: v-bind('FILTERS_FILTERS_UI.WRAPPER_BORDER_RADIUS');
   min-width: auto;
   width: auto;
-  transition: all 0.2s ease;
+  transition: all v-bind('TIMINGS.RECALCULATING_DURATION') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .filter-actions .el-button:hover:not(:disabled) {
@@ -426,6 +516,9 @@ onUnmounted(() => {
   color: v-bind('COLORS.PRIMARY');
 }
 
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -437,7 +530,9 @@ onUnmounted(() => {
   }
 }
 
-/* ✅ АДАПТИВ — XXXL */
+/* ============================================================================
+   АДАПТИВ — XXXL
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
   .filters-container {
     gap: v-bind('FILTERS_FILTERS_UI.CONTAINER_GAP_MOBILE');
@@ -474,7 +569,9 @@ onUnmounted(() => {
   }
 }
 
-/* ✅ АДАПТИВ — XL */
+/* ============================================================================
+   АДАПТИВ — XL
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
   .filters-container {
     flex-direction: row;
@@ -532,7 +629,9 @@ onUnmounted(() => {
   }
 }
 
-/* ✅ АДАПТИВ — XS */
+/* ============================================================================
+   АДАПТИВ — XS
+   ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
   .filters-container {
     flex-direction: column;
@@ -605,7 +704,9 @@ onUnmounted(() => {
   }
 }
 
-/* ✅ TOUCH DEVICES — ИЗ КОНФИГА */
+/* ============================================================================
+   TOUCH DEVICES
+   ============================================================================ */
 @media (hover: none) and (pointer: coarse) {
   .search-input :deep(.el-input__wrapper),
   .icon-select :deep(.el-select__wrapper),
