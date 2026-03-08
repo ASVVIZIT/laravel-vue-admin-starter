@@ -16,8 +16,9 @@ import {
     CHANNEL_LIST_FILTERS,
     CHANNEL_USER_SETTINGS,
     CHANNEL_SORT_OPTIONS,
+    CHUNK_CONFIG,
     getChannelUserSettings,
-} from '../config/channels/appConfigChannelList.js';
+} from '../config/appConfigIndex.js';
 
 const channelResource = new ChannelResource();
 
@@ -65,6 +66,7 @@ export const useChannelStore = defineStore('channel', {
         const finalFilterType = sessionFilters?.filterType ?? userSettings?.filterType ?? null;
         const finalFilterIsActive = sessionFilters?.filterIsActive ?? userSettings?.filterIsActive ?? null;
         const finalSortBy = sessionFilters?.sortBy || userSettings?.sortBy || CHANNEL_SORT_OPTIONS.DEFAULT;
+        const finalCurrentPage = sessionFilters?.currentPage || 1;  // ← ← ← ДОБАВЛЕНО!
 
         // ✅ Сохраняем в channel_filters (если не было)
         if (!sessionFilters) {
@@ -75,6 +77,7 @@ export const useChannelStore = defineStore('channel', {
                     filterIsActive: finalFilterIsActive,
                     pageSize: finalPageSize,
                     sortBy: finalSortBy,
+                    currentPage: finalCurrentPage,  // ← ← ← ДОБАВЛЕНО!
                 }));
                 console.log('🟢 [ChannelStore] channel_filters initialized from settings');
             } catch (e) {
@@ -133,8 +136,8 @@ export const useChannelStore = defineStore('channel', {
             chunkSize: finalChunkSize,
             allRecordsLoaded: false,
 
-            // ✅ ПАГИНАЦИЯ
-            currentPage: 1,
+            // ✅ ПАГИНАЦИЯ (currentPage ИЗ LOCALSTORAGE!)
+            currentPage: finalCurrentPage,  // ← ← ← ИЗМЕНЕНО!
             perPage: finalPageSize,
             lastPage: 1,
 
@@ -158,6 +161,95 @@ export const useChannelStore = defineStore('channel', {
                 return [];
             }
             return state.allChannels;
+        },
+
+        // ✅ Получить каналы по типу
+        channelsByType: (state) => (type) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return [];
+            }
+            return state.channels.filter(channel => channel.type === type);
+        },
+
+        // ✅ Получить активные каналы
+        activeChannels: (state) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return [];
+            }
+            return state.channels.filter(channel => channel.is_active);
+        },
+
+        // ✅ Получить неактивные каналы
+        inactiveChannels: (state) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return [];
+            }
+            return state.channels.filter(channel => !channel.is_active);
+        },
+
+        // ✅ Получить канал по ID
+        channelById: (state) => (id) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return null;
+            }
+            return state.channels.find(channel => channel.id === id);
+        },
+
+        // ✅ Получить текущий канал
+        getCurrentChannel: (state) => state.currentChannel,
+
+        // ✅ Проверить загрузку
+        isLoading: (state) => {
+            return state.loading || state.loadingInitial || state.loadingChunks;
+        },
+
+        // ✅ Проверить сохранение
+        isSaving: (state) => state.saving,
+
+        // ✅ Проверить удаление
+        isDeleting: (state) => state.deleting,
+
+        // ✅ Проверить сортировку
+        isReordering: (state) => state.reordering,
+
+        // ✅ Проверить ошибку
+        hasError: (state) => state.error !== null,
+
+        // ✅ Получить ошибку
+        getError: (state) => state.error,
+
+        // ✅ Получить ошибки валидации
+        getValidationErrors: (state) => state.validationErrors,
+
+        // ✅ Проверить есть ли каналы
+        hasChannels: (state) => {
+            return state.channels && Array.isArray(state.channels) && state.channels.length > 0;
+        },
+
+        // ✅ Получить количество каналов
+        channelsCount: (state) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return 0;
+            }
+            return state.channels.length;
+        },
+
+        // ✅ Получить количество активных каналов
+        activeChannelsCount: (state) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return 0;
+            }
+            return state.channels.filter(channel => channel.is_active).length;
+        },
+
+        // ✅ Получить каналы отсортированные (БЕЗ ФИЛЬТРАЦИИ)
+        sortedChannels: (state) => {
+            if (!state.channels || !Array.isArray(state.channels)) {
+                return [];
+            }
+            return [...state.channels].sort((a, b) => {
+                return (a.order_column || 0) - (b.order_column || 0);
+            });
         },
 
         // ✅ ФИЛЬТРОВАННЫЕ ДАННЫЕ (ИСПРАВЛЕННАЯ ПРОВЕРКА NULL!)
@@ -262,21 +354,30 @@ export const useChannelStore = defineStore('channel', {
             return Math.ceil(state.filteredCount / state.perPage);
         },
 
-        // ✅ ЗАГРУЖЕНО ВСЕГО
-        loadedCount: (state) => {
-            if (!state.allChannels || !Array.isArray(state.allChannels)) {
-                return 0;
-            }
-            return state.allChannels.length;
+        // ✅ ДОСТУПНЫЕ РАЗМЕРЫ СТРАНИЦ
+        availablePageSizes: (state) => {
+            const baseSizes = CHANNEL_LIST_FILTERS.PAGE_SIZE_OPTIONS;
+            return baseSizes
+                .filter(size => size <= state.totalItems)
+                .concat(state.totalItems)
+                .filter((value, index, self) => self.indexOf(value) === index)
+                .sort((a, b) => a - b);
         },
 
         // ✅ ПРОГРЕСС ЗАГРУЗКИ
         loadedPercentage: (state) => {
             if (!state.allChannels || !Array.isArray(state.allChannels)) {
-                return 0;
+                return 0.00;
             }
-            if (state.totalItems === 0) return 0;
-            return Math.round((state.allChannels.length / state.totalItems) * 100);
+            if (state.totalItems === 0) return 0.00;
+
+            const percentage = (state.allChannels.length / state.totalItems) * 100;
+            return Math.round(percentage * 100) / 100;
+        },
+
+        chunkProgress: (state) => {
+            if (state.totalChunks === 0) return 0;
+            return Math.round((state.loadedChunks / state.totalChunks) * 100);
         },
 
         currentChunkProgress: (state) => state.chunkLoadingProgress,
@@ -299,44 +400,29 @@ export const useChannelStore = defineStore('channel', {
             );
         },
 
-        // ✅ Проверить загрузку
-        isLoading: (state) => {
-            return state.loading || state.loadingInitial || state.loadingChunks;
-        },
+        hasNewRecords: (state) => state.totalItems > state.loadedCount,
 
-        // ✅ Проверить сохранение
-        isSaving: (state) => state.saving,
-
-        // ✅ Проверить удаление
-        isDeleting: (state) => state.deleting,
-
-        // ✅ Проверить сортировку
-        isReordering: (state) => state.reordering,
-
-        // ✅ Проверить ошибку
-        hasError: (state) => state.error !== null,
-
-        // ✅ Проверить есть ли каналы
-        hasChannels: (state) => {
-            return state.channels && Array.isArray(state.channels) && state.channels.length > 0;
-        },
-
-        // ✅ Получить количество каналов
-        channelsCount: (state) => {
-            if (!state.channels || !Array.isArray(state.channels)) {
+        // ✅ ЗАГРУЖЕНО ВСЕГО
+        loadedCount: (state) => {
+            if (!state.allChannels || !Array.isArray(state.allChannels)) {
                 return 0;
             }
-            return state.channels.length;
+            return state.allChannels.length;
         },
 
-        // ✅ Получить каналы отсортированные (БЕЗ ФИЛЬТРАЦИИ)
-        sortedChannels: (state) => {
+        // ✅ ГРУППИРОВКА ПО КОМПАНИЯМ
+        channelsByCompany: (state) => {
             if (!state.channels || !Array.isArray(state.channels)) {
-                return [];
+                return {};
             }
-            return [...state.channels].sort((a, b) => {
-                return (a.order_column || 0) - (b.order_column || 0);
-            });
+            return state.channels.reduce((acc, channel) => {
+                const companyId = channel.company_id;
+                if (!acc[companyId]) {
+                    acc[companyId] = [];
+                }
+                acc[companyId].push(channel);
+                return acc;
+            }, {});
         },
     },
 
@@ -345,7 +431,7 @@ export const useChannelStore = defineStore('channel', {
     // ========================================================================
     actions: {
         // ====================================================================
-        // RECALCULATE PAGINATION — ПЕРЕСЧЕТ ПАГИНАЦИИ
+        // RECALCULATE PAGINATION — ПЕРЕСЧЕТ ПАГИНАЦИИ (КАК В COMPANIES!)
         // ====================================================================
         recalculatePagination(filteredData = null) {
             const dataToUse = filteredData || this.filteredData;
@@ -365,7 +451,7 @@ export const useChannelStore = defineStore('channel', {
         },
 
         // ====================================================================
-        // SAVE FILTERS TO LOCALSTORAGE
+        // SAVE FILTERS TO LOCALSTORAGE (С currentPage!)
         // ====================================================================
         saveFiltersToLocalStorage() {
             try {
@@ -375,10 +461,28 @@ export const useChannelStore = defineStore('channel', {
                     filterIsActive: this.filters.is_active,
                     pageSize: this.perPage,
                     sortBy: this.filters.sort_by,
+                    currentPage: this.currentPage,  // ← ← ← ДОБАВЛЕНО!
                 }));
-                console.log('🟢 [ChannelStore] Filters saved to localStorage');
+                console.log('🟢 [ChannelStore] Filters saved to localStorage:', {
+                    currentPage: this.currentPage,
+                    perPage: this.perPage,
+                });
             } catch (e) {
                 console.error('🔴 [ChannelStore] Error saving filters:', e);
+            }
+        },
+
+        // ====================================================================
+        // SAVE USER SETTINGS TO LOCALSTORAGE
+        // ====================================================================
+        saveUserSettings(settings) {
+            try {
+                const currentSettings = getChannelUserSettings();
+                const newSettings = { ...currentSettings, ...settings };
+                localStorage.setItem(CHANNEL_USER_SETTINGS.STORAGE_KEY, JSON.stringify(newSettings));
+                console.log('🟢 [ChannelStore] User settings saved:', newSettings);
+            } catch (e) {
+                console.error('🔴 [ChannelStore] Error saving user settings:', e);
             }
         },
 
@@ -393,7 +497,7 @@ export const useChannelStore = defineStore('channel', {
             if (filters.sort_by !== undefined) this.filters.sort_by = filters.sort_by || CHANNEL_SORT_OPTIONS.DEFAULT;
             if (filters.sort_direction !== undefined) this.filters.sort_direction = filters.sort_direction || 'asc';
 
-            this.currentPage = 1;
+            this.currentPage = 1;  // ← ← ← СБРОС НА 1 ПРИ ИЗМЕНЕНИИ ФИЛЬТРА
             this.saveFiltersToLocalStorage();
 
             console.log('🔵 [ChannelStore] setFilters:', this.filters);
@@ -416,9 +520,30 @@ export const useChannelStore = defineStore('channel', {
             console.log('🟢 [ChannelStore] Filters cleared');
         },
 
-        // ============================================================================
-        // APPLY USER SETTINGS — Применить настройки пользователя (ИСПРАВЛЕНО!)
-        // ============================================================================
+        // ====================================================================
+        // RESTORE FILTERS FROM STORAGE — Восстановить фильтры (КАК В COMPANIES!)
+        // ====================================================================
+        restoreFiltersFromStorage() {
+            const saved = localStorage.getItem('channel_filters');
+            if (saved) {
+                try {
+                    const filters = JSON.parse(saved);
+                    this.filters.company_id = filters.filterCompanyId ?? null;
+                    this.filters.type = filters.filterType ?? null;
+                    this.filters.is_active = filters.filterIsActive ?? null;
+                    this.filters.sort_by = filters.sortBy || CHANNEL_SORT_OPTIONS.DEFAULT;
+                    this.perPage = filters.pageSize || CHANNEL_USER_SETTINGS.DEFAULT_PAGE_SIZE;
+                    this.currentPage = filters.currentPage || 1;  // ← ← ← ДОБАВЛЕНО!
+                    console.log('🟢 [ChannelStore] Filters restored from localStorage:', filters);
+                } catch (e) {
+                    console.error('🔴 [ChannelStore] Error reading filters from localStorage:', e);
+                }
+            }
+        },
+
+        // ====================================================================
+        // APPLY USER SETTINGS — Применить настройки пользователя (КАК В COMPANIES!)
+        // ====================================================================
         applyUserSettings(settings) {
             console.log('🔵 [ChannelStore] applyUserSettings:', settings);
 
@@ -469,6 +594,18 @@ export const useChannelStore = defineStore('channel', {
         },
 
         // ====================================================================
+        // SET CHUNK SIZE — Установить размер чанка
+        // ====================================================================
+        setChunkSize(size) {
+            this.chunkSize = size;
+            if (this.totalItems > 0) {
+                this.totalChunks = Math.ceil(this.totalItems / this.chunkSize);
+            }
+            this.saveUserSettings({ chunkSize: size });
+            console.log('🟢 [ChannelStore] chunkSize updated:', this.chunkSize);
+        },
+
+        // ====================================================================
         // SET PAGE SIZE — Установить размер страницы
         // ====================================================================
         setPageSize(size) {
@@ -479,7 +616,58 @@ export const useChannelStore = defineStore('channel', {
         },
 
         // ====================================================================
-        // FETCH ALL CHANNELS — Загрузить все каналы
+        // SET CURRENT PAGE — Установить текущую страницу (НОВОЕ!)
+        // ====================================================================
+        setCurrentPage(page) {
+            this.currentPage = page;
+            this.saveFiltersToLocalStorage();
+            console.log('🟢 [ChannelStore] currentPage saved:', page);
+        },
+
+        // ====================================================================
+        // SIMULATE CHUNK PROGRESS — Симуляция прогресса загрузки
+        // ====================================================================
+        simulateChunkProgress() {
+            this.chunkLoadingProgress = 0;
+
+            const interval = setInterval(() => {
+                if (!this.loadingChunks) {
+                    clearInterval(interval);
+                    this.chunkLoadingProgress = 0;
+                    return;
+                }
+
+                this.chunkLoadingProgress = Math.min(this.chunkLoadingProgress + 2, 90);
+
+                if (this.chunkLoadingProgress >= 90) {
+                    clearInterval(interval);
+                }
+            }, 20);
+
+            return interval;
+        },
+
+        // ====================================================================
+        // FETCH CHANNELS COUNT — Получить общее количество каналов
+        // ====================================================================
+        async fetchChannelsCount(params = {}) {
+            console.log('🔵 [ChannelStore] fetchChannelsCount: START', { params });
+
+            try {
+                const response = await channelResource.getChannelsCount(params);
+                const total = response.total || response.data?.total || 0;
+
+                console.log('🟢 [ChannelStore] fetchChannelsCount: SUCCESS', { total });
+
+                return { success: true, total };
+            } catch (err) {
+                console.error('🔴 [ChannelStore] fetchChannelsCount: ERROR', err);
+                return { success: false, error: err.message, total: 0 };
+            }
+        },
+
+        // ====================================================================
+        // FETCH ALL CHANNELS — Загрузить все каналы (CHUNKED LOADING)
         // ====================================================================
         async fetchAllChannels() {
             console.log('🔵 [ChannelStore] fetchAllChannels: START');
@@ -489,10 +677,12 @@ export const useChannelStore = defineStore('channel', {
             this.error = null;
 
             try {
+                // 1. Получить общее количество
                 const countResult = await this.fetchChannelsCount(this.filters);
                 const realTotal = countResult.total;
                 console.log('🔵 [ChannelStore] Total items:', realTotal);
 
+                // 2. Загрузить первый чанк
                 const response = await channelResource.getChannels({
                     page: 1,
                     per_page: this.chunkSize,
@@ -506,17 +696,20 @@ export const useChannelStore = defineStore('channel', {
 
                 console.log('🔵 [ChannelStore] Data length:', data.length);
 
+                // ✅ ИНИЦИАЛИЗИРУЕМ МАССИВ ЯВНО!
                 this.allChannels = [];
                 this.channels = [];
 
-                data.forEach(channel => {
-                    channel._refreshing = false;
-                    channel._updating = false;
-                    if (!channel.metadata) channel.metadata = {};
-                    if (!channel.company) channel.company = {};
-                    this.allChannels.push(channel);
-                    this.channels.push(channel);
-                });
+                const processedChannels = data.map(channel => ({
+                    ...channel,
+                    _refreshing: false,
+                    _updating: false,
+                    metadata: channel.metadata || {},
+                    company: channel.company || {},
+                }));
+
+                this.allChannels.push(...processedChannels);
+                this.channels.push(...processedChannels);
 
                 this.totalItems = realTotal;
                 this.allRecordsLoaded = this.allChannels.length >= realTotal;
@@ -527,6 +720,9 @@ export const useChannelStore = defineStore('channel', {
                 console.log('🟢 [ChannelStore] fetchAllChannels: SUCCESS', {
                     total: realTotal,
                     loaded: this.allChannels.length,
+                    channels: this.channels.length,
+                    filteredCount: this.filteredCount,
+                    totalPages: this.totalPages,
                 });
 
                 return { success: true, data: this.channels };
@@ -541,22 +737,6 @@ export const useChannelStore = defineStore('channel', {
         },
 
         // ====================================================================
-        // FETCH CHANNELS COUNT — Получить общее количество каналов
-        // ====================================================================
-        async fetchChannelsCount(params = {}) {
-            console.log('🔵 [ChannelStore] fetchChannelsCount: START', { params });
-            try {
-                const response = await channelResource.getChannelsCount(params);
-                const total = response.total || response.data?.total || 0;
-                console.log('🟢 [ChannelStore] fetchChannelsCount: SUCCESS', { total });
-                return { success: true, total };
-            } catch (err) {
-                console.error('🔴 [ChannelStore] fetchChannelsCount: ERROR', err);
-                return { success: false, error: err.message, total: 0 };
-            }
-        },
-
-        // ====================================================================
         // LOAD NEXT CHUNK — Загрузить следующий чанк
         // ====================================================================
         async loadNextChunk() {
@@ -565,6 +745,8 @@ export const useChannelStore = defineStore('channel', {
             this.loadingChunks = true;
             this.chunkLoadingProgress = 0;
             this.error = null;
+
+            const progressInterval = this.simulateChunkProgress();
 
             try {
                 const nextPage = this.loadedChunks + 1;
@@ -585,8 +767,12 @@ export const useChannelStore = defineStore('channel', {
                 data.forEach(channel => {
                     channel._refreshing = false;
                     channel._updating = false;
-                    if (!channel.metadata) channel.metadata = {};
-                    if (!channel.company) channel.company = {};
+                    if (!channel.metadata) {
+                        channel.metadata = {};
+                    }
+                    if (!channel.company) {
+                        channel.company = {};
+                    }
                     this.allChannels.push(channel);
                     this.channels.push(channel);
                 });
@@ -596,9 +782,8 @@ export const useChannelStore = defineStore('channel', {
 
                 if (this.allChannels.length >= this.totalItems) {
                     this.allRecordsLoaded = true;
+                    this.recalculatePagination();
                 }
-
-                this.recalculatePagination();
 
                 console.log('🟢 [ChannelStore] loadNextChunk: SUCCESS', {
                     loaded: data.length,
@@ -611,17 +796,18 @@ export const useChannelStore = defineStore('channel', {
                 this.error = err.message || 'Failed to load chunk';
                 return false;
             } finally {
+                clearInterval(progressInterval);
                 this.loadingChunks = false;
                 setTimeout(() => {
                     this.chunkLoadingProgress = 0;
-                }, 300);
+                }, 5);
             }
         },
 
         // ====================================================================
         // LOAD ALL RECORDS CHUNKED — Загрузить все записи чанками
         // ====================================================================
-        async loadAllRecordsChunked(delay = 100) {
+        async loadAllRecordsChunked(delay = CHUNK_CONFIG.DELAY) {
             if (this.allRecordsLoaded) return;
             this.error = null;
 
@@ -649,9 +835,9 @@ export const useChannelStore = defineStore('channel', {
             }
         },
 
-        // ====================================================================
+        // ============================================================================
         // REFRESH SINGLE RECORD — ОБНОВЛЕНИЕ ОДНОЙ ЗАПИСИ
-        // ====================================================================
+        // ============================================================================
         async refreshSingleRecord(channelId) {
             console.log('🔵 [ChannelStore] refreshSingleRecord: START', { channelId });
             this.error = null;
@@ -718,6 +904,161 @@ export const useChannelStore = defineStore('channel', {
         },
 
         // ====================================================================
+        // REFRESH DATA — ОБНОВЛЕНИЕ ВСЕХ ДАННЫХ
+        // ====================================================================
+        async refreshData() {
+            this.loadingInitial = true;
+            this.error = null;
+
+            try {
+                const countResponse = await channelResource.getChannelsCount();
+                const newTotal = countResponse.total || countResponse.data?.total || 0;
+                const newRecords = newTotal - this.totalItems;
+
+                if (newRecords > 0) {
+                    this.totalItems = newTotal;
+                    this.allRecordsLoaded = false;
+                    this.totalChunks = Math.ceil(newTotal / this.chunkSize);
+                    await this.loadAllRecordsChunked(20);
+                    return { success: true, newRecords };
+                }
+
+                return { success: true, newRecords: 0 };
+            } catch (err) {
+                this.error = err.message || 'Failed to refresh data';
+                throw err;
+            } finally {
+                this.loadingInitial = false;
+            }
+        },
+
+        // ====================================================================
+        // FETCH CHANNELS — Загрузить каналы (для совместимости)
+        // ====================================================================
+        async fetchChannels(params = {}) {
+            console.log('🔵 [ChannelStore] fetchChannels: START', { params, filters: this.filters });
+
+            this.loading = true;
+            this.error = null;
+
+            try {
+                const queryParams = { ...this.filters, ...params };
+                const response = await channelResource.getChannels(queryParams);
+
+                let data = response;
+                if (response && typeof response === 'object' && !Array.isArray(response)) {
+                    data = response.data || response.channels || response.items || [];
+                }
+
+                // ✅ ИНИЦИАЛИЗИРУЕМ МАССИВ ЯВНО!
+                this.channels = [];
+                this.allChannels = [];
+
+                data.forEach(channel => {
+                    channel._refreshing = false;
+                    channel._updating = false;
+                    if (!channel.metadata) {
+                        channel.metadata = {};
+                    }
+                    if (!channel.company) {
+                        channel.company = {};
+                    }
+                    this.channels.push(channel);
+                    this.allChannels.push(channel);
+                });
+
+                this.meta.lastFetchedAt = new Date().toISOString();
+                this.recalculatePagination();
+
+                console.log('🟢 [ChannelStore] fetchChannels: SUCCESS', { count: this.channels.length });
+
+                return { success: true, data };
+            } catch (err) {
+                console.error('🔴 [ChannelStore] fetchChannels: ERROR', err);
+                this.error = err.message || 'Failed to fetch channels';
+                return { success: false, error: this.error };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // ====================================================================
+        // FETCH CHANNEL — Загрузить один канал
+        // ====================================================================
+        async fetchChannel(channelId) {
+            console.log('🔵 [ChannelStore] fetchChannel: START', { channelId });
+
+            this.loading = true;
+            this.error = null;
+
+            try {
+                const response = await channelResource.getChannel(channelId);
+
+                let data = response;
+                if (response && typeof response === 'object' && !Array.isArray(response)) {
+                    data = response.data || response.channel || response;
+                }
+
+                this.currentChannel = data;
+
+                console.log('🟢 [ChannelStore] fetchChannel: SUCCESS', data);
+
+                return { success: true, data };
+            } catch (err) {
+                console.error('🔴 [ChannelStore] fetchChannel: ERROR', err);
+                this.error = err.message || 'Failed to fetch channel';
+                return { success: false, error: this.error };
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        // ====================================================================
+        // CREATE CHANNEL — Создать канал
+        // ====================================================================
+        async createChannel(data) {
+            console.log('🔵 [ChannelStore] createChannel: START', data);
+
+            if (!data.company_id) {
+                this.error = 'company_id is required';
+                return { success: false, error: 'company_id is required' };
+            }
+
+            this.saving = true;
+            this.error = null;
+            this.validationErrors = {};
+
+            try {
+                const response = await channelResource.createChannel(data);
+
+                let newChannel = response;
+                if (response && typeof response === 'object' && !Array.isArray(response)) {
+                    newChannel = response.data || response.channel || response;
+                }
+
+                newChannel._refreshing = false;
+                newChannel._updating = false;
+
+                this.channels.push(newChannel);
+                this.allChannels.push(newChannel);
+                this.totalItems++;
+                this.meta.lastUpdatedAt = new Date().toISOString();
+                this.recalculatePagination();
+
+                console.log('🟢 [ChannelStore] createChannel: SUCCESS', { id: newChannel.id });
+
+                return { success: true, data: newChannel };
+            } catch (err) {
+                console.error('🔴 [ChannelStore] createChannel: ERROR', err);
+                this.error = err.message || 'Failed to create channel';
+                this.validationErrors = err.response?.data?.errors || {};
+                return { success: false, error: this.error, errors: this.validationErrors };
+            } finally {
+                this.saving = false;
+            }
+        },
+
+        // ====================================================================
         // UPDATE CHANNEL — Обновить канал
         // ====================================================================
         async updateChannel(channelId, data) {
@@ -729,6 +1070,7 @@ export const useChannelStore = defineStore('channel', {
 
             try {
                 const response = await channelResource.updateChannel(channelId, data);
+
                 let updatedChannel = response;
                 if (response && typeof response === 'object' && !Array.isArray(response)) {
                     updatedChannel = response.data || response.channel || response;
@@ -754,6 +1096,7 @@ export const useChannelStore = defineStore('channel', {
                 this.recalculatePagination();
 
                 console.log('🟢 [ChannelStore] updateChannel: SUCCESS', { id: channelId });
+
                 return { success: true, data: updatedChannel };
             } catch (err) {
                 console.error('🔴 [ChannelStore] updateChannel: ERROR', err);
@@ -784,6 +1127,7 @@ export const useChannelStore = defineStore('channel', {
                 this.recalculatePagination();
 
                 console.log('🟢 [ChannelStore] deleteChannel: SUCCESS', { id: channelId });
+
                 return { success: true, message: 'Канал удалён' };
             } catch (err) {
                 console.error('🔴 [ChannelStore] deleteChannel: ERROR', err);
@@ -809,14 +1153,18 @@ export const useChannelStore = defineStore('channel', {
                 const channelsMap = new Map(this.channels.map(c => [c.id, c]));
                 this.channels = order.map((id, index) => {
                     const channel = channelsMap.get(id);
-                    if (channel) channel.order_column = index;
+                    if (channel) {
+                        channel.order_column = index;
+                    }
                     return channel;
                 }).filter(Boolean);
 
                 const allChannelsMap = new Map(this.allChannels.map(c => [c.id, c]));
                 this.allChannels = order.map((id, index) => {
                     const channel = allChannelsMap.get(id);
-                    if (channel) channel.order_column = index;
+                    if (channel) {
+                        channel.order_column = index;
+                    }
                     return channel;
                 }).filter(Boolean);
 
@@ -824,6 +1172,7 @@ export const useChannelStore = defineStore('channel', {
                 this.recalculatePagination();
 
                 console.log('🟢 [ChannelStore] reorderChannels: SUCCESS');
+
                 return { success: true, message: 'Порядок обновлён' };
             } catch (err) {
                 console.error('🔴 [ChannelStore] reorderChannels: ERROR', err);
@@ -832,6 +1181,28 @@ export const useChannelStore = defineStore('channel', {
             } finally {
                 this.reordering = false;
             }
+        },
+
+        // ====================================================================
+        // SET CURRENT CHANNEL — Установить текущий канал
+        // ====================================================================
+        setCurrentChannel(channel) {
+            this.currentChannel = channel;
+        },
+
+        // ====================================================================
+        // CLEAR CURRENT CHANNEL — Очистить текущий канал
+        // ====================================================================
+        clearCurrentChannel() {
+            this.currentChannel = null;
+        },
+
+        // ====================================================================
+        // CLEAR ERROR — Очистить ошибку
+        // ====================================================================
+        clearError() {
+            this.error = null;
+            this.validationErrors = {};
         },
 
         // ====================================================================

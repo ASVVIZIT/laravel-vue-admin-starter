@@ -22,11 +22,11 @@
           :percentage="channelStore.loadedPercentage"
           :chunk-progress="channelStore.currentChunkProgress"
           :chunk-size="channelStore.chunkSize"
-          :is-loading="channelStore.loadingChunks"
-          :is-paused="false"
           :disabled="props.disabled"
-          :show-load-more="channelStore.showLoadMoreButton"
-          :show-load-all="channelStore.showLoadAllButton"
+          :is-loading="isLoadingAll"
+          :is-paused="isLoadPaused"
+          :show-load-more="showLoadMoreButton && !isLoadingAll"
+          :show-load-all="showLoadAllButton && !isLoadingAll"
           :show-refresh="false"
           @load-more="handleLoadMore"
           @load-all="handleLoadAll"
@@ -232,6 +232,7 @@
          ======================================================================== -->
     <div v-else-if="channelStore.hasChannels" class="channel-table-wrapper">
       <ChannelTable
+          :key="tableKey"
           :data="paginatedChannels"
           :company-id="props.companyId"
           :loading="channelStore.isSaving || channelStore.isDeleting || channelStore.isReordering"
@@ -329,24 +330,32 @@ import SettingsModalEntity from '../Common/SettingsModalEntity.vue';
 import { useChannelStore } from '@/components/ContactManagement/CompanyContactChannels/store/channelStore.js';
 import { useCompanyStore } from '@/components/ContactManagement/CompanyContactChannels/store/companyStore.js';
 import {
+  // ✅ HELPERS
+  getChannelSortOptions,
+  getChannelUserSettings,
+
+  // ✅ CONSTANTS
+  CHUNK_CONFIG,
   CHANNEL_LIST_PROPS_CONFIG,
-  CHANNEL_LIST_MESSAGES,
-  CHANNEL_LIST_UI,
-  CHANNEL_LIST_FILTERS_UI,
-  CHANNEL_LIST_FILTERS,
   CHANNEL_LIST_THRESHOLDS,
+  CHANNEL_LIST_FILTERS,
   CHANNEL_USER_SETTINGS,
   CHANNEL_SORT_OPTIONS,
   CHANNEL_TYPE_LABELS,
   PAGE_SIZE_OPTIONS,
-  getChannelSortOptions,
-  getChannelUserSettings,
+
+  // ✅ UI CONFIGS
+  CHANNEL_LIST_MESSAGES,
+  CHANNEL_LIST_UI,
+  CHANNEL_LIST_FILTERS_UI,
   PAGINATOR_DISPLAY,
+
+  // ✅ GLOBAL
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
   COLORS,
-} from '@/components/ContactManagement/CompanyContactChannels/config/appConfigIndex.js';
+} from '../../config/appConfigIndex.js';
 
 const props = defineProps({ ...CHANNEL_LIST_PROPS_CONFIG });
 const emit = defineEmits(['update', 'delete']);
@@ -355,19 +364,31 @@ const channelStore = useChannelStore();
 const companyStore = useCompanyStore();
 
 // ============================================================================
-// STATE
+// STATE (КАК В COMPANIES — ЕДИНЫЙ ПОРЯДОК!)
 // ============================================================================
+
+// ✅ 1. DIALOG STATES
 const formVisible = ref(false);
 const deleteDialogVisible = ref(false);
 const oldSettingsDialogVisible = ref(false);
 const newSettingsDialogVisible = ref(false);
 const isSavingSettings = ref(false);
 const currentChannel = ref(null);
+
+// ✅ 2. FILTER STATES
 const selectedCompanyId = ref(null);
 const selectedType = ref(null);
 const selectedIsActive = ref(null);
 const selectedSortBy = ref(CHANNEL_SORT_OPTIONS.DEFAULT);
 const selectedSearch = ref('');
+
+// ✅ 3. TABLE STATES
+const tableKey = ref(0);
+
+// ✅ 4. LOADING STATES
+const isLoadingAll = ref(false);
+const isLoadPaused = ref(false);
+const isRecalculatingPagination = ref(false);
 
 // ============================================================================
 // COMPUTED
@@ -387,6 +408,23 @@ const availablePageSizes = computed(() => {
     filtered.push(channelStore.totalItems);
   }
   return filtered.sort((a, b) => a - b);
+});
+
+const showLoadMoreButton = computed(() => {
+  return (
+      !channelStore.allRecordsLoaded &&
+      channelStore.totalItems > CHANNEL_LIST_THRESHOLDS.SHOW_LOAD_BUTTONS_MIN &&
+      channelStore.loadedCount < channelStore.totalItems
+  );
+});
+
+const showLoadAllButton = computed(() => {
+  return (
+      !channelStore.allRecordsLoaded &&
+      channelStore.totalItems > CHANNEL_LIST_THRESHOLDS.SHOW_LOAD_BUTTONS_MIN &&
+      channelStore.loadedCount < channelStore.totalItems &&
+      channelStore.totalItems > 0
+  );
 });
 
 const CHANNEL_SORT_OPTIONS_LIST = computed(() => getChannelSortOptions());
@@ -436,6 +474,19 @@ watch(() => channelStore.filters.search, (newVal) => {
 
 watch(() => channelStore.perPage, (newVal) => {
   console.log('🔵 [ChannelList] Watch: perPage changed:', newVal);
+  tableKey.value++;
+}, { immediate: true });
+
+watch(() => channelStore.currentPage, () => {
+  tableKey.value++;
+});
+
+watch(() => channelStore.filteredData.length, () => {
+  tableKey.value++;
+}, { immediate: false });
+
+watch(() => channelStore.allChannels, (newVal) => {
+  console.log('🔵 [ChannelList] allChannels:', newVal.length);
 }, { immediate: true });
 
 // ============================================================================
@@ -444,12 +495,16 @@ watch(() => channelStore.perPage, (newVal) => {
 onMounted(async () => {
   console.log('🔵 [ChannelList] onMounted: START');
 
-  // ✅ 1. ЗАГРУЗИТЬ КОМПАНИИ ДЛЯ ФИЛЬТРА
+  // ✅ 1. ЗАГРУЗИТЬ НАСТРОЙКИ ПОЛЬЗОВАТЕЛЯ
+  const userSettings = getChannelUserSettings();
+  console.log('🟢 [ChannelList] User settings loaded:', userSettings);
+
+  // ✅ 2. ЗАГРУЗИТЬ КОМПАНИИ ДЛЯ ФИЛЬТРА
   if (!companyStore.hasChannels) {
     await companyStore.fetchAllCompanies();
   }
 
-  // ✅ 2. ВОССТАНАВЛИВАЕМ ФИЛЬТРЫ ИЗ STORE
+  // ✅ 3. ВОССТАНАВЛИВАЕМ ФИЛЬТРЫ ИЗ STORE
   selectedCompanyId.value = channelStore.filters.company_id;
   selectedType.value = channelStore.filters.type;
   selectedIsActive.value = channelStore.filters.is_active;
@@ -632,9 +687,14 @@ async function handleLoadMore() {
   }
 }
 
+// ✅ УБЕДИТЬСЯ ЧТО CHUNK_CONFIG.DELAY = 200:
 async function handleLoadAll() {
-  const remaining = channelStore.totalItems - channelStore.allChannels.length;
-  if (remaining > CHANNEL_LIST_THRESHOLDS.CONFIRM_LOAD_ALL_MIN) {
+  if (channelStore.allRecordsLoaded) {
+    ElMessage.info(CHANNEL_LIST_MESSAGES.ALL_RECORDS_LOADED);
+    return;
+  }
+
+  if (channelStore.totalItems > CHANNEL_LIST_THRESHOLDS.CONFIRM_LOAD_ALL_MIN) {
     try {
       await ElMessageBox.confirm(
           CHANNEL_LIST_MESSAGES.CONFIRM_LOAD_ALL_MESSAGE(channelStore.totalItems),
@@ -643,12 +703,40 @@ async function handleLoadAll() {
       );
     } catch (e) { return; }
   }
-  await channelStore.loadAllRecordsChunked(100);
-  ElMessage.success(CHANNEL_LIST_MESSAGES.SUCCESS_ALL_LOADED(channelStore.totalItems));
+
+  isLoadingAll.value = true;
+  isLoadPaused.value = false;
+  isRecalculatingPagination.value = true;
+
+  try {
+    while (!channelStore.allRecordsLoaded && !isLoadPaused.value) {
+      await channelStore.loadNextChunk();
+      await new Promise((resolve) => setTimeout(resolve, CHUNK_CONFIG.DELAY));  // ← ← ← 200ms
+    }
+
+    if (channelStore.allRecordsLoaded) {
+      ElMessage.success(CHANNEL_LIST_MESSAGES.SUCCESS_ALL_LOADED(channelStore.totalItems));
+    }
+  } catch (err) {
+    ElMessage.error(CHANNEL_LIST_MESSAGES.ERROR_LOADING + ': ' + err.message);
+  } finally {
+    isLoadingAll.value = false;
+    isLoadPaused.value = false;
+    setTimeout(() => {
+      isRecalculatingPagination.value = false;
+    }, TIMINGS.RECALCULATING_DURATION);
+  }
 }
 
-function handlePause() { console.log('🔵 [ChannelList] handlePause'); }
-function handleResume() { console.log('🔵 [ChannelList] handleResume'); }
+function handlePause() {
+  isLoadPaused.value = true;
+  ElMessage.info(CHANNEL_LIST_MESSAGES.LOAD_PAUSED);
+}
+
+function handleResume() {
+  isLoadPaused.value = false;
+  ElMessage.info(CHANNEL_LIST_MESSAGES.LOAD_RESUMED);
+}
 
 // ============================================================================
 // SETTINGS — СТАРАЯ МОДАЛКА
@@ -732,12 +820,11 @@ function handleSizeChange(newSize) {
     return;
   }
 
-  channelStore.perPage = newSize;
-  channelStore.recalculatePagination();
+  channelStore.setPageSize(newSize);  // ← ← ← ЧЕРЕЗ STORE!
 }
 
 function handlePageChange(newPage) {
-  channelStore.currentPage = newPage;
+  channelStore.setCurrentPage(newPage);
 }
 
 function handleSettingsReset(defaultSettings) {

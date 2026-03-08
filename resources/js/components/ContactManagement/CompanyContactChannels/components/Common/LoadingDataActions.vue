@@ -117,7 +117,7 @@
 
         <div class="progress-text">
           <span class="count">{{ props.loaded }}/{{ props.total }}</span>
-          <span class="percent">({{ props.percentage }}%)</span>
+          <span class="percent">({{ formattedPercentage }}%)</span>
 
           <span v-if="props.isLoading && !isComplete" class="chunk-info">
             | Чанк {{ currentChunk }}/{{ totalChunks }}
@@ -163,6 +163,12 @@ const emit = defineEmits([
 // COMPUTED — СТАТУСЫ
 // ============================================================================
 const isComplete = computed(() => props.percentage >= 100);
+
+const formattedPercentage = computed(() => {
+  if (props.percentage >= 100) return '100';
+  if (props.percentage >= 10) return props.percentage.toFixed(1);  // 1 знак для 10%+
+  return props.percentage.toFixed(2);  // 2 знака для <10%
+});
 
 const showMainButton = computed(() => {
   return props.showLoadAll || props.isLoading || props.isPaused;

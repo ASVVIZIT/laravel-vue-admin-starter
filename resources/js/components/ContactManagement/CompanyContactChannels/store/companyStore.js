@@ -128,11 +128,20 @@ export const useCompanyStore = defineStore('company', {
     getters: {
         loadedCount: (state) => state.allCompanies.length,
 
-        loadedPercentage: (state) => {
+        /* loadedPercentage: (state) => {
             if (state.totalItems === 0) return 0;
             return Math.round((state.allCompanies.length / state.totalItems) * 100);
-        },
+        },*/
 
+        loadedPercentage: (state) => {
+            if (!state.allCompanies || !Array.isArray(state.allCompanies)) {
+                return 0.00;
+            }
+            if (state.totalItems === 0) return 0.00;
+
+            const percentage = (state.allCompanies.length / state.totalItems) * 100;
+            return Math.round(percentage * 100) / 100;  // ← ← ← 2 ЗНАКА!
+        },
         chunkProgress: (state) => {
             if (state.totalChunks === 0) return 0;
             return Math.round((state.loadedChunks / state.totalChunks) * 100);
