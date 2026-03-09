@@ -461,7 +461,7 @@ export const useChannelStore = defineStore('channel', {
                     filterIsActive: this.filters.is_active,
                     pageSize: this.perPage,
                     sortBy: this.filters.sort_by,
-                    currentPage: this.currentPage,  // ← ← ← ДОБАВЛЕНО!
+                    currentPage: this.currentPage,
                 }));
                 console.log('🟢 [ChannelStore] Filters saved to localStorage:', {
                     currentPage: this.currentPage,

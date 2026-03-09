@@ -1,6 +1,6 @@
 <?php // resources/app/Models/Company/CompanyContactChannel.php
 
-namespace App\Models\Company; // Путь пространства имён соответствует папке
+namespace App\Models\Company;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -12,7 +12,8 @@ class CompanyContactChannel extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id', 'type', 'title', 'description', 'logo_url', 'url', 'identifier', 'metadata', 'order_column', 'is_active'
+        'company_id', 'type', 'title', 'description', 'logo_url',
+        'url', 'identifier', 'metadata', 'order_column', 'is_active'
     ];
 
     protected $casts = [

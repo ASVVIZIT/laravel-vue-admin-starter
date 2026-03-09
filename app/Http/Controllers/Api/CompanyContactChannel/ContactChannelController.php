@@ -16,13 +16,13 @@ use Illuminate\Support\Facades\DB;
 class ContactChannelController extends Controller
 {
     /**
-     * Display a listing of the resource (ВСЕ КАНАЛЫ — С ПАГИНАЦИЕЙ)
+     * Display a listing of the resource.
      */
-    public function index(Request $request): AnonymousResourceCollection
+    public function index(Request $request)
     {
         $query = CompanyContactChannel::with('company');
 
-        // ✅ ФИЛЬТР ПО КОМПАНИИ (опционально)
+        // ✅ ФИЛЬТР ПО КОМПАНИИ
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->get('company_id'));
         }
@@ -48,14 +48,11 @@ class ContactChannelController extends Controller
             });
         }
 
-        // ✅ СОРТИРОВКА — ПАРСИМ sort_by (order_asc, title_desc, id_asc)
-        $sortBy = $request->get('sort_by', 'order_asc');
-        $sortDirection = $request->get('sort_direction', 'asc');
-
-        // ✅ РАЗБИРАЕМ sort_by НА ПОЛЕ И НАПРАВЛЕНИЕ
+        // ✅ СОРТИРОВКА — МАППИНГ ПОЛЕЙ (ИСПРАВЛЕНИЕ!)
+        $sortBy = $request->get('sort_by', 'order_column_asc');
         $sortParts = explode('_', $sortBy);
-        $direction = array_pop($sortParts); // Последний элемент - направление (asc/desc)
-        $field = implode('_', $sortParts);  // Остальное - имя поля
+        $direction = array_pop($sortParts);
+        $field = implode('_', $sortParts);
 
         // ✅ МАППИНГ ИМЕН ПОЛЕЙ (frontend → database)
         $fieldMap = [
@@ -69,23 +66,16 @@ class ContactChannelController extends Controller
             'is_active' => 'is_active',
         ];
 
-        // ✅ ПОЛУЧАЕМ РЕАЛЬНОЕ ИМЯ КОЛОНКИ
         $column = $fieldMap[$field] ?? 'order_column';
-
-        // ✅ НАПРАВЛЕНИЕ СОРТИРОВКИ
         $direction = in_array(strtolower($direction), ['asc', 'desc']) ? $direction : 'asc';
 
-        // ✅ ПРИМЕНЯЕМ СОРТИРОВКУ
         $query->orderBy($column, $direction);
 
         // ✅ ПАГИНАЦИЯ
         $perPage = max((int)$request->get('per_page', 500), 1);
         $page = $request->get('page', 1);
 
-        $total = $query->count();
-        $channels = $query->paginate($perPage, ['*'], 'page', $page);
-
-        return CompanyContactChannelResource::collection($channels);
+        return $query->paginate($perPage, ['*'], 'page', $page);
     }
 
     /**
@@ -193,21 +183,32 @@ class ContactChannelController extends Controller
     {
         $request->validate([
             'order' => 'required|array',
-            'order.*' => 'integer|exists:company_contact_channels,id',
+            'order.*' => 'required|integer|exists:company_contact_channels,id',
         ]);
 
         $order = $request->input('order');
+
         DB::beginTransaction();
         try {
             foreach ($order as $index => $id) {
-                CompanyContactChannel::where('id', $id)->update(['order_column' => $index]);
+                CompanyContactChannel::where('id', $id)->update([
+                    'order_column' => $index
+                ]);
             }
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollback();
-            return response()->json(['message' => 'Error updating order'], 500);
-        }
 
-        return response()->json(['message' => 'Order updated successfully']);
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Порядок обновлён',
+                'order' => $order
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return response()->json([
+                'message' => 'Ошибка обновления порядка',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

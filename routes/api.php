@@ -500,6 +500,9 @@ Route::get('/channels', [ContactChannelController::class, 'index'])->name('api.c
 // Получить количество каналов (для прогресс бара)
 Route::get('/channels/meta/total', [ContactChannelController::class, 'count'])->name('api.channels.count');
 
+// Сортировка каналов
+Route::put('/channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.channels.reorder');
+
 // Получить один канал
 Route::get('/channels/{contactChannel}', [ContactChannelController::class, 'show'])->name('api.channels.show');
 
@@ -512,8 +515,6 @@ Route::put('/channels/{contactChannel}', [ContactChannelController::class, 'upda
 // Удалить канал
 Route::delete('/channels/{contactChannel}', [ContactChannelController::class, 'destroy'])->name('api.channels.destroy');
 
-// Сортировка каналов
-Route::put('/channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.channels.reorder');
 
 // ============================================================================
 // CHANNELS BY COMPANY (для совместимости)

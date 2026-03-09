@@ -13,20 +13,30 @@
         :max-height="tableMaxHeight"
         row-key="id"
         class="channel-table"
+        @row-dragstart="handleRowDragStart"
+        @row-dragend="handleRowDragEnd"
     >
       <!-- ✅ DRAG HANDLE (для сортировки) -->
       <el-table-column
           v-if="props.allowReorder"
           label=""
-          :width="30"
+          :width="40"
           align="center"
           :resizable="false"
           fixed="left"
       >
-        <template #default>
-          <el-icon :size="14" :color="COLORS.INFO" class="drag-handle">
-            <Rank />
-          </el-icon>
+        <template #default="{ row, $index }">
+          <div
+              class="drag-handle"
+              draggable="true"
+              @dragstart="handleDragStart($event, row, $index)"
+              @dragover="handleDragOver($event)"
+              @drop="handleDrop($event, row, $index)"
+          >
+            <el-icon :size="16" :color="COLORS.INFO">
+              <Rank />
+            </el-icon>
+          </div>
         </template>
       </el-table-column>
 
@@ -286,7 +296,7 @@
 <script setup>
 /**
  * ============================================================================
- * CHANNEL TABLE — ТАБЛИЦА КАНАЛОВ СВЯЗИ
+ * CHANNEL TABLE — ТАБЛИЦА КАНАЛОВ СВЯЗИ (С DRAG-AND-DROP!)
  * ============================================================================
  * 📁 Путь: components/Admin/ChannelTable.vue
  * ✅ Используется: ChannelList.vue
@@ -302,7 +312,6 @@ import {
   CHANNEL_TABLE_UI,
   CHANNEL_TABLE_MESSAGES,
   CHANNEL_TYPE_LABELS,
-  CHANNEL_TABLE_COLUMNS,
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
@@ -371,10 +380,70 @@ function getChannelTypeTagType(type) {
 }
 
 // ============================================================================
+// DRAG AND DROP HANDLERS
+// ============================================================================
+let draggedRow = null;
+let draggedIndex = -1;
+
+function handleDragStart(event, row, index) {
+  draggedRow = row;
+  draggedIndex = index;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', row.id);
+
+  // ✅ ДОБАВИТЬ КЛАСС DRAGGING
+  event.target.closest('.el-table__row').classList.add('dragging');
+}
+
+function handleDragOver(event) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+}
+
+function handleDrop(event, row, index) {
+  event.preventDefault();
+
+  if (!draggedRow || draggedIndex === -1 || draggedIndex === index) {
+    return;
+  }
+
+  // ✅ ОТПРАВИТЬ НОВЫЙ ПОРЯДОК
+  const newOrder = generateNewOrder(draggedIndex, index);
+  emit('reorder', newOrder);
+
+  // ✅ ОЧИСТИТЬ
+  draggedRow = null;
+  draggedIndex = -1;
+}
+
+function handleRowDragStart({ row }) {
+  draggedRow = row;
+}
+
+function handleRowDragEnd() {
+  const draggingRow = document.querySelector('.el-table__row.dragging');
+  if (draggingRow) {
+    draggingRow.classList.remove('dragging');
+  }
+  draggedRow = null;
+  draggedIndex = -1;
+}
+
+function generateNewOrder(fromIndex, toIndex) {
+  // ✅ СОЗДАТЬ МАССИВ ID В ТЕКУЩЕМ ПОРЯДКЕ
+  const currentIds = props.data.map(row => row.id);
+
+  // ✅ ПЕРЕМЕСТИТЬ ЭЛЕМЕНТ
+  const [movedId] = currentIds.splice(fromIndex, 1);
+  currentIds.splice(toIndex, 0, movedId);
+
+  return currentIds;
+}
+
+// ============================================================================
 // HANDLE EDIT
 // ============================================================================
 function handleEdit(row) {
-  console.log('🔵 [ChannelTable] handleEdit:', row.id);
   emit('edit', row);
 }
 
@@ -382,18 +451,13 @@ function handleEdit(row) {
 // HANDLE DELETE
 // ============================================================================
 function handleDelete(row) {
-  console.log('🔵 [ChannelTable] handleDelete:', row.id);
   emit('delete', row);
 }
 
 // ============================================================================
-// HANDLE REFRESH — ОБНОВЛЕНИЕ ЗАПИСИ (КАК В COMPANIES!)
+// HANDLE REFRESH
 // ============================================================================
 function handleRefresh(row) {
-  console.log('🔵 [ChannelTable] handleRefresh: START', {
-    id: row.id,
-    _refreshing: row._refreshing
-  });
   emit('refresh', row);
 }
 
@@ -401,7 +465,6 @@ function handleRefresh(row) {
 // HANDLE UPDATE FIELD
 // ============================================================================
 function handleUpdateField(channelId, fieldName, newValue) {
-  console.log('🔵 [ChannelTable] handleUpdateField:', { channelId, fieldName, newValue });
   emit('update-field', channelId, fieldName, newValue);
 }
 
@@ -416,7 +479,6 @@ function handleEditError(row, fieldName, error) {
 // HANDLE TOGGLE ACTIVE
 // ============================================================================
 function handleToggleActive(row) {
-  console.log('🔵 [ChannelTable] handleToggleActive:', { id: row.id, is_active: row.is_active });
   emit('update-field', row.id, 'is_active', row.is_active);
 }
 </script>
@@ -434,8 +496,6 @@ function handleToggleActive(row) {
   background: #FFFFFF;
   border-radius: 2px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
 }
 
 /* ============================================================================
@@ -468,6 +528,7 @@ function handleToggleActive(row) {
 
 .channel-table :deep(.el-table__row) {
   height: v-bind('CHANNEL_TABLE_UI.ROW_HEIGHT') !important;
+  transition: background-color v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
 }
 
 .channel-table :deep(.el-table__row td) {
@@ -485,16 +546,55 @@ function handleToggleActive(row) {
 }
 
 /* ============================================================================
-   DRAG HANDLE
+   DRAG AND DROP STYLES — КРИТИЧНО!
    ============================================================================ */
+
+/* ✅ DRAG HANDLE — КУРСОР И ВИЗУАЛИЗАЦИЯ */
 .drag-handle {
   cursor: move;
+  cursor: grab;
   opacity: 0.5;
   transition: opacity v-bind('ANIMATIONS.TRANSITION_FAST') v-bind('ANIMATIONS.EASING_EASE');
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 .drag-handle:hover {
   opacity: 1;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ✅ DRAGGING ROW — ПОДСВЕТКА ПЕРЕТАСКИВАЕМОЙ СТРОКИ */
+.channel-table :deep(.el-table__row.dragging) {
+  opacity: 0.5;
+  background-color: #f5f7fa !important;
+}
+
+/* ✅ DRAG OVER ROW — ПОДСВЕТКА ЦЕЛЕВОЙ СТРОКИ */
+.channel-table :deep(.el-table__row.drag-over) {
+  border-top: 2px solid v-bind('COLORS.PRIMARY') !important;
+  background-color: rgba(64, 158, 255, 0.1) !important;
+}
+
+/* ✅ ЗАПРЕТ ВЫДЕЛЕНИЯ ТЕКСТА НА ВСЕЙ ТАБЛИЦЕ */
+.channel-table :deep(.el-table__body) {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* ✅ РАЗРЕШИТЬ ВЫДЕЛЕНИЕ ТОЛЬКО В EDITABLE CELL */
+.channel-table :deep(.editable-cell-input) {
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 }
 
 /* ============================================================================
@@ -557,7 +657,7 @@ function handleToggleActive(row) {
 }
 
 /* ============================================================================
-   ACTION BUTTONS — КАК В COMPANIES!
+   ACTION BUTTONS
    ============================================================================ */
 .action-buttons {
   display: flex;
@@ -658,28 +758,6 @@ function handleToggleActive(row) {
 }
 
 /* ============================================================================
-   SCROLLBAR
-   ============================================================================ */
-.channel-table :deep(.el-table__body-wrapper)::-webkit-scrollbar {
-  width: v-bind('CHANNEL_TABLE_UI.SCROLLBAR_WIDTH');
-  height: v-bind('CHANNEL_TABLE_UI.SCROLLBAR_WIDTH');
-}
-
-.channel-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-track {
-  background: v-bind('CHANNEL_TABLE_UI.SCROLLBAR_TRACK_COLOR');
-  border-radius: v-bind('CHANNEL_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
-}
-
-.channel-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-thumb {
-  background: v-bind('CHANNEL_TABLE_UI.SCROLLBAR_THUMB_COLOR');
-  border-radius: v-bind('CHANNEL_TABLE_UI.SCROLLBAR_BORDER_RADIUS');
-}
-
-.channel-table :deep(.el-table__body-wrapper)::-webkit-scrollbar-thumb:hover {
-  background: #909399;
-}
-
-/* ============================================================================
    АДАПТИВ
    ============================================================================ */
 @media (max-width: v-bind('BREAKPOINTS.XXXL')) {
@@ -694,10 +772,6 @@ function handleToggleActive(row) {
 }
 
 @media (max-width: v-bind('BREAKPOINTS.XL')) {
-  .channel-table {
-    height: v-bind('CHANNEL_TABLE_UI.TABLE_HEIGHT_MOBILE');
-  }
-
   .channel-table :deep(.el-table) {
     font-size: v-bind('CHANNEL_TABLE_UI.CELL_FONT_SIZE_MOBILE');
   }
@@ -713,10 +787,6 @@ function handleToggleActive(row) {
 }
 
 @media (max-width: v-bind('BREAKPOINTS.XS')) {
-  .channel-table {
-    height: v-bind('CHANNEL_TABLE_UI.TABLE_HEIGHT_SMALL');
-  }
-
   .channel-table :deep(.el-table) {
     font-size: 11px;
   }
@@ -772,5 +842,27 @@ function handleToggleActive(row) {
   to {
     transform: rotate(360deg);
   }
+}
+</style>
+
+<!-- ============================================================================
+     GLOBAL STYLES — DRAG AND DROP
+     ============================================================================ -->
+<style>
+/* ✅ ЗАПРЕТ ВЫДЕЛЕНИЯ ТЕКСТА ПРИ DRAG */
+.channel-table .el-table__body {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+
+/* ✅ РАЗРЕШИТЬ ВЫДЕЛЕНИЕ В INPUT */
+.channel-table .el-table__body input,
+.channel-table .el-table__body textarea {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
 }
 </style>
