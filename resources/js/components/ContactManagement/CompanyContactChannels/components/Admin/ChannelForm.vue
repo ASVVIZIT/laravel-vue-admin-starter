@@ -21,13 +21,14 @@
       <el-form-item
           label="Компания"
           prop="company_id"
-          v-if="!currentChannel && props.companies && props.companies.length > 0"
+          v-if="!currentChannel"
       >
         <el-select
             v-model="formData.company_id"
             placeholder="Выберите компанию"
-            :disabled="isFormDisabled"
+            :disabled="isFormDisabled || !props.companies?.length"
             filterable
+            clearable
             class="form-select"
         >
           <el-option
@@ -37,6 +38,11 @@
               :value="company.id"
           />
         </el-select>
+
+        <!-- ✅ ПОДСКАЗКА ЕСЛИ КОМПАНИИ НЕ ЗАГРУЖЕНЫ -->
+        <div v-if="!props.companies?.length" class="form-hint">
+          ⚠️ Компании загружаются...
+        </div>
       </el-form-item>
 
       <!-- ✅ TYPE -->
@@ -214,15 +220,23 @@ import {
   CHANNEL_FORM_UI,
   CHANNEL_FORM_FIELDS,
   CHANNEL_FORM_MESSAGES,
+  CHANNEL_FORM_FIELD_LABELS,
   CHANNEL_FORM_VALIDATION,
   getDefaultChannelFormValidation,
   getInitialChannelFormState,
   CHANNEL_TYPES,
   CHANNEL_TYPE_LABELS,
+  CHANNEL_TYPE_FIELD_CONFIG,
+  hasUrlField,
+  hasIdentifierField,
+  hasMetadataField,
   BREAKPOINTS,
   ANIMATIONS,
   TIMINGS,
   COLORS,
+  validateField,
+  validateUrlByType,
+  validateIdentifierByType,
 } from '@/components/ContactManagement/CompanyContactChannels/config/appConfigIndex.js';
 
 // ============================================================================
@@ -256,7 +270,26 @@ const localVisible = computed({
 
 const currentChannel = computed(() => props.channel);
 
-const formRules = getDefaultChannelFormValidation();
+// ✅ ПРАВИЛА ВАЛИДАЦИИ (ИСПРАВЛЕНО!)
+const formRules = computed(() => {
+  const rules = getDefaultChannelFormValidation();
+
+  // ✅ УБРАТЬ required для company_id при редактировании
+  if (currentChannel.value) {
+    delete rules.company_id;
+  }
+
+  // ✅ УБРАТЬ min валидацию для order_column (0 — валидное значение!)
+  // Element Plus некорректно обрабатывает min: 0
+  if (rules.order_column) {
+    rules.order_column = rules.order_column.filter(rule => {
+      // Оставляем type валидацию, убираем min
+      return !rule.hasOwnProperty('min');
+    });
+  }
+
+  return rules;
+});
 
 const isFormLoading = computed(() => {
   return props.loading;
@@ -271,34 +304,17 @@ const channelTypeOptions = Object.entries(CHANNEL_TYPE_LABELS).map(([value, labe
   label,
 }));
 
-// ✅ ПОЛЯ КОТОРЫЕ ПОКАЗЫВАЮТСЯ В ЗАВИСИМОСТИ ОТ ТИПА
+// ✅ ПОЛЯ КОТОРЫЕ ПОКАЗЫВАЮТСЯ В ЗАВИСИМОСТИ ОТ ТИПА (ИСПОЛЬЗУЕМ КОНФИГ!)
 const showUrlField = computed(() => {
-  const typesWithUrl = [
-    CHANNEL_TYPES.SOCIAL_NETWORK,
-    CHANNEL_TYPES.MESSENGER,
-    CHANNEL_TYPES.MESSENGER_GROUP,
-    CHANNEL_TYPES.WEBSITE,
-  ];
-  return !formData.value.type || typesWithUrl.includes(formData.value.type);
+  return hasUrlField(formData.value.type);
 });
 
 const showIdentifierField = computed(() => {
-  const typesWithIdentifier = [
-    CHANNEL_TYPES.EMAIL,
-    CHANNEL_TYPES.PHONE_NUMBER,
-    CHANNEL_TYPES.MESSENGER,
-    CHANNEL_TYPES.MESSENGER_GROUP,
-  ];
-  return !formData.value.type || typesWithIdentifier.includes(formData.value.type);
+  return hasIdentifierField(formData.value.type);
 });
 
 const showMetadataField = computed(() => {
-  const typesWithMetadata = [
-    CHANNEL_TYPES.GIS_MAP,
-    CHANNEL_TYPES.YANDEX_MAP,
-    CHANNEL_TYPES.MESSENGER_GROUP,
-  ];
-  return !formData.value.type || typesWithMetadata.includes(formData.value.type);
+  return hasMetadataField(formData.value.type);
 });
 
 // ============================================================================
@@ -307,15 +323,15 @@ const showMetadataField = computed(() => {
 watch(() => props.channel, (newVal) => {
   if (newVal) {
     formData.value = {
-      company_id: newVal.company_id || props.companyId,
+      company_id: newVal.company_id || null,
       type: newVal.type || '',
       title: newVal.title || '',
       description: newVal.description || '',
       logo_url: newVal.logo_url || '',
       url: newVal.url || '',
       identifier: newVal.identifier || '',
-      metadata: newVal.metadata || {},  // ✅ ИСПРАВЛЕНО: БЫЛО "meta newVal.metadata"
-      order_column: newVal.order_column || 0,
+      metadata: newVal.metadata || {},
+      order_column: newVal.order_column !== undefined ? newVal.order_column : 0,
       is_active: newVal.is_active !== undefined ? newVal.is_active : true,
     };
 
@@ -356,7 +372,7 @@ function parseMetadata() {
   try {
     formData.value.metadata = JSON.parse(metadataString.value);
   } catch (e) {
-    ElMessage.warning(CHANNEL_FORM_MESSAGES.FIELD_INVALID_INTEGER);
+    ElMessage.warning(CHANNEL_FORM_MESSAGES.METADATA_INVALID_JSON);
   }
 }
 
@@ -372,23 +388,99 @@ function handleCancel() {
 }
 
 // ============================================================================
-// HANDLE SUBMIT
+// CONVERT FIELD NAME TO HUMAN READABLE
+// ============================================================================
+function convertFieldName(fieldName) {
+  const customNames = {
+    'order_column': CHANNEL_FORM_FIELD_LABELS.ORDER_COLUMN,
+    'orderColumn': CHANNEL_FORM_FIELD_LABELS.ORDER_COLUMN,
+    'company_id': CHANNEL_FORM_FIELD_LABELS.COMPANY,
+    'companyId': CHANNEL_FORM_FIELD_LABELS.COMPANY,
+    'is_active': CHANNEL_FORM_FIELD_LABELS.IS_ACTIVE,
+    'isActive': CHANNEL_FORM_FIELD_LABELS.IS_ACTIVE,
+    'logo_url': CHANNEL_FORM_FIELD_LABELS.LOGO_URL,
+    'logoUrl': CHANNEL_FORM_FIELD_LABELS.LOGO_URL,
+  };
+
+  if (customNames[fieldName]) {
+    return customNames[fieldName];
+  }
+
+  // Конвертировать snake_case в читаемый формат
+  return fieldName
+      .replace(/_/g, ' ')
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/^./, str => str.toUpperCase())
+      .trim();
+}
+
+// ============================================================================
+// HANDLE SUBMIT (ИСПРАВЛЕНО!)
 // ============================================================================
 async function handleSubmit() {
   if (!formRef.value) return;
 
-  await formRef.value.validate(async (valid) => {
-    if (valid) {
-      const submitData = {
-        ...formData.value,
-        metadata: formData.value.metadata,
+  // ✅ ПРОВЕРКА COMPANY_ID ПРИ СОЗДАНИИ
+  if (!currentChannel.value && !formData.value.company_id) {
+    ElMessage.warning('Выберите компанию');
+    return;
+  }
+
+  try {
+    await formRef.value.validate();
+
+    // ✅ ДОБАВИТЬ ЛОГ — ЧТО ОТПРАВЛЯЕМ
+    console.log('🔵 [ChannelForm] Submit data:', {
+      company_id: formData.value.company_id,
+      company_id_type: typeof formData.value.company_id,
+      company_id_empty: formData.value.company_id === '' || formData.value.company_id === null || formData.value.company_id === undefined,
+      order_column: formData.value.order_column,
+      order_column_type: typeof formData.value.order_column,
+      fullData: formData.value
+    });
+
+    const submitData = {
+      ...formData.value,
+      metadata: formData.value.metadata,
+    };
+
+    emit('submit', submitData);
+  } catch (error) {
+    const firstErrorField = Object.keys(error.fields || {})[0];
+
+    if (firstErrorField) {
+      const fieldLabelMap = {
+        'company_id': CHANNEL_FORM_FIELD_LABELS.COMPANY,
+        'companyId': CHANNEL_FORM_FIELD_LABELS.COMPANY,
+        'type': CHANNEL_FORM_FIELD_LABELS.TYPE,
+        'title': CHANNEL_FORM_FIELD_LABELS.TITLE,
+        'description': CHANNEL_FORM_FIELD_LABELS.DESCRIPTION,
+        'logo_url': CHANNEL_FORM_FIELD_LABELS.LOGO_URL,
+        'logoUrl': CHANNEL_FORM_FIELD_LABELS.LOGO_URL,
+        'url': CHANNEL_FORM_FIELD_LABELS.URL,
+        'identifier': CHANNEL_FORM_FIELD_LABELS.IDENTIFIER,
+        'metadata': CHANNEL_FORM_FIELD_LABELS.METADATA,
+        'order_column': CHANNEL_FORM_FIELD_LABELS.ORDER_COLUMN,
+        'orderColumn': CHANNEL_FORM_FIELD_LABELS.ORDER_COLUMN,
+        'is_active': CHANNEL_FORM_FIELD_LABELS.IS_ACTIVE,
+        'isActive': CHANNEL_FORM_FIELD_LABELS.IS_ACTIVE,
       };
 
-      emit('submit', submitData);
+      const fieldLabel = fieldLabelMap[firstErrorField]
+          || convertFieldName(firstErrorField);
+
+      const errorMessage = error.fields[firstErrorField]?.[0]?.message
+          || CHANNEL_FORM_MESSAGES.FIELD_REQUIRED(fieldLabel);
+
+      ElMessage.warning(errorMessage);
+      console.log('🔴 [ChannelForm] Validation failed:', {
+        field: firstErrorField,
+        message: errorMessage
+      });
     } else {
-      ElMessage.warning(CHANNEL_FORM_MESSAGES.FIELD_REQUIRED('Название'));
+      ElMessage.warning('Проверьте правильность заполнения формы');
     }
-  });
+  }
 }
 </script>
 

@@ -482,23 +482,27 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('social-media-links/reorder', [SocialMediaLinkController::class, 'reorder']);
 });
 
+// ============================================================================
+// COMPANIES & CHANNELS ROUTES
+// ============================================================================
 // Маршрут для получения COUNT компаний
 Route::get('/companies/meta/total', [CompanyController::class, 'count']);
 
 // Маршрут для получения COUNT компаний (должен быть ДО apiResource!)
-Route::apiResource('companies', CompanyController::class)->where([
-    'company' => '[0-9]+',
-]);
+Route::apiResource('companies', CompanyController::class)->where(['company' => '[0-9]+']);
 
 // ============================================================================
 // CHANNELS — ОТДЕЛЬНЫЙ РАЗДЕЛ (С ПАГИНАЦИЕЙ)
 // ============================================================================
 
+// Получить количество каналов (для прогресс бара)
+Route::get('/channels/meta/total', [ContactChannelController::class, 'count'])->name('api.channels.count');
+
 // Получить все каналы (с пагинацией и фильтрами)
 Route::get('/channels', [ContactChannelController::class, 'index'])->name('api.channels.index');
 
-// Получить количество каналов (для прогресс бара)
-Route::get('/channels/meta/total', [ContactChannelController::class, 'count'])->name('api.channels.count');
+// ✅ SYNC ENDPOINT (ДЛЯ БУДУЩЕЙ СИНХРОНИЗАЦИИ С INDEXEDDB)
+Route::get('/channels/sync', [ContactChannelController::class, 'sync'])->name('api.channels.sync');
 
 // Сортировка каналов
 Route::put('/channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.channels.reorder');
@@ -521,7 +525,7 @@ Route::delete('/channels/{contactChannel}', [ContactChannelController::class, 'd
 // ============================================================================
 
 Route::prefix('companies/{company}')->group(function () {
-    Route::get('/contact-channels', [ContactChannelController::class, 'indexByCompany'])->name('api.companies.channels.index');
+    Route::get('/contact-channels', [ContactChannelController::class, 'indexByCompany'])->name('api.companies.channels.indexByCompany');
     Route::post('/contact-channels', [ContactChannelController::class, 'store'])->name('api.companies.channels.store');
     Route::put('/contact-channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.companies.channels.reorder');
     Route::get('/contact-channels/{contactChannel}', [ContactChannelController::class, 'show'])->name('api.companies.channels.show');

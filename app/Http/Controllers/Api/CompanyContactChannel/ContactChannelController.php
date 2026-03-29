@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company\Company;
 use App\Models\Company\CompanyContactChannel;
 use App\Http\Resources\CompanyContactChannel\CompanyContactChannelResource;
-use App\Http\Resources\Company\CompanyResource;
+use App\Http\Resources\CompanyContactChannel\CompanyContactChannelCollection;
 use App\Http\Requests\CompanyContactChannel\StoreContactChannelRequest;
 use App\Http\Requests\CompanyContactChannel\UpdateContactChannelRequest;
 use Illuminate\Http\Request;
@@ -18,7 +18,7 @@ class ContactChannelController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): AnonymousResourceCollection
     {
         $query = CompanyContactChannel::with('company');
 
@@ -48,13 +48,12 @@ class ContactChannelController extends Controller
             });
         }
 
-        // ✅ СОРТИРОВКА — МАППИНГ ПОЛЕЙ (ИСПРАВЛЕНИЕ!)
+        // ✅ СОРТИРОВКА
         $sortBy = $request->get('sort_by', 'order_column_asc');
         $sortParts = explode('_', $sortBy);
         $direction = array_pop($sortParts);
         $field = implode('_', $sortParts);
 
-        // ✅ МАППИНГ ИМЕН ПОЛЕЙ (frontend → database)
         $fieldMap = [
             'order' => 'order_column',
             'id' => 'id',
@@ -75,17 +74,16 @@ class ContactChannelController extends Controller
         $perPage = max((int)$request->get('per_page', 500), 1);
         $page = $request->get('page', 1);
 
-        return $query->paginate($perPage, ['*'], 'page', $page);
+        return CompanyContactChannelResource::collection($query->paginate($perPage, ['*'], 'page', $page));
     }
 
     /**
-     * Get total count of channels (для прогресс бара)
+     * Get total count of channels.
      */
     public function count(Request $request)
     {
         $query = CompanyContactChannel::query();
 
-        // Применить те же фильтры что и в index()
         if ($request->filled('company_id')) {
             $query->where('company_id', $request->get('company_id'));
         }
@@ -108,22 +106,35 @@ class ContactChannelController extends Controller
             });
         }
 
-        $total = $query->count();
-
-        return response()->json(['total' => (int) $total]);
+        return response()->json(['total' => (int) $query->count()]);
     }
 
     /**
-     * Display a listing of the resource (через компанию)
+     * Sync channels for IndexedDB.
      */
-    public function indexByCompany(Company $company): AnonymousResourceCollection
+    public function sync(Request $request)
     {
-        $channels = $company->contactChannels()
-            ->with('company')
-            ->orderBy('order_column', 'asc')
-            ->get();
+        $query = CompanyContactChannel::with('company');
 
-        return CompanyContactChannelResource::collection($channels);
+        // ✅ If-Modified-Since заголовок
+        if ($request->hasHeader('If-Modified-Since')) {
+            $ifModifiedSince = $request->header('If-Modified-Since');
+            $query->where('updated_at', '>', $ifModifiedSince);
+        }
+
+        $channels = $query->get();
+
+        $response = response()->json([
+            'data' => CompanyContactChannelResource::collection($channels),
+            'timestamp' => now()->toRfc7231String(),
+        ]);
+
+        // ✅ Last-Modified заголовок
+        if ($channels->isNotEmpty()) {
+            $response->header('Last-Modified', $channels->max('updated_at')->toRfc7231String());
+        }
+
+        return $response;
     }
 
     /**
@@ -132,10 +143,6 @@ class ContactChannelController extends Controller
     public function store(StoreContactChannelRequest $request): CompanyContactChannelResource
     {
         $data = $request->validated();
-
-        if (!isset($data['company_id'])) {
-            abort(422, 'company_id is required');
-        }
 
         if (!isset($data['order_column'])) {
             $maxOrder = CompanyContactChannel::where('company_id', $data['company_id'])->max('order_column') ?? -1;
@@ -191,9 +198,7 @@ class ContactChannelController extends Controller
         DB::beginTransaction();
         try {
             foreach ($order as $index => $id) {
-                CompanyContactChannel::where('id', $id)->update([
-                    'order_column' => $index
-                ]);
+                CompanyContactChannel::where('id', $id)->update(['order_column' => $index]);
             }
 
             DB::commit();
@@ -210,5 +215,18 @@ class ContactChannelController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Display a listing of the resource by company.
+     */
+    public function indexByCompany(Company $company): AnonymousResourceCollection
+    {
+        $channels = $company->contactChannels()
+            ->with('company')
+            ->orderBy('order_column', 'asc')
+            ->get();
+
+        return CompanyContactChannelResource::collection($channels);
     }
 }

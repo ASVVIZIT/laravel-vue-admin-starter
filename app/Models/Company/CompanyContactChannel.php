@@ -1,44 +1,95 @@
-<?php // resources/app/Models/Company/CompanyContactChannel.php
+<?php
 
 namespace App\Models\Company;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-// Используем обновлённый путь к Company
-use App\Models\Company\Company;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanyContactChannel extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'company_id', 'type', 'title', 'description', 'logo_url',
-        'url', 'identifier', 'metadata', 'order_column', 'is_active'
+        'company_id',
+        'type',
+        'title',
+        'description',
+        'logo_url',
+        'url',
+        'identifier',
+        'metadata',
+        'order_column',
+        'is_active',
     ];
 
     protected $casts = [
         'metadata' => 'array',
         'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    public function company()
+    /**
+     * Получить компанию которой принадлежит канал
+     */
+    public function company(): BelongsTo
     {
-        // Указываем полный путь к модели Company
         return $this->belongsTo(Company::class, 'company_id');
     }
 
-    // Вспомогательные методы для удобства работы с metadata
+    /**
+     * Получить конкретное значение из metadata
+     */
     public function getSpecificData(string $key, $default = null)
     {
-        $metadata = $this->metadata ?? [];
-        return $metadata[$key] ?? $default;
+        return $this->metadata[$key] ?? $default;
     }
 
+    /**
+     * Установить значение в metadata
+     */
     public function setSpecificData(string $key, $value): self
     {
         $metadata = $this->metadata ?? [];
         $metadata[$key] = $value;
         $this->metadata = $metadata;
         return $this;
+    }
+
+    /**
+     * Scope: Только активные каналы
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope: По типу канала
+     */
+    public function scopeOfType($query, string $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Scope: По компании
+     */
+    public function scopeForCompany($query, int $companyId)
+    {
+        return $query->where('company_id', $companyId);
+    }
+
+    /**
+     * Scope: Поиск по названию, identifier или URL
+     */
+    public function scopeSearch($query, string $search)
+    {
+        return $query->where(function ($q) use ($search) {
+            $q->where('title', 'LIKE', "%{$search}%")
+                ->orWhere('identifier', 'LIKE', "%{$search}%")
+                ->orWhere('url', 'LIKE', "%{$search}%");
+        });
     }
 }

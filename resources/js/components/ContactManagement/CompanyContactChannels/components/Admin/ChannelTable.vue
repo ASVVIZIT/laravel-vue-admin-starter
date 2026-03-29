@@ -115,6 +115,8 @@
           <EditableCell
               v-model="row.title"
               type="text"
+              field-name="title"
+              :channel-type="row.type"
               placeholder="Введите название"
               :disabled="row._updating || props.disabled"
               :loading="row._updating"
@@ -139,6 +141,8 @@
           <EditableCell
               v-model="row.identifier"
               type="text"
+              field-name="identifier"
+              :channel-type="row.type"
               placeholder="Email, телефон, username"
               :disabled="row._updating || props.disabled"
               :loading="row._updating"
@@ -163,6 +167,8 @@
           <EditableCell
               v-model="row.url"
               type="text"
+              field-name="url"
+              :channel-type="row.type"
               placeholder="https://..."
               :disabled="row._updating || props.disabled"
               :loading="row._updating"

@@ -621,6 +621,9 @@ async function confirmDelete() {
 }
 
 async function handleSubmit(data) {
+  // ✅ ДОБАВИТЬ ЛОГ — ЧТО ПОЛУЧАЕМ
+  console.log('🔵 [ChannelList] Received data:', data);
+
   let result;
   if (currentChannel.value?.id) {
     result = await channelStore.updateChannel(currentChannel.value.id, data);

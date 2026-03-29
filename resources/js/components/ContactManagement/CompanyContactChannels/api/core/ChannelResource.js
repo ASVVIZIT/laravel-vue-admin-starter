@@ -1,17 +1,15 @@
 // ============================================================================
 // CHANNEL RESOURCE — API РЕСУРС ДЛЯ КАНАЛОВ СВЯЗИ
 // ============================================================================
-// 📁 Путь: resources/js/components/ContactManagement/CompanyContactChannels/api/core/ChannelResource.js
+// 📁 Путь: resources/js/api/core/ChannelResource.js
 // ✅ Используется: channelStore.js
 // ✅ Безопасно менять — влияет только на API вызовы каналов
-// ✅ Зависит от: BaseResource.js, request.js
 // ============================================================================
 
 import { BaseResource } from './BaseResource.js';
 
 export class ChannelResource extends BaseResource {
     constructor() {
-        // ✅ БАЗОВЫЙ ПУТЬ — channels (независимо от компаний)
         super('channels');
     }
 
@@ -32,11 +30,19 @@ export class ChannelResource extends BaseResource {
     }
 
     // ========================================================================
-    // GET CHANNELS BY COMPANY — Получить каналы компании
+    // SYNC CHANNELS — Синхронизация каналов (для IndexedDB)
     // ========================================================================
-    async getChannelsByCompany(companyId, params = {}) {
-        console.log('🔵 [ChannelResource] getChannelsByCompany:', { companyId, params });
-        return this.get(`companies/${companyId}/contact-channels`, params);
+    async syncChannels(params = {}) {
+        console.log('🔵 [ChannelResource] syncChannels:', { params });
+        return this.get('sync', params);
+    }
+
+    // ========================================================================
+    // REORDER CHANNELS — Обновить порядок каналов
+    // ========================================================================
+    async reorderChannels(order) {
+        console.log('🔵 [ChannelResource] reorderChannels:', { order });
+        return this.put('reorder', { order });
     }
 
     // ========================================================================
@@ -72,21 +78,26 @@ export class ChannelResource extends BaseResource {
     }
 
     // ========================================================================
-    // REORDER CHANNELS — Обновить порядок каналов
+    // GET CHANNELS BY COMPANY — Получить каналы компании
     // ========================================================================
-    async reorderChannels(order) {
-        console.log('🔵 [ChannelResource] reorderChannels:', { order });
-        return this.put('/reorder', { order });
+    async getChannelsByCompany(companyId, params = {}) {
+        console.log('🔵 [ChannelResource] getChannelsByCompany:', { companyId, params });
+        return this.get(`companies/${companyId}/contact-channels`, params);
     }
 
     // ========================================================================
-    // BATCH UPDATE CHANNELS — Массовое обновление каналов
+    // CREATE CHANNEL BY COMPANY — Создать канал компании
     // ========================================================================
-    async batchUpdateChannels(channels) {
-        console.log('🔵 [ChannelResource] batchUpdateChannels:', { count: channels.length });
-        const promises = channels.map(channel =>
-            this.updateChannel(channel.id, channel)
-        );
-        return Promise.all(promises);
+    async createChannelByCompany(companyId, data) {
+        console.log('🔵 [ChannelResource] createChannelByCompany:', { companyId, data });
+        return this.post(`companies/${companyId}/contact-channels`, data);
+    }
+
+    // ========================================================================
+    // REORDER CHANNELS BY COMPANY — Сортировка каналов компании
+    // ========================================================================
+    async reorderChannelsByCompany(companyId, order) {
+        console.log('🔵 [ChannelResource] reorderChannelsByCompany:', { companyId, order });
+        return this.put(`companies/${companyId}/contact-channels/reorder`, { order });
     }
 }

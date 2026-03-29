@@ -9,3 +9,4 @@
 export * from './appConfigChannelList.js';
 export * from './appConfigChannelTable.js';
 export * from './appConfigChannelForm.js';
+export * from './appConfigChannelValidation.js';

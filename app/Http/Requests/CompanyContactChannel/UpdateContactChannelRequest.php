@@ -29,6 +29,9 @@ class UpdateContactChannelRequest extends FormRequest
     {
         // Правила валидации применяются только если поле было передано в запросе
         $rules = [];
+        if ($this->filled('company_id')) {
+            $rules['company_id'] = 'integer|exists:companies,id';
+        }
         if ($this->filled('type')) {
             $rules['type'] = 'in:social_network,messenger,messenger_group,gis_map,yandex_map,email,phone_number,website';
         }
@@ -90,6 +93,7 @@ class UpdateContactChannelRequest extends FormRequest
     public function attributes()
     {
         return [
+            'company_id' => 'ID компании',
             'type' => 'Тип канала',
             'title' => 'Название',
             'description' => 'Описание',

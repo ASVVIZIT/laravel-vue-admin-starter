@@ -1,5 +1,5 @@
 <template>
-  <div className="channel-list-admin-page">
+  <div class="channel-list-admin-page">
     <ChannelList
         :company-id="null"
         :disabled="false"
@@ -62,7 +62,7 @@ function handleDelete(channel) {
 .channel-list-admin-page {
   width: 100%;
   height: 100%;
-  padding: 20px;
+  padding: 10px;
   background: #f5f7fa;
   min-height: calc(100vh - 84px);
   box-sizing: border-box;

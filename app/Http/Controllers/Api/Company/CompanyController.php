@@ -14,19 +14,12 @@ use Illuminate\Http\Resources\Json\ResourceCollection;
 class CompanyController extends Controller
 {
     /**
-     * Получить ТОЛЬКО количество записей (БЕЗ данных)
+     * Получить ТОЛЬКО количество записей.
      */
     public function count(Request $request)
     {
-        \Log::info('CompanyController:count - Start');
-
         $query = Company::query();
 
-        \Log::info('CompanyController:count - Initial count', [
-            'count' => $query->count()
-        ]);
-
-        // Применить те же фильтры что и в index()
         if ($request->filled('search')) {
             $search = $request->get('search');
             $query->where(function($q) use ($search) {
@@ -45,14 +38,7 @@ class CompanyController extends Controller
             }
         }
 
-        $total = $query->count();
-
-        \Log::info('CompanyController:count - Final count', [
-            'total' => $total,
-            'filters' => $request->all()
-        ]);
-
-        return response()->json(['total' => (int) $total]);
+        return response()->json(['total' => (int) $query->count()]);
     }
 
     /**
@@ -105,9 +91,7 @@ class CompanyController extends Controller
         }
 
         $total = $query->count();
-
-        $companies = $query->withCount('contactChannels')
-            ->paginate($perPage, ['*'], 'page', $page);
+        $companies = $query->withCount('contactChannels')->paginate($perPage, ['*'], 'page', $page);
 
         return new CompanyCollection($companies, $total);
     }
@@ -119,7 +103,6 @@ class CompanyController extends Controller
     {
         $company = Company::create($request->validated());
         $company->load('contactChannels');
-
         return new CompanyResource($company);
     }
 
@@ -148,7 +131,6 @@ class CompanyController extends Controller
     public function destroy(Company $company)
     {
         $company->delete();
-
         return response()->json([
             'message' => 'Company deleted successfully',
             'deleted_id' => $company->id

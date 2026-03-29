@@ -164,9 +164,12 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
+  validateField,
 } from '../../config/appConfigIndex.js';
 
-const props = defineProps({...EDITABLE_CELL_PROPS_CONFIG});
+const props = defineProps({
+  ...EDITABLE_CELL_PROPS_CONFIG,
+});
 
 const emit = defineEmits(['update:modelValue', 'save', 'cancel', 'start-edit', 'error']);
 
@@ -262,11 +265,29 @@ const saveEdit = () => {
 
   const newValue = tempValue.value ?? '';
 
-  if (props.type === 'select' && props.validator && newValue !== '') {
+  // ✅ 1. КАСТОМНАЯ ВАЛИДАЦИЯ (если передана)
+  if (props.validator) {
     const isValid = props.validator(newValue);
     if (!isValid) {
       hasError.value = true;
-      emit('error', newValue);
+      emit('error', 'Ошибка валидации');
+      isSaving.value = false;
+      return;
+    }
+  }
+
+  // ✅ 2. АВТОМАТИЧЕСКАЯ ВАЛИДАЦИЯ ПО ТИПУ ПОЛЯ
+  if (props.fieldName) {
+    const validation = validateField(props.fieldName, newValue, {
+      type: props.channelType,
+      min: props.min,
+      max: props.maxLength,
+    });
+
+    if (!validation.valid) {
+      hasError.value = true;
+      emit('error', validation.message);
+      ElMessage.warning(validation.message);
       isSaving.value = false;
       return;
     }

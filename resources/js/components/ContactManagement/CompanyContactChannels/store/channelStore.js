@@ -810,11 +810,9 @@ export const useChannelStore = defineStore('channel', {
         async loadAllRecordsChunked(delay = CHUNK_CONFIG.DELAY) {
             if (this.allRecordsLoaded) return;
             this.error = null;
-
             try {
                 let iteration = 0;
                 const maxIterations = this.totalChunks + 5;
-
                 while (!this.allRecordsLoaded && iteration < maxIterations) {
                     iteration++;
                     const hasMore = await this.loadNextChunk();
@@ -824,7 +822,6 @@ export const useChannelStore = defineStore('channel', {
                     }
                     await new Promise((resolve) => setTimeout(resolve, delay));
                 }
-
                 console.log('🟢 [ChannelStore] loadAllRecordsChunked: COMPLETE', {
                     total: this.allChannels.length,
                 });
@@ -1019,6 +1016,7 @@ export const useChannelStore = defineStore('channel', {
         async createChannel(data) {
             console.log('🔵 [ChannelStore] createChannel: START', data);
 
+            // ✅ ПРОВЕРКА COMPANY_ID
             if (!data.company_id) {
                 this.error = 'company_id is required';
                 return { success: false, error: 'company_id is required' };
@@ -1029,12 +1027,24 @@ export const useChannelStore = defineStore('channel', {
             this.validationErrors = {};
 
             try {
+                // ✅ ДОБАВИТЬ ЛОГ — ЧТО ОТПРАВЛЯЕМ НА СЕРВЕР
+                console.log('🔵 [ChannelStore] Sending to API:', {
+                    company_id: data.company_id,
+                    order_column: data.order_column,
+                    type: data.type,
+                    title: data.title,
+                    fullData: data
+                });
+
                 const response = await channelResource.createChannel(data);
 
                 let newChannel = response;
                 if (response && typeof response === 'object' && !Array.isArray(response)) {
                     newChannel = response.data || response.channel || response;
                 }
+
+                // ✅ ЛОГ — ЧТО ПОЛУЧИЛИ ОТ СЕРВЕРА
+                console.log('🟢 [ChannelStore] Received from API:', newChannel);
 
                 newChannel._refreshing = false;
                 newChannel._updating = false;
@@ -1050,6 +1060,7 @@ export const useChannelStore = defineStore('channel', {
                 return { success: true, data: newChannel };
             } catch (err) {
                 console.error('🔴 [ChannelStore] createChannel: ERROR', err);
+                console.error('🔴 [ChannelStore] Error response:', err.response?.data);
                 this.error = err.message || 'Failed to create channel';
                 this.validationErrors = err.response?.data?.errors || {};
                 return { success: false, error: this.error, errors: this.validationErrors };

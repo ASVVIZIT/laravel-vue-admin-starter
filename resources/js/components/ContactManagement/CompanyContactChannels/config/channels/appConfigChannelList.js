@@ -79,6 +79,16 @@ export const CHANNEL_TYPES = {
     EMAIL: 'email',
     PHONE_NUMBER: 'phone_number',
     WEBSITE: 'website',
+
+    // ✅ ДОБАВИТЬ НОВЫЕ ТИПЫ:
+    VIDEO: 'video',
+    DOCUMENT: 'document',
+    BLOG: 'blog',
+    FORUM: 'forum',
+    SUPPORT: 'support',
+    CHAT: 'chat',
+    API: 'api',
+    OTHER: 'other',
 };
 
 // ============================================================================
@@ -94,7 +104,77 @@ export const CHANNEL_TYPE_LABELS = {
     [CHANNEL_TYPES.EMAIL]: 'Email',
     [CHANNEL_TYPES.PHONE_NUMBER]: 'Телефон',
     [CHANNEL_TYPES.WEBSITE]: 'Сайт',
+
+    // ✅ ДОБАВИТЬ НОВЫЕ ТИПЫ:
+    [CHANNEL_TYPES.VIDEO]: 'Видео',
+    [CHANNEL_TYPES.DOCUMENT]: 'Документ',
+    [CHANNEL_TYPES.BLOG]: 'Блог',
+    [CHANNEL_TYPES.FORUM]: 'Форум',
+    [CHANNEL_TYPES.SUPPORT]: 'Поддержка',
+    [CHANNEL_TYPES.CHAT]: 'Чат',
+    [CHANNEL_TYPES.API]: 'API',
+    [CHANNEL_TYPES.OTHER]: 'Другое',
 };
+
+// ============================================================================
+// CHANNEL TYPE FIELD CONFIG — КАКИЕ ПОЛЯ ПОКАЗЫВАТЬ ДЛЯ КАЖДОГО ТИПА
+// ============================================================================
+
+export const CHANNEL_TYPE_FIELD_CONFIG = {
+    // ✅ URL ПОЛЯ (для каких типов показывать URL)
+    typesWithUrl: [
+        CHANNEL_TYPES.SOCIAL_NETWORK,
+        CHANNEL_TYPES.MESSENGER,
+        CHANNEL_TYPES.MESSENGER_GROUP,
+        CHANNEL_TYPES.WEBSITE,
+        CHANNEL_TYPES.VIDEO,
+        CHANNEL_TYPES.BLOG,
+        CHANNEL_TYPES.FORUM,
+        CHANNEL_TYPES.SUPPORT,
+        CHANNEL_TYPES.CHAT,
+        CHANNEL_TYPES.API,
+    ],
+
+    // ✅ IDENTIFIER ПОЛЯ (для каких типов показывать Identifier)
+    typesWithIdentifier: [
+        CHANNEL_TYPES.EMAIL,
+        CHANNEL_TYPES.PHONE_NUMBER,
+        CHANNEL_TYPES.MESSENGER,
+        CHANNEL_TYPES.MESSENGER_GROUP,
+        CHANNEL_TYPES.SUPPORT,
+        CHANNEL_TYPES.CHAT,
+        CHANNEL_TYPES.API,
+    ],
+
+    // ✅ METADATA ПОЛЯ (для каких типов показывать Metadata)
+    typesWithMetadata: [
+        CHANNEL_TYPES.GIS_MAP,
+        CHANNEL_TYPES.YANDEX_MAP,
+        CHANNEL_TYPES.MESSENGER_GROUP,
+        CHANNEL_TYPES.VIDEO,
+        CHANNEL_TYPES.DOCUMENT,
+        CHANNEL_TYPES.BLOG,
+        CHANNEL_TYPES.FORUM,
+        CHANNEL_TYPES.API,
+        CHANNEL_TYPES.OTHER,
+    ],
+};
+
+// ============================================================================
+// HELPER FUNCTIONS — ПРОВЕРКА ТИПОВ
+// ============================================================================
+
+export function hasUrlField(type) {
+    return !type || CHANNEL_TYPE_FIELD_CONFIG.typesWithUrl.includes(type);
+}
+
+export function hasIdentifierField(type) {
+    return !type || CHANNEL_TYPE_FIELD_CONFIG.typesWithIdentifier.includes(type);
+}
+
+export function hasMetadataField(type) {
+    return !type || CHANNEL_TYPE_FIELD_CONFIG.typesWithMetadata.includes(type);
+}
 
 // ============================================================================
 // CHANNEL TYPE ICONS

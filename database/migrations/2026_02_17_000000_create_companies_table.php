@@ -29,6 +29,10 @@ return new class extends Migration
 
             // Столбцы для отметки времени создания и последнего обновления записи
             $table->timestamps();
+
+            // ИНДЕКСЫ ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ
+            $table->index('name', 'idx_name');
+            $table->index('created_at', 'idx_created_at');
         });
     }
 

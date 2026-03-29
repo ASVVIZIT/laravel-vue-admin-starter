@@ -27,6 +27,7 @@ class StoreContactChannelRequest extends FormRequest
     public function rules()
     {
         return [
+            'company_id' => 'required|integer|exists:companies,id',
             'type' => 'required|in:social_network,messenger,messenger_group,gis_map,yandex_map,email,phone_number,website',
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
@@ -74,6 +75,7 @@ class StoreContactChannelRequest extends FormRequest
     public function attributes()
     {
         return [
+            'company_id' => 'ID компании',
             'type' => 'Тип канала',
             'title' => 'Название',
             'description' => 'Описание',

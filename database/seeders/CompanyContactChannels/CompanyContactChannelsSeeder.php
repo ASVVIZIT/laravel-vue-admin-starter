@@ -4,27 +4,63 @@ namespace Database\Seeders\CompanyContactChannels;
 
 use Illuminate\Database\Seeder;
 
+/**
+ * ============================================================================
+ * COMPANY CONTACT CHANNELS SEEDER — ГЛАВНЫЙ СИДИНГ КАНАЛОВ
+ * ============================================================================
+ * 📁 Путь: database/seeders/CompanyContactChannels/CompanyContactChannelsSeeder.php
+ * ✅ Используется: Основной сидер для migrate:fresh --seed
+ * ✅ Безопасно менять — влияет на создание каналов
+ * ============================================================================
+ */
 class CompanyContactChannelsSeeder extends Seeder
 {
+    /**
+     * Режимы сидинга
+     */
+    protected const MODE_DEFAULT = 'default';  // Factory (7 каналов)
+    protected const MODE_FAST = 'fast';        // Batch insert (быстро)
+
+    /**
+     * Текущий режим (можно менять здесь)
+     */
+    protected const CURRENT_MODE = self::MODE_DEFAULT;
+
+    /**
+     * Запустить сидер.
+     */
     public function run(): void
     {
-        // Сначала убедитесь, что компании существуют
-        $this->call([
-            CompanySeeder::class, // Вызовите сидер, который создаёт компании, если он не вызывается из DatabaseSeeder
-        ]);
+        $this->command->info('📞 Starting channel seeding...');
+        $this->command->newLine();
 
-        // Затем запустите сидеры для каналов связи
-        $this->call([
-            SeedContactChannelsMaps::class,
-            SeedContactChannelsSocialNetworks::class,
-            SeedContactChannelsMessengers::class,
-            SeedContactChannelsOther::class,
-            SeedContactChannelsMixed::class,
-        ]);
+        // ✅ ВЫБИРАЕМ РЕЖИМ В ЗАВИСИМОСТИ ОТ КОНСТАНТЫ
+        match (self::CURRENT_MODE) {
+            self::MODE_FAST => $this->runFastMode(),
+            default => $this->runDefaultMode(),
+        };
 
-        // Затем запустите сидеры для каналов связи
+        $this->command->newLine();
+        $this->command->info('✅ Channel seeding completed!');
+    }
+
+    /**
+     * Запустить в режиме по умолчанию (Factory).
+     */
+    protected function runDefaultMode(): void
+    {
         $this->call([
             ContactChannelSeeder::class,
+        ]);
+    }
+
+    /**
+     * Запустить в быстром режиме (Batch Insert).
+     */
+    protected function runFastMode(): void
+    {
+        $this->call([
+            FastCompanyContactChannelSeeder::class,
         ]);
     }
 }

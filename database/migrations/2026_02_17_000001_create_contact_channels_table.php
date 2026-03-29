@@ -13,52 +13,46 @@ return new class extends Migration
     public function up()
     {
         Schema::create('company_contact_channels', function (Blueprint $table) {
-            // Основной идентификатор записи (первичный ключ)
             $table->id();
-
-            // Внешний ключ, связывающий канал связи с конкретной компанией
-            // Ссылаемся на таблицу 'companies' и столбец 'id'
-            // onDelete('cascade') означает, что при удалении компании, все её каналы связи также будут удалены
             $table->foreignId('company_id')->constrained('companies')->onDelete('cascade');
 
-            // Поле для типа канала связи (ограниченный список допустимых значений)
             $table->enum('type', [
-                'social_network',    // Социальная сеть (например, Instagram, VK)
-                'messenger',         // Мессенджер (например, WhatsApp, Telegram)
-                'messenger_group',   // Группа в мессенджере
-                'gis_map',           // Карта 2GIS
-                'yandex_map',        // Карта Яндекс
-                'email',             // Электронная почта
-                'phone_number',      // Номер телефона
-                'website'            // Веб-сайт
+                'social_network',
+                'messenger',
+                'messenger_group',
+                'gis_map',
+                'yandex_map',
+                'email',
+                'phone_number',
+                'website'
             ]);
 
-            // Название канала связи (например, "Instagram Компании X")
             $table->string('title');
-
-            // Описание канала связи (необязательное поле)
             $table->text('description')->nullable();
-
-            // URL к логотипу/иконке канала связи (необязательное поле)
             $table->string('logo_url')->nullable();
-
-            // Основной URL для канала (например, ссылка на профиль, сайт и т.д.) (необязательное поле)
             $table->string('url')->nullable();
-
-            // Универсальное текстовое поле для идентификатора (например, email, номер телефона, username в мессенджере) (необязательное поле)
             $table->string('identifier')->nullable();
-
-            // JSON-поле для хранения любых специфичных данных (например, координаты для карты, embed-код, дополнительные настройки)
             $table->json('metadata')->nullable();
-
-            // Поле для сортировки каналов связи внутри компании
             $table->integer('order_column')->default(0);
-
-            // Флаг активности канала связи (по умолчанию - активен)
             $table->boolean('is_active')->default(true);
-
-            // Столбцы для отметки времени создания и последнего обновления записи
             $table->timestamps();
+
+            // ✅ ИНДЕКСЫ ДЛЯ ПРОИЗВОДИТЕЛЬНОСТИ (1M+ ЗАПИСЕЙ!)
+            $table->index('company_id', 'idx_company_id');
+            $table->index('type', 'idx_type');
+            $table->index('is_active', 'idx_is_active');
+            $table->index('order_column', 'idx_order_column');
+            $table->index('created_at', 'idx_created_at');
+            $table->index('updated_at', 'idx_updated_at');
+
+            // ✅ КОМБИНИРОВАННЫЕ ИНДЕКСЫ (ДЛЯ ЧАСТЫХ ЗАПРОСОВ)
+            $table->index(['company_id', 'is_active'], 'idx_company_active');
+            $table->index(['company_id', 'type'], 'idx_company_type');
+            $table->index(['type', 'is_active'], 'idx_type_active');
+            $table->index(['company_id', 'order_column'], 'idx_company_order');
+
+            // ✅ ПОЛНОТЕКСТОВЫЙ ПОИСК (ДЛЯ БЫСТРОГО ПОИСКА)
+            $table->fullText(['title', 'identifier', 'url'], 'ft_search');
         });
     }
 
