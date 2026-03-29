@@ -1,14 +1,16 @@
-// ============================================================================
-// APP CONFIG CHANNEL FORM — CHANNEL FORM COMPONENT
-// ============================================================================
-// 📁 Путь: config/channels/appConfigChannelForm.js
-// ✅ Используется: ChannelForm.vue, ChannelList.vue
-// ✅ Безопасно менять — влияет только на форму канала
-// ✅ НЕ ЗАВИСИТ ОТ: config/companies/* (полностью независим)
-// ============================================================================
+/**
+ * ============================================================================
+ * APP CONFIG CHANNEL FORM — CHANNEL FORM COMPONENT
+ * ============================================================================
+ * 📁 Путь: config/channels/appConfigChannelForm.js
+ * ✅ Используется: ChannelForm.vue, ChannelList.vue
+ * ✅ Безопасно менять — влияет только на форму канала
+ * ✅ НЕ ЗАВИСИТ ОТ: config/companies/* (полностью независим)
+ * ============================================================================
+ */
 
 import { COLORS, BREAKPOINTS } from '../global/index.js';
-import { CHANNEL_TYPES, CHANNEL_TYPE_LABELS } from './appConfigChannelList.js';
+import { CHANNEL_TYPES, CHANNEL_TYPE_LABELS } from './appConfigChannelTypes.js';
 
 // ============================================================================
 // UI CONFIGS
@@ -54,7 +56,7 @@ export const CHANNEL_FORM_UI = {
 };
 
 // ============================================================================
-// FIELD LABELS (ВСЕ LABEL ПОЛЕЙ!)
+// FIELD LABELS
 // ============================================================================
 
 export const CHANNEL_FORM_FIELD_LABELS = {
@@ -63,7 +65,7 @@ export const CHANNEL_FORM_FIELD_LABELS = {
     DESCRIPTION: 'Описание',
     LOGO_URL: 'Логотип',
     URL: 'Ссылка',
-    IDENTIFIER: 'Идентификатор',
+    IDENTIFIER: 'Контакт',
     METADATA: 'Метаданные',
     ORDER_COLUMN: 'Порядок',
     IS_ACTIVE: 'Активен',
@@ -71,7 +73,7 @@ export const CHANNEL_FORM_FIELD_LABELS = {
 };
 
 // ============================================================================
-// FIELD PLACEHOLDERS (ВСЕ PLACEHOLDER ПОЛЕЙ!)
+// FIELD PLACEHOLDERS
 // ============================================================================
 
 export const CHANNEL_FORM_FIELD_PLACEHOLDERS = {
@@ -87,7 +89,7 @@ export const CHANNEL_FORM_FIELD_PLACEHOLDERS = {
 };
 
 // ============================================================================
-// MESSAGES (ВСЕ РУССКИЕ СЛОВА ДЛЯ ФОРМЫ!)
+// MESSAGES
 // ============================================================================
 
 export const CHANNEL_FORM_MESSAGES = {
@@ -195,7 +197,7 @@ export const CHANNEL_FORM_FIELDS = {
     },
     IDENTIFIER: {
         key: 'identifier',
-        label: 'Идентификатор',
+        label: 'Контакт',
         placeholder: 'Email, телефон или username',
         type: 'text',
         maxLength: 255,
@@ -288,7 +290,7 @@ export function getDefaultChannelFormValidation() {
         identifier: [
             {
                 max: CHANNEL_FORM_VALIDATION.IDENTIFIER.max,
-                message: CHANNEL_FORM_MESSAGES.FIELD_MAX_LENGTH('Идентификатор', CHANNEL_FORM_VALIDATION.IDENTIFIER.max),
+                message: CHANNEL_FORM_MESSAGES.FIELD_MAX_LENGTH('Контакт', CHANNEL_FORM_VALIDATION.IDENTIFIER.max),
                 trigger: CHANNEL_FORM_VALIDATION.IDENTIFIER.trigger,
             },
         ],

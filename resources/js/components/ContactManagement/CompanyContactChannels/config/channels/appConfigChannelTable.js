@@ -1,16 +1,18 @@
-// ============================================================================
-// APP CONFIG CHANNEL TABLE — CHANNEL TABLE COMPONENT
-// ============================================================================
-// 📁 Путь: config/channels/appConfigChannelTable.js
-// ✅ Используется: ChannelTable.vue, ChannelList.vue
-// ✅ Безопасно менять — влияет только на таблицу каналов
-// ✅ НЕ ЗАВИСИТ ОТ: config/companies/* (полностью независим)
-// ============================================================================
+/**
+ * ============================================================================
+ * APP CONFIG CHANNEL TABLE — CHANNEL TABLE COMPONENT
+ * ============================================================================
+ * 📁 Путь: config/channels/appConfigChannelTable.js
+ * ✅ Используется: ChannelTable.vue, ChannelList.vue
+ * ✅ Безопасно менять — влияет только на таблицу каналов
+ * ✅ НЕ ЗАВИСИТ ОТ: config/companies/* (полностью независим)
+ * ============================================================================
+ */
 
 import { COLORS, BREAKPOINTS } from '../global/index.js';
 
 // ============================================================================
-// TABLE COLUMN CONFIG — ВСЕ КОЛОНКИ В ОДНОМ МЕСТЕ!
+// TABLE COLUMN CONFIG
 // ============================================================================
 
 export const CHANNEL_TABLE_COLUMNS = {
@@ -163,7 +165,7 @@ export const CHANNEL_TABLE_UI = {
     CELL_LINE_HEIGHT: '1.2',
     ROW_HEIGHT: '22px',
 
-    // ✅ TABLE HEIGHT (КАК В COMPANIES!)
+    // ✅ TABLE HEIGHT
     TABLE_HEIGHT: 'calc(100vh - 290px)',
     TABLE_HEIGHT_MOBILE: 'calc(100vh - 310px)',
     TABLE_HEIGHT_SMALL: 'calc(100vh - 320px)',
@@ -189,7 +191,7 @@ export const CHANNEL_TABLE_UI = {
     EMPTY_GAP: '8px',
     EMPTY_CELL_TEXT: '—',
 
-    // ✅ ACTION BUTTONS (КАК В COMPANIES!)
+    // ✅ ACTION BUTTONS
     ACTION_BTN_PADDING: '0',
     ACTION_BTN_WIDTH: '24px',
     ACTION_BTN_FONT_SIZE: '14px',

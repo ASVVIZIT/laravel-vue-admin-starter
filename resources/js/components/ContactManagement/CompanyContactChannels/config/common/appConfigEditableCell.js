@@ -41,6 +41,8 @@ export const EDITABLE_CELL_PROPS_CONFIG = {
     fieldName: { type: String, default: null },  // ✅ ДЛЯ ВАЛИДАЦИИ
     channelType: { type: String, default: null },  // ✅ ДЛЯ ВАЛИДАЦИИ
     validator: { type: Function, default: null }, // ✅ КАСТОМНАЯ ВАЛИДАЦИЯ
+    fieldAvailable: { type: Boolean, default: true },  // Доступно ли поле
+    unavailableReason: { type: String, default: '' },  // Причина недоступности
 };
 
 // ============================================================================

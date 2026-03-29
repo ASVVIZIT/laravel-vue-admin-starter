@@ -1,13 +1,24 @@
-// ============================================================================
-// APP CONFIG CHANNEL LIST — CHANNEL LIST COMPONENT
-// ============================================================================
-// 📁 Путь: config/channels/appConfigChannelList.js
-// ✅ Используется: ChannelList.vue, channelStore.js, LoadingDataActions.vue
-// ✅ Безопасно менять — влияет только на список каналов
-// ✅ НЕ ЗАВИСИТ ОТ: config/companies/* (полностью независим)
-// ============================================================================
+/**
+ * ============================================================================
+ * APP CONFIG CHANNEL LIST — CHANNEL LIST COMPONENT
+ * ============================================================================
+ * 📁 Путь: config/channels/appConfigChannelList.js
+ * ✅ Используется: ChannelList.vue, channelStore.js, LoadingDataActions.vue
+ * ✅ Безопасно менять — влияет только на список каналов
+ * ✅ НЕ ЗАВИСИТ ОТ: config/companies/* (полностью независим)
+ * ============================================================================
+ */
 
 import { COLORS, ANIMATIONS, BREAKPOINTS, TIMINGS } from '../global/index.js';
+import {
+    CHANNEL_TYPES,
+    CHANNEL_TYPE_LABELS,
+    CHANNEL_TYPE_ICONS,
+    getChannelTypeLabel,
+    getChannelTypes,
+    getChannelTypeOptions,
+    getChannelTypeIcon,
+} from './appConfigChannelTypes.js';
 
 // ============================================================================
 // CHANNEL LIST THRESHOLDS
@@ -64,131 +75,6 @@ export const CHANNEL_SORT_OPTIONS = {
     CREATED_AT_DESC: { value: 'created_at_desc', label: 'Сначала новые' },
     CREATED_AT_ASC: { value: 'created_at_asc', label: 'Сначала старые' },
     DEFAULT: 'order_asc',
-};
-
-// ============================================================================
-// CHANNEL TYPES
-// ============================================================================
-
-export const CHANNEL_TYPES = {
-    SOCIAL_NETWORK: 'social_network',
-    MESSENGER: 'messenger',
-    MESSENGER_GROUP: 'messenger_group',
-    GIS_MAP: 'gis_map',
-    YANDEX_MAP: 'yandex_map',
-    EMAIL: 'email',
-    PHONE_NUMBER: 'phone_number',
-    WEBSITE: 'website',
-
-    // ✅ ДОБАВИТЬ НОВЫЕ ТИПЫ:
-    VIDEO: 'video',
-    DOCUMENT: 'document',
-    BLOG: 'blog',
-    FORUM: 'forum',
-    SUPPORT: 'support',
-    CHAT: 'chat',
-    API: 'api',
-    OTHER: 'other',
-};
-
-// ============================================================================
-// CHANNEL TYPE LABELS
-// ============================================================================
-
-export const CHANNEL_TYPE_LABELS = {
-    [CHANNEL_TYPES.SOCIAL_NETWORK]: 'Соцсеть',
-    [CHANNEL_TYPES.MESSENGER]: 'Мессенджер',
-    [CHANNEL_TYPES.MESSENGER_GROUP]: 'Группа',
-    [CHANNEL_TYPES.GIS_MAP]: '2GIS Карта',
-    [CHANNEL_TYPES.YANDEX_MAP]: 'Яндекс Карта',
-    [CHANNEL_TYPES.EMAIL]: 'Email',
-    [CHANNEL_TYPES.PHONE_NUMBER]: 'Телефон',
-    [CHANNEL_TYPES.WEBSITE]: 'Сайт',
-
-    // ✅ ДОБАВИТЬ НОВЫЕ ТИПЫ:
-    [CHANNEL_TYPES.VIDEO]: 'Видео',
-    [CHANNEL_TYPES.DOCUMENT]: 'Документ',
-    [CHANNEL_TYPES.BLOG]: 'Блог',
-    [CHANNEL_TYPES.FORUM]: 'Форум',
-    [CHANNEL_TYPES.SUPPORT]: 'Поддержка',
-    [CHANNEL_TYPES.CHAT]: 'Чат',
-    [CHANNEL_TYPES.API]: 'API',
-    [CHANNEL_TYPES.OTHER]: 'Другое',
-};
-
-// ============================================================================
-// CHANNEL TYPE FIELD CONFIG — КАКИЕ ПОЛЯ ПОКАЗЫВАТЬ ДЛЯ КАЖДОГО ТИПА
-// ============================================================================
-
-export const CHANNEL_TYPE_FIELD_CONFIG = {
-    // ✅ URL ПОЛЯ (для каких типов показывать URL)
-    typesWithUrl: [
-        CHANNEL_TYPES.SOCIAL_NETWORK,
-        CHANNEL_TYPES.MESSENGER,
-        CHANNEL_TYPES.MESSENGER_GROUP,
-        CHANNEL_TYPES.WEBSITE,
-        CHANNEL_TYPES.VIDEO,
-        CHANNEL_TYPES.BLOG,
-        CHANNEL_TYPES.FORUM,
-        CHANNEL_TYPES.SUPPORT,
-        CHANNEL_TYPES.CHAT,
-        CHANNEL_TYPES.API,
-    ],
-
-    // ✅ IDENTIFIER ПОЛЯ (для каких типов показывать Identifier)
-    typesWithIdentifier: [
-        CHANNEL_TYPES.EMAIL,
-        CHANNEL_TYPES.PHONE_NUMBER,
-        CHANNEL_TYPES.MESSENGER,
-        CHANNEL_TYPES.MESSENGER_GROUP,
-        CHANNEL_TYPES.SUPPORT,
-        CHANNEL_TYPES.CHAT,
-        CHANNEL_TYPES.API,
-    ],
-
-    // ✅ METADATA ПОЛЯ (для каких типов показывать Metadata)
-    typesWithMetadata: [
-        CHANNEL_TYPES.GIS_MAP,
-        CHANNEL_TYPES.YANDEX_MAP,
-        CHANNEL_TYPES.MESSENGER_GROUP,
-        CHANNEL_TYPES.VIDEO,
-        CHANNEL_TYPES.DOCUMENT,
-        CHANNEL_TYPES.BLOG,
-        CHANNEL_TYPES.FORUM,
-        CHANNEL_TYPES.API,
-        CHANNEL_TYPES.OTHER,
-    ],
-};
-
-// ============================================================================
-// HELPER FUNCTIONS — ПРОВЕРКА ТИПОВ
-// ============================================================================
-
-export function hasUrlField(type) {
-    return !type || CHANNEL_TYPE_FIELD_CONFIG.typesWithUrl.includes(type);
-}
-
-export function hasIdentifierField(type) {
-    return !type || CHANNEL_TYPE_FIELD_CONFIG.typesWithIdentifier.includes(type);
-}
-
-export function hasMetadataField(type) {
-    return !type || CHANNEL_TYPE_FIELD_CONFIG.typesWithMetadata.includes(type);
-}
-
-// ============================================================================
-// CHANNEL TYPE ICONS
-// ============================================================================
-
-export const CHANNEL_TYPE_ICONS = {
-    [CHANNEL_TYPES.SOCIAL_NETWORK]: 'Connection',
-    [CHANNEL_TYPES.MESSENGER]: 'ChatLineSquare',
-    [CHANNEL_TYPES.MESSENGER_GROUP]: 'ChatLineRound',
-    [CHANNEL_TYPES.GIS_MAP]: 'Position',
-    [CHANNEL_TYPES.YANDEX_MAP]: 'Position',
-    [CHANNEL_TYPES.EMAIL]: 'Message',
-    [CHANNEL_TYPES.PHONE_NUMBER]: 'Phone',
-    [CHANNEL_TYPES.WEBSITE]: 'Link',
 };
 
 // ============================================================================
@@ -388,12 +274,13 @@ export const CHANNEL_LIST_MESSAGES = {
     TOOLTIP_FILTER_TYPE: 'Фильтр по типу',
     TOOLTIP_FILTER_STATUS: 'Фильтр по статусу',
     TOOLTIP_RESET_FILTERS: 'Сбросить все фильтры',
+    TOOLTIP_SEARCH: 'Поиск',
     TOOLTIP_SORT: 'Сортировка',
     TOOLTIP_ENTITY_SETTINGS: 'Настройки сущности',
 };
 
 // ============================================================================
-// FILTER PLACEHOLDERS (ВСЕ PLACEHOLDER ДЛЯ ФИЛЬТРОВ!)
+// FILTER PLACEHOLDERS
 // ============================================================================
 
 export const CHANNEL_FILTER_PLACEHOLDERS = {
@@ -404,7 +291,7 @@ export const CHANNEL_FILTER_PLACEHOLDERS = {
 };
 
 // ============================================================================
-// FILTER OPTIONS (ВСЕ ОПЦИИ ДЛЯ ФИЛЬТРОВ!)
+// FILTER OPTIONS
 // ============================================================================
 
 export const CHANNEL_FILTER_OPTIONS = {
@@ -534,25 +421,6 @@ export function getChannelFilterOptions() {
 // ============================================================================
 // HELPER FUNCTIONS — GENERAL
 // ============================================================================
-
-export function getChannelTypeLabel(type) {
-    return CHANNEL_TYPE_LABELS[type] || type;
-}
-
-export function getChannelTypeIcon(type) {
-    return CHANNEL_TYPE_ICONS[type] || 'Link';
-}
-
-export function getChannelTypes() {
-    return Object.values(CHANNEL_TYPES);
-}
-
-export function getChannelTypeOptions() {
-    return Object.entries(CHANNEL_TYPE_LABELS).map(([value, label]) => ({
-        value,
-        label,
-    }));
-}
 
 export function getShowLoadButtonsThreshold() {
     return CHANNEL_LIST_THRESHOLDS.SHOW_LOAD_BUTTONS_MIN;

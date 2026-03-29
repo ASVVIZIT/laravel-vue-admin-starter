@@ -117,6 +117,8 @@
               type="text"
               field-name="title"
               :channel-type="row.type"
+              :field-available="true"
+              :unavailable-reason="''"
               placeholder="Введите название"
               :disabled="row._updating || props.disabled"
               :loading="row._updating"
@@ -143,6 +145,8 @@
               type="text"
               field-name="identifier"
               :channel-type="row.type"
+              :field-available="isFieldAvailable('identifier', row.type).available"
+              :unavailable-reason="isFieldAvailable('identifier', row.type).reason"
               placeholder="Email, телефон, username"
               :disabled="row._updating || props.disabled"
               :loading="row._updating"
@@ -169,6 +173,8 @@
               type="text"
               field-name="url"
               :channel-type="row.type"
+              :field-available="isFieldAvailable('url', row.type).available"
+              :unavailable-reason="isFieldAvailable('url', row.type).reason"
               placeholder="https://..."
               :disabled="row._updating || props.disabled"
               :loading="row._updating"
@@ -322,6 +328,7 @@ import {
   ANIMATIONS,
   TIMINGS,
   COLORS,
+  isFieldAvailable,
 } from '@/components/ContactManagement/CompanyContactChannels/config/appConfigIndex.js';
 
 // ============================================================================

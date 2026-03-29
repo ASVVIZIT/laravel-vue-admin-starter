@@ -5,16 +5,22 @@
  * 📁 Путь: config/channels/appConfigChannelValidation.js
  * ✅ Используется: ChannelForm.vue, ChannelTable.vue, EditableCell.vue
  * ✅ Безопасно менять — влияет на всю валидацию каналов
+ * ✅ Импортирует типы и валидацию из appConfigChannelTypes.js
  * ============================================================================
  */
 
-import { CHANNEL_TYPES, CHANNEL_TYPE_FIELD_CONFIG } from './appConfigChannelList.js';
+import {
+    CHANNEL_TYPES,
+    CHANNEL_TYPE_FIELD_CONFIG,
+    getChannelTypeLabel,
+    validateIdentifierByType,
+} from './appConfigChannelTypes.js';
 
 // ============================================================================
 // ТИПЫ ПОЛЕЙ КОТОРЫЕ ТРЕБУЮТ URL
 // ============================================================================
 
-export const TYPES_REQUIRING_URL = CHANNEL_TYPE_FIELD_CONFIG.typesWithUrl || [
+export const TYPES_REQUIRING_URL = CHANNEL_TYPE_FIELD_CONFIG?.typesWithUrl || [
     CHANNEL_TYPES.SOCIAL_NETWORK,
     CHANNEL_TYPES.MESSENGER,
     CHANNEL_TYPES.MESSENGER_GROUP,
@@ -31,11 +37,12 @@ export const TYPES_REQUIRING_URL = CHANNEL_TYPE_FIELD_CONFIG.typesWithUrl || [
 // ТИПЫ ПОЛЕЙ КОТОРЫЕ ТРЕБУЮТ IDENTIFIER
 // ============================================================================
 
-export const TYPES_REQUIRING_IDENTIFIER = CHANNEL_TYPE_FIELD_CONFIG.typesWithIdentifier || [
+export const TYPES_REQUIRING_IDENTIFIER = CHANNEL_TYPE_FIELD_CONFIG?.typesWithIdentifier || [
     CHANNEL_TYPES.EMAIL,
     CHANNEL_TYPES.PHONE_NUMBER,
     CHANNEL_TYPES.MESSENGER,
     CHANNEL_TYPES.MESSENGER_GROUP,
+    CHANNEL_TYPES.SOCIAL_NETWORK,
     CHANNEL_TYPES.SUPPORT,
     CHANNEL_TYPES.CHAT,
     CHANNEL_TYPES.API,
@@ -46,7 +53,7 @@ export const TYPES_REQUIRING_IDENTIFIER = CHANNEL_TYPE_FIELD_CONFIG.typesWithIde
 // ============================================================================
 
 export function isValidUrl(url) {
-    if (!url || url === '') return true; // Пустое значение допустимо (nullable)
+    if (!url || url === '') return true;
     try {
         new URL(url);
         return true;
@@ -71,9 +78,18 @@ export function isValidEmail(email) {
 
 export function isValidPhone(phone) {
     if (!phone || phone === '') return true;
-    // Простая проверка — содержит ли цифры и +
     const phoneRegex = /^[\d\s\+\-\(\)]{7,20}$/;
     return phoneRegex.test(phone);
+}
+
+// ============================================================================
+// ВАЛИДАЦИЯ USERNAME
+// ============================================================================
+
+export function isValidUsername(identifier) {
+    if (!identifier || identifier === '') return true;
+    const usernameRegex = /^[a-zA-Z0-9._@-]{3,50}$/;
+    return usernameRegex.test(identifier);
 }
 
 // ============================================================================
@@ -127,38 +143,6 @@ export function validateUrlByType(url, type) {
 }
 
 // ============================================================================
-// ВАЛИДАЦИЯ ПО ТИПУ КАНАЛА — IDENTIFIER
-// ============================================================================
-
-export function validateIdentifierByType(identifier, type) {
-    if (!identifier || identifier === '') {
-        return { valid: true, message: '' };
-    }
-
-    if (!TYPES_REQUIRING_IDENTIFIER.includes(type)) {
-        return { valid: true, message: '' };
-    }
-
-    // Email проверка
-    if (type === CHANNEL_TYPES.EMAIL && !isValidEmail(identifier)) {
-        return {
-            valid: false,
-            message: 'Некорректный email',
-        };
-    }
-
-    // Phone проверка
-    if (type === CHANNEL_TYPES.PHONE_NUMBER && !isValidPhone(identifier)) {
-        return {
-            valid: false,
-            message: 'Некорректный телефон',
-        };
-    }
-
-    return { valid: true, message: '' };
-}
-
-// ============================================================================
 // УНИВЕРСАЛЬНАЯ ВАЛИДАЦИЯ ПОЛЯ
 // ============================================================================
 
@@ -200,7 +184,7 @@ export function validateField(fieldName, value, context = {}) {
 }
 
 // ============================================================================
-// ЭКСПОРТ ВСЕГО
+// ЭКСПОРТ
 // ============================================================================
 
 export default {
@@ -209,6 +193,7 @@ export default {
     isValidUrl,
     isValidEmail,
     isValidPhone,
+    isValidUsername,
     isValidJson,
     isValidInteger,
     validateUrlByType,

@@ -9,15 +9,114 @@
  */
 
 import { COLORS, BREAKPOINTS } from '../global/index.js';
-// ✅ ИМПОРТ ИЗ COMMON (вместо дубля!)
 import { EDITABLE_CELL_UI, EDITABLE_CELL_PROPS_CONFIG } from '../common/appConfigEditableCell.js';
 
 // ============================================================================
-// TABLE COLUMN CONFIG
+// TABLE COLUMN CONFIG — ВСЕ КОЛОНКИ В ОДНОМ МЕСТЕ!
 // ============================================================================
 
 export const COMPANY_TABLE_COLUMNS = {
-    // ... (остальное без изменений)
+    ROW_NUMBER: {
+        key: 'row_number',
+        type: 'special',
+        label: '#',
+        width: 40,
+        visible: true,
+        fixed: 'left',
+        align: 'center',
+        resizable: false,
+        sortable: false,
+    },
+    ID: {
+        key: 'id',
+        type: 'text',
+        label: 'ID',
+        width: 50,
+        visible: true,
+        fixed: 'left',
+        align: 'center',
+        resizable: false,
+        sortable: true,
+    },
+    NAME: {
+        key: 'name',
+        type: 'editable',
+        label: 'Название',
+        minWidth: 120,
+        visible: true,
+        fixed: null,
+        align: 'left',
+        resizable: true,
+        sortable: true,
+        editable: true,
+        maxLength: 255,
+        placeholder: 'Название',
+    },
+    ICON: {
+        key: 'settings.icon',
+        type: 'select',
+        label: 'Иконка',
+        width: 120,
+        visible: true,
+        fixed: null,
+        align: 'center',
+        resizable: true,
+        sortable: false,
+        editable: true,
+        placeholder: 'Выберите',
+    },
+    DESCRIPTION: {
+        key: 'description',
+        type: 'editable',
+        label: 'Описание',
+        minWidth: 130,
+        visible: true,
+        fixed: null,
+        align: 'left',
+        resizable: true,
+        sortable: true,
+        editable: true,
+        maxLength: 1000,
+        placeholder: 'Описание',
+    },
+    ADDRESS: {
+        key: 'address',
+        type: 'editable',
+        label: 'Адрес',
+        minWidth: 120,
+        visible: true,
+        fixed: null,
+        align: 'left',
+        resizable: true,
+        sortable: true,
+        editable: true,
+        maxLength: 500,
+        placeholder: 'Адрес',
+    },
+    CONTACT_CHANNELS: {
+        key: 'contact_channels_count',
+        type: 'tag',
+        label: 'Каналы',
+        width: 55,
+        visible: true,
+        fixed: null,
+        align: 'center',
+        resizable: false,
+        sortable: true,
+        editable: false,
+    },
+    ACTIONS: {
+        key: 'actions',
+        type: 'actions',
+        label: 'Действия',
+        width: 60,
+        visible: true,
+        fixed: 'right',
+        align: 'center',
+        resizable: false,
+        sortable: false,
+        buttons: ['refresh', 'edit', 'delete'],
+    },
 };
 
 // ============================================================================
@@ -25,7 +124,127 @@ export const COMPANY_TABLE_COLUMNS = {
 // ============================================================================
 
 export const COMPANY_TABLE_UI = {
-    // ... (остальное без изменений)
+    // ✅ HEADER
+    HEADER_BACKGROUND: '#f5f7fa',
+    HEADER_COLOR: '#606266',
+    HEADER_FONT_WEIGHT: '600',
+    HEADER_FONT_SIZE: '8px',
+    HEADER_HEIGHT: '20px',
+    HEADER_PADDING: '0 2px',
+
+    // ✅ CELLS
+    CELL_FONT_SIZE: '8px',
+    CELL_FONT_SIZE_MOBILE: '7px',
+    CELL_FONT_SIZE_SMALL: '6px',
+    CELL_PADDING: '1px 2px',
+    CELL_HEIGHT: '22px',
+    CELL_LINE_HEIGHT: '1.2',
+    ROW_HEIGHT: '22px',
+
+    // ✅ TABLE HEIGHT
+    TABLE_HEIGHT: 'calc(100vh - 290px)',
+    TABLE_HEIGHT_MOBILE: 'calc(100vh - 310px)',
+    TABLE_HEIGHT_SMALL: 'calc(100vh - 320px)',
+    TABLE_HEIGHT_TOUCH: 'calc(100vh - 330px)',
+
+    // ✅ TABLE PROPS ← ← ← КРИТИЧНО!
+    HOVER_COLOR: '#f5f7fa',
+    STRIPED_ROW_BACKGROUND: '#fafafa',
+    LOADING_BACKGROUND: 'rgba(255, 255, 255, 0.9)',
+
+    // ✅ SCROLLBAR
+    SCROLLBAR_WIDTH: '6px',
+    SCROLLBAR_TRACK_COLOR: '#f1f1f1',
+    SCROLLBAR_THUMB_COLOR: '#c1c1c1',
+    SCROLLBAR_BORDER_RADIUS: '3px',
+
+    // ✅ EMPTY STATE
+    EMPTY_ICON_SIZE: '24px',
+    EMPTY_ICON_COLOR: '#909399',
+    EMPTY_TEXT_COLOR: '#909399',
+    EMPTY_TEXT_SIZE: '11px',
+    EMPTY_PADDING: '20px 10px',
+    EMPTY_GAP: '8px',
+    EMPTY_CELL_TEXT: '—',
+
+    // ✅ ROW NUMBER
+    ROW_NUMBER_FONT_SIZE: '7px',
+    ROW_NUMBER_COLOR: '#909399',
+    ROW_NUMBER_WIDTH: '40',
+
+    // ✅ ID COLUMN
+    ID_FONT_WEIGHT: '600',
+    ID_COLOR: COLORS.PRIMARY,
+    ID_FONT_SIZE: '8px',
+    ID_WIDTH: '50',
+
+    // ✅ CHANNEL TAGS
+    CHANNEL_TAG_HEIGHT: '14px',
+    CHANNEL_TAG_PADDING: '0 3px',
+    CHANNEL_TAG_FONT_SIZE: '7px',
+    CHANNEL_TAG_FONT_WEIGHT: '500',
+    CHANNEL_WIDTH: '55',
+    CHANNEL_THRESHOLDS: {
+        LOW: 3,
+        MEDIUM: 10,
+    },
+    CHANNEL_TAG_TYPES: {
+        EMPTY: 'info',
+        LOW: 'success',
+        MEDIUM: 'warning',
+        HIGH: 'danger',
+    },
+
+    // ✅ ACTIONS
+    ACTION_BTN_PADDING: '0',
+    ACTION_BTN_FONT_SIZE: '14px',
+    ACTION_BTN_WIDTH: '24px',
+    ACTION_BTN_HOVER_SCALE: '1.1',
+    ACTION_WIDTH: '60',
+
+    // ✅ ICONS
+    ICON_DISPLAY_MIN_HEIGHT: '20px',
+    ICON_PLACEHOLDER_FONT_SIZE: '14px',
+    ICON_PLACEHOLDER_COLOR: '#c0c4cc',
+    ICON_OPTION_GAP: '4px',
+    ICON_SELECT_SIZE: '14px',
+    ICON_DISPLAY_SIZE: '16px',
+    ICON_DISPLAY_COLOR: COLORS.PRIMARY,
+    ICON_WIDTH: '120',
+
+    // ✅ COLUMNS WIDTH
+    NAME_MIN_WIDTH: '120',
+    DESCRIPTION_MIN_WIDTH: '130',
+    ADDRESS_MIN_WIDTH: '120',
+
+    // ✅ MAX LENGTH
+    NAME_MAX_LENGTH: 255,
+    DESCRIPTION_MAX_LENGTH: 1000,
+    ADDRESS_MAX_LENGTH: 500,
+
+    // ✅ OVERFLOW
+    CELL_OVERFLOW: 'visible',
+    CONTAINER_OVERFLOW: 'hidden !important',
+    FIXED_COLUMN_Z_INDEX: 10,
+
+    // ✅ TABLE PROPS ← ← ← КРИТИЧНО!
+    TABLE_PROPS: {
+        stripe: true,
+        border: true,
+        size: 'small',
+    },
+
+    // ✅ TAG PROPS
+    TAG_PROPS: {
+        effect: 'plain',
+        size: 'small',
+    },
+
+    // ✅ PLACEHOLDERS
+    NAME_PLACEHOLDER: 'Название',
+    ICON_PLACEHOLDER: 'Выберите',
+    DESCRIPTION_PLACEHOLDER: 'Описание',
+    ADDRESS_PLACEHOLDER: 'Адрес',
 };
 
 // ============================================================================

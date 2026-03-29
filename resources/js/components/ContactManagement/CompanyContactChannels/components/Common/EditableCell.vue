@@ -3,18 +3,28 @@
     <div
         v-if="!isEditing"
         class="cell-display"
+        :class="{ 'cell-disabled': !props.fieldAvailable }"
         @dblclick.stop="startEditing"
     >
       <slot name="display" :value="props.modelValue">
         <span class="cell-text" :title="displayValue">{{ displayValue }}</span>
       </slot>
 
+      <!-- ✅ TOOLTIP ДЛЯ НЕДОСТУПНЫХ ПОЛЕЙ -->
       <el-tooltip
-          v-if="!props.disabled && props.showEditButton"
+          v-if="!props.fieldAvailable && props.unavailableReason"
+          :content="props.unavailableReason"
+          placement="top"
+          :show-after="TIMINGS.TOOLTIP_DELAY"
+      >
+        <el-icon class="disabled-icon"><CircleClose /></el-icon>
+      </el-tooltip>
+
+      <el-tooltip
+          v-if="!props.disabled && props.showEditButton && props.fieldAvailable"
           content="Редактировать (DblClick)"
           placement="top"
           :show-after="TIMINGS.TOOLTIP_DELAY"
-          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
       >
         <el-button
             link
@@ -24,43 +34,6 @@
             @click.stop="startEditing"
         >
           <el-icon><Edit /></el-icon>
-        </el-button>
-      </el-tooltip>
-
-      <!-- ✅ TOOLTIPS ДЛЯ КНОПОК ДЕЙСТВИЙ -->
-      <el-tooltip
-          v-if="isEditing && props.showActionButtons"
-          content="Сохранить (Enter)"
-          placement="top"
-          :show-after="TIMINGS.TOOLTIP_DELAY"
-          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
-      >
-        <el-button
-            size="small"
-            type="success"
-            @click="saveEdit"
-            :disabled="props.loading || isSaving"
-            class="action-btn-save"
-        >
-          <el-icon><Check /></el-icon>
-        </el-button>
-      </el-tooltip>
-
-      <el-tooltip
-          v-if="isEditing && props.showActionButtons"
-          content="Отмена (Esc)"
-          placement="top"
-          :show-after="TIMINGS.TOOLTIP_DELAY"
-          :hide-after="TIMINGS.TOOLTIP_HIDE_DELAY"
-      >
-        <el-button
-            size="small"
-            type="info"
-            @click="cancelEdit"
-            :disabled="props.loading || isSaving"
-            class="action-btn-cancel"
-        >
-          <el-icon><Close /></el-icon>
         </el-button>
       </el-tooltip>
     </div>
@@ -197,7 +170,13 @@ const displayValue = computed(() => {
 });
 
 const startEditing = () => {
-  if (props.disabled || props.loading || isSaving.value) return;
+  // ✅ БЛОКИРОВКА РЕДАКТИРОВАНИЯ ЕСЛИ ПОЛЕ НЕДОСТУПНО
+  if (!props.fieldAvailable || props.disabled || props.loading || isSaving.value) {
+    if (!props.fieldAvailable && props.unavailableReason) {
+      ElMessage.warning(props.unavailableReason);
+    }
+    return;
+  }
 
   emit('start-edit');
   isEditing.value = true;
@@ -385,6 +364,26 @@ onUnmounted(() => {
   width: 100%;
   min-height: v-bind('EDITABLE_CELL_UI.INPUT_HEIGHT');
   animation: fadeIn v-bind('TIMINGS.DELAY_FAST') v-bind('ANIMATIONS.EASING_EASE');
+}
+
+/* ✅ НЕДОСТУПНЫЕ ПОЛЯ — СЕРЫЙ ЦВЕТ */
+.cell-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cell-disabled .cell-text {
+  color: #909399 !important;
+}
+
+.cell-disabled:hover .edit-button {
+  opacity: 0 !important;
+}
+
+.disabled-icon {
+  color: #909399;
+  font-size: 14px;
+  margin-left: 4px;
 }
 
 .inline-input,
