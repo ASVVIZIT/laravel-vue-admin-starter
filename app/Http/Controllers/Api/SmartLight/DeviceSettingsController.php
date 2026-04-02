@@ -7,14 +7,15 @@ use App\Http\Requests\SmartLight\UpdateDeviceSettingsRequest;
 use App\Models\SmartLight\SmartLightDevice;
 use App\Services\SmartLight\DeviceSettingsService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class DeviceSettingsController extends Controller
 {
-    public function __construct(private DeviceSettingsService $settingsService) {}
+    public function __construct(
+        private DeviceSettingsService $settingsService
+    ) {}
 
     /**
-     * Display the specified resource.
+     * Display device settings
      */
     public function show($device_id)
     {
@@ -28,7 +29,7 @@ class DeviceSettingsController extends Controller
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update device settings
      */
     public function update(UpdateDeviceSettingsRequest $request, $device_id)
     {
@@ -42,7 +43,7 @@ class DeviceSettingsController extends Controller
     }
 
     /**
-     * Reset device settings to defaults.
+     * Reset device settings
      */
     public function reset($device_id)
     {
@@ -56,7 +57,7 @@ class DeviceSettingsController extends Controller
     }
 
     /**
-     * Get device settings for device auth.
+     * Get device settings for device auth
      */
     public function getDeviceSettingsForDevice(Request $request, $device_id)
     {
@@ -68,7 +69,7 @@ class DeviceSettingsController extends Controller
     }
 
     /**
-     * Get default settings for device type.
+     * Get default settings for device type
      */
     public function getDefaults(Request $request, $device_id)
     {
@@ -76,6 +77,7 @@ class DeviceSettingsController extends Controller
         $this->authorize('view', $device);
 
         $defaults = [
+            'success' => true,
             'default_settings' => [
                 'critical_voltage' => $device->critical_voltage,
                 'sleep_interval' => $device->sleep_interval,
@@ -109,9 +111,30 @@ class DeviceSettingsController extends Controller
             ]
         ];
 
-        return response()->json([
-            'success' => true,
-            'data' => $defaults
-        ]);
+        return response()->json($defaults);
+    }
+
+    /**
+     * V1 API: Show device settings
+     */
+    public function apiShow($device_id)
+    {
+        return $this->show($device_id);
+    }
+
+    /**
+     * V1 API: Update device settings
+     */
+    public function apiUpdate(UpdateDeviceSettingsRequest $request, $device_id)
+    {
+        return $this->update($request, $device_id);
+    }
+
+    /**
+     * V1 API: Reset device settings
+     */
+    public function apiReset($device_id)
+    {
+        return $this->reset($device_id);
     }
 }

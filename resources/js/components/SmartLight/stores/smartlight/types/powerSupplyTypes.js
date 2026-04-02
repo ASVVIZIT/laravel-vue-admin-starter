@@ -1,9 +1,10 @@
 /**
- * Типы источников питания
- *
- * Содержит только данные типов источников питания без бизнес-логики
- *
- * @file stores/smartlight/types/powerSupplyTypes.js
+ * ============================================================================
+ * POWER SUPPLY TYPES — ТИПЫ ИСТОЧНИКОВ ПИТАНИЯ (ПОЛНАЯ ВЕРСИЯ)
+ * ============================================================================
+ * 📁 Путь: stores/smartlight/types/powerSupplyTypes.js
+ * ✅ Используется: typesStore, PowerService, визуализация
+ * ============================================================================
  */
 
 export const POWER_SUPPLY_TYPES = {
@@ -103,3 +104,23 @@ export const POWER_SUPPLY_TYPES = {
         }
     }
 };
+
+/**
+ * Получает тип источника питания по ID
+ */
+export const getPowerSupplyById = (supplyId) => {
+    return POWER_SUPPLY_TYPES[supplyId] || POWER_SUPPLY_TYPES.standard;
+};
+
+/**
+ * Возвращает типы источников питания для выпадающего списка
+ */
+export const getPowerSuppliesForDropdown = () => {
+    return Object.entries(POWER_SUPPLY_TYPES).map(([id, type]) => ({
+        id,
+        label: type.name,
+        value: id
+    }));
+};
+
+export default POWER_SUPPLY_TYPES;

@@ -9,6 +9,9 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SmartLightDeviceAuth
 {
+    /**
+     * Handle an incoming request.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $device_id = $request->route('device_id');
@@ -16,6 +19,7 @@ class SmartLightDeviceAuth
 
         if (!$device_id || !$api_key) {
             return response()->json([
+                'success' => false,
                 'error' => 'Missing required headers',
                 'message' => 'X-Device-Key header is required'
             ], 400);
@@ -27,6 +31,7 @@ class SmartLightDeviceAuth
 
         if (!$device) {
             return response()->json([
+                'success' => false,
                 'error' => 'Unauthorized device',
                 'message' => 'Device ID or API key is invalid'
             ], 401);
@@ -35,6 +40,7 @@ class SmartLightDeviceAuth
         // Проверка критического напряжения
         if ($device->voltage < $device->critical_voltage) {
             return response()->json([
+                'success' => false,
                 'error' => 'Critical voltage',
                 'message' => 'Device is in emergency mode due to low battery',
                 'current_voltage' => $device->voltage,
@@ -44,6 +50,7 @@ class SmartLightDeviceAuth
         }
 
         $request->merge(['device' => $device]);
+
         return $next($request);
     }
 }

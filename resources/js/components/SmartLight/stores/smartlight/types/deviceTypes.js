@@ -1,9 +1,10 @@
 /**
- * Типы устройств
- *
- * Содержит только данные типов устройств без бизнес-логики
- *
- * @file stores/smartlight/types/deviceTypes.js
+ * ============================================================================
+ * DEVICE TYPES — ТИПЫ УСТРОЙСТВ
+ * ============================================================================
+ * 📁 Путь: stores/smartlight/types/deviceTypes.js
+ * ✅ Типы устройств и их состояния
+ * ============================================================================
  */
 
 export const DEVICE_TYPES = {
@@ -45,7 +46,8 @@ export const DEVICE_STATE = {
     OFF: 'Выключено',
     SLEEPING: 'Спит',
     ERROR: 'Ошибка',
-    WARNING: 'Предупреждение'
+    WARNING: 'Предупреждение',
+    LOW_POWER: 'Низкий заряд'
 };
 
 // Типы аккумуляторов
@@ -69,4 +71,12 @@ export const POWER_SUPPLY_TYPE_IDS = {
     STANDARD: 'standard',
     SOLAR: 'solar',
     GRID: 'grid'
+};
+
+export default {
+    DEVICE_TYPES,
+    DEVICE_STATE,
+    BATTERY_TYPE_IDS,
+    BULB_TYPE_IDS,
+    POWER_SUPPLY_TYPE_IDS
 };

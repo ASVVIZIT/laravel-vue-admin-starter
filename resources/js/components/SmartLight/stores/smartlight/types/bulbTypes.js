@@ -1,9 +1,10 @@
 /**
- * Типы ламп
- *
- * Содержит только данные типов ламп без бизнес-логики
- *
- * @file stores/smartlight/types/bulbTypes.js
+ * ============================================================================
+ * BULB TYPES — ТИПЫ ЛАМП (ПОЛНАЯ ВЕРСИЯ)
+ * ============================================================================
+ * 📁 Путь: stores/smartlight/types/bulbTypes.js
+ * ✅ Используется: typesStore, BulbRenderer, PowerService
+ * ============================================================================
  */
 
 export const BULB_TYPES = {
@@ -74,7 +75,7 @@ export const BULB_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 86400, // 24 часа в секундах
+            controllerRuntime: 86400,
             minControllerVoltage: 2.5,
             powerManagementMode: 'conservative'
         }
@@ -149,7 +150,7 @@ export const BULB_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 86400, // 24 часа в секундах
+            controllerRuntime: 86400,
             minControllerVoltage: 2.5,
             powerManagementMode: 'conservative'
         },
@@ -176,7 +177,7 @@ export const BULB_TYPES = {
         nominalIntensity: 100,
         colorTemperature: 3000,
         lightEfficiency: 15,
-        filamentMaterial: 'tungsten_halogene',
+        filamentMaterial: 'tungsten_halogen',
         lifespan: 2000,
         dimensions: { height: 100, width: 60, unit: 'px' },
         visualFeatures: {
@@ -231,7 +232,7 @@ export const BULB_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 72000, // 20 часов в секундах
+            controllerRuntime: 72000,
             minControllerVoltage: 2.5,
             powerManagementMode: 'balanced'
         }
@@ -255,3 +256,5 @@ export const getBulbTypesForDropdown = () => {
         value: id
     }));
 };
+
+export default BULB_TYPES;

@@ -1,24 +1,26 @@
-import { ref, onMounted, onUnmounted } from 'vue';
-import {
-    initWhenReady,
-    forceInit,
-} from '@/components/SmartLight/api/utils/webglSupport';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger';
+/**
+ * ============================================================================
+ * USE INITIALIZATION — ИНИЦИАЛИЗАЦИЯ КОМПОНЕНТОВ
+ * ============================================================================
+ * 📁 Путь: composables/useInitialization.js
+ * ✅ Используется: ThreeScene, BulbRenderer, BatteryRenderer
+ * ✅ Интеграция: coreApiWebglSupportUtils, appLogger
+ * ============================================================================
+ */
+
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+// ✅ ИСПРАВЛЕНО — используем checkContainerReady вместо forceInit
+import { checkContainerReady } from '@/components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
+import { logDebug } from '@/components/SmartLight/utils/appLogger.js';
 
 export function useInitialization(containerRef, deviceId) {
     const isInitialized = ref(false);
     const initAttempts = ref(0);
-    const maxInitAttempts = 30;
+    const maxInitAttempts = ref(30);
 
-    /**
-     * Принудительная инициализация с поддержкой повторных попыток
-     */
+    // ✅ ИСПРАВЛЕНО — используем checkContainerReady + nextTick вместо forceInit
     const forceInitWithRetry = (initCallback, options = { maxAttempts: 20, delay: 100 }) => {
-        logDebug('useInitialization', 'Принудительная инициализация с повторными попытками', {
-            deviceId,
-            options
-        });
-
+        logDebug('useInitialization', 'Принудительная инициализация', { deviceId, options });
         let attempts = 0;
 
         const tryInit = () => {
@@ -37,8 +39,12 @@ export function useInitialization(containerRef, deviceId) {
                     maxAttempts: options.maxAttempts
                 });
 
-                if (forceInit(containerRef.value, initCallback, options)) {
-                    isInitialized.value = true;
+                // ✅ ПРОВЕРЯЕМ ГОТОВНОСТЬ КОНТЕЙНЕРА
+                if (checkContainerReady(containerRef.value)) {
+                    nextTick(() => {
+                        initCallback();
+                        isInitialized.value = true;
+                    });
                     return true;
                 }
             }
@@ -48,7 +54,7 @@ export function useInitialization(containerRef, deviceId) {
                 return false;
             }
 
-            logDebug('useInitialization', 'Превышено максимальное количество попыток', {
+            logDebug('useInitialization', 'Превышено количество попыток', {
                 deviceId,
                 attempts,
                 maxAttempts: options.maxAttempts
@@ -59,52 +65,32 @@ export function useInitialization(containerRef, deviceId) {
         return tryInit();
     };
 
-    /**
-     * Отложенная инициализация после полной загрузки
-     */
     const delayedInit = (initCallback, delay = 500) => {
-        logDebug('useInitialization', 'Отложенная инициализация', {
-            deviceId,
-            delay
-        });
-
+        logDebug('useInitialization', 'Отложенная инициализация', { deviceId, delay });
         setTimeout(() => {
             forceInitWithRetry(initCallback, { maxAttempts: 10, delay: 50 });
         }, delay);
     };
 
-    /**
-     * Инициализация при монтировании
-     */
     const initOnMount = (initCallback) => {
         logDebug('useInitialization', 'Инициализация при монтировании', { deviceId });
-
         onMounted(() => {
-            // Даем время для полной загрузки DOM
             setTimeout(() => {
-                // Сначала пытаемся инициализировать сразу
                 if (!forceInitWithRetry(initCallback, { maxAttempts: 5, delay: 50 })) {
-                    // Если не удалось, используем отложенную инициализацию
                     delayedInit(initCallback, 1000);
                 }
             }, 300);
         });
-
         onUnmounted(() => {
             isInitialized.value = false;
             initAttempts.value = 0;
         });
     };
 
-    /**
-     * Инициализация при изменении режима
-     */
     const initOnModeChange = (initCallback) => {
         logDebug('useInitialization', 'Инициализация при изменении режима', { deviceId });
-
         watch(() => containerRef.value, (newContainer) => {
             if (newContainer) {
-                // При изменении контейнера перезапускаем инициализацию
                 forceInitWithRetry(initCallback, { maxAttempts: 15, delay: 100 });
             }
         });
@@ -113,9 +99,12 @@ export function useInitialization(containerRef, deviceId) {
     return {
         isInitialized,
         initAttempts,
+        maxInitAttempts,
         forceInitWithRetry,
         delayedInit,
         initOnMount,
         initOnModeChange
     };
 }
+
+export default useInitialization;

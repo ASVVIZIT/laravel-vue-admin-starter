@@ -29,7 +29,9 @@ class DeviceResource extends JsonResource
             'is_fake' => (bool) $this->is_fake,
             'last_telemetry_at' => $this->current_telemetry?->received_at?->format('Y-m-d H:i:s'),
             'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s')
+            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
+            'settings' => $this->settings,
+            'battery_group_config' => $this->battery_group_config
         ];
     }
 }

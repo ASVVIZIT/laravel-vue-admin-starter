@@ -17,14 +17,20 @@ class Telemetry extends Model
         'status',
         'intensity',
         'is_emergency',
-        'received_at'
+        'received_at',
+        'battery_temperature',
+        'signal_strength',
+        'uptime'
     ];
 
     protected $casts = [
         'voltage' => 'float',
         'intensity' => 'integer',
         'is_emergency' => 'boolean',
-        'received_at' => 'datetime'
+        'received_at' => 'datetime',
+        'battery_temperature' => 'float',
+        'signal_strength' => 'integer',
+        'uptime' => 'integer'
     ];
 
     public function device()

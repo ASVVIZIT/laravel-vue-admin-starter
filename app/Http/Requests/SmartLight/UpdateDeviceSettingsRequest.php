@@ -17,8 +17,6 @@ class UpdateDeviceSettingsRequest extends FormRequest
 
     /**
      * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array|string>
      */
     public function rules(): array
     {
@@ -54,8 +52,6 @@ class UpdateDeviceSettingsRequest extends FormRequest
 
     /**
      * Get the error messages for the defined validation rules.
-     *
-     * @return array<string, string>
      */
     public function messages(): array
     {
@@ -65,7 +61,7 @@ class UpdateDeviceSettingsRequest extends FormRequest
             'sleep_interval.min' => 'Интервал сна не может быть меньше 60 секунд',
             'sleep_interval.max' => 'Интервал сна не может быть больше 24 часов',
             'emergency_sleep_interval.min' => 'Аварийный интервал не может быть меньше 5 минут',
-            'emergency_sleep_interval.max' => 'Аварийный интервал не может быть больше 2 часов',
+            'emergency_sleep_interval.max' => 'Аварийный интервал не может быть больше 24 часов',
             'battery_group_config.type.required_if' => 'Тип группировки обязателен при включенной группировке',
             'battery_group_config.count.required_if' => 'Количество аккумуляторов обязательно при включенной группировке',
             'battery_group_config.count.max' => 'Максимальное количество аккумуляторов в группе - 15',
@@ -73,7 +69,7 @@ class UpdateDeviceSettingsRequest extends FormRequest
             'power_config.controller_runtime.max' => 'Максимальное время автономной работы контроллера - 24 часа',
             'power_config.min_controller_voltage.min' => 'Минимальное напряжение для работы контроллера не может быть меньше 2.0В',
             'power_config.min_controller_voltage.max' => 'Минимальное напряжение для работы контроллера не может быть больше 3.0В',
-            'power_config.power_management_mode.in' => 'Недопустимый режим управления питанием. Допустимые значения: conservative, aggressive, balanced'
+            'power_config.power_management_mode.in' => 'Недопустимый режим управления питанием. Допустимые: conservative, aggressive, balanced'
         ];
     }
 }

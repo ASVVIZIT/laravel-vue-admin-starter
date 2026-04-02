@@ -1,17 +1,29 @@
-import { SmartLightResource } from '@/components/SmartLight/api/core/SmartLightResource';
-import { logDebug, logError } from '@/components/SmartLight/api/utils/apilogger';
+/**
+ * ============================================================================
+ * DEVICE SERVICE — СЕРВИС ДЛЯ РАБОТЫ С УСТРОЙСТВАМИ
+ * ============================================================================
+ * 📁 Путь: services/DeviceService.js
+ * ✅ Бизнес-логика + API вызовы
+ * ✅ Отвечает за: CRUD устройств, статус, команды
+ * ============================================================================
+ */
+
+import { CoreSmartLightResource } from '@/components/SmartLight/api/core/resource/coreSmartLightResource.js';
+import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
 
 export class DeviceService {
+    constructor() {
+        this.resource = new CoreSmartLightResource();
+    }
+
     /**
      * Получение всех устройств
+     * @returns {Promise<Object>} Результат загрузки
      */
     async getAllDevices() {
         logDebug('DeviceService', 'Получение всех устройств');
-
-        const resource = new SmartLightResource();
-
         try {
-            const response = await resource.getDevices();
+            const response = await this.resource.getDevices();
             return {
                 success: true,
                 data: response.data || [],
@@ -29,18 +41,15 @@ export class DeviceService {
 
     /**
      * Обновление статуса устройства
+     * @param {string} deviceId - ID устройства
+     * @param {string} status - Статус
+     * @param {number} intensity - Интенсивность
+     * @returns {Promise<Object>} Результат обновления
      */
-    async updateDeviceStatus(deviceId, status, intensity) {
-        logDebug('DeviceService', 'Обновление статуса', {
-            deviceId,
-            status,
-            intensity
-        });
-
-        const resource = new SmartLightResource();
-
+    async updateDeviceStatus(deviceId, status, intensity = 100) {
+        logDebug('DeviceService', 'Обновление статуса', { deviceId, status, intensity });
         try {
-            const response = await resource.sendCommand(deviceId, status, intensity);
+            const response = await this.resource.sendCommand(deviceId, status, intensity);
             return {
                 success: true,
                 data: response.data,
@@ -57,15 +66,14 @@ export class DeviceService {
     }
 
     /**
-     * Перевод устройства в спящий режим
+     * Перевод в спящий режим
+     * @param {string} deviceId - ID устройства
+     * @returns {Promise<Object>} Результат операции
      */
     async forceSleep(deviceId) {
         logDebug('DeviceService', 'Перевод в спящий режим', { deviceId });
-
-        const resource = new SmartLightResource();
-
         try {
-            const response = await resource.forceSleep(deviceId);
+            const response = await this.resource.forceSleep(deviceId);
             return {
                 success: true,
                 data: response.data,
@@ -83,14 +91,13 @@ export class DeviceService {
 
     /**
      * Пробуждение устройства
+     * @param {string} deviceId - ID устройства
+     * @returns {Promise<Object>} Результат операции
      */
     async wakeDevice(deviceId) {
         logDebug('DeviceService', 'Пробуждение устройства', { deviceId });
-
-        const resource = new SmartLightResource();
-
         try {
-            const response = await resource.wakeDevice(deviceId);
+            const response = await this.resource.wakeDevice(deviceId);
             return {
                 success: true,
                 data: response.data,
@@ -106,3 +113,5 @@ export class DeviceService {
         }
     }
 }
+
+export default DeviceService;

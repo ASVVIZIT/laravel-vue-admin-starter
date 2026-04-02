@@ -49,7 +49,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useSmartlightStore } from '@/components/SmartLight/stores/smartLightStore.js';
-import { logDebug, checkWebGLSupport, isContainerReady } from '@components/SmartLight/api/utils/webglSupport.js';
+import { logDebug, checkWebGLSupport, isContainerReady } from '@components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
 
 const props = defineProps({
   deviceId: {

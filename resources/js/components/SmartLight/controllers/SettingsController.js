@@ -1,61 +1,54 @@
-import { SettingsService } from '@/components/SmartLight/services/SettingsService';
-import { StorageService } from '@/components/SmartLight/services/StorageService';
-import { logDebug, logError } from '@/components/SmartLight/api/utils/logger';
-import { useDeviceStore, useSettingsStore } from '@/components/SmartLight/stores';
+/**
+ * ============================================================================
+ * SETTINGS CONTROLLER — КОНТРОЛЛЕР ДЛЯ УПРАВЛЕНИЯ НАСТРОЙКАМИ
+ * ============================================================================
+ * 📁 Путь: controllers/SettingsController.js
+ * ✅ Координация настроек
+ * ✅ Отвечает за: загрузку, сохранение, сброс настроек
+ * ============================================================================
+ */
+
+import { SettingsService } from '@/components/SmartLight/services/SettingsService.js';
+import { StorageService } from '@/components/SmartLight/services/StorageService.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
+import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
 
 export class SettingsController {
     constructor() {
-        this.deviceStore = useDeviceStore();
-        this.settingsStore = useSettingsStore();
+        this.store = useSmartlightStore();
         this.settingsService = new SettingsService();
         this.storageService = new StorageService();
-        this.cache = new Map();
     }
 
     /**
      * Загрузка настроек устройства
+     * @param {string} deviceId - ID устройства
+     * @returns {Promise<Object>} Настройки
      */
     async loadSettings(deviceId) {
         logDebug('SettingsController', 'Загрузка настроек', { deviceId });
-
         try {
-            // Сначала пытаемся загрузить из API
             let settings;
-
             try {
                 const response = await this.settingsService.getDeviceSettings(deviceId);
                 if (response.success) {
                     settings = response.data;
-                    // Сохраняем в локальное хранилище
                     this.storageService.saveDeviceSettings(deviceId, settings);
                 }
             } catch (apiError) {
-                logDebug('SettingsController', 'Ошибка загрузки настроек из API, используем локальное хранилище', { error: apiError.message });
+                logDebug('SettingsController', 'API ошибка, используем localStorage');
             }
 
-            // Если не удалось загрузить из API, используем локальное хранилище
             if (!settings) {
                 settings = this.storageService.getDeviceSettings(deviceId);
             }
 
-            // Если нет настроек ни в API, ни в локальном хранилище, используем значения по умолчанию
-            if (!settings) {
-                const device = this.deviceStore.actions.getDevice(deviceId);
+            if (settings) {
+                const device = this.store.deviceGetDevice(deviceId);
                 if (device) {
-                    settings = this.getDefaultSettings(device);
-                    // Сохраняем настройки по умолчанию в локальное хранилище
-                    this.storageService.saveDeviceSettings(deviceId, settings);
+                    this.store.deviceUpdateDevice({ ...device, ...settings });
                 }
             }
-
-            if (settings) {
-                this.cache.set(deviceId, settings);
-            }
-
-            logDebug('SettingsController', 'Настройки загружены', {
-                deviceId,
-                settings
-            });
 
             return settings;
         } catch (error) {
@@ -66,18 +59,13 @@ export class SettingsController {
 
     /**
      * Сохранение настроек устройства
+     * @param {string} deviceId - ID устройства
+     * @param {Object} settings - Настройки
+     * @returns {Promise<Object>} Результат сохранения
      */
     async saveSettings(deviceId, settings) {
-        logDebug('SettingsController', 'Сохранение настроек', {
-            deviceId,
-            settings
-        });
-
+        logDebug('SettingsController', 'Сохранение настроек', { deviceId, settings });
         try {
-            // Валидация настроек
-            this.validateSettings(settings);
-
-            // Сохраняем в API
             let updatedSettings;
             try {
                 const response = await this.settingsService.updateDeviceSettings(deviceId, settings);
@@ -85,24 +73,20 @@ export class SettingsController {
                     updatedSettings = response.data;
                 }
             } catch (apiError) {
-                logDebug('SettingsController', 'Ошибка сохранения в API, используем локальное хранилище', { error: apiError.message });
+                logDebug('SettingsController', 'API ошибка');
             }
 
-            // Если не удалось сохранить в API, используем переданные настройки
             if (!updatedSettings) {
                 updatedSettings = settings;
             }
 
-            // Всегда сохраняем в локальное хранилище
             this.storageService.saveDeviceSettings(deviceId, updatedSettings);
 
-            // Обновляем кеш
-            this.cache.set(deviceId, updatedSettings);
-
-            logDebug('SettingsController', 'Настройки сохранены', {
-                deviceId,
-                settings: updatedSettings
-            });
+            //   ОБНОВЛЯЕМ STORE ДЛЯ РЕАКТИВНОСТИ
+            const device = this.store.deviceGetDevice(deviceId);
+            if (device) {
+                this.store.deviceUpdateDevice({ ...device, ...updatedSettings });
+            }
 
             return updatedSettings;
         } catch (error) {
@@ -113,19 +97,18 @@ export class SettingsController {
 
     /**
      * Сброс настроек к значениям по умолчанию
+     * @param {string} deviceId - ID устройства
+     * @returns {Promise<Object>} Настройки по умолчанию
      */
     async resetToDefaults(deviceId) {
         logDebug('SettingsController', 'Сброс настроек', { deviceId });
-
         try {
-            const device = this.deviceStore.actions.getDevice(deviceId);
+            const device = this.store.deviceGetDevice(deviceId);
             if (!device) {
                 throw new Error('Устройство не найдено');
             }
-
             const defaultSettings = this.getDefaultSettings(device);
 
-            // Сохраняем в API
             let resetSettings;
             try {
                 const response = await this.settingsService.resetDeviceSettings(deviceId);
@@ -133,28 +116,19 @@ export class SettingsController {
                     resetSettings = response.data;
                 }
             } catch (apiError) {
-                logDebug('SettingsController', 'Ошибка сброса в API, используем локальное хранилище', { error: apiError.message });
+                logDebug('SettingsController', 'API ошибка, используем значения по умолчанию');
             }
 
-            // Если не удалось сбросить через API, используем настройки по умолчанию
             if (!resetSettings) {
                 resetSettings = defaultSettings;
             }
 
-            // Всегда сохраняем в локальное хранилище
             this.storageService.saveDeviceSettings(deviceId, resetSettings);
+            this.store.deviceUpdateDevice({ ...device, ...resetSettings });
 
-            // Обновляем состояние в store
-            this.deviceStore.actions.updateDeviceSettings(deviceId, resetSettings);
-
-            // Очищаем кеш
-            this.cache.delete(deviceId);
-
-            logDebug('SettingsController', 'Настройки сброшены к значениям по умолчанию', {
-                deviceId,
-                settings: resetSettings
+            logDebug('SettingsController', 'Настройки сброшены', {
+                deviceId, settings: resetSettings
             });
-
             return resetSettings;
         } catch (error) {
             logError('SettingsController', 'Ошибка сброса настроек', error);
@@ -164,6 +138,8 @@ export class SettingsController {
 
     /**
      * Получение настроек по умолчанию
+     * @param {Object} device - Устройство
+     * @returns {Object} Настройки по умолчанию
      */
     getDefaultSettings(device) {
         return {
@@ -179,52 +155,6 @@ export class SettingsController {
             updated_at: new Date().toISOString()
         };
     }
-
-    /**
-     * Валидация настроек
-     */
-    validateSettings(settings) {
-        if (!settings) {
-            throw new Error('Настройки не могут быть пустыми');
-        }
-
-        // Валидация критического напряжения
-        if (settings.critical_voltage !== undefined) {
-            if (typeof settings.critical_voltage !== 'number') {
-                throw new Error('Критическое напряжение должно быть числом');
-            }
-
-            if (settings.critical_voltage < 2.5 || settings.critical_voltage > 14.4) {
-                throw new Error('Критическое напряжение должно быть в диапазоне 2.5-14.4В');
-            }
-        }
-
-        // Валидация интервалов
-        if (settings.sleep_interval !== undefined) {
-            if (typeof settings.sleep_interval !== 'number' || settings.sleep_interval < 60 || settings.sleep_interval > 86400) {
-                throw new Error('Интервал сна должен быть числом от 60 до 86400 секунд');
-            }
-        }
-
-        if (settings.emergency_sleep_interval !== undefined) {
-            if (typeof settings.emergency_sleep_interval !== 'number' || settings.emergency_sleep_interval < 300 || settings.emergency_sleep_interval > 86400) {
-                throw new Error('Аварийный интервал должен быть числом от 300 до 86400 секунд');
-            }
-        }
-
-        // Валидация группировки батарей
-        if (settings.battery_group_config) {
-            if (settings.battery_group_config.enabled) {
-                if (!['series', 'parallel', 'series_parallel'].includes(settings.battery_group_config.type)) {
-                    throw new Error('Недопустимый тип группировки: ' + settings.battery_group_config.type);
-                }
-
-                if (typeof settings.battery_group_config.count !== 'number' || settings.battery_group_config.count < 1 || settings.battery_group_config.count > 15) {
-                    throw new Error('Количество батарей должно быть числом от 1 до 15');
-                }
-            }
-        }
-
-        return true;
-    }
 }
+
+export default SettingsController;

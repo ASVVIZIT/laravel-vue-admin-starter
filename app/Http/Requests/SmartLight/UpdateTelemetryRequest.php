@@ -39,11 +39,11 @@ class UpdateTelemetryRequest extends FormRequest
         return [
             'voltage.min' => 'Напряжение не может быть ниже 2.0В',
             'voltage.max' => 'Напряжение не может быть выше 5.5В',
-            'status.in' => 'Недопустимый статус устройства. Допустимые значения: ON, OFF, SLEEPING, LOW_POWER',
+            'status.in' => 'Недопустимый статус. Допустимые: ON, OFF, SLEEPING, LOW_POWER',
             'intensity.min' => 'Яркость не может быть ниже 0%',
             'intensity.max' => 'Яркость не может быть выше 100%',
-            'battery_temperature.min' => 'Температура батареи не может быть ниже -20°C',
-            'battery_temperature.max' => 'Температура батареи не может быть выше 60°C',
+            'battery_temperature.min' => 'Температура не может быть ниже -20°C',
+            'battery_temperature.max' => 'Температура не может быть выше 60°C',
             'signal_strength.min' => 'Уровень сигнала не может быть ниже -100 dBm',
             'signal_strength.max' => 'Уровень сигнала не может быть выше 0 dBm'
         ];

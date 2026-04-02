@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\SmartLight;
 use App\Http\Controllers\Controller;
 use App\Models\SmartLight\SmartLightDevice;
 use App\Models\SmartLight\GlobalSetting;
+use App\Services\SmartLight\DeviceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -13,16 +14,20 @@ use App\Events\SmartLight\DeviceCommandSent;
 
 class DeviceController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private DeviceService $deviceService
+    ) {
         $this->authorizeResource(SmartLightDevice::class, 'device');
     }
 
+    /**
+     * Register new device
+     */
     public function register(Request $request)
     {
         $request->validate([
             'mac_address' => 'required|string',
-            'device_type' => 'required|string'
+            'device_type' => 'required|string|in:node_mcu_v3,esp32,esp8266,custom'
         ]);
 
         $user = Auth::user();
@@ -51,42 +56,46 @@ class DeviceController extends Controller
         ]);
     }
 
+    /**
+     * Get device settings
+     */
     public function getSettings(Request $request, $device_id)
     {
         $device = $request->device;
 
         return response()->json([
-            'server_url' => $device->settings['server_url'] ?? GlobalSetting::get('global_server_url', config('app.url') . '/api/smart-light'),
-            'critical_voltage' => $device->critical_voltage,
-            'sleep_interval' => $device->sleep_interval,
-            'emergency_sleep_interval' => $device->emergency_sleep_interval,
-            'app_host' => config('app.host') ?? parse_url(config('app.url'), PHP_URL_HOST),
-            'device_type' => $device->device_type,
-            'power_config' => [
-                'shared_power_source' => true, // Общий источник питания для модуля и лампы
-                'controller_runtime' => 24 * 60 * 60, // 24 часа автономной работы контроллера при отключенной нагрузке
-                'min_controller_voltage' => 2.8, // Минимальное напряжение для работы модуля
-                'power_management_mode' => 'conservative' // Режим управления питанием
+            'success' => true,
+            'data' => [
+                'server_url' => $device->settings['server_url'] ?? GlobalSetting::get('global_server_url', config('app.url') . '/api/smart-light'),
+                'critical_voltage' => $device->critical_voltage,
+                'sleep_interval' => $device->sleep_interval,
+                'emergency_sleep_interval' => $device->emergency_sleep_interval,
+                'app_host' => config('app.host') ?? parse_url(config('app.url'), PHP_URL_HOST),
+                'device_type' => $device->device_type,
+                'power_config' => [
+                    'shared_power_source' => true,
+                    'controller_runtime' => 24 * 60 * 60,
+                    'min_controller_voltage' => 2.8,
+                    'power_management_mode' => 'conservative'
+                ]
             ]
         ]);
     }
 
+    /**
+     * Force sleep device
+     */
     public function forceSleep(Request $request, $device_id)
     {
         $device = $request->device;
 
-        // Обновляем статус устройства
-        $device->update([
-            'status' => 'SLEEPING'
-        ]);
+        $this->deviceService->forceSleep($device);
 
-        // Отправляем команду в кеш
         Cache::put("cmd_{$device_id}", [
             'command' => 'EMERGENCY_SLEEP',
             'timestamp' => now()->timestamp
-        ], 120); // Команда живёт 2 минуты
+        ], 120);
 
-        // Отправка события через Reverb
         event(new DeviceCommandSent($device_id, 'EMERGENCY_SLEEP'));
 
         return response()->json([
@@ -97,6 +106,32 @@ class DeviceController extends Controller
         ]);
     }
 
+    /**
+     * Wake up device
+     */
+    public function wakeDevice(Request $request, $device_id)
+    {
+        $device = $request->device;
+
+        $this->deviceService->wakeDevice($device);
+
+        Cache::put("cmd_{$device_id}", [
+            'command' => 'WAKE_UP',
+            'timestamp' => now()->timestamp
+        ], 120);
+
+        event(new DeviceCommandSent($device_id, 'WAKE_UP', 100));
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Устройство пробуждено',
+            'device_id' => $device_id
+        ]);
+    }
+
+    /**
+     * Check device ownership
+     */
     public function checkOwnership(Request $request, $device_id)
     {
         $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
@@ -105,6 +140,7 @@ class DeviceController extends Controller
             ($user && $user->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT));
 
         return response()->json([
+            'success' => true,
             'owns_device' => $ownsDevice,
             'device_id' => $device_id,
             'user_id' => $user ? $user->id : null,
@@ -113,26 +149,27 @@ class DeviceController extends Controller
         ]);
     }
 
+    /**
+     * Get all devices
+     */
     public function index(Request $request)
     {
         $query = SmartLightDevice::query();
 
-        // Фильтр по пользователю (только свои устройства)
         if (!$request->user()->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT)) {
             $query->where('user_id', $request->user()->id);
         }
 
-        // Поиск
         if ($search = $request->input('search')) {
             $query->where('name', 'like', "%{$search}%")
                 ->orWhere('device_id', 'like', "%{$search}%");
         }
 
-        // Пагинация
         $perPage = $request->input('per_page', 10);
         $devices = $query->paginate($perPage);
 
         return response()->json([
+            'success' => true,
             'data' => $devices->items(),
             'meta' => [
                 'total' => $devices->total(),
@@ -143,18 +180,43 @@ class DeviceController extends Controller
         ]);
     }
 
+    /**
+     * Get devices for dropdown
+     */
     public function listForDropdown(Request $request)
     {
         $query = SmartLightDevice::query();
 
-        // Только свои устройства для обычных пользователей
         if (!$request->user()->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT)) {
             $query->where('user_id', $request->user()->id);
         }
 
-        $devices = $query->select('id', 'device_id as id', 'name as label')
-            ->get();
+        $devices = $query->select('id', 'device_id as id', 'name as label')->get();
 
-        return response()->json(['data' => $devices]);
+        return response()->json([
+            'success' => true,
+            'data' => $devices
+        ]);
+    }
+
+    /**
+     * Get single device by ID
+     */
+    public function show($device_id)
+    {
+        $device = $this->deviceService->findDeviceByDeviceId($device_id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $device
+        ]);
+    }
+
+    /**
+     * V1 API: Get all devices
+     */
+    public function apiIndex(Request $request)
+    {
+        return $this->index($request);
     }
 }

@@ -1,9 +1,11 @@
 /**
- * Типы аккумуляторов
- *
- * Содержит только данные типов аккумуляторов без бизнес-логики
- *
- * @file stores/smartlight/types/batteryTypes.js
+ * ============================================================================
+ * BATTERY TYPES — ТИПЫ АККУМУЛЯТОРОВ (ПОЛНАЯ ВЕРСИЯ)
+ * ============================================================================
+ * 📁 Путь: stores/smartlight/types/batteryTypes.js
+ * ✅ Используется: typesStore, deviceUtils, PowerService, 3D визуализация
+ * ✅ Безопасно менять — влияет на расчёты питания и визуализацию
+ * ============================================================================
  */
 
 export const BATTERY_TYPES = {
@@ -30,7 +32,7 @@ export const BATTERY_TYPES = {
             criticalColor: '#f56c6c',
             baseColor: '#f5f7fa',
             capColor: '#ffa640',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: true,
@@ -63,7 +65,7 @@ export const BATTERY_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 86400, // 24 часа в секундах
+            controllerRuntime: 86400,
             minControllerVoltage: 2.8,
             powerManagementMode: 'conservative'
         }
@@ -91,7 +93,7 @@ export const BATTERY_TYPES = {
             criticalColor: '#f56c6c',
             baseColor: '#ebeef5',
             capColor: '#ffa640',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: true,
@@ -124,7 +126,7 @@ export const BATTERY_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 86400, // 24 часа в секундах
+            controllerRuntime: 86400,
             minControllerVoltage: 2.8,
             powerManagementMode: 'conservative'
         }
@@ -152,7 +154,7 @@ export const BATTERY_TYPES = {
             criticalColor: '#f56c6c',
             baseColor: '#f5f7fa',
             capColor: '#ffcc00',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: true,
@@ -185,7 +187,7 @@ export const BATTERY_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 72000, // 20 часов в секундах
+            controllerRuntime: 72000,
             minControllerVoltage: 2.8,
             powerManagementMode: 'balanced'
         }
@@ -213,7 +215,7 @@ export const BATTERY_TYPES = {
             criticalColor: '#f56c6c',
             baseColor: '#ebeef5',
             capColor: '#c0c0c0',
-            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px',
+            liquidPattern: 'repeating-linear-gradient(-45deg, transparent, transparent 3px, rgba(255, 255, 255, 0.3) 3px, rgba(255, 255, 255, 0.3) 6px)',
             criticalThresholdStyle: 'dashed',
             currentLevelStyle: 'solid',
             glowEffect: false,
@@ -246,7 +248,7 @@ export const BATTERY_TYPES = {
         },
         powerManagement: {
             sharedPowerSource: true,
-            controllerRuntime: 43200, // 12 часов в секундах
+            controllerRuntime: 43200,
             minControllerVoltage: 10.5,
             powerManagementMode: 'aggressive'
         }
@@ -270,3 +272,5 @@ export const getBatteryTypesForDropdown = () => {
         value: id
     }));
 };
+
+export default BATTERY_TYPES;

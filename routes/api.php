@@ -33,6 +33,7 @@ use App\Http\Controllers\TalkStream\FriendRequestController;
 use App\Http\Controllers\Video\VideoController;
 
 use App\Http\Controllers\Api\SmartLight\DeviceController;
+use App\Http\Controllers\Api\SmartLight\TypesController;
 use App\Http\Controllers\Api\SmartLight\SettingsController;
 use App\Http\Controllers\Api\SmartLight\TelemetryController;
 use App\Http\Controllers\Api\SmartLight\CommandController;
@@ -342,132 +343,65 @@ Route::get('/debug/network', function(Request $request) {
     ]);
 });
 
-// SmartLight API
-Route::namespace('api')->group(function() {
-    Route::prefix('smart-light')->name('smart-light.')->group(function () {
-        // Публичные маршруты
-        Route::post('/register', [DeviceController::class, 'register'])
-            ->name('register');
 
-        // Защищённые маршруты
-        Route::middleware('auth:sanctum')->group(function () {
-            Route::get('/devices', [DeviceController::class, 'index'])
-                ->name('devices.index');
+/*
+|--------------------------------------------------------------------------
+ * SmartLight API Routes
+ *--------------------------------------------------------------------------
+ */
 
-            Route::get('/devices/dropdown', [DeviceController::class, 'listForDropdown'])
-                ->name('devices.dropdown');
+Route::namespace('Api\\SmartLight')->prefix('smart-light')->name('smart-light.')->group(function () {
 
-            // Глобальные настройки системы
-            Route::get('/settings', [SettingsController::class, 'index'])
-                ->name('settings.index');
+    // Публичные маршруты
+    Route::post('/register', [DeviceController::class, 'register'])
+        ->name('register');
 
-            Route::post('/settings', [SettingsController::class, 'update'])
-                ->name('settings.update');
-
-            Route::post('/settings/reset', [SettingsController::class, 'reset'])
-                ->name('settings.reset');
-
-            Route::get('/{device_id}/ownership', [DeviceController::class, 'checkOwnership'])
-                ->name('devices.ownership');
-
-            // Настройки отдельных устройств (новая группа)
-            Route::prefix('/{device_id}/device-settings')->group(function () {
-                Route::get('/', [DeviceSettingsController::class, 'show'])
-                    ->name('device-settings.show');
-
-                Route::put('/', [DeviceSettingsController::class, 'update'])
-                    ->name('device-settings.update');
-
-                Route::post('/reset', [DeviceSettingsController::class, 'reset'])
-                    ->name('device-settings.reset');
-
-                Route::get('/defaults', [DeviceSettingsController::class, 'getDefaults'])
-                    ->name('device-settings.defaults');
-            });
-        });
-
-        // Маршруты с аутентификацией устройств
-        Route::middleware(SmartLightDeviceAuth::class)->group(function () {
-            // Старые маршруты для обратной совместимости (временно)
-            Route::get('/{device_id}/settings', [DeviceController::class, 'getSettings'])
-                ->name('settings')
-                ->middleware('deprecated');
-
-            Route::post('/{device_id}/telemetry', [TelemetryController::class, 'store'])
-                ->name('telemetry.store');
-
-            Route::get('/{device_id}/telemetry', [TelemetryController::class, 'index'])
-                ->name('telemetry.index');
-
-            Route::get('/{device_id}/commands', [CommandController::class, 'getCommand'])
-                ->name('commands.get');
-
-            Route::post('/{device_id}/sleep', [DeviceController::class, 'forceSleep'])
-                ->name('sleep.force');
-
-            // Новые маршруты для устройств с улучшенной структурой
-            Route::prefix('/{device_id}')->group(function () {
-                // Настройки устройства с новой структурой
-                Route::get('/device-settings', [DeviceSettingsController::class, 'getDeviceSettingsForDevice'])
-                    ->name('device-settings.device');
-
-                // Команды управления
-                Route::post('/commands/force-sleep', [CommandController::class, 'forceSleepCommand'])
-                    ->name('commands.force-sleep');
-
-                Route::post('/commands/wake-up', [CommandController::class, 'wakeUpCommand'])
-                    ->name('commands.wake-up');
-
-                Route::post('/commands/status-update', [CommandController::class, 'statusUpdateCommand'])
-                    ->name('commands.status-update');
-            });
-        });
+    // Device Auth маршруты (для устройств) — ДОЛЖНЫ БЫТЬ ПЕРЕД user auth!
+    Route::middleware(SmartLightDeviceAuth::class)->group(function () {
+        Route::post('/{device_id}/telemetry', [TelemetryController::class, 'store'])->name('telemetry.store');
+        Route::get('/{device_id}/telemetry', [TelemetryController::class, 'index'])->name('telemetry.index');
+        Route::get('/{device_id}/settings', [DeviceController::class, 'getSettings'])->name('settings')->middleware('deprecated');
+        Route::post('/{device_id}/commands', [CommandController::class, 'sendCommand'])->name('commands.send');
+        Route::get('/{device_id}/commands', [CommandController::class, 'getCommand'])->name('commands.get');
     });
 
-    // API версия 1 для совместимости с фронтендом
-    Route::prefix('v1/smart-light')->name('api.v1.')->group(function () {
-        // Получение всех устройств пользователя
-        Route::get('/devices', [DeviceController::class, 'apiIndex'])
-            ->middleware('auth:sanctum')
-            ->name('devices.index');
+    // Защищённые маршруты (User Auth)
+    Route::middleware('auth:sanctum')->group(function () {
 
-        // Получение настроек устройства
-        Route::get('/devices/{device_id}/settings', [DeviceSettingsController::class, 'apiShow'])
-            ->middleware('auth:sanctum')
-            ->name('devices.settings.show');
+        // Устройства — ДОЛЖНЫ БЫТЬ ПОСЛЕ device-specific routes!
+        Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
+        Route::get('/devices/dropdown', [DeviceController::class, 'listForDropdown'])->name('devices.dropdown');
+        Route::get('/devices/{device_id}', [DeviceController::class, 'show'])->name('devices.show');
+        Route::get('/{device_id}/ownership', [DeviceController::class, 'checkOwnership'])->name('devices.ownership');
 
-        // Обновление настроек устройства
-        Route::put('/devices/{device_id}/settings', [DeviceSettingsController::class, 'apiUpdate'])
-            ->middleware('auth:sanctum')
-            ->name('devices.settings.update');
+        // Настройки устройств — ДОЛЖНЫ БЫТЬ ПОСЛЕ /devices/{id}!
+        Route::prefix('/{device_id}/device-settings')->group(function () {
+            Route::get('/', [DeviceSettingsController::class, 'show'])->name('device-settings.show');
+            Route::put('/', [DeviceSettingsController::class, 'update'])->name('device-settings.update');
+            Route::post('/reset', [DeviceSettingsController::class, 'reset'])->name('device-settings.reset');
+            Route::get('/defaults', [DeviceSettingsController::class, 'getDefaults'])->name('device-settings.defaults');
+        });
 
-        // Сброс настроек устройства
-        Route::post('/devices/{device_id}/settings/reset', [DeviceSettingsController::class, 'apiReset'])
-            ->middleware('auth:sanctum')
-            ->name('devices.settings.reset');
+        // Типы устройств
+        Route::get('/battery-types', [TypesController::class, 'batteryTypes'])->name('battery-types.index');
+        Route::get('/bulb-types', [TypesController::class, 'bulbTypes'])->name('bulb-types.index');
+        Route::get('/power-supplies', [TypesController::class, 'powerSupplies'])->name('power-supplies.index');
 
-        // Получение телеметрии устройства
-        Route::get('/devices/{device_id}/telemetry', [TelemetryController::class, 'apiIndex'])
-            ->middleware('auth:sanctum')
-            ->name('telemetry.index');
+        // Глобальные настройки
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
+        Route::post('/settings/reset', [SettingsController::class, 'reset'])->name('settings.reset');
 
-        // Отправка телеметрии (для устройств)
-        Route::post('/devices/{device_id}/telemetry', [TelemetryController::class, 'apiStore'])
-            ->middleware(SmartLightDeviceAuth::class)
-            ->name('telemetry.store');
-
-        // Управление устройством
-        Route::post('/devices/{device_id}/commands/sleep', [CommandController::class, 'apiForceSleep'])
-            ->middleware('auth:sanctum')
-            ->name('commands.sleep');
-
-        Route::post('/devices/{device_id}/commands/wake', [CommandController::class, 'apiWakeDevice'])
-            ->middleware('auth:sanctum')
-            ->name('commands.wake');
-
-        Route::post('/devices/{device_id}/commands/status', [CommandController::class, 'apiUpdateStatus'])
-            ->middleware('auth:sanctum')
-            ->name('commands.status');
+        // V1 API endpoints
+        Route::prefix('v1')->name('v1.')->group(function () {
+            Route::get('/devices', [DeviceController::class, 'apiIndex'])->name('devices.index');
+            Route::get('/devices/{device_id}/device-settings', [DeviceSettingsController::class, 'apiShow'])->name('device-settings.show');
+            Route::put('/devices/{device_id}/device-settings', [DeviceSettingsController::class, 'apiUpdate'])->name('device-settings.update');
+            Route::post('/devices/{device_id}/device-settings/reset', [DeviceSettingsController::class, 'apiReset'])->name('device-settings.reset');
+            Route::post('/devices/{device_id}/commands/sleep', [CommandController::class, 'apiForceSleep'])->name('commands.sleep');
+            Route::post('/devices/{device_id}/commands/wake', [CommandController::class, 'apiWakeDevice'])->name('commands.wake');
+            Route::post('/devices/{device_id}/commands/status', [CommandController::class, 'apiUpdateStatus'])->name('commands.status');
+        });
     });
 });
 

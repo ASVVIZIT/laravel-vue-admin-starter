@@ -35,7 +35,7 @@ class RegisterDeviceRequest extends FormRequest
     {
         return [
             'mac_address.regex' => 'MAC-адрес должен быть в формате AA:BB:CC:DD:EE:FF',
-            'device_type.in' => 'Недопустимый тип устройства. Допустимые значения: node_mcu_v3, esp32, esp8266, custom',
+            'device_type.in' => 'Недопустимый тип устройства. Допустимые: node_mcu_v3, esp32, esp8266, custom',
             'hardware_version.max' => 'Версия оборудования не должна превышать 50 символов',
             'firmware_version.max' => 'Версия прошивки не должна превышать 50 символов'
         ];

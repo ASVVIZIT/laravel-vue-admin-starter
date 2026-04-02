@@ -1,286 +1,162 @@
-import { DeviceController } from '@/components/SmartLight/controllers/DeviceController';
-import { SettingsController } from '@/components/SmartLight/controllers/SettingsController';
-import { logDebug, logError } from '@/components/SmartLight/api/utils/logger';
-import { PowerService } from '@/components/SmartLight/services/PowerService';
-import { validateDeviceSettings } from '@/components/SmartLight/utils/validators';
+/**
+ * ============================================================================
+ * POWER MANAGEMENT CONTROLLER — КОНТРОЛЛЕР УПРАВЛЕНИЯ ПИТАНИЕМ
+ * ============================================================================
+ * 📁 Путь: controllers/PowerManagementController.js
+ * ✅ Координация между Components, Services, Store
+ * ✅ Отвечает за: расчёт времени, сохранение потребления, проверки
+ * ============================================================================
+ */
+
+import { PowerService } from '@/components/SmartLight/services/PowerService.js';
+import { SettingsController } from '@/components/SmartLight/controllers/SettingsController.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
+import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
 
 export class PowerManagementController {
     constructor() {
-        this.deviceController = new DeviceController();
-        this.settingsController = new SettingsController();
+        this.store = useSmartlightStore();
         this.powerService = new PowerService();
-        this.powerManagement = {
-            sharedPowerSource: true,
-            controllerRuntime: 86400, // 24 часа в секундах
-            minControllerVoltage: 2.8,
-            powerManagementMode: 'conservative'
-        };
+        this.settingsController = new SettingsController();
     }
 
     /**
-     * Получение настроек управления питанием
+     * Получает время работы устройства
+     * @param {string} deviceId - ID устройства
+     * @returns {string} форматированное время
      */
-    getPowerManagementSettings(deviceId) {
-        logDebug('PowerManagementController', 'Получение настроек управления питанием', { deviceId });
-
-        const device = this.deviceController.getDevice(deviceId);
-        return device?.settings?.power_config || this.powerManagement;
-    }
-
-    /**
-     * Сохранение настроек управления питанием
-     */
-    async savePowerManagementSettings(deviceId, settings) {
-        logDebug('PowerManagementController', 'Сохранение настроек управления питанием', {
-            deviceId,
-            settings
-        });
-
+    getDeviceRuntime(deviceId) {
         try {
-            // Валидация настроек
-            const validationResult = validateDeviceSettings(deviceId, settings);
-            if (!validationResult.valid) {
-                logError('PowerManagementController', 'Настройки управления питанием не прошли валидацию', {
-                    deviceId,
-                    errors: validationResult.errors
-                });
-
-                throw new Error(validationResult.errors.join(', '));
-            }
-
-            // Обновляем настройки устройства
-            const deviceSettings = await this.settingsController.saveSettings(deviceId, {
-                power_config: settings
-            });
-
-            return {
-                success: true,
-                message: 'Настройки управления питанием сохранены',
-                deviceSettings
-            };
+            logDebug('PowerManagementController', 'Запрос времени работы', { deviceId });
+            return this.powerService.calculateRuntime(deviceId);
         } catch (error) {
-            logError('PowerManagementController', 'Ошибка сохранения настроек управления питанием', error);
-            return {
-                success: false,
-                message: error.message || 'Ошибка сохранения настроек управления питанием',
-                error: error.message,
-                status: error.status || 500
-            };
-        }
-    }
-
-    /**
-     * Расчет времени работы
-     */
-    calculateRuntime(deviceId) {
-        logDebug('PowerManagementController', 'Расчет времени работы', { deviceId });
-
-        return this.powerService.calculateRuntime(deviceId);
-    }
-
-    /**
-     * Расчет параметров питания
-     */
-    calculatePowerParameters(deviceId) {
-        logDebug('PowerManagementController', 'Расчет параметров питания', { deviceId });
-
-        const device = this.deviceController.getDevice(deviceId);
-        return this.powerService.calculatePowerParameters(device);
-    }
-
-    /**
-     * Проверка критического напряжения
-     */
-    checkCriticalVoltage(deviceId) {
-        logDebug('PowerManagementController', 'Проверка критического напряжения', { deviceId });
-
-        const device = this.deviceController.getDevice(deviceId);
-        if (!device) {
-            logDebug('PowerManagementController', 'Устройство не найдено', { deviceId });
-            return {
-                success: false,
-                message: 'Устройство не найдено',
-                status: 404
-            };
-        }
-
-        const min = this.powerService.calculateMinVoltage(deviceId);
-        const max = this.powerService.calculateMaxVoltage(deviceId);
-        const critical = this.powerService.calculateCriticalVoltage(deviceId);
-        const voltage = device.voltage || 3.7;
-
-        if (voltage <= critical) {
-            logDebug('PowerManagementController', 'Критическое напряжение достигнуто', {
-                deviceId,
-                voltage,
-                critical
-            });
-
-            return {
-                success: true,
-                critical: true,
-                message: 'Критическое напряжение достигнуто',
-                voltage,
-                critical
-            };
-        }
-
-        const percentage = ((voltage - min) / (max - min)) * 100;
-        const hours = Math.round(percentage * 10);
-
-        logDebug('PowerManagementController', 'Проверка критического напряжения', {
-            deviceId,
-            percentage,
-            hours,
-            voltage,
-            critical
-        });
-
-        return {
-            success: true,
-            critical: false,
-            voltage,
-            critical,
-            percentage,
-            hours,
-            runtime: hours < 1 ? `${hours * 60} мин` : hours < 24 ? `${hours} ч` : `${Math.floor(hours / 24)}дн`
-        };
-    }
-
-    /**
-     * Перевод устройства в спящий режим
-     */
-    async forceSleep(deviceId) {
-        logDebug('PowerManagementController', 'Перевод в спящий режим', { deviceId });
-
-        try {
-            const response = await this.deviceController.forceSleep(deviceId);
-            return response;
-        } catch (error) {
-            logError('PowerManagementController', 'Ошибка перевода в спящий режим', error);
-            return {
-                success: false,
-                message: error.message || 'Ошибка перевода в сон',
-                error: error.message,
-                status: error.status || 500
-            };
-        }
-    }
-
-    /**
-     * Пробуждение устройства
-     */
-    async wakeDevice(deviceId) {
-        logDebug('PowerManagementController', 'Пробуждение устройства', { deviceId });
-
-        try {
-            const response = await this.deviceController.wakeDevice(deviceId);
-            return response;
-        } catch (error) {
-            logError('PowerManagementController', 'Ошибка пробуждения устройства', error);
-            return {
-                success: false,
-                message: error.message || 'Ошибка пробуждения',
-                error: error.message,
-                status: error.status || 500
-            };
-        }
-    }
-
-    /**
-     * Проверка автономной работы контроллера
-     */
-    checkControllerRuntime(deviceId) {
-        logDebug('PowerManagementController', 'Проверка автономной работы контроллера', { deviceId });
-
-        const device = this.deviceController.getDevice(deviceId);
-        const powerConfig = this.getPowerManagementSettings(deviceId);
-
-        if (!device || !powerConfig) {
-            return {
-                success: false,
-                message: 'Устройство или настройки не найдены',
-                status: 404
-            };
-        }
-
-        const currentVoltage = device.voltage;
-        const minControllerVoltage = powerConfig.minControllerVoltage;
-
-        // Проверяем, может ли контроллер работать автономно
-        if (currentVoltage < minControllerVoltage) {
-            return {
-                success: false,
-                message: 'Напряжение ниже минимального для работы контроллера',
-                voltage: currentVoltage,
-                minControllerVoltage
-            };
-        }
-
-        // Расчет времени автономной работы
-        const runtime = this.calculateControllerRuntime(deviceId);
-
-        return {
-            success: true,
-            message: 'Контроллер может работать автономно',
-            runtime,
-            minControllerVoltage
-        };
-    }
-
-    /**
-     * Расчет времени автономной работы контроллера
-     */
-    calculateControllerRuntime(deviceId) {
-        logDebug('PowerManagementController', 'Расчет времени автономной работы', { deviceId });
-
-        const device = this.deviceController.getDevice(deviceId);
-        const powerConfig = this.getPowerManagementSettings(deviceId);
-
-        if (!device || !powerConfig) {
+            logError('PowerManagementController', 'Ошибка получения времени работы', error);
             return 'N/A';
         }
-
-        // Расчет времени работы
-        const currentVoltage = device.voltage;
-        const minVoltage = powerConfig.minControllerVoltage;
-        const maxVoltage = powerConfig.minControllerVoltage * 1.1; // 10% запаса
-        const voltageRange = maxVoltage - minVoltage;
-
-        if (currentVoltage <= minVoltage) {
-            return 'КРИТ';
-        }
-
-        const percentage = ((currentVoltage - minVoltage) / voltageRange) * 100;
-        const hours = Math.round(percentage * powerConfig.controllerRuntime / 100);
-
-        return hours < 1 ? `${hours * 60} мин` : hours < 24 ? `${hours} ч` : `${Math.floor(hours / 24)}дн`;
     }
 
     /**
-     * Получение настроек режима управления питанием
+     * Сохраняет потребление устройства
+     * @param {string} deviceId - ID устройства
+     * @param {number} consumption_mA - Потребление в мА
+     * @returns {Promise<Object>} результат
      */
-    getPowerManagementModeSettings(mode) {
-        logDebug('PowerManagementController', 'Получение настроек режима управления питанием', { mode });
+    async saveDeviceConsumption(deviceId, consumption_mA) {
+        try {
+            logDebug('PowerManagementController', 'Сохранение потребления', {
+                deviceId, consumption_mA
+            });
 
-        const modes = {
-            conservative: {
-                controllerSleepInterval: 300, // 5 минут
-                deepSleepVoltageThreshold: 3.1,
-                wakeUpInterval: 3600 // 1 час
-            },
-            aggressive: {
-                controllerSleepInterval: 60, // 1 минута
-                deepSleepVoltageThreshold: 3.0,
-                wakeUpInterval: 7200 // 2 часа
-            },
-            balanced: {
-                controllerSleepInterval: 180, // 3 минуты
-                deepSleepVoltageThreshold: 3.15,
-                wakeUpInterval: 5400 // 1.5 часа
+            const device = this.store.deviceGetDevice(deviceId);
+            if (!device) {
+                return { success: false, message: 'Устройство не найдено' };
             }
-        };
 
-        return modes[mode] || modes.balanced;
+            const updatedPowerConfig = {
+                ...(device.power_config || {}),
+                custom_consumption_mA: Number(consumption_mA),
+                base_consumption_mA: Number(consumption_mA)
+            };
+
+            const response = await this.store.deviceUpdateDeviceSettings(deviceId, {
+                power_config: updatedPowerConfig
+            });
+
+            if (response.success) {
+                //   ОБНОВЛЯЕМ STORE ДЛЯ РЕАКТИВНОСТИ
+                const updatedDevice = {
+                    ...device,
+                    power_config: updatedPowerConfig
+                };
+                this.store.deviceUpdateDevice(updatedDevice);
+
+                logDebug('PowerManagementController', 'Потребление сохранено', {
+                    deviceId, consumption_mA
+                });
+
+                return { success: true, message: 'Потребление сохранено' };
+            }
+
+            return { success: false, message: response.message || 'Ошибка сохранения' };
+        } catch (error) {
+            logError('PowerManagementController', 'Ошибка сохранения потребления', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Сохраняет настройки управления питанием
+     * @param {string} deviceId - ID устройства
+     * @param {Object} settings - Настройки
+     * @returns {Promise<Object>} результат
+     */
+    async savePowerManagementSettings(deviceId, settings) {
+        try {
+            logDebug('PowerManagementController', 'Сохранение настроек питания', {
+                deviceId, settings
+            });
+
+            const response = await this.store.deviceUpdateDeviceSettings(deviceId, settings);
+
+            if (response.success) {
+                //   ОБНОВЛЯЕМ STORE ДЛЯ РЕАКТИВНОСТИ
+                const device = this.store.deviceGetDevice(deviceId);
+                if (device) {
+                    const updatedDevice = {
+                        ...device,
+                        ...settings,
+                        power_config: settings.power_config,
+                        battery_group_config: settings.battery_group_config
+                    };
+                    this.store.deviceUpdateDevice(updatedDevice);
+                }
+
+                return { success: true, message: 'Настройки сохранены' };
+            }
+
+            return { success: false, message: response.message || 'Ошибка сохранения' };
+        } catch (error) {
+            logError('PowerManagementController', 'Ошибка сохранения настроек', error);
+            return { success: false, message: error.message };
+        }
+    }
+
+    /**
+     * Получает потребление устройства
+     * @param {string} deviceId - ID устройства
+     * @returns {number} потребление в мА
+     */
+    getDeviceConsumption(deviceId) {
+        return this.powerService.getDeviceConsumption(deviceId);
+    }
+
+    /**
+     * Получает потребление в Wh
+     * @param {string} deviceId - ID устройства
+     * @returns {number} потребление в Wh
+     */
+    getPowerConsumptionWh(deviceId) {
+        return this.powerService.calculatePowerConsumptionWh(deviceId);
+    }
+
+    /**
+     * Получает цвет батареи
+     * @param {string} deviceId - ID устройства
+     * @returns {string} HEX цвет
+     */
+    getBatteryColor(deviceId) {
+        return this.powerService.getBatteryColor(deviceId);
+    }
+
+    /**
+     * Проверяет совместимость источника питания
+     * @param {string} deviceId - ID устройства
+     * @param {string} supplyId - ID источника питания
+     * @returns {Object} результат проверки
+     */
+    checkPowerSupplyCompatibility(deviceId, supplyId) {
+        return this.powerService.checkPowerSupplyCompatibility(deviceId, supplyId);
     }
 }
+
+export default PowerManagementController;

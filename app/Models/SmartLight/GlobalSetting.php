@@ -35,7 +35,6 @@ class GlobalSetting extends Model
     public static function set($key, $value)
     {
         try {
-            // Приводим значение к строке для сохранения в БД
             $stringValue = $value !== null ? (string) $value : '';
 
             Log::channel('smartlight')->debug("GlobalSetting::set: {$key} = {$stringValue}");

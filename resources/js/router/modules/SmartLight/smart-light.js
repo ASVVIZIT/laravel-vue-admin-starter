@@ -24,9 +24,21 @@ export default [
                 }
             },
             {
+                path: 'global-settings',
+                name: 'SmartLightGlobalSettings',
+                component: () => import('@/views/SmartLight/GlobalSettingsView.vue'),
+                meta: {
+                    title: 'Глобальные настройки',
+                    elSvgIcon: 'SetUp',
+                    affix: false,
+                    permissions: ['manage_smart_light'],
+                    noCache: true
+                }
+            },
+            {
                 path: 'settings',
                 name: 'SmartLightSettings',
-                component: () => import('@/views/SmartLight/GlobalSettingsPanel.vue'),
+                component: () => import('@components/SmartLight/components/settings/GlobalSettingsPanel.vue'),
                 meta: {
                     title: 'Настройки SmartLight',
                     elSvgIcon: 'SetUp',
@@ -37,7 +49,7 @@ export default [
             {
                 path: 'device/:id/settings',
                 name: 'SmartLightDeviceSettings',
-                component: () => import('@/views/SmartLight/DeviceSettings.vue'),
+                component: () => import('@components/SmartLight/components/settings/DeviceSettings.vue'),
                 meta: { // Добавляем пустой объект meta или с нужными свойствами
                     title: 'Настройки устройства', // Если нужно отображать в меню (хотя hidden=true)
                     permissions: ['manage_own_smart_light'] // Если нужно для проверки

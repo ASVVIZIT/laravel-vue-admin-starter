@@ -1,165 +1,151 @@
 /**
- * Подстор для управления типами
- *
- * Содержит state, getters и actions для подстора типов
- *
- * @file stores/typesStore.js
+ * ============================================================================
+ * TYPES STORE — ПОДСТОР ТИПОВ
+ * ============================================================================
+ * 📁 Путь: stores/smartlight/typesStore.js
+ * ============================================================================
  */
 
 import { defineStore } from 'pinia';
-import { BATTERY_TYPES } from './types/batteryTypes';
-import { BULB_TYPES } from './types/bulbTypes';
-import { DEVICE_TYPES, DEVICE_STATE } from './types/deviceTypes';
-import { POWER_SUPPLY_TYPES } from './types/powerSupplyTypes';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger';
-import { TypesApi } from '@/components/SmartLight/api/smartLight/TypesApi';
-import { PowerSupplyApi } from '@/components/SmartLight/api/powerSupplies/PowerSupplyApi';
+import { ref, computed } from 'vue';
+import { BATTERY_TYPES, getBatteryTypeById as getBatteryTypeConst } from './types/batteryTypes.js';
+import { BULB_TYPES, getBulbTypeById as getBulbTypeConst } from './types/bulbTypes.js';
+import { POWER_SUPPLY_TYPES, getPowerSupplyById as getPowerSupplyConst } from './types/powerSupplyTypes.js';
+import { CoreTypesResource } from '@/components/SmartLight/api/core/resource/coreTypesResource.js';
 
-export const useTypesStore = defineStore('smartlight/types', {
-    state: () => ({
-        batteryTypes: BATTERY_TYPES,
-        bulbTypes: BULB_TYPES,
-        powerSupplies: POWER_SUPPLY_TYPES,
-        deviceTypes: DEVICE_TYPES,
-        deviceStates: DEVICE_STATE,
-        loading: false,
-        error: null,
-        initialized: false
-    }),
+export const useTypesStore = defineStore('types', () => {
+    const batteryTypes = ref({});
+    const bulbTypes = ref({});
+    const powerSupplyTypes = ref({});
+    const typesLoaded = ref(false);
+    const loading = ref(false);
 
-    getters: {
-        batteryTypesForDropdown: (state) => {
-            return Object.entries(state.batteryTypes).map(([id, type]) => ({
+    const batteryTypesForDropdown = computed(() => {
+        if (typesLoaded.value && Object.keys(batteryTypes.value).length > 0) {
+            return Object.entries(batteryTypes.value).map(([id, type]) => ({
                 id,
-                label: type.name,
-                value: id
-            }));
-        },
-
-        bulbTypesForDropdown: (state) => {
-            return Object.entries(state.bulbTypes).map(([id, type]) => ({
-                id,
-                label: type.name,
-                value: id
-            }));
-        },
-
-        powerSuppliesForDropdown: (state) => {
-            return Object.entries(state.powerSupplies).map(([id, supply]) => ({
-                id,
-                label: supply.name,
-                value: id
-            }));
-        },
-
-        deviceTypesForDropdown: (state) => {
-            return Object.entries(state.deviceTypes).map(([id, type]) => ({
-                id,
-                label: type.name,
-                value: id
-            }));
-        },
-
-        deviceStatesForDropdown: (state) => {
-            return Object.entries(state.deviceStates).map(([id, state]) => ({
-                id,
-                label: state,
+                label: type.name || id,
                 value: id
             }));
         }
-    },
+        return Object.entries(BATTERY_TYPES).map(([id, type]) => ({
+            id,
+            label: type.name,
+            value: id
+        }));
+    });
 
-    actions: {
-        async init() {
-            logDebug('TypesStore', 'Инициализация TypesStore');
+    const bulbTypesForDropdown = computed(() => {
+        if (typesLoaded.value && Object.keys(bulbTypes.value).length > 0) {
+            return Object.entries(bulbTypes.value).map(([id, type]) => ({
+                id,
+                label: type.name || id,
+                value: id
+            }));
+        }
+        return Object.entries(BULB_TYPES).map(([id, type]) => ({
+            id,
+            label: type.name,
+            value: id
+        }));
+    });
 
-            if (!this.initialized) {
-                this.loading = true;
-                this.error = null;
+    const powerSuppliesForDropdown = computed(() => {
+        if (typesLoaded.value && Object.keys(powerSupplyTypes.value).length > 0) {
+            return Object.entries(powerSupplyTypes.value).map(([id, type]) => ({
+                id,
+                label: type.name || id,
+                value: id
+            }));
+        }
+        return Object.entries(POWER_SUPPLY_TYPES).map(([id, type]) => ({
+            id,
+            label: type.name,
+            value: id
+        }));
+    });
 
-                try {
-                    // Загружаем типы из API
-                    const [batteryTypesResponse, bulbTypesResponse, powerSupplyResponse] = await Promise.all([
-                        TypesApi.getBatteryTypes(),
-                        TypesApi.getBulbTypes(),
-                        PowerSupplyApi.getAllPowerSupplies()
-                    ]);
+    const getBatteryTypeById = (id) => {
+        return batteryTypes.value[id] || getBatteryTypeConst(id);
+    };
 
-                    // Обновляем типы
-                    if (batteryTypesResponse.success && batteryTypesResponse.data) {
-                        this.batteryTypes = {
-                            ...this.batteryTypes,
-                            ...batteryTypesResponse.data
-                        };
-                    }
+    const getBulbTypeById = (id) => {
+        return bulbTypes.value[id] || getBulbTypeConst(id);
+    };
 
-                    if (bulbTypesResponse.success && bulbTypesResponse.data) {
-                        this.bulbTypes = {
-                            ...this.bulbTypes,
-                            ...bulbTypesResponse.data
-                        };
-                    }
+    const getPowerSupplyById = (id) => {
+        return powerSupplyTypes.value[id] || getPowerSupplyConst(id);
+    };
 
-                    if (powerSupplyResponse.success && powerSupplyResponse.data) {
-                        this.powerSupplies = {
-                            ...this.powerSupplies,
-                            ...powerSupplyResponse.data
-                        };
-                    }
+    const fetchTypes = async () => {
+        loading.value = true;
+        console.log('[TypesStore] Fetching types from API...');
+        try {
+            const resource = new CoreTypesResource();
+            const [batteries, bulbs, powerSupplies] = await Promise.all([
+                resource.getBatteryTypes(),
+                resource.getBulbTypes(),
+                resource.getPowerSupplies()
+            ]);
 
-                    this.initialized = true;
-                    logDebug('TypesStore', 'Типы инициализированы', {
-                        batteryTypesCount: Object.keys(this.batteryTypes).length,
-                        bulbTypesCount: Object.keys(this.bulbTypes).length,
-                        powerSuppliesCount: Object.keys(this.powerSupplies).length
-                    });
-                } catch (error) {
-                    this.error = 'Не удалось загрузить типы';
-                    logError('TypesStore', 'Ошибка инициализации типов', error);
-                } finally {
-                    this.loading = false;
+            if (batteries.data) {
+                if (Array.isArray(batteries.data)) {
+                    batteryTypes.value = batteries.data.reduce((acc, type) => {
+                        acc[type.id] = type;
+                        return acc;
+                    }, {});
+                } else if (typeof batteries.data === 'object') {
+                    batteryTypes.value = batteries.data;
                 }
             }
 
-            return {
-                success: !this.error,
-                error: this.error
-            };
-        },
-
-        getBatteryTypeById(batteryTypeId) {
-            const type = this.batteryTypes[batteryTypeId];
-            if (!type) {
-                logDebug('TypesStore', 'Тип аккумулятора не найден', { batteryTypeId });
-                return this.batteryTypes['li-ion-18650'];
+            if (bulbs.data) {
+                if (Array.isArray(bulbs.data)) {
+                    bulbTypes.value = bulbs.data.reduce((acc, type) => {
+                        acc[type.id] = type;
+                        return acc;
+                    }, {});
+                } else if (typeof bulbs.data === 'object') {
+                    bulbTypes.value = bulbs.data;
+                }
             }
-            return type;
-        },
 
-        getBulbTypeById(bulbTypeId) {
-            const type = this.bulbTypes[bulbTypeId];
-            if (!type) {
-                logDebug('TypesStore', 'Тип лампы не найден', { bulbTypeId });
-                return this.bulbTypes.classic;
+            if (powerSupplies.data) {
+                if (Array.isArray(powerSupplies.data)) {
+                    powerSupplyTypes.value = powerSupplies.data.reduce((acc, type) => {
+                        acc[type.id] = type;
+                        return acc;
+                    }, {});
+                } else if (typeof powerSupplies.data === 'object') {
+                    powerSupplyTypes.value = powerSupplies.data;
+                }
             }
-            return type;
-        },
 
-        getPowerSupplyById(supplyId) {
-            const supply = this.powerSupplies[supplyId];
-            if (!supply) {
-                logDebug('TypesStore', 'Источник питания не найден', { supplyId });
-                return this.powerSupplies.standard;
-            }
-            return supply;
-        },
-
-        getDeviceTypeById(deviceTypeId) {
-            return this.deviceTypes[deviceTypeId];
-        },
-
-        getDeviceStateById(deviceStateId) {
-            return this.deviceStates[deviceStateId];
+            typesLoaded.value = true;
+            console.log('[TypesStore] Types loaded:', {
+                batteries: Object.keys(batteryTypes.value).length,
+                bulbs: Object.keys(bulbTypes.value).length,
+                powerSupplies: Object.keys(powerSupplyTypes.value).length
+            });
+            return { success: true };
+        } catch (err) {
+            console.warn('[TypesStore] API failed, using fallback constants');
+            batteryTypes.value = BATTERY_TYPES;
+            bulbTypes.value = BULB_TYPES;
+            powerSupplyTypes.value = POWER_SUPPLY_TYPES;
+            typesLoaded.value = true;
+            return { success: false, message: err.message };
+        } finally {
+            loading.value = false;
         }
-    }
+    };
+
+    return {
+        batteryTypes, bulbTypes, powerSupplyTypes, typesLoaded, loading,
+        batteryTypesForDropdown, bulbTypesForDropdown, powerSuppliesForDropdown,
+        getBatteryTypeById, getBulbTypeById, getPowerSupplyById,
+        fetchTypes
+    };
 });
+
+export default useTypesStore;

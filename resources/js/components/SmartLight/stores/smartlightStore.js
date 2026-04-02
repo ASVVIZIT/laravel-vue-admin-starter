@@ -1,250 +1,100 @@
-import { defineStore } from 'pinia';
-import {
-    deviceStoreState,
-    settingsStoreState,
-    interfaceStoreState,
-    powerStoreState,
-    typesStoreState
-} from './states';
-import {
-    deviceStoreGetters,
-    settingsStoreGetters,
-    interfaceStoreGetters,
-    powerStoreGetters,
-    typesStoreGetters
-} from './getters';
-import {
-    deviceStoreActions,
-    settingsStoreActions,
-    interfaceStoreActions,
-    powerStoreActions,
-    typesStoreActions
-} from './actions';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger';
-
 /**
- * Единый стор Smartlight с разделенными подсторами
- *
- * Вместо жесткого кодирования типов в сторах, мы импортируем их из отдельных файлов
- * Это позволяет легко расширять функционал без изменения основного стора
- *
- * Структура стора:
- * - device: управление устройствами
- * - settings: глобальные настройки
- * - interface: настройки интерфейса
- * - power: управление питанием
- * - types: типы аккумуляторов и ламп
+ * ============================================================================
+ * SMARTLIGHT STORE — ГЛАВНЫЙ ОБЪЕДИНЁННЫЙ STORE
+ * ============================================================================
+ * 📁 Путь: stores/smartlightStore.js
+ * ✅ Опциональный слой для компонентов которые хотят единый интерфейс
+ * ============================================================================
  */
-export const useSmartlightStore = defineStore('smartlight', {
-    state: () => ({
-        // Состояние для управления устройствами
-        device: deviceStoreState(),
 
-        // Состояние для глобальных настроек
-        settings: settingsStoreState(),
+import { useDeviceStore } from './smartlight/deviceStore.js';
+import { useSettingsStore } from './smartlight/settingsStore.js';
+import { useTypesStore } from './smartlight/typesStore.js';
+import { useInterfaceStore } from './smartlight/interfaceStore.js';
+import { usePowerStore } from './smartlight/powerStore.js';
 
-        // Состояние для настроек интерфейса
-        interface: interfaceStoreState(),
+export const useSmartlightStore = () => {
+    const deviceStore = useDeviceStore();
+    const settingsStore = useSettingsStore();
+    const typesStore = useTypesStore();
+    const interfaceStore = useInterfaceStore();
+    const powerStore = usePowerStore();
 
-        // Состояние для питания
-        power: powerStoreState(),
+    return {
+        // Device Store
+        devices: deviceStore.devices,
+        devicesMap: deviceStore.devicesMap,
+        selectedDeviceId: deviceStore.selectedDeviceId,
+        selectedDevice: deviceStore.selectedDevice,
+        realDevices: deviceStore.realDevices,
+        fakeDevices: deviceStore.fakeDevices,
+        deviceLoading: deviceStore.loading,
+        deviceError: deviceStore.error,
+        deviceGetDevice: deviceStore.getDevice,
+        deviceUpdateDevice: deviceStore.updateDevice,
+        deviceUpdateDeviceStatus: deviceStore.updateDeviceStatus,
+        deviceUpdateDeviceIntensity: deviceStore.updateDeviceIntensity,
+        deviceSelectDevice: deviceStore.selectDevice,
+        deviceFetchDevices: deviceStore.fetchDevices,
+        deviceWakeDevice: deviceStore.wakeDevice,
+        deviceForceSleep: deviceStore.forceSleep,
+        deviceUpdateDeviceSettings: deviceStore.updateDeviceSettings,
 
-        // Состояние для типов аккумуляторов и ламп
-        types: typesStoreState()
-    }),
+        // Settings Store
+        globalSettings: settingsStore.globalSettings,
+        settingsLoading: settingsStore.loading,
+        settingsError: settingsStore.error,
+        settingsGetGlobalSettings: settingsStore.getGlobalSettings,
+        settingsUpdateGlobalSettings: settingsStore.updateGlobalSettings,
+        settingsResetGlobalSettings: settingsStore.resetGlobalSettings,
 
-    getters: {
-        // Геттеры для подстора устройств
-        deviceSelectedDevice: (state) => deviceStoreGetters.selectedDevice(state.device),
-        deviceRealDevices: (state) => deviceStoreGetters.realDevices(state.device),
-        deviceFakeDevices: (state) => deviceStoreGetters.fakeDevices(state.device),
+        // Types Store
+        batteryTypes: typesStore.batteryTypes,
+        bulbTypes: typesStore.bulbTypes,
+        powerSupplyTypes: typesStore.powerSupplyTypes,
+        typesLoaded: typesStore.typesLoaded,
+        typesLoading: typesStore.loading,
+        batteryTypesForDropdown: typesStore.batteryTypesForDropdown,
+        bulbTypesForDropdown: typesStore.bulbTypesForDropdown,
+        powerSuppliesForDropdown: typesStore.powerSuppliesForDropdown,
+        typesGetBatteryTypeById: typesStore.getBatteryTypeById,
+        typesGetBulbTypeById: typesStore.getBulbTypeById,
+        typesGetPowerSupplyById: typesStore.getPowerSupplyById,
+        typesFetchTypes: typesStore.fetchTypes,
 
-        // Геттеры для подстора настроек
-        settingsGlobalSettings: (state) => settingsStoreGetters.globalSettings(state.settings),
+        // Interface Store
+        debugPanelVisible: interfaceStore.debugPanelVisible,
+        globalSettingsVisible: interfaceStore.globalSettingsVisible,
+        global3DMode: interfaceStore.global3DMode,
+        device3DSettings: interfaceStore.device3DSettings,
+        debugLogs: interfaceStore.debugLogs,
+        interfaceToggleDebugPanel: interfaceStore.toggleDebugPanel,
+        interfaceSetGlobalSettingsVisible: interfaceStore.setGlobalSettingsVisible,
+        getDevice3DMode: interfaceStore.getDevice3DMode,
+        setDevice3DMode: interfaceStore.setDevice3DMode,
+        toggleDevice3DMode: interfaceStore.toggleDevice3DMode,
+        setGlobal3DMode: interfaceStore.setGlobal3DMode,
+        toggleGlobal3DMode: interfaceStore.toggleGlobal3DMode,
+        addLog: interfaceStore.addLog,
+        clearLogs: interfaceStore.clearLogs,
 
-        // Геттеры для подстора интерфейса
-        interfaceDebugPanelVisible: (state) => interfaceStoreGetters.debugPanelVisible(state.interface),
-        interfaceDebugPanelTab: (state) => interfaceStoreGetters.debugPanelTab(state.interface),
-        interfaceGlobalSettingsVisible: (state) => interfaceStoreGetters.globalSettingsVisible(state.interface),
-        interfaceSettings: (state) => interfaceStoreGetters.interfaceSettings(state.interface),
+        // Power Store
+        activePowerSupply: powerStore.activePowerSupply,
+        powerStatus: powerStore.powerStatus,
+        powerCalculateRuntime: powerStore.calculateRuntime,
+        powerSetActiveSupply: powerStore.setActiveSupply,
 
-        // Геттеры для подстора питания
-        powerActivePowerSupply: (state) => powerStoreGetters.getActivePowerSupply(state.power),
-        powerStatus: (state) => powerStoreGetters.getPowerStatus(state.power),
-        powerIsPowerSourceActive: (state) => powerStoreGetters.isPowerSourceActive(state.power),
-        powerSuppliesForDropdown: (state) => powerStoreGetters.getPowerSuppliesForDropdown(state.power),
-
-        // Геттеры для подстора типов
-        typesBatteryTypesForDropdown: (state) => typesStoreGetters.batteryTypesForDropdown(state.types),
-        typesBulbTypesForDropdown: (state) => typesStoreGetters.bulbTypesForDropdown(state.types),
-        typesPowerSuppliesForDropdown: (state) => powerStoreGetters.getPowerSuppliesForDropdown(state.power)
-    },
-
-    actions: {
-        /* ===== Действия для управления устройствами ===== */
-
-        deviceInit(...args) {
-            return deviceStoreActions.init.apply(this.device, args);
-        },
-
-        deviceFetchDevices(...args) {
-            return deviceStoreActions.fetchDevices.apply(this.device, args);
-        },
-
-        deviceSelectDevice(...args) {
-            return deviceStoreActions.selectDevice.apply(this.device, args);
-        },
-
-        deviceUpdateDeviceStatus(...args) {
-            return deviceStoreActions.updateDeviceStatus.apply(this.device, args);
-        },
-
-        deviceUpdateDeviceVoltage(...args) {
-            return deviceStoreActions.updateDeviceVoltage.apply(this.device, args);
-        },
-
-        deviceUpdateDeviceIntensity(...args) {
-            return deviceStoreActions.updateDeviceIntensity.apply(this.device, args);
-        },
-
-        deviceGetDevice(...args) {
-            return deviceStoreActions.getDevice.apply(this.device, args);
-        },
-
-        deviceGetDevice3DMode(...args) {
-            return deviceStoreActions.getDevice3DMode.apply(this.device, args);
-        },
-
-        deviceSetDevice3DMode(...args) {
-            return deviceStoreActions.setDevice3DMode.apply(this.device, args);
-        },
-
-        deviceSetGlobal3DMode(...args) {
-            return deviceStoreActions.setGlobal3DMode.apply(this.device, args);
-        },
-
-        deviceSaveInterfaceSettings(...args) {
-            return deviceStoreActions.saveInterfaceSettings.apply(this.device, args);
-        },
-
-        deviceForceSleep(...args) {
-            return deviceStoreActions.forceSleep.apply(this.device, args);
-        },
-
-        deviceWakeDevice(...args) {
-            return deviceStoreActions.wakeDevice.apply(this.device, args);
-        },
-
-        deviceUpdateDeviceCriticalVoltage(...args) {
-            return deviceStoreActions.updateDeviceCriticalVoltage.apply(this.device, args);
-        },
-
-        deviceUpdateDeviceSettings(...args) {
-            return deviceStoreActions.updateDeviceSettings.apply(this.device, args);
-        },
-
-        deviceUpdateDevice(...args) {
-            return deviceStoreActions.updateDevice.apply(this.device, args);
-        },
-
-        /* ===== Действия для управления настройками ===== */
-
-        settingsInit(...args) {
-            return settingsStoreActions.init.apply(this.settings, args);
-        },
-
-        settingsUpdateGlobalSettings(...args) {
-            return settingsStoreActions.updateGlobalSettings.apply(this.settings, args);
-        },
-
-        settingsGetGlobalSettings(...args) {
-            return settingsStoreActions.getGlobalSettings.apply(this.settings, args);
-        },
-
-        /* ===== Действия для управления интерфейсом ===== */
-
-        interfaceInit(...args) {
-            return interfaceStoreActions.init.apply(this.interface, args);
-        },
-
-        interfaceSetSize(...args) {
-            return interfaceStoreActions.setSize.apply(this.interface, args);
-        },
-
-        interfaceToggleDebugPanel(...args) {
-            return interfaceStoreActions.toggleDebugPanel.apply(this.interface, args);
-        },
-
-        interfaceSetDebugPanelTab(...args) {
-            return interfaceStoreActions.setDebugPanelTab.apply(this.interface, args);
-        },
-
-        interfaceSetGlobalSettingsVisible(...args) {
-            return interfaceStoreActions.setGlobalSettingsVisible.apply(this.interface, args);
-        },
-
-        interfaceSetGlobal3DMode(...args) {
-            return interfaceStoreActions.setGlobal3DMode.apply(this.interface, args);
-        },
-
-        interfaceSetDevice3DMode(...args) {
-            return interfaceStoreActions.setDevice3DMode.apply(this.interface, args);
-        },
-
-        /* ===== Действия для управления питанием ===== */
-
-        powerInit(...args) {
-            return powerStoreActions.init.apply(this.power, args);
-        },
-
-        powerSwitchPowerSupply(...args) {
-            return powerStoreActions.switchPowerSupply.apply(this.power, args);
-        },
-
-        powerUpdateVoltage(...args) {
-            return powerStoreActions.updateVoltage.apply(this.power, args);
-        },
-
-        powerUpdateCurrent(...args) {
-            return powerStoreActions.updateCurrent.apply(this.power, args);
-        },
-
-        powerSimulatePowerFailure(...args) {
-            return powerStoreActions.simulatePowerFailure.apply(this.power, args);
-        },
-
-        powerCheckCompatibility(...args) {
-            return powerStoreActions.checkCompatibility.apply(this.power, args);
-        },
-
-        powerGetPowerSupplyById(...args) {
-            return powerStoreActions.getPowerSupplyById.apply(this.power, args);
-        },
-
-        /* ===== Действия для управления типами ===== */
-
-        typesInit(...args) {
-            return typesStoreActions.init.apply(this.types, args);
-        },
-
-        typesGetBatteryTypeById(...args) {
-            return typesStoreActions.getBatteryTypeById.apply(this.types, args);
-        },
-
-        typesGetBulbTypeById(...args) {
-            return typesStoreActions.getBulbTypeById.apply(this.types, args);
-        },
-
-        typesGetPowerSupplyById(...args) {
-            return powerStoreActions.getPowerSupplyById.apply(this.power, args);
-        },
-
-        typesGetDeviceTypeById(...args) {
-            return typesStoreActions.getDeviceTypeById.apply(this.types, args);
-        },
-
-        typesGetDeviceStateById(...args) {
-            return typesStoreActions.getDeviceStateById.apply(this.types, args);
+        // Init
+        init: async () => {
+            console.log('[SmartlightStore] Initializing all stores...');
+            await settingsStore.init();
+            interfaceStore.init();
+            await powerStore.init();
+            await typesStore.fetchTypes();
+            await deviceStore.fetchDevices();
+            console.log('[SmartlightStore] Initialization complete');
         }
-    }
-});
+    };
+};
+
+export default useSmartlightStore;

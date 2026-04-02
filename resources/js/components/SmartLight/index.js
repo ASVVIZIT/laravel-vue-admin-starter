@@ -1,14 +1,40 @@
-// resources/js/components/SmartLight/index.js
 /**
- * Точка входа для модуля "Умное освещение"
- * Импортируйте все компоненты и функциональность через этот файл
+ * ============================================================================
+ * SMARTLIGHT MODULE — ГЛАВНАЯ ТОЧКА ВХОДА
+ * ============================================================================
+ * 📁 Путь: components/SmartLight/index.js
+ * ✅ Используется: Все файлы модуля SmartLight
+ * ============================================================================
  */
 
-export * from './api/core/SmartLightResource';
-export * from './composables/useWebGL';
-export * from './composables/useDeviceCalculations';
-export * from './controllers/DeviceController';
-export * from './controllers/SettingsController';
-export * from './services/DeviceService';
-export * from './services/SettingsService';
-export * from './stores';
+// API
+export * from './api/core/index.js';
+
+// Services
+export * from './services/index.js';
+
+// Controllers
+export * from './controllers/index.js';
+
+// Stores
+export * from './stores/index.js';
+
+// Components
+export * from './components/index.js';
+
+// Composables
+export * from './composables/index.js';
+
+// Utils
+export * from './utils/index.js';
+
+// Default export для удобного импорта
+export default {
+    api: () => import('./api/core/index.js'),
+    services: () => import('./services/index.js'),
+    controllers: () => import('./controllers/index.js'),
+    stores: () => import('./stores/index.js'),
+    components: () => import('./components/index.js'),
+    composables: () => import('./composables/index.js'),
+    utils: () => import('./utils/index.js')
+};

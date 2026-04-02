@@ -1,198 +1,138 @@
 /**
- * Подстор для управления интерфейсом
- *
- * Содержит state, getters и actions для подстора интерфейса
- *
- * @file stores/smartlight/interfaceStore.js
+ * ============================================================================
+ * INTERFACE STORE — ПОДСТОР ИНТЕРФЕЙСА
+ * ============================================================================
  */
 
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger';
+import { defineStore } from 'pinia';
+import { ref, watch } from 'vue';
 
-export const interfaceStoreState = () => ({
-    size: 'small',
-    debugPanelVisible: true,
-    debugPanelTab: 'debug',
-    globalSettingsVisible: false,
-    loading: false,
-    error: null,
-    interfaceSettings: {
-        global3DMode: false,
-        device3DSettings: {}
-    }
+export const useInterfaceStore = defineStore('interface', () => {
+    const debugPanelVisible = ref(false);
+    const globalSettingsVisible = ref(false);
+    const global3DMode = ref(false);
+    const device3DSettings = ref({});
+    const debugLogs = ref([]);
+
+    const init = () => {
+        console.log('[InterfaceStore] Initializing...');
+        const saved = localStorage.getItem('smartlight_interface_settings');
+        if (saved) {
+            try {
+                const settings = JSON.parse(saved);
+                debugPanelVisible.value = settings.debugPanelVisible ?? false;
+                global3DMode.value = settings.global3DMode || false;
+                device3DSettings.value = settings.device3DSettings || {};
+                console.log('[InterfaceStore] Loaded from localStorage');
+            } catch (e) {
+                console.error('[InterfaceStore] Load error:', e);
+            }
+        }
+        return true;
+    };
+
+    const saveSettings = () => {
+        const settings = {
+            debugPanelVisible: debugPanelVisible.value,
+            global3DMode: global3DMode.value,
+            device3DSettings: device3DSettings.value
+        };
+        localStorage.setItem('smartlight_interface_settings', JSON.stringify(settings));
+    };
+
+    // ✅ ACTION ДЛЯ ЗАКРЫТИЯ ПАНЕЛИ
+    const closeDebugPanel = () => {
+        debugPanelVisible.value = false;
+        saveSettings();
+        console.log('[InterfaceStore] Debug panel: closed');
+    };
+
+    // ✅ ACTION ДЛЯ ОТКРЫТИЯ ПАНЕЛИ
+    const openDebugPanel = () => {
+        debugPanelVisible.value = true;
+        saveSettings();
+        console.log('[InterfaceStore] Debug panel: opened');
+    };
+
+    // ✅ TOGGLE ДЛЯ SWITCH (без цикла!)
+    const toggleDebugPanel = () => {
+        debugPanelVisible.value = !debugPanelVisible.value;
+        saveSettings();
+        console.log('[InterfaceStore] Debug panel:', debugPanelVisible.value ? 'opened' : 'closed');
+    };
+
+    const setGlobalSettingsVisible = (visible) => {
+        globalSettingsVisible.value = visible;
+    };
+
+    const getDevice3DMode = (deviceId) => {
+        if (device3DSettings.value[deviceId] !== undefined) {
+            return device3DSettings.value[deviceId];
+        }
+        return global3DMode.value;
+    };
+
+    const setDevice3DMode = (deviceId, mode) => {
+        device3DSettings.value[deviceId] = mode;
+        saveSettings();
+        console.log('[InterfaceStore] 3D mode for', deviceId, ':', mode);
+    };
+
+    const toggleDevice3DMode = (deviceId) => {
+        const current = getDevice3DMode(deviceId);
+        const newMode = !current;
+        device3DSettings.value[deviceId] = newMode;
+        saveSettings();
+        console.log('[InterfaceStore] 3D mode toggled for', deviceId, ':', newMode);
+        return newMode;
+    };
+
+    const setGlobal3DMode = (mode) => {
+        global3DMode.value = mode;
+        device3DSettings.value = {};
+        saveSettings();
+        console.log('[InterfaceStore] Global 3D mode:', mode);
+    };
+
+    const toggleGlobal3DMode = () => {
+        global3DMode.value = !global3DMode.value;
+        device3DSettings.value = {};
+        saveSettings();
+        console.log('[InterfaceStore] Global 3D mode toggled:', global3DMode.value);
+    };
+
+    const addLog = (component, message, data = null) => {
+        const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+        const logEntry = {
+            id: Date.now(),
+            timestamp,
+            component,
+            message,
+            data
+        };
+        debugLogs.value.unshift(logEntry);
+        if (debugLogs.value.length > 100) debugLogs.value.pop();
+    };
+
+    const clearLogs = () => {
+        debugLogs.value = [];
+        console.log('[InterfaceStore] Logs cleared');
+    };
+
+    // ✅ WATCH ДЛЯ ОТЛАДКИ
+    watch(() => debugPanelVisible.value, (newVal) => {
+        console.log('[InterfaceStore] WATCH: debugPanelVisible =', newVal);
+    });
+
+    return {
+        debugPanelVisible, globalSettingsVisible, global3DMode, device3DSettings, debugLogs,
+        init, saveSettings,
+        closeDebugPanel, openDebugPanel, toggleDebugPanel,
+        setGlobalSettingsVisible,
+        getDevice3DMode, setDevice3DMode, toggleDevice3DMode,
+        setGlobal3DMode, toggleGlobal3DMode,
+        addLog, clearLogs
+    };
 });
 
-export const interfaceStoreGetters = {
-    /**
-     * Получение видимости панели отладки
-     *
-     * @param {Object} state - состояние подстора
-     * @returns {boolean} видимость панели отладки
-     */
-    debugPanelVisible: (state) => {
-        return state.debugPanelVisible;
-    },
-
-    /**
-     * Получение текущей вкладки панели отладки
-     *
-     * @param {Object} state - состояние подстора
-     * @returns {string} название текущей вкладки
-     */
-    debugPanelTab: (state) => {
-        return state.debugPanelTab;
-    },
-
-    /**
-     * Получение видимости глобальных настроек
-     *
-     * @param {Object} state - состояние подстора
-     * @returns {boolean} видимость глобальных настроек
-     */
-    globalSettingsVisible: (state) => {
-        return state.globalSettingsVisible;
-    },
-
-    /**
-     * Получение настроек интерфейса
-     *
-     * @param {Object} state - состояние подстора
-     * @returns {Object} настройки интерфейса
-     */
-    interfaceSettings: (state) => {
-        return state.interfaceSettings;
-    }
-};
-
-export const interfaceStoreActions = {
-    /**
-     * Инициализация настроек интерфейса
-     */
-    init() {
-        logDebug('InterfaceStore', 'Инициализация InterfaceStore');
-
-        // Загружаем настройки из localStorage
-        try {
-            const settingsJson = localStorage.getItem('smartlight_interface_settings');
-            if (settingsJson) {
-                const settings = JSON.parse(settingsJson);
-                this.size = settings.size || 'small';
-                this.debugPanelVisible = settings.debugPanelVisible ?? true;
-                this.debugPanelTab = settings.debugPanelTab || 'debug';
-
-                // Также загружаем настройки из deviceStore
-                const deviceSettingsJson = localStorage.getItem('smartlight_interface_settings');
-                if (deviceSettingsJson) {
-                    const deviceSettings = JSON.parse(deviceSettingsJson);
-                    this.interfaceSettings.global3DMode = deviceSettings.global3DMode || false;
-                    this.interfaceSettings.device3DSettings = deviceSettings.device3DSettings || {};
-                }
-            }
-        } catch (e) {
-            logDebug('InterfaceStore', 'Ошибка загрузки настроек', { error: e.message });
-        }
-    },
-
-    /**
-     * Установка размера интерфейса
-     *
-     * @param {string} size - размер интерфейса
-     */
-    setSize(size) {
-        logDebug('InterfaceStore', 'Изменение размера', { size });
-        this.size = size;
-
-        // Сохраняем в localStorage
-        localStorage.setItem('smartlight_interface_settings', JSON.stringify({
-            debugPanelVisible: this.debugPanelVisible,
-            debugPanelTab: this.debugPanelTab,
-            size
-        }));
-    },
-
-    /**
-     * Переключение видимости DebugPanel
-     */
-    toggleDebugPanel() {
-        logDebug('InterfaceStore', 'Переключение панели отладки', {
-            visible: !this.debugPanelVisible
-        });
-
-        this.debugPanelVisible = !this.debugPanelVisible;
-
-        // Сохраняем в localStorage
-        localStorage.setItem('smartlight_interface_settings', JSON.stringify({
-            debugPanelVisible: this.debugPanelVisible,
-            debugPanelTab: this.debugPanelTab,
-            size: this.size
-        }));
-    },
-
-    /**
-     * Установка текущей вкладки DebugPanel
-     *
-     * @param {string} tab - название вкладки
-     */
-    setDebugPanelTab(tab) {
-        logDebug('InterfaceStore', 'Изменение вкладки панели отладки', { tab });
-        this.debugPanelTab = tab;
-
-        // Сохраняем в localStorage
-        localStorage.setItem('smartlight_interface_settings', JSON.stringify({
-            debugPanelVisible: this.debugPanelVisible,
-            debugPanelTab: this.debugPanelTab,
-            size: this.size
-        }));
-    },
-
-    /**
-     * Установка видимости глобальных настроек
-     *
-     * @param {boolean} visible - видимость настроек
-     */
-    setGlobalSettingsVisible(visible) {
-        logDebug('InterfaceStore', 'Установка видимости глобальных настроек', { visible });
-        this.globalSettingsVisible = visible;
-    },
-
-    /**
-     * Установка глобального режима 3D
-     *
-     * @param {boolean} mode - режим 3D
-     */
-    setGlobal3DMode(mode) {
-        logDebug('InterfaceStore', 'Установка глобального режима отображения', { mode });
-
-        this.interfaceSettings.global3DMode = mode;
-        this.interfaceSettings.device3DSettings = {};
-
-        // Сохраняем в localStorage
-        localStorage.setItem('smartlight_interface_settings', JSON.stringify({
-            global3DMode: this.interfaceSettings.global3DMode,
-            device3DSettings: this.interfaceSettings.device3DSettings
-        }));
-    },
-
-    /**
-     * Установка режима отображения
-     *
-     * @param {string} deviceId - ID устройства
-     * @param {boolean} mode - режим 3D
-     */
-    setDevice3DMode(deviceId, mode) {
-        logDebug('InterfaceStore', 'Установка режима отображения', {
-            deviceId,
-            mode
-        });
-
-        this.interfaceSettings.device3DSettings = {
-            ...this.interfaceSettings.device3DSettings,
-            [deviceId]: mode
-        };
-
-        // Сохраняем в localStorage
-        localStorage.setItem('smartlight_interface_settings', JSON.stringify({
-            global3DMode: this.interfaceSettings.global3DMode,
-            device3DSettings: this.interfaceSettings.device3DSettings
-        }));
-    }
-};
+export default useInterfaceStore;

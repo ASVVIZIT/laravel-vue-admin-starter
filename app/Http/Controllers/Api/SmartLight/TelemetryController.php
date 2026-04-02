@@ -5,10 +5,18 @@ namespace App\Http\Controllers\Api\SmartLight;
 use App\Http\Controllers\Controller;
 use App\Models\SmartLight\Telemetry;
 use App\Models\SmartLight\SmartLightDevice;
+use App\Services\SmartLight\TelemetryService;
 use Illuminate\Http\Request;
 
 class TelemetryController extends Controller
 {
+    public function __construct(
+        private TelemetryService $telemetryService
+    ) {}
+
+    /**
+     * Store telemetry data
+     */
     public function store(Request $request, $device_id)
     {
         $device = $request->device;
@@ -20,20 +28,11 @@ class TelemetryController extends Controller
             'emergency' => 'nullable|boolean'
         ]);
 
-        // Обновляем напряжение в основном устройстве
-        $device->update([
-            'voltage' => $request->voltage,
-            'status' => $request->status
-        ]);
-
-        // Создаём запись телеметрии
-        $telemetry = Telemetry::create([
-            'device_id' => $device->id,
+        $telemetry = $this->telemetryService->createTelemetry($device, [
             'voltage' => $request->voltage,
             'status' => $request->status,
             'intensity' => $request->intensity ?? 100,
-            'is_emergency' => $request->emergency ?? false,
-            'received_at' => now()
+            'emergency' => $request->emergency ?? false
         ]);
 
         return response()->json([
@@ -44,21 +43,42 @@ class TelemetryController extends Controller
         ]);
     }
 
+    /**
+     * Get telemetry history
+     */
     public function index(Request $request, $device_id)
     {
         $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
 
-        // Проверка прав доступа
         if (!$request->user()->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT) &&
             $device->user_id !== $request->user()->id) {
-            return response()->json(['error' => 'Unauthorized'], 403);
+            return response()->json([
+                'success' => false,
+                'error' => 'Unauthorized'
+            ], 403);
         }
 
-        $telemetry = $device->telemetry()
-            ->orderBy('received_at', 'desc')
-            ->limit(100)
-            ->get();
+        $telemetry = $this->telemetryService->getTelemetryHistory($device, 100);
 
-        return response()->json($telemetry);
+        return response()->json([
+            'success' => true,
+            'data' => $telemetry
+        ]);
+    }
+
+    /**
+     * V1 API: Get telemetry
+     */
+    public function apiIndex(Request $request, $device_id)
+    {
+        return $this->index($request, $device_id);
+    }
+
+    /**
+     * V1 API: Store telemetry
+     */
+    public function apiStore(Request $request, $device_id)
+    {
+        return $this->store($request, $device_id);
     }
 }

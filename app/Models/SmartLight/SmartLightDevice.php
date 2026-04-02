@@ -27,7 +27,9 @@ class SmartLightDevice extends Model
         'voltage',
         'api_key',
         'settings',
-        'is_fake'
+        'is_fake',
+        'battery_group_config',
+        'settings_updated_at'
     ];
 
     protected $casts = [
@@ -36,7 +38,9 @@ class SmartLightDevice extends Model
         'critical_voltage' => 'float',
         'sleep_interval' => 'integer',
         'emergency_sleep_interval' => 'integer',
-        'is_fake' => 'boolean'
+        'is_fake' => 'boolean',
+        'battery_group_config' => 'array',
+        'settings_updated_at' => 'datetime'
     ];
 
     public function telemetry()

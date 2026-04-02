@@ -1,187 +1,138 @@
+/**
+ * ============================================================================
+ * POWER SERVICE — СЕРВИС ДЛЯ РАСЧЕТА ПИТАНИЯ
+ * ============================================================================
+ * 📁 Путь: services/PowerService.js
+ * ✅ Бизнес-логика + доступ к store
+ * ✅ Отвечает за: расчёт времени работы, потребления, цвета батареи
+ * ============================================================================
+ */
+
+import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
 import {
-    calculateMinVoltage,
-    calculateMaxVoltage,
-    calculateCriticalVoltage,
-    calculateCriticalThresholdPosition,
-    calculateBatteryNormalProgress,
-    calculateBatteryCriticalProgress,
-    calculateCurrentLevelPosition,
+    calculateDeviceRuntimeHours,
+    calculateDeviceRuntime,
+    calculatePowerConsumptionWh
+} from '@/components/SmartLight/utils/appPowerUtils.js';
+import {
     calculateBatteryColor,
-    calculateCriticalColor,
-    calculateDeviceRuntime
-} from '@/components/SmartLight/utils/deviceUtils';
-import { logDebug } from '@/components/SmartLight/api/utils/logger';
-import { useSmartlightStore } from '@/components/SmartLight/stores';
+    calculateBatteryCriticalProgress,
+    calculateBatteryNormalProgress
+} from '@/components/SmartLight/utils/appDeviceUtils.js';
+import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
 
 export class PowerService {
     constructor() {
-        this.deviceStore = useSmartlightStore();
+        this.store = useSmartlightStore();
     }
 
     /**
      * Рассчитывает время работы устройства
+     * @param {string} deviceId - ID устройства
+     * @returns {string} форматированное время
      */
     calculateRuntime(deviceId) {
-        const device = this.deviceStore.actions.getDevice(deviceId);
-        logDebug('PowerService', 'Расчет времени работы', {
-            deviceId,
-            device,
-            runtime: calculateDeviceRuntime(device)
-        });
+        try {
+            const device = this.store.deviceGetDevice(deviceId);
+            if (!device) {
+                logError('PowerService', 'Устройство не найдено', { deviceId });
+                return 'N/A';
+            }
 
-        return calculateDeviceRuntime(device);
+            const batteryType = this.store.typesGetBatteryTypeById(device.battery_type_id);
+            if (!batteryType) {
+                logError('PowerService', 'Тип батареи не найден', { deviceId });
+                return 'N/A';
+            }
+
+            return calculateDeviceRuntime(device, batteryType);
+        } catch (error) {
+            logError('PowerService', 'Ошибка расчета времени работы', error);
+            return 'N/A';
+        }
     }
 
     /**
-     * Рассчитывает минимальное напряжение для устройства
+     * Рассчитывает потребление в Ватт-часах
+     * @param {string} deviceId - ID устройства
+     * @returns {number} потребление в Wh
      */
-    calculateMinVoltage(deviceId) {
-        logDebug('PowerService', 'Расчет минимального напряжения', {
-            deviceId,
-            minVoltage: calculateMinVoltage(deviceId)
-        });
-
-        return calculateMinVoltage(deviceId);
+    calculatePowerConsumptionWh(deviceId) {
+        const device = this.store.deviceGetDevice(deviceId);
+        if (!device) return 0;
+        return calculatePowerConsumptionWh(device);
     }
 
     /**
-     * Рассчитывает максимальное напряжение для устройства
+     * Получает потребление устройства (мА)
+     * @param {string} deviceId - ID устройства
+     * @returns {number} потребление в мА
      */
-    calculateMaxVoltage(deviceId) {
-        logDebug('PowerService', 'Расчет максимального напряжения', {
-            deviceId,
-            maxVoltage: calculateMaxVoltage(deviceId)
-        });
-
-        return calculateMaxVoltage(deviceId);
+    getDeviceConsumption(deviceId) {
+        const device = this.store.deviceGetDevice(deviceId);
+        if (!device) return 100;
+        return device.power_config?.custom_consumption_mA ||
+            device.power_config?.base_consumption_mA || 100;
     }
 
     /**
-     * Рассчитывает критическое напряжение для устройства
-     */
-    calculateCriticalVoltage(deviceId) {
-        logDebug('PowerService', 'Расчет критического напряжения', {
-            deviceId,
-            criticalVoltage: calculateCriticalVoltage(deviceId)
-        });
-
-        return calculateCriticalVoltage(deviceId);
-    }
-
-    /**
-     * Рассчитывает позицию критического порога в процентах
-     */
-    calculateCriticalThresholdPosition(device) {
-        logDebug('PowerService', 'Расчет позиции критического порога', {
-            deviceId: device?.device_id,
-            position: calculateCriticalThresholdPosition(device)
-        });
-
-        return calculateCriticalThresholdPosition(device);
-    }
-
-    /**
-     * Рассчитывает нормальный прогресс
-     */
-    calculateBatteryNormalProgress(device) {
-        logDebug('PowerService', 'Расчет нормального прогресса', {
-            deviceId: device?.device_id,
-            progress: calculateBatteryNormalProgress(device)
-        });
-
-        return calculateBatteryNormalProgress(device);
-    }
-
-    /**
-     * Рассчитывает критический прогресс
-     */
-    calculateBatteryCriticalProgress(device) {
-        logDebug('PowerService', 'Расчет критического прогресса', {
-            deviceId: device?.device_id,
-            progress: calculateBatteryCriticalProgress(device)
-        });
-
-        return calculateBatteryCriticalProgress(device);
-    }
-
-    /**
-     * Рассчитывает позицию текущего уровня
-     */
-    calculateCurrentLevelPosition(device) {
-        logDebug('PowerService', 'Расчет позиции текущего уровня', {
-            deviceId: device?.device_id,
-            position: calculateCurrentLevelPosition(device)
-        });
-
-        return calculateCurrentLevelPosition(device);
-    }
-
-    /**
-     * Рассчитывает цвет нормального уровня
+     * Получает цвет батареи
+     * @param {string} deviceId - ID устройства
+     * @returns {string} HEX цвет
      */
     getBatteryColor(deviceId) {
-        const device = this.deviceStore.actions.getDevice(deviceId);
-        logDebug('PowerService', 'Получение цвета нормального уровня', {
-            deviceId,
-            color: calculateBatteryColor(device)
-        });
-
+        const device = this.store.deviceGetDevice(deviceId);
+        if (!device) return '#67c23a';
         return calculateBatteryColor(device);
     }
 
     /**
-     * Рассчитывает цвет критического уровня
+     * Получает прогресс батареи (нормальный)
+     * @param {string} deviceId - ID устройства
+     * @returns {number} прогресс в %
      */
-    getCriticalColor(deviceId) {
-        const device = this.deviceStore.actions.getDevice(deviceId);
-        logDebug('PowerService', 'Получение цвета критического уровня', {
-            deviceId,
-            color: calculateCriticalColor(device)
-        });
-
-        return calculateCriticalColor(device);
+    getBatteryNormalProgress(deviceId) {
+        const device = this.store.deviceGetDevice(deviceId);
+        if (!device) return 0;
+        return calculateBatteryNormalProgress(device);
     }
 
     /**
-     * Рассчитывает безопасный диапазон интенсивности
+     * Получает прогресс батареи (критический)
+     * @param {string} deviceId - ID устройства
+     * @returns {number} прогресс в %
      */
-    calculateSafeIntensityRange(deviceId) {
-        logDebug('PowerService', 'Расчет безопасного диапазона интенсивности', { deviceId });
-
-        return {
-            min: 0,
-            max: 100
-        };
+    getBatteryCriticalProgress(deviceId) {
+        const device = this.store.deviceGetDevice(deviceId);
+        if (!device) return 0;
+        return calculateBatteryCriticalProgress(device);
     }
 
     /**
-     * Рассчитывает параметры питания с учетом группировки
+     * Проверяет совместимость источника питания
+     * @param {string} deviceId - ID устройства
+     * @param {string} supplyId - ID источника питания
+     * @returns {Object} результат проверки
      */
-    calculatePowerParameters(device) {
-        if (!device) {
-            logDebug('PowerService', 'Устройство не найдено для расчета параметров питания');
-            return null;
+    checkPowerSupplyCompatibility(deviceId, supplyId) {
+        const device = this.store.deviceGetDevice(deviceId);
+        const powerSupply = this.store.typesGetPowerSupplyById(supplyId);
+
+        if (!device || !powerSupply) {
+            return { compatible: false, message: 'Не найдено' };
         }
 
-        const minVoltage = calculateMinVoltage(device.device_id);
-        const maxVoltage = calculateMaxVoltage(device.device_id);
-        const criticalVoltage = calculateCriticalVoltage(device.device_id);
-
-        logDebug('PowerService', 'Расчет параметров питания', {
-            deviceId: device.device_id,
-            minVoltage,
-            maxVoltage,
-            criticalVoltage,
-            voltage: device.voltage,
-            batteryGroupConfig: device.battery_group_config
-        });
+        const deviceVoltage = device.voltage || 3.7;
+        const supplyVoltageRange = powerSupply.voltageRange;
+        const isCompatible = deviceVoltage >= supplyVoltageRange.min &&
+            deviceVoltage <= supplyVoltageRange.max;
 
         return {
-            minVoltage,
-            maxVoltage,
-            criticalVoltage,
-            voltage: device.voltage,
-            batteryGroupConfig: device.battery_group_config
+            compatible: isCompatible,
+            message: isCompatible ? 'Совместимо' : 'Несовместимо',
+            details: { deviceVoltage, supplyVoltageRange }
         };
     }
 }
+
+export default PowerService;
