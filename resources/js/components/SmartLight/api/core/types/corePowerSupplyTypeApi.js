@@ -1,15 +1,16 @@
 /**
  * ============================================================================
- * POWER SUPPLY TYPE API — НИЗКОУРОВНЕВЫЙ API ДЛЯ ТИПОВ ИСТОЧНИКОВ ПИТАНИЯ
+ * CORE POWER SUPPLY TYPE API — НИЗКОУРОВНЕВЫЙ API ДЛЯ ТИПОВ ИСТОЧНИКОВ ПИТАНИЯ
  * ============================================================================
- * 📁 Путь: api/core/types/powerSupplyTypes/corePowerSupplyTypeApi.js
+ * 📁 Путь: api/core/types/corePowerSupplyTypeApi.js
  * ✅ Используется: CoreTypesApi, Services
  * ✅ Назначение: Прямые запросы к эндпоинтам /power-supplies
+ * ✅ Рефакторинг: методы с суффиксом TypeApi()
  * ============================================================================
  */
 
 import { CorePowerSupplyTypeResource } from '@components/SmartLight/api/core/resource/corePowerSupplyTypeResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CorePowerSupplyTypeApi {
     constructor() {
@@ -17,13 +18,13 @@ export class CorePowerSupplyTypeApi {
     }
 
     /**
-     * Получить все типы источников питания
+     * Получить все типы источников питания (суффикс TypeApi)
      */
-    async getAllPowerSupplyTypes() {
-        logDebug('corePowerSupplyTypeApi', 'getAllPowerSupplyTypes');
+    async getAllPowerSupplyTypesTypeApi() {
+        logDebugUtils('corePowerSupplyTypeApi', 'getAllPowerSupplyTypesTypeApi');
 
         try {
-            const response = await this.resource.getAll();
+            const response = await this.resource.getAllResource();
 
             if (!response || !response.data || !Array.isArray(response.data)) {
                 return {
@@ -39,7 +40,7 @@ export class CorePowerSupplyTypeApi {
                 message: 'Типы источников питания успешно загружены'
             };
         } catch (error) {
-            logError('corePowerSupplyTypeApi', 'Ошибка загрузки', error);
+            logErrorUtils('corePowerSupplyTypeApi', 'Ошибка загрузки', error);
             return {
                 success: false,
                 message: 'Не удалось загрузить типы источников питания',
@@ -49,13 +50,13 @@ export class CorePowerSupplyTypeApi {
     }
 
     /**
-     * Получить тип источника питания по ID
+     * Получить тип источника питания по ID (суффикс TypeApi)
      */
-    async getPowerSupplyTypeById(id) {
-        logDebug('corePowerSupplyTypeApi', 'getPowerSupplyTypeById', { id });
+    async getPowerSupplyTypeByIdTypeApi(id) {
+        logDebugUtils('corePowerSupplyTypeApi', 'getPowerSupplyTypeByIdTypeApi', { id });
 
         try {
-            const response = await this.resource.getById(id);
+            const response = await this.resource.getByIdResource(id);
 
             if (!response || !response.data) {
                 return {
@@ -71,7 +72,7 @@ export class CorePowerSupplyTypeApi {
                 message: 'Тип источника питания успешно загружен'
             };
         } catch (error) {
-            logError('corePowerSupplyTypeApi', 'Ошибка загрузки', error);
+            logErrorUtils('corePowerSupplyTypeApi', 'Ошибка загрузки', error);
             return {
                 success: false,
                 message: 'Не удалось загрузить тип источника питания',
@@ -81,13 +82,13 @@ export class CorePowerSupplyTypeApi {
     }
 
     /**
-     * Проверить совместимость типа источника питания с устройством
+     * Проверить совместимость типа источника питания с устройством (суффикс TypeApi)
      */
-    async checkPowerSupplyTypeCompatibility(supplyTypeId, deviceId) {
-        logDebug('corePowerSupplyTypeApi', 'checkCompatibility', { supplyTypeId, deviceId });
+    async checkPowerSupplyTypeCompatibilityTypeApi(supplyTypeId, deviceId) {
+        logDebugUtils('corePowerSupplyTypeApi', 'checkPowerSupplyTypeCompatibilityTypeApi', { supplyTypeId, deviceId });
 
         try {
-            const response = await this.resource.checkPowerSupplyTypeCompatibility(supplyTypeId, deviceId);
+            const response = await this.resource.checkCompatibilityResource(supplyTypeId, deviceId);
 
             return {
                 success: true,
@@ -95,7 +96,7 @@ export class CorePowerSupplyTypeApi {
                 message: 'Совместимость проверена'
             };
         } catch (error) {
-            logError('corePowerSupplyTypeApi', 'Ошибка проверки совместимости', error);
+            logErrorUtils('corePowerSupplyTypeApi', 'Ошибка проверки совместимости', error);
             return {
                 success: false,
                 message: 'Не удалось проверить совместимость',
@@ -105,8 +106,8 @@ export class CorePowerSupplyTypeApi {
     }
 }
 
-// ✅ Экспорт экземпляра (критично для импорта в coreTypesApi.js)
+// ✅ Экспорт экземпляра
 export const corePowerSupplyTypeApi = new CorePowerSupplyTypeApi();
 
-// ✅ Экспорт по умолчанию для совместимости
+// ✅ Экспорт по умолчанию
 export default corePowerSupplyTypeApi;

@@ -3,44 +3,31 @@
  * API CORE INDEX — ГЛАВНЫЙ ЭКСПОРТ ЯДРА
  * ============================================================================
  * 📁 Путь: api/core/index.js
- * ✅ Используется: V0, V1, V2 ресурсы
+ * ✅ Используется: V0, V1, V2 ресурсы, глобальная инициализация приложения
+ * ✅ Рефакторинг: пути приведены к единому виду, удалены дублирующие экспорты
  * ============================================================================
  */
 
-// Resources
+// Resources (базовые классы с методами *Resource())
 export * from './resource/index.js';
 
-// Utils
+// Utils (контекст, логгер, утилиты)
 export * from './utils/index.js';
-
-// Context export
-export { coreApiContext, CoreApiContext } from './utils/coreApiContext.js';
-
-// Logger exports
+export { coreApiContextUtils, CoreApiContextUtils } from './utils/coreApiContextUtils.js';
 export {
-    logDebug,
-    logInfo,
-    logWarn,
-    logError,
-    logRequest,
-    logResponse,
-    setLogLevel,
-    getLogLevel
-} from './utils/coreApiLogger.js';
+    logDebugUtils, logInfoUtils, logWarnUtils, logErrorUtils, logRequestUtils, logResponseUtils,
+    setLogLevel, getLogLevel
+} from './utils/coreApiLoggerUtils.js';
 
-// SmartLight API
+// SmartLight API (слой бизнес-логики с методами *Api())
 export * from './smartLight/index.js';
 
-// Types
+// Types API (справочники с методами *TypeApi())
 export * from './types/index.js';
-
-// PowerSupplies
-export * from './powerSupplies/index.js';
 
 export default {
     resource: () => import('./resource/index.js'),
     utils: () => import('./utils/index.js'),
     smartLight: () => import('./smartLight/index.js'),
-    types: () => import('./types/index.js'),
-    powerSupplies: () => import('./powerSupplies/index.js')
+    types: () => import('./types/index.js')
 };

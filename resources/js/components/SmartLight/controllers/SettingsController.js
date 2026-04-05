@@ -3,56 +3,102 @@
  * SETTINGS CONTROLLER — КОНТРОЛЛЕР ДЛЯ УПРАВЛЕНИЯ НАСТРОЙКАМИ
  * ============================================================================
  * 📁 Путь: controllers/SettingsController.js
- * ✅ Координация настроек
+ * ✅ Координация настроек устройств и глобальных настроек
  * ✅ Отвечает за: загрузку, сохранение, сброс настроек
  * ============================================================================
  */
 
 import { SettingsService } from '@/components/SmartLight/services/SettingsService.js';
-import { StorageService } from '@/components/SmartLight/services/StorageService.js';
-import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartlightStore.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export class SettingsController {
     constructor() {
         this.store = useSmartlightStore();
         this.settingsService = new SettingsService();
-        this.storageService = new StorageService();
+    }
+
+    /**
+     * Загрузка глобальных настроек
+     * @returns {Promise<Object>} Результат загрузки
+     */
+    async loadGlobalSettings() {
+        logDebugUtils('SettingsController', 'Загрузка глобальных настроек');
+        try {
+            const result = await this.settingsService.getGlobalSettings();
+            if (result.success) {
+                // Обновляем стор для реактивности
+                this.store.settingsUpdateGlobalSettings(result.data);
+                logDebugUtils('SettingsController', 'Глобальные настройки загружены');
+                return result.data;
+            } else {
+                throw new Error(result.message || 'Ошибка загрузки настроек');
+            }
+        } catch (error) {
+            logErrorUtils('SettingsController', 'Ошибка загрузки глобальных настроек', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Сохранение глобальных настроек
+     * @param {Object} settings - Настройки
+     * @returns {Promise<Object>} Результат операции
+     */
+    async saveGlobalSettings(settings) {
+        logDebugUtils('SettingsController', 'Сохранение глобальных настроек', { settings });
+        try {
+            const result = await this.settingsService.updateGlobalSettings(settings);
+            if (result.success) {
+                // Обновляем стор для реактивности
+                this.store.settingsUpdateGlobalSettings(settings);
+                return result;
+            } else {
+                throw new Error(result.message || 'Ошибка сохранения настроек');
+            }
+        } catch (error) {
+            logErrorUtils('SettingsController', 'Ошибка сохранения глобальных настроек', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Сброс глобальных настроек
+     * @returns {Promise<Object>} Результат операции
+     */
+    async resetGlobalSettings() {
+        logDebugUtils('SettingsController', 'Сброс глобальных настроек');
+        try {
+            const result = await this.settingsService.resetGlobalSettings();
+            if (result.success) {
+                // Сбрасываем в сторе
+                this.store.settingsResetGlobalSettings();
+                return result;
+            } else {
+                throw new Error(result.message || 'Ошибка сброса настроек');
+            }
+        } catch (error) {
+            logErrorUtils('SettingsController', 'Ошибка сброса глобальных настроек', error);
+            throw error;
+        }
     }
 
     /**
      * Загрузка настроек устройства
      * @param {string} deviceId - ID устройства
-     * @returns {Promise<Object>} Настройки
+     * @returns {Promise<Object>} Результат загрузки
      */
-    async loadSettings(deviceId) {
-        logDebug('SettingsController', 'Загрузка настроек', { deviceId });
+    async loadDeviceSettings(deviceId) {
+        logDebugUtils('SettingsController', 'Загрузка настроек устройства', { deviceId });
         try {
-            let settings;
-            try {
-                const response = await this.settingsService.getDeviceSettings(deviceId);
-                if (response.success) {
-                    settings = response.data;
-                    this.storageService.saveDeviceSettings(deviceId, settings);
-                }
-            } catch (apiError) {
-                logDebug('SettingsController', 'API ошибка, используем localStorage');
+            const result = await this.settingsService.getDeviceSettings(deviceId);
+            if (result.success) {
+                return result.data;
+            } else {
+                throw new Error(result.message || 'Ошибка загрузки настроек устройства');
             }
-
-            if (!settings) {
-                settings = this.storageService.getDeviceSettings(deviceId);
-            }
-
-            if (settings) {
-                const device = this.store.deviceGetDevice(deviceId);
-                if (device) {
-                    this.store.deviceUpdateDevice({ ...device, ...settings });
-                }
-            }
-
-            return settings;
         } catch (error) {
-            logError('SettingsController', 'Ошибка загрузки настроек', error);
+            logErrorUtils('SettingsController', 'Ошибка загрузки настроек устройства', error);
             throw error;
         }
     }
@@ -61,99 +107,49 @@ export class SettingsController {
      * Сохранение настроек устройства
      * @param {string} deviceId - ID устройства
      * @param {Object} settings - Настройки
-     * @returns {Promise<Object>} Результат сохранения
+     * @returns {Promise<Object>} Результат операции
      */
-    async saveSettings(deviceId, settings) {
-        logDebug('SettingsController', 'Сохранение настроек', { deviceId, settings });
+    async saveDeviceSettings(deviceId, settings) {
+        logDebugUtils('SettingsController', 'Сохранение настроек устройства', { deviceId, settings });
         try {
-            let updatedSettings;
-            try {
-                const response = await this.settingsService.updateDeviceSettings(deviceId, settings);
-                if (response.success) {
-                    updatedSettings = response.data;
+            const result = await this.settingsService.updateDeviceSettingsStore(deviceId, settings);
+            if (result.success) {
+                // Обновляем устройство в сторе для реактивности
+                const device = this.store.deviceGetDevice(deviceId);
+                if (device) {
+                    this.store.deviceUpdateDevice({
+                        ...device,
+                        ...settings
+                    });
                 }
-            } catch (apiError) {
-                logDebug('SettingsController', 'API ошибка');
+                return result;
+            } else {
+                throw new Error(result.message || 'Ошибка сохранения настроек устройства');
             }
-
-            if (!updatedSettings) {
-                updatedSettings = settings;
-            }
-
-            this.storageService.saveDeviceSettings(deviceId, updatedSettings);
-
-            //   ОБНОВЛЯЕМ STORE ДЛЯ РЕАКТИВНОСТИ
-            const device = this.store.deviceGetDevice(deviceId);
-            if (device) {
-                this.store.deviceUpdateDevice({ ...device, ...updatedSettings });
-            }
-
-            return updatedSettings;
         } catch (error) {
-            logError('SettingsController', 'Ошибка сохранения настроек', error);
+            logErrorUtils('SettingsController', 'Ошибка сохранения настроек устройства', error);
             throw error;
         }
     }
 
     /**
-     * Сброс настроек к значениям по умолчанию
+     * Сброс настроек устройства
      * @param {string} deviceId - ID устройства
-     * @returns {Promise<Object>} Настройки по умолчанию
+     * @returns {Promise<Object>} Результат операции
      */
-    async resetToDefaults(deviceId) {
-        logDebug('SettingsController', 'Сброс настроек', { deviceId });
+    async resetDeviceSettings(deviceId) {
+        logDebugUtils('SettingsController', 'Сброс настроек устройства', { deviceId });
         try {
-            const device = this.store.deviceGetDevice(deviceId);
-            if (!device) {
-                throw new Error('Устройство не найдено');
+            const result = await this.settingsService.resetDeviceSettings(deviceId);
+            if (result.success) {
+                return result;
+            } else {
+                throw new Error(result.message || 'Ошибка сброса настроек устройства');
             }
-            const defaultSettings = this.getDefaultSettings(device);
-
-            let resetSettings;
-            try {
-                const response = await this.settingsService.resetDeviceSettings(deviceId);
-                if (response.success) {
-                    resetSettings = response.data;
-                }
-            } catch (apiError) {
-                logDebug('SettingsController', 'API ошибка, используем значения по умолчанию');
-            }
-
-            if (!resetSettings) {
-                resetSettings = defaultSettings;
-            }
-
-            this.storageService.saveDeviceSettings(deviceId, resetSettings);
-            this.store.deviceUpdateDevice({ ...device, ...resetSettings });
-
-            logDebug('SettingsController', 'Настройки сброшены', {
-                deviceId, settings: resetSettings
-            });
-            return resetSettings;
         } catch (error) {
-            logError('SettingsController', 'Ошибка сброса настроек', error);
+            logErrorUtils('SettingsController', 'Ошибка сброса настроек устройства', error);
             throw error;
         }
-    }
-
-    /**
-     * Получение настроек по умолчанию
-     * @param {Object} device - Устройство
-     * @returns {Object} Настройки по умолчанию
-     */
-    getDefaultSettings(device) {
-        return {
-            critical_voltage: device.critical_voltage || 3.0,
-            sleep_interval: device.sleep_interval || 600,
-            emergency_sleep_interval: device.emergency_sleep_interval || 3600,
-            battery_group_config: {
-                enabled: false,
-                type: 'series',
-                count: 1,
-                connections: []
-            },
-            updated_at: new Date().toISOString()
-        };
     }
 }
 

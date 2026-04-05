@@ -9,8 +9,7 @@
  */
 
 import { computed, ref, watch } from 'vue';
-import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
-// ✅ ИСПРАВЛЕНО — appDeviceUtils (без calculateDeviceRuntime)
+import { useDeviceStore, useTypesStore } from '@/components/SmartLight/stores/index.js';
 import {
     calculateMinVoltage,
     calculateMaxVoltage,
@@ -21,22 +20,29 @@ import {
     calculateCurrentLevelPosition,
     calculateBatteryColor
 } from '@/components/SmartLight/utils/appDeviceUtils.js';
-// ✅ ИСПРАВЛЕНО — calculateDeviceRuntime из appPowerUtils
 import { calculateDeviceRuntime } from '@/components/SmartLight/utils/appPowerUtils.js';
-import { getBatteryTypeById } from '@/components/SmartLight/stores/smartlight/types/batteryTypes.js';
-import { logDebug } from '@/components/SmartLight/utils/appLogger.js';
+import { logDebugUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export function useDeviceCalculations(deviceId) {
-    const store = useSmartlightStore();
+    const deviceStore = useDeviceStore();
+    const typesStore = useTypesStore();
+
     const device = ref(null);
     const batteryType = ref(null);
 
     const loadDevice = () => {
         if (!deviceId) return;
-        const deviceData = store.deviceGetDevice(deviceId);
+        const deviceData = deviceStore.getDeviceStore(deviceId);
         if (!deviceData) return;
+
         device.value = deviceData;
-        batteryType.value = getBatteryTypeById(deviceData.battery_type_id);
+        batteryType.value = typesStore.getBatteryTypeByIdStore(deviceData.battery_type_id);
+
+        logDebugUtils('DeviceCalculations', 'Device loaded for calculations', {
+            deviceId,
+            voltage: deviceData.voltage,
+            batteryType: batteryType.value?.name
+        });
     };
 
     const minVoltage = computed(() =>
@@ -71,7 +77,6 @@ export function useDeviceCalculations(deviceId) {
         device.value ? calculateBatteryColor(device.value) : '#67c23a'
     );
 
-    // ✅ ИСПРАВЛЕНО — передаём batteryType
     const deviceRuntime = computed(() => {
         if (!device.value || !batteryType.value) return 'N/A';
         return calculateDeviceRuntime(device.value, batteryType.value);
@@ -82,17 +87,18 @@ export function useDeviceCalculations(deviceId) {
     );
 
     // ✅ РЕАКТИВНОСТЬ — ОБНОВЛЕНИЕ ПРИ ИЗМЕНЕНИИ STORE
-    watch(() => store.deviceGetDevice(deviceId), (newDevice) => {
+    watch(() => deviceStore.getDeviceStore(deviceId), (newDevice) => {
         if (newDevice) {
             device.value = newDevice;
-            batteryType.value = getBatteryTypeById(newDevice.battery_type_id);
-            logDebug('DeviceCalculations', 'Устройство обновлено', {
+            batteryType.value = typesStore.getBatteryTypeByIdStore(newDevice.battery_type_id);
+            logDebugUtils('DeviceCalculations', 'Device data updated', {
                 deviceId,
                 voltage: newDevice.voltage
             });
         }
     }, { deep: true, immediate: true });
 
+    // Загрузка при инициализации
     loadDevice();
 
     return {

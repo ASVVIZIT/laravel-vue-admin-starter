@@ -7,18 +7,18 @@
  * ============================================================================
  */
 
-export * from './appLogger.js';
+export * from './appLoggerUtils.js';
 export * from './appDeviceUtils.js';
 export * from './appPowerUtils.js';
-export * from './appValidators.js';
-export * from './appFormatters.js';
-export * from './appHelpers.js';
+export * from './appValidatorsUtils.js';
+export * from './appFormattersUtils.js';
+export * from './appHelpersUtils.js';
 
 export default {
-    appLogger: () => import('./appLogger.js'),
-    deviceUtils: () => import('./appDeviceUtils.js'),
-    powerUtils: () => import('./appPowerUtils.js'),
-    validators: () => import('./appValidators.js'),
-    formatters: () => import('./appFormatters.js'),
-    helpers: () => import('./appHelpers.js')
+    appLoggerUtils: () => import('./appLoggerUtils.js'),
+    appDeviceUtils: () => import('./appDeviceUtils.js'),
+    appPowerUtils: () => import('./appPowerUtils.js'),
+    appValidatorsUtils: () => import('./appValidatorsUtils.js'),
+    appFormattersUtils: () => import('./appFormattersUtils.js'),
+    appHelpersUtils: () => import('./appHelpersUtils.js')
 };

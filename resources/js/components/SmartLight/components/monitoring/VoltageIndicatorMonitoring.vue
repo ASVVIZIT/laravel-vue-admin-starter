@@ -1,11 +1,11 @@
 <template>
-  <div class="voltage-indicator" :class="{ 'critical': isCritical }">
-    <div class="voltage-value">{{ voltage }} В</div>
-    <div class="voltage-bar">
-      <div class="voltage-fill" :style="{ height: `${progress}%` }"></div>
-      <div class="voltage-mark critical" :style="{ top: `${criticalPosition}%` }"></div>
-      <div class="voltage-mark min" :style="{ top: `${minPosition}%` }"></div>
-      <div class="voltage-mark max" :style="{ top: `${maxPosition}%` }"></div>
+  <div class="voltage-indicator-monitoring" :class="{ 'indicator-critical': isCritical }">
+    <div class="indicator-value">{{ voltage }} В</div>
+    <div class="indicator-bar">
+      <div class="indicator-fill" :style="{ height: `${progress}%` }"></div>
+      <div class="indicator-mark indicator-mark--critical" :style="{ top: `${criticalPosition}%` }"></div>
+      <div class="indicator-mark indicator-mark--min" :style="{ top: `${minPosition}%` }"></div>
+      <div class="indicator-mark indicator-mark--max" :style="{ top: `${maxPosition}%` }"></div>
     </div>
   </div>
 </template>
@@ -14,25 +14,10 @@
 import { computed } from 'vue';
 
 const props = defineProps({
-  voltage: {
-    type: Number,
-    required: true
-  },
-  minVoltage: {
-    type: Number,
-    required: true,
-    default: 2.5
-  },
-  maxVoltage: {
-    type: Number,
-    required: true,
-    default: 4.3
-  },
-  criticalVoltage: {
-    type: Number,
-    required: true,
-    default: 3.2
-  }
+  voltage: { type: Number, required: true },
+  minVoltage: { type: Number, required: true, default: 2.5 },
+  maxVoltage: { type: Number, required: true, default: 4.3 },
+  criticalVoltage: { type: Number, required: true, default: 3.2 }
 });
 
 const isCritical = computed(() => props.voltage < props.criticalVoltage);
@@ -50,31 +35,31 @@ const maxPosition = computed(() => 100);
 </script>
 
 <style scoped>
-.voltage-indicator {
+.voltage-indicator-monitoring {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
 }
 
-.voltage-value {
-  font-size: 16px;
-  font-weight: 500;
+.indicator-value {
+  font-size: 14px;
+  font-weight: 600;
   color: #303133;
 }
 
-.voltage-bar {
+.indicator-bar {
   position: relative;
   width: 100%;
-  height: 150px;
+  height: 120px;
   background: #f5f7fa;
   border: 1px solid #ebeef5;
   border-radius: 4px;
   overflow: hidden;
 }
 
-.voltage-fill {
+.indicator-fill {
   position: absolute;
   bottom: 0;
   left: 0;
@@ -83,22 +68,26 @@ const maxPosition = computed(() => 100);
   transition: height 0.3s ease;
 }
 
-.voltage-mark {
+.indicator-mark {
   position: absolute;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 1px;
   background: #e6a23c;
   z-index: 10;
 }
 
-.voltage-mark.critical {
+.indicator-mark--critical {
   background: #f56c6c;
-  border: 1px dashed #f56c6c;
+  border-top: 1px dashed #f56c6c;
 }
 
-.voltage-mark.min, .voltage-mark.max {
+.indicator-mark--min,
+.indicator-mark--max {
   background: #909399;
-  border: 1px solid #909399;
+}
+
+.indicator-critical .indicator-fill {
+  background: linear-gradient(to top, #f56c6c 0%, #faa7a7 100%);
 }
 </style>

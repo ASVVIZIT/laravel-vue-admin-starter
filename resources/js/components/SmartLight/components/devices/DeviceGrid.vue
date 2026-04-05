@@ -34,13 +34,22 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { Loading, WarningFilled, InfoFilled } from '@element-plus/icons-vue';
-import { useDeviceStore } from '@components/SmartLight/stores/index.js';
+import { useDeviceStore } from '@/components/SmartLight/stores/index.js';
 import DeviceCard from './DeviceCard.vue';
 
-defineEmits(['device-selected', 'open-settings', 'sleep-click', 'wake-click', 'power-click']);
+defineEmits([
+  'device-selected',
+  'open-settings',
+  'sleep-click',
+  'wake-click',
+  'power-click'
+]);
 
 const props = defineProps({
-  devices: { type: Array, default: () => [] }
+  devices: {
+    type: Array,
+    default: () => []
+  }
 });
 
 const store = useDeviceStore();
@@ -48,16 +57,18 @@ const loading = ref(false);
 const error = ref(null);
 
 const handleDeviceSelect = (device) => {
-  store.selectDevice(device.device_id);
+  store.selectDeviceStore(device.device_id);
 };
 
 onMounted(async () => {
   loading.value = true;
   try {
-    const result = await store.fetchDevices();
-    if (!result.success) error.value = result.message;
+    const result = await store.fetchDevicesStore();
+    if (!result.success) {
+      error.value = result.message || 'Ошибка загрузки устройств';
+    }
   } catch (err) {
-    error.value = err.message;
+    error.value = err.message || 'Неизвестная ошибка';
   } finally {
     loading.value = false;
   }
@@ -69,7 +80,9 @@ onMounted(async () => {
   width: 100%;
 }
 
-.loading, .error, .empty {
+.loading,
+.error,
+.empty {
   padding: 40px;
   text-align: center;
   color: #909399;
@@ -80,11 +93,15 @@ onMounted(async () => {
   font-size: 14px;
 }
 
-.loading .is-loading, .error .el-icon, .empty .el-icon {
+.loading .is-loading,
+.error .el-icon,
+.empty .el-icon {
   font-size: 24px;
 }
 
-.error { color: #f56c6c; }
+.error {
+  color: #f56c6c;
+}
 
 .grid-container {
   display: flex;

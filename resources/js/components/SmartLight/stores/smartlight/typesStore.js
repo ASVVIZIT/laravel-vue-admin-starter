@@ -1,150 +1,162 @@
 /**
  * ============================================================================
- * TYPES STORE — ПОДСТОР ТИПОВ
+ * TYPES STORE — УПРАВЛЕНИЕ СПРАВОЧНИКАМИ (ПРЯМОЙ ИМПОРТ, БЕЗ КОСТЫЛЕЙ)
  * ============================================================================
  * 📁 Путь: stores/smartlight/typesStore.js
+ * ✅ Исправлено: прямой импорт низкоуровневых API, обход агрегатора
+ * ✅ Рефакторинг: методы получили суффикс Store(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { BATTERY_TYPES, getBatteryTypeById as getBatteryTypeConst } from './types/batteryTypes.js';
-import { BULB_TYPES, getBulbTypeById as getBulbTypeConst } from './types/bulbTypes.js';
-import { POWER_SUPPLY_TYPES, getPowerSupplyById as getPowerSupplyConst } from './types/powerSupplyTypes.js';
-import { CoreTypesResource } from '@/components/SmartLight/api/core/resource/coreTypesResource.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
-export const useTypesStore = defineStore('types', () => {
+// ✅ ПРЯМОЙ ИМПОРТ НИЗКОУРОВНЕВЫХ API
+import { coreBatteryTypeApi } from '@components/SmartLight/api/core/types/coreBatteryTypeApi.js';
+import { coreBulbTypeApi } from '@components/SmartLight/api/core/types/coreBulbTypeApi.js';
+import { corePowerSupplyTypeApi } from '@components/SmartLight/api/core/types/corePowerSupplyTypeApi.js';
+
+// Фолбэк-константы если API не отвечает
+import { BATTERY_TYPES } from '@/components/SmartLight/stores/smartlight/types/batteryTypes.js';
+import { BULB_TYPES } from '@/components/SmartLight/stores/smartlight/types/bulbTypes.js';
+import { POWER_SUPPLY_TYPES } from '@/components/SmartLight/stores/smartlight/types/powerSupplyTypes.js';
+
+export const useTypesStore = defineStore('smartlight-types', () => {
+    // === STATE ===
     const batteryTypes = ref({});
     const bulbTypes = ref({});
     const powerSupplyTypes = ref({});
     const typesLoaded = ref(false);
     const loading = ref(false);
+    const error = ref(null);
 
-    const batteryTypesForDropdown = computed(() => {
-        if (typesLoaded.value && Object.keys(batteryTypes.value).length > 0) {
-            return Object.entries(batteryTypes.value).map(([id, type]) => ({
-                id,
-                label: type.name || id,
-                value: id
-            }));
+    // === GETTERS: Для <el-select> ===
+    const batteryTypesForDropdownStore = computed(() =>
+        Object.values(batteryTypes.value).map(t => ({
+            value: t.id,
+            label: t.name || t.short_name || t.id
+        }))
+    );
+
+    const bulbTypesForDropdownStore = computed(() =>
+        Object.values(bulbTypes.value).map(t => ({
+            value: t.id,
+            label: t.name || t.short_name || t.id
+        }))
+    );
+
+    const powerSuppliesForDropdownStore = computed(() =>
+        Object.values(powerSupplyTypes.value).map(t => ({
+            value: t.id,
+            label: t.name || t.short_name || t.id
+        }))
+    );
+
+    // === GETTERS: Поиск по ID ===
+    const getBatteryTypeByIdStore = (id) => batteryTypes.value[id] || null;
+    const getBulbTypeByIdStore = (id) => bulbTypes.value[id] || null;
+    const getPowerSupplyByIdStore = (id) => powerSupplyTypes.value[id] || null;
+
+    // === ACTIONS ===
+
+    const fetchTypesStore = async () => {
+        if (typesLoaded.value && !loading.value) {
+            return { success: true, cached: true };
         }
-        return Object.entries(BATTERY_TYPES).map(([id, type]) => ({
-            id,
-            label: type.name,
-            value: id
-        }));
-    });
 
-    const bulbTypesForDropdown = computed(() => {
-        if (typesLoaded.value && Object.keys(bulbTypes.value).length > 0) {
-            return Object.entries(bulbTypes.value).map(([id, type]) => ({
-                id,
-                label: type.name || id,
-                value: id
-            }));
-        }
-        return Object.entries(BULB_TYPES).map(([id, type]) => ({
-            id,
-            label: type.name,
-            value: id
-        }));
-    });
-
-    const powerSuppliesForDropdown = computed(() => {
-        if (typesLoaded.value && Object.keys(powerSupplyTypes.value).length > 0) {
-            return Object.entries(powerSupplyTypes.value).map(([id, type]) => ({
-                id,
-                label: type.name || id,
-                value: id
-            }));
-        }
-        return Object.entries(POWER_SUPPLY_TYPES).map(([id, type]) => ({
-            id,
-            label: type.name,
-            value: id
-        }));
-    });
-
-    const getBatteryTypeById = (id) => {
-        return batteryTypes.value[id] || getBatteryTypeConst(id);
-    };
-
-    const getBulbTypeById = (id) => {
-        return bulbTypes.value[id] || getBulbTypeConst(id);
-    };
-
-    const getPowerSupplyById = (id) => {
-        return powerSupplyTypes.value[id] || getPowerSupplyConst(id);
-    };
-
-    const fetchTypes = async () => {
         loading.value = true;
-        console.log('[TypesStore] Fetching types from API...');
+        error.value = null;
+        logDebugUtils('TypesStore', 'Fetching types from API (direct import)...');
+
         try {
-            const resource = new CoreTypesResource();
-            const [batteries, bulbs, powerSupplies] = await Promise.all([
-                resource.getBatteryTypes(),
-                resource.getBulbTypes(),
-                resource.getPowerSupplies()
+            const [batteryRes, bulbRes, powerRes] = await Promise.all([
+                coreBatteryTypeApi.getAllBatteryTypesTypeApi(),
+                coreBulbTypeApi.getAllBulbTypesTypeApi(),
+                corePowerSupplyTypeApi.getAllPowerSupplyTypesTypeApi()
             ]);
 
-            if (batteries.data) {
-                if (Array.isArray(batteries.data)) {
-                    batteryTypes.value = batteries.data.reduce((acc, type) => {
-                        acc[type.id] = type;
-                        return acc;
-                    }, {});
-                } else if (typeof batteries.data === 'object') {
-                    batteryTypes.value = batteries.data;
-                }
-            }
+            const parseTypes = (response, fallback) => {
+                if (!response?.success) return fallback || {};
+                const data = response.data;
+                if (!data || typeof data !== 'object') return fallback || {};
+                if (!Array.isArray(data)) return data;
+                return data.reduce((acc, item) => {
+                    if (item?.id) acc[item.id] = item;
+                    return acc;
+                }, {});
+            };
 
-            if (bulbs.data) {
-                if (Array.isArray(bulbs.data)) {
-                    bulbTypes.value = bulbs.data.reduce((acc, type) => {
-                        acc[type.id] = type;
-                        return acc;
-                    }, {});
-                } else if (typeof bulbs.data === 'object') {
-                    bulbTypes.value = bulbs.data;
-                }
-            }
-
-            if (powerSupplies.data) {
-                if (Array.isArray(powerSupplies.data)) {
-                    powerSupplyTypes.value = powerSupplies.data.reduce((acc, type) => {
-                        acc[type.id] = type;
-                        return acc;
-                    }, {});
-                } else if (typeof powerSupplies.data === 'object') {
-                    powerSupplyTypes.value = powerSupplies.data;
-                }
-            }
+            batteryTypes.value = parseTypes(batteryRes, BATTERY_TYPES);
+            bulbTypes.value = parseTypes(bulbRes, BULB_TYPES);
+            powerSupplyTypes.value = parseTypes(powerRes, POWER_SUPPLY_TYPES);
 
             typesLoaded.value = true;
-            console.log('[TypesStore] Types loaded:', {
+
+            logDebugUtils('TypesStore', 'Types loaded', {
                 batteries: Object.keys(batteryTypes.value).length,
                 bulbs: Object.keys(bulbTypes.value).length,
                 powerSupplies: Object.keys(powerSupplyTypes.value).length
             });
+
             return { success: true };
+
         } catch (err) {
-            console.warn('[TypesStore] API failed, using fallback constants');
+            logErrorUtils('TypesStore', 'Failed to fetch types', err);
+            error.value = err.message || 'Не удалось загрузить справочники';
+            typesLoaded.value = false;
+
+            // Фолбэк на константы при ошибке
             batteryTypes.value = BATTERY_TYPES;
             bulbTypes.value = BULB_TYPES;
             powerSupplyTypes.value = POWER_SUPPLY_TYPES;
-            typesLoaded.value = true;
-            return { success: false, message: err.message };
+
+            return { success: false, error: err.message };
         } finally {
             loading.value = false;
         }
     };
 
+    const refreshTypesStore = async () => {
+        typesLoaded.value = false;
+        return await fetchTypesStore();
+    };
+
+    const clearTypesStore = () => {
+        batteryTypes.value = {};
+        bulbTypes.value = {};
+        powerSupplyTypes.value = {};
+        typesLoaded.value = false;
+        logDebugUtils('TypesStore', 'Types cache cleared');
+    };
+
+    const initTypesStore = async () => {
+        if (!typesLoaded.value) {
+            await fetchTypesStore();
+        }
+    };
+
+    // === EXPOSE ===
     return {
-        batteryTypes, bulbTypes, powerSupplyTypes, typesLoaded, loading,
-        batteryTypesForDropdown, bulbTypesForDropdown, powerSuppliesForDropdown,
-        getBatteryTypeById, getBulbTypeById, getPowerSupplyById,
-        fetchTypes
+        // State
+        batteryTypes,
+        bulbTypes,
+        powerSupplyTypes,
+        typesLoaded,
+        loading,
+        error,
+        // Getters
+        batteryTypesForDropdownStore,
+        bulbTypesForDropdownStore,
+        powerSuppliesForDropdownStore,
+        getBatteryTypeByIdStore,
+        getBulbTypeByIdStore,
+        getPowerSupplyByIdStore,
+        // Actions
+        fetchTypesStore,
+        refreshTypesStore,
+        clearTypesStore,
+        initTypesStore
     };
 });
 

@@ -4,26 +4,27 @@
  * ============================================================================
  * 📁 Путь: api/core/smartLight/coreCommandsApi.js
  * ✅ Используется: CommandService, Controllers
+ * ✅ Рефакторинг: методы с суффиксом Api(), вызовы через Resource()
  * ============================================================================
  */
 
 import { CoreSmartLightResource } from '@components/SmartLight/api/core/resource/coreSmartLightResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 const resource = new CoreSmartLightResource();
 
 export const CoreCommandsApi = {
-    async sendCommand(deviceId, command, intensity = 100) {
-        logDebug('coreCommandsApi', 'sendCommand called', { deviceId, command, intensity });
+    async sendCommandApi(deviceId, command, intensity = 100) {
+        logDebugUtils('coreCommandsApi', 'sendCommandApi called', { deviceId, command, intensity });
         try {
-            const response = await resource.sendCommand(deviceId, command, intensity);
+            const response = await resource.sendCommandResource(deviceId, command, intensity);
             return {
                 success: true,
                 message: 'Команда успешно отправлена',
                 data: response.data
             };
         } catch (error) {
-            logError('coreCommandsApi', 'sendCommand error', error);
+            logErrorUtils('coreCommandsApi', 'sendCommandApi error', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка отправки команды',
@@ -32,17 +33,17 @@ export const CoreCommandsApi = {
         }
     },
 
-    async forceSleep(deviceId) {
-        logDebug('coreCommandsApi', 'forceSleep called', { deviceId });
+    async forceSleepApi(deviceId) {
+        logDebugUtils('coreCommandsApi', 'forceSleepApi called', { deviceId });
         try {
-            const response = await resource.forceSleep(deviceId);
+            const response = await resource.forceSleepResource(deviceId);
             return {
                 success: true,
                 message: 'Команда сна отправлена',
                 data: response.data
             };
         } catch (error) {
-            logError('coreCommandsApi', 'forceSleep error', error);
+            logErrorUtils('coreCommandsApi', 'forceSleepApi error', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка отправки команды сна',
@@ -51,17 +52,17 @@ export const CoreCommandsApi = {
         }
     },
 
-    async getCommand(deviceId) {
-        logDebug('coreCommandsApi', 'getCommand called', { deviceId });
+    async getCommandApi(deviceId) {
+        logDebugUtils('coreCommandsApi', 'getCommandApi called', { deviceId });
         try {
-            const response = await resource.getCommand(deviceId);
+            const response = await resource.getCommandResource(deviceId);
             return {
                 success: true,
                 message: 'Команда получена',
                 data: response.data
             };
         } catch (error) {
-            logError('coreCommandsApi', 'getCommand error', error);
+            logErrorUtils('coreCommandsApi', 'getCommandApi error', error);
             return {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка получения команды',

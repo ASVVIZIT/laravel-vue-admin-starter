@@ -1,25 +1,26 @@
 /**
  * ============================================================================
- * API LOGGER — ЛОГГЕР С КОНТЕКСТОМ ВЕРСИИ
+ * API LOGGER UTILS — ЛОГГЕР С КОНТЕКСТОМ ВЕРСИИ (УТИЛИТЫ)
  * ============================================================================
- * 📁 Путь: api/core/utils/coreApiLogger.js
+ * 📁 Путь: api/core/utils/coreApiLoggerUtils.js
  * ✅ Используется: Все API ресурсы для логирования
  * ✅ Контекст: Автоматически добавляет версию API к логам
+ * ✅ Рефакторинг: все функции имеют суффикс Utils
  * ============================================================================
  */
 
-import { coreApiContext } from './coreApiContext.js';
+import { coreApiContextUtils } from './coreApiContextUtils.js';
 
-const formatMessage = (level, component, message, data = null) => {
+const formatMessageUtils = (level, component, message, data = null) => {
     const timestamp = new Date().toISOString();
-    const prefix = coreApiContext.getLogPrefix();
+    const prefix = coreApiContextUtils.getLogPrefix();
     const dataStr = data ? `\n${JSON.stringify(data, null, 2)}` : '';
     return `${timestamp} ${prefix} [${level.toUpperCase()}] ${component}: ${message}${dataStr}`;
 };
 
-const logToConsole = (level, component, message, data = null) => {
-    if (!coreApiContext.shouldLog(level)) return;
-    const formattedMessage = formatMessage(level, component, message, data);
+const logToConsoleUtils = (level, component, message, data = null) => {
+    if (!coreApiContextUtils.shouldLog(level)) return;
+    const formattedMessage = formatMessageUtils(level, component, message, data);
 
     switch (level) {
         case 'debug': console.debug(formattedMessage); break;
@@ -30,65 +31,76 @@ const logToConsole = (level, component, message, data = null) => {
     }
 };
 
-// Публичные функции логгера
-export const logDebug = (component, message, data = null) => {
-    logToConsole('debug', component, message, data);
+// ✅ Публичные функции логгера (с суффиксом Utils)
+export const logDebugUtils = (component, message, data = null) => {
+    logToConsoleUtils('debug', component, message, data);
 };
 
-export const logInfo = (component, message, data = null) => {
-    logToConsole('info', component, message, data);
+export const logInfoUtils = (component, message, data = null) => {
+    logToConsoleUtils('info', component, message, data);
 };
 
-export const logWarn = (component, message, data = null) => {
-    logToConsole('warn', component, message, data);
+export const logWarnUtils = (component, message, data = null) => {
+    logToConsoleUtils('warn', component, message, data);
 };
 
-export const logError = (component, message, error = null) => {
+export const logErrorUtils = (component, message, error = null) => {
     const errorData = error ? { message: error.message, stack: error.stack, name: error.name, ...error } : null;
-    logToConsole('error', component, message, errorData);
+    logToConsoleUtils('error', component, message, errorData);
 };
 
-// Логгер для запросов (с ID)
-export const logRequest = (component, method, url, data = null) => {
-    const requestId = coreApiContext.getNextRequestId();
-    logDebug(component, `${method} ${url}`, { requestId, version: coreApiContext.getVersion(), data });
+// ✅ Логгер для запросов (с суффиксом Utils)
+export const logRequestUtils = (component, method, url, data = null) => {
+    const requestId = coreApiContextUtils.getNextRequestId();
+    logDebugUtils(component, `${method} ${url}`, { requestId, version: coreApiContextUtils.getVersion(), data });
     return requestId;
 };
 
-// Логгер для ответов (с ID)
-export const logResponse = (component, requestId, status, duration, data = null) => {
-    logDebug(component, `Response: ${status} (${duration}ms)`, {
-        requestId, version: coreApiContext.getVersion(), status, duration, data
+// ✅ Логгер для ответов (с суффиксом Utils)
+export const logResponseUtils = (component, requestId, status, duration, data = null) => {
+    logDebugUtils(component, `Response: ${status} (${duration}ms)`, {
+        requestId, version: coreApiContextUtils.getVersion(), status, duration, data
     });
 };
 
-// Логгер для ошибок запросов
-export const logRequestError = (component, requestId, error, duration) => {
-    logError(component, `Request failed: ${error.message}`, {
-        requestId, version: coreApiContext.getVersion(), duration,
+// ✅ Логгер для ошибок запросов (с суффиксом Utils)
+export const logRequestErrorUtils = (component, requestId, error, duration) => {
+    logErrorUtils(component, `Request failed: ${error.message}`, {
+        requestId, version: coreApiContextUtils.getVersion(), duration,
         error: { message: error.message, code: error.code, status: error.status }
     });
 };
 
-export const setLogLevel = (level) => {
-    coreApiContext.updateConfig({ logLevel: level });
-    logInfo('coreApiLogger', `Log level set to: ${level}`);
+// ✅ Управление уровнем логирования (с суффиксом Utils)
+export const setLogLevelUtils = (level) => {
+    coreApiContextUtils.updateConfig({ logLevel: level });
+    logInfoUtils('coreApiLoggerUtils', `Log level set to: ${level}`);
 };
 
-export const getLogLevel = () => coreApiContext.getConfig().logLevel;
+export const getLogLevelUtils = () => coreApiContextUtils.getConfig().logLevel;
 
-export const enableDebug = () => {
-    coreApiContext.updateConfig({ debug: true, logLevel: 'debug' });
-    logInfo('coreApiLogger', 'Debug mode enabled');
+export const enableDebugUtils = () => {
+    coreApiContextUtils.updateConfig({ debug: true, logLevel: 'debug' });
+    logInfoUtils('coreApiLoggerUtils', 'Debug mode enabled');
 };
 
-export const disableDebug = () => {
-    coreApiContext.updateConfig({ debug: false, logLevel: 'info' });
-    logInfo('coreApiLogger', 'Debug mode disabled');
+export const disableDebugUtils = () => {
+    coreApiContextUtils.updateConfig({ debug: false, logLevel: 'info' });
+    logInfoUtils('coreApiLoggerUtils', 'Debug mode disabled');
 };
 
+// ✅ Экспорт по умолчанию
 export default {
-    logDebug, logInfo, logWarn, logError, logRequest, logResponse, logRequestError,
-    setLogLevel, getLogLevel, enableDebug, disableDebug,
-    getContext: () => coreApiContext
+    logDebugUtils,
+    logInfoUtils,
+    logWarnUtils,
+    logErrorUtils,
+    logRequestUtils,
+    logResponseUtils,
+    logRequestErrorUtils,
+    setLogLevelUtils,
+    getLogLevelUtils,
+    enableDebugUtils,
+    disableDebugUtils,
+    getContextUtils: () => coreApiContextUtils
 };

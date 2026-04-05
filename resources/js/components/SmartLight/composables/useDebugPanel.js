@@ -5,11 +5,12 @@
  * 📁 Путь: composables/useDebugPanel.js
  * ✅ Используется: DebugPanel.vue, DeviceCard.vue
  * ✅ Интеграция: stores, deviceUtils, useContainer
+ * ✅ Рефакторинг: исправлены вызовы методов стора (агрегированные имена), импорты *Utils
  * ============================================================================
  */
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartlightStore.js';
 import {
     calculateMinVoltage,
     calculateMaxVoltage,
@@ -21,8 +22,8 @@ import {
     calculateBatteryColor
 } from '@/components/SmartLight/utils/appDeviceUtils.js';
 import { calculateDeviceRuntime } from '@/components/SmartLight/utils/appPowerUtils.js';
-import { getBatteryTypeById } from '@/components/SmartLight/stores/smartlight/types/batteryTypes.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { getBatteryTypeByIdStore } from '@/components/SmartLight/stores/smartlight/types/batteryTypes.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 import { useContainer } from './useContainer.js';
 
 export const useDebugPanel = (deviceId, containerRef = null) => {
@@ -38,11 +39,12 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
         ? useContainer(containerRef)
         : { isVisible: ref(true), isActiveTab: ref(true) };
 
+    // ✅ Вызов агрегированного геттера (без суффикса Store)
     const device = computed(() => store.deviceSelectedDevice || store.deviceGetDevice(deviceId));
 
     const batteryType = computed(() => {
         if (!device.value) return null;
-        return getBatteryTypeById(device.value.battery_type_id);
+        return getBatteryTypeByIdStore(device.value.battery_type_id);
     });
 
     const minVoltage = computed(() => {
@@ -57,7 +59,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
 
     const batteryTypeName = computed(() => {
         if (!device.value) return 'Нормальный режим';
-        const batteryType = getBatteryTypeById(device.value.battery_type_id);
+        const batteryType = getBatteryTypeByIdStore(device.value.battery_type_id);
         return batteryType?.name || 'Неизвестно';
     });
 
@@ -99,27 +101,25 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
         device.value ? calculateBatteryColor(device.value) : '#67c23a'
     );
 
-    // ✅ УДАЛЕНО: calculateCriticalColor не существует
     const criticalColor = computed(() => '#ffcccb');
 
-    // ✅ ИСПРАВЛЕНО: передаём batteryType
     const deviceRuntime = computed(() => {
         if (!device.value || !batteryType.value) return 'N/A';
         return calculateDeviceRuntime(device.value, batteryType.value);
     });
 
-    // ✅ УДАЛЕНО: calculateSafeIntensityRange не существует
     const safeIntensityRange = computed(() => ({ min: 0, max: 100 }));
 
     const formatVoltageTooltip = (value) => `${value.toFixed(2)} В`;
 
-    // ✅ ИСПРАВЛЕНО: используем deviceUpdateDevice вместо deviceUpdateDeviceStatus
+    // ✅ Обновление статуса через агрегированный метод (без суффикса Store)
     const updateStatus = async (value) => {
         try {
             loading.value = true;
             error.value = null;
 
-            const result = await store.deviceUpdateDevice(deviceId, {
+            const result = await store.deviceUpdateDevice({
+                ...device.value,
                 status: value
             });
 
@@ -131,7 +131,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
             throw new Error('Ошибка обновления статуса');
         } catch (err) {
             error.value = 'Не удалось обновить статус';
-            logError('useDebugPanel', 'Ошибка обновления статуса', err);
+            logErrorUtils('useDebugPanel', 'Ошибка обновления статуса', err);
             return {
                 success: false,
                 message: 'Ошибка обновления статуса',
@@ -142,6 +142,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
         }
     };
 
+    // ✅ Экстренный сон через агрегированный метод
     const sendEmergencySleep = async () => {
         try {
             loading.value = true;
@@ -154,7 +155,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
             throw new Error(result?.message || 'Ошибка перевода в сон');
         } catch (err) {
             error.value = 'Не удалось перевести устройство в сон';
-            logError('useDebugPanel', 'Ошибка перевода в сон', err);
+            logErrorUtils('useDebugPanel', 'Ошибка перевода в сон', err);
             return {
                 success: false,
                 message: 'Ошибка перевода в сон',
@@ -165,6 +166,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
         }
     };
 
+    // ✅ Пробуждение через агрегированный метод (ИСПРАВЛЕНО: без суффикса Store)
     const wakeDevice = async () => {
         try {
             loading.value = true;
@@ -179,7 +181,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
             throw new Error(result?.message || 'Ошибка пробуждения');
         } catch (err) {
             error.value = 'Не удалось пробудить устройство';
-            logError('useDebugPanel', 'Ошибка пробуждения', err);
+            logErrorUtils('useDebugPanel', 'Ошибка пробуждения', err);
             return {
                 success: false,
                 message: 'Ошибка пробуждения',
@@ -230,12 +232,13 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
             deviceVoltage.value = device.value.voltage || 3.7;
             deviceIntensity.value = device.value.intensity || 100;
             criticalVoltage.value = device.value.critical_voltage || 3.0;
-            show3D.value = store.deviceGetDevice3DMode(deviceId);
+            // ✅ Вызов агрегированного геттера
+            show3D.value = store.getDevice3DMode(deviceId);
         }
     });
 
     onUnmounted(() => {
-        logDebug('useDebugPanel', 'Компонент размонтирован', { deviceId });
+        logDebugUtils('useDebugPanel', 'Компонент размонтирован', { deviceId });
     });
 
     watch(() => store.deviceSelectedDevice, (newDevice, oldDevice) => {
@@ -244,15 +247,17 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
             deviceVoltage.value = newDevice.voltage;
             deviceIntensity.value = newDevice.intensity;
             criticalVoltage.value = newDevice.critical_voltage || 3.0;
-            show3D.value = store.deviceGetDevice3DMode(newDevice.device_id);
+            // ✅ Вызов агрегированного геттера
+            show3D.value = store.getDevice3DMode(newDevice.device_id);
         }
     }, { immediate: true, deep: true });
 
     watch(show3D, (newMode) => {
-        store.deviceSetDevice3DMode(deviceId, newMode);
+        // ✅ Вызов агрегированного сеттера
+        store.setDevice3DMode(deviceId, newMode);
     });
 
-    // ✅ ИСПРАВЛЕНО: используем deviceUpdateDevice вместо deviceUpdateDeviceVoltage
+    // ✅ Обновление напряжения через агрегированный метод
     watch(deviceVoltage, (newVoltage) => {
         if (!device.value?.is_fake) return;
         store.deviceUpdateDevice({
@@ -261,7 +266,7 @@ export const useDebugPanel = (deviceId, containerRef = null) => {
         });
     });
 
-    // ✅ ИСПРАВЛЕНО: используем deviceUpdateDevice вместо deviceUpdateDeviceCriticalVoltage
+    // ✅ Обновление критического напряжения через агрегированный метод
     watch(criticalVoltage, (newCriticalVoltage) => {
         if (!device.value?.is_fake) return;
         store.deviceUpdateDevice({

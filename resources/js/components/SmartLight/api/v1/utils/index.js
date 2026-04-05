@@ -17,7 +17,7 @@ export const isV2 = () => false;
 
 // ✅ V1 специфичные утилиты
 export const logV1 = (component, message, metrics = null) => {
-    const { logDebug } = await import('@/components/SmartLight/api/core/utils/apiLogger.js');
+    const { logDebugUtils } = await import('@/components/SmartLight/api/core/utils/coreApiLoggerUtils.js');
 
     const extendedData = {
         version: 'v1',
@@ -25,7 +25,7 @@ export const logV1 = (component, message, metrics = null) => {
         ...metrics
     };
 
-    logDebug(`V1:${component}`, message, extendedData);
+    logDebugUtils(`V1:${component}`, message, extendedData);
 };
 
 export const tracePerformance = async (component, operation, fn) => {

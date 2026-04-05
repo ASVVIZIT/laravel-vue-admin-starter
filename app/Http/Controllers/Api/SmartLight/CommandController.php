@@ -20,7 +20,7 @@ class CommandController extends Controller
     public function getCommand(Request $request, $device_id)
     {
         try {
-            // ✅ ИСПРАВЛЕНО: Ищем устройство по device_id
+            // Ищем устройство по device_id
             $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
 
             $command = $this->commandService->getPendingCommand($device);
@@ -47,7 +47,7 @@ class CommandController extends Controller
     public function sendCommand(Request $request, $device_id)
     {
         try {
-            // ✅ ИСПРАВЛЕНО: Ищем устройство по device_id
+            // Ищем устройство по device_id
             $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
 
             $request->validate([
@@ -81,7 +81,7 @@ class CommandController extends Controller
     public function forceSleep(Request $request, $device_id)
     {
         try {
-            // ✅ ИСПРАВЛЕНО: Ищем устройство по device_id
+            // Ищем устройство по device_id
             $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
 
             $result = $this->commandService->sendEmergencySleep($device);
@@ -106,10 +106,10 @@ class CommandController extends Controller
     /**
      * Wake up command (V1 API)
      */
-    public function wakeUp(Request $request, $device_id)
+    public function wakeDevice(Request $request, $device_id)
     {
         try {
-            // ✅ ИСПРАВЛЕНО: Ищем устройство по device_id
+            // Ищем устройство по device_id
             $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
 
             $result = $this->commandService->sendWakeUp($device);

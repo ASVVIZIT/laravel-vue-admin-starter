@@ -1,3 +1,5 @@
+import {getBatteryTypeByIdStore} from "@components/SmartLight/stores/smartlight/types/batteryTypes.js";
+
 /**
  * ============================================================================
  * BULB TYPES — ТИПЫ ЛАМП (ПОЛНАЯ ВЕРСИЯ)
@@ -242,14 +244,14 @@ export const BULB_TYPES = {
 /**
  * Получает тип лампочки по ID
  */
-export const getBulbTypeById = (bulbTypeId) => {
+export const getBulbTypeByIdStore = (bulbTypeId) => {
     return BULB_TYPES[bulbTypeId] || BULB_TYPES.classic;
 };
 
 /**
  * Возвращает типы ламп для выпадающего списка
  */
-export const getBulbTypesForDropdown = () => {
+export const getBulbTypesForDropdownStore = () => {
     return Object.entries(BULB_TYPES).map(([id, type]) => ({
         id,
         label: type.name,

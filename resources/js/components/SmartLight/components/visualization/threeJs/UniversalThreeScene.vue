@@ -1,8 +1,8 @@
 <template>
-  <div ref="container" class="three-scene-container">
-    <!-- Кнопка сброса камеры -->
+  <div ref="container" class="universal-three-scene" :class="[`mode-${mode}`, { 'debug-enabled': enableDebug && mode !== 'minimal' }]">
+    <!-- Кнопка сброса камеры (режимы basic+) -->
     <div
-        v-show="showResetButton"
+        v-if="showResetButton && mode !== 'minimal'"
         class="camera-reset-btn"
         @click="resetCamera"
         title="Сбросить камеру"
@@ -12,444 +12,540 @@
       </svg>
     </div>
 
-    <!-- Индикатор загрузки -->
-    <div v-if="isLoading" class="scene-loading">
+    <!-- Индикатор загрузки (режимы advanced+) -->
+    <div v-if="isLoading && mode !== 'minimal' && mode !== 'basic'" class="scene-loading">
       <div class="loading-spinner"></div>
       <span class="loading-text">Загрузка 3D...</span>
     </div>
 
-    <!-- Индикатор ошибки -->
-    <div v-if="loadError" class="scene-error">
+    <!-- Индикатор ошибки (режимы advanced+) -->
+    <div v-if="loadError && mode !== 'minimal' && mode !== 'basic'" class="scene-error">
       <el-icon class="error-icon"><WarningFilled /></el-icon>
       <span class="error-text">{{ loadError }}</span>
-      <el-button size="small" @click="retryInit" type="primary">Повторить</el-button>
+      <el-button v-if="mode === 'full'" size="small" @click="retryInit" type="primary">Повторить</el-button>
     </div>
 
-    <!-- Индикатор WebGL статуса (DEBUG) -->
-    <div v-if="showDebugInfo" class="scene-debug">
+    <!-- Debug панель (только режим advanced/full + enableDebug) -->
+    <div v-if="enableDebug && mode !== 'minimal' && mode !== 'basic'" class="scene-debug">
       <div class="debug-header">3D Status</div>
       <div class="debug-row">
         <span class="debug-label">WebGL:</span>
-        <span :class="['debug-value', webGLSupport?.isSupported ? 'success' : 'error']">
-                    {{ webGLSupport?.isSupported ? '✓' : '✗' }}
+        <span :class="['debug-value', webGLInfo?.isSupported ? 'success' : 'error']">
+                    {{ webGLInfo?.isSupported ? '✓' : '✗' }}
                 </span>
       </div>
-      <div class="debug-row">
-        <span class="debug-label">ThreeJS:</span>
-        <span :class="['debug-value', threeJSAvailable ? 'success' : 'error']">
-                    {{ threeJSAvailable ? '✓' : '✗' }}
-                </span>
-      </div>
-      <div class="debug-row">
+      <div v-if="webGLInfo?.isSupported" class="debug-row">
         <span class="debug-label">Качество:</span>
-        <span :class="['debug-value', 'quality-' + webGLSettings?.quality]">
-                    {{ webGLSettings?.quality || 'N/A' }}
-                </span>
+        <span :class="['debug-value', 'quality-' + gpuQuality]">{{ gpuQuality }}</span>
       </div>
-      <div class="debug-row">
+      <div v-if="webGLInfo?.isSupported" class="debug-row">
         <span class="debug-label">GPU:</span>
         <span class="debug-value gpu-name">{{ gpuName }}</span>
       </div>
-      <div v-if="capabilityWarnings.length > 0" class="debug-warnings">
-        <div v-for="(warning, idx) in capabilityWarnings" :key="idx" class="debug-warning">
-          ⚠ {{ warning }}
-        </div>
-      </div>
     </div>
+
+    <!-- Слот для кастомного контента (режим minimal) -->
+    <slot v-if="mode === 'minimal' && !modelComponent" name="content"></slot>
+
+    <!-- ✅ ИСПРАВЛЕНО: Добавлена проверка isInitialized для предотвращения рендера до готовности -->
+    <component
+        v-if="mode === 'full' && modelComponent && isInitialized && !isDisposed"
+        :is="modelComponent"
+        ref="modelRef"
+        :three="three"
+        :scene="scene"
+        :camera="camera"
+        :renderer="renderer"
+        :config="config"
+        :data="data"
+        @model-ready="onModelReady"
+        @model-update="onModelUpdate"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, nextTick, computed } from 'vue';
-import * as THREE from 'three';  // ✅ ЕДИНСТВЕННЫЙ ИМПОРТ THREE В ПРОЕКТЕ!
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineExpose, useSlots } from 'vue';
+import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { WarningFilled } from '@element-plus/icons-vue';
+
+// ✅ ИМПОРТ КОНТРОЛЛЕРА ИНИЦИАЛИЗАЦИИ
+import InitializationController from '@/components/SmartLight/controllers/InitializationController.js';
+
+// ✅ ИМПОРТ UTILS
 import {
   checkWebGLSupport,
-  checkThreeJSSupport,
-  checkContainerReady,
-  isElementVisible,
-  initWhenReady,
   getOptimalWebGLSettings,
-  check3DCapability,
   cleanupWebGL,
   handleWebGLContextLoss
 } from '@/components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
 
+// === ПРОПСЫ ===
 const props = defineProps({
-  deviceId: {
+  /** Режим работы: minimal, basic, advanced, full */
+  mode: {
     type: String,
-    required: true
+    default: 'basic',
+    validator: (v) => ['minimal', 'basic', 'advanced', 'full'].includes(v)
   },
-  modelComponent: {
-    type: Object,
-    required: true
-  },
-  voltage: {
-    type: Number,
-    default: 3.7
-  },
-  criticalVoltage: {
-    type: Number,
-    default: 3.2
-  },
-  status: {
+  /** ID устройства (для режима full) */
+  deviceId: { type: String, default: null },
+  /** Конфиг визуализации из store (для режима full) */
+  config: { type: Object, default: null },
+  /** Данные для обновления модели (для режима full) */
+  data: { type: Object, default: () => ({}) },
+  /** Компонент модели для режима full */
+  modelComponent: { type: Object, default: null },
+  /** Включить отладочную панель (режимы advanced/full) */
+  enableDebug: { type: Boolean, default: false },
+  /** Авто-анимация вращения (режимы basic+) */
+  autoRotate: { type: Boolean, default: true },
+  /** Скорость авто-вращения */
+  rotateSpeed: { type: Number, default: 0.01 },
+  /** Включить тени (режимы advanced/full) */
+  enableShadows: { type: Boolean, default: false },
+  /** Качество рендеринга (переопределение авто-определения) */
+  qualityOverride: {
     type: String,
-    default: 'OFF'
-  },
-  intensity: {
-    type: Number,
-    default: 100
-  },
-  show3D: {
-    type: Boolean,
-    default: true
-  },
-  showDebugInfo: {
-    type: Boolean,
-    default: false
+    default: null,
+    validator: (v) => v === null || ['low', 'medium', 'high'].includes(v)
   }
 });
 
+// === EMITS ===
+const emit = defineEmits(['ready', 'error', 'model-ready', 'model-update']);
+
+// === СЛОТЫ ===
+const slots = useSlots();
+
+// === РЕФЫ ===
 const container = ref(null);
-const showResetButton = ref(false);
-const modelInstance = ref(null);
+const modelRef = ref(null);
 const isLoading = ref(false);
 const loadError = ref(null);
-const webGLSupport = ref(null);
-const threeJSAvailable = ref(false);
-const webGLSettings = ref(null);
-const capabilityWarnings = ref([]);
+const showResetButton = ref(false);
+const webGLInfo = ref(null);
+const gpuQuality = ref('low');
 const gpuName = ref('N/A');
 
-let scene = null;
-let camera = null;
-let renderer = null;
-let controls = null;
+// === THREE ОБЪЕКТЫ ===
+const three = ref(null);
+const scene = ref(null);
+const camera = ref(null);
+const renderer = ref(null);
+const controls = ref(null);
+
+// === ВНУТРЕННИЕ ПЕРЕМЕННЫЕ ===
 let animationFrame = null;
 let isInitialized = false;
+// ✅ ИСПРАВЛЕНО: Флаг для предотвращения анимации после размонтирования
+let isDisposed = false;
 let defaultCameraPosition = null;
 let defaultCameraTarget = null;
 
-const CAMERA_Z = 3.5;
-const CAMERA_Y = 0.6;
+// ✅ КОНТРОЛЛЕР ИНИЦИАЛИЗАЦИИ
+const initController = new InitializationController();
 
-// === ПОЛНАЯ ПРОВЕРКА WEBGL + THREEJS ===
+// === КОНСТАНТЫ ===
+const CAMERA_CONFIG = {
+  fov: 75,
+  near: 0.1,
+  far: 1000,
+  defaultPosition: { x: 0, y: 0.6, z: 3.5 },
+  defaultTarget: { x: 0, y: 0, z: 0 }
+};
+
+// === WEBGL ПРОВЕРКА ===
 const checkWebGL = () => {
-  // 1. Проверка WebGL
-  webGLSupport.value = checkWebGLSupport();
-  console.log('[BaseScene] WebGL Support:', webGLSupport.value);
+  webGLInfo.value = checkWebGLSupport();
 
-  // 2. Проверка ThreeJS (через импорт в этом модуле)
-  threeJSAvailable.value = true; // Если мы здесь, THREE импортирован
-  console.log('[BaseScene] ThreeJS: Available via module import');
-
-  // 3. Проверка возможности 3D рендеринга
-  const capability = check3DCapability(webGLSupport.value, { isSupported: threeJSAvailable.value });
-  capabilityWarnings.value = capability.warnings;
-
-  // 4. Получаем оптимальные настройки
-  webGLSettings.value = getOptimalWebGLSettings(webGLSupport.value);
-  console.log('[BaseScene] WebGL Settings:', webGLSettings.value);
-
-  // 5. Информация о GPU
-  gpuName.value = webGLSupport.value?.renderer?.substring(0, 30) || 'Unknown';
-
-  // 6. Определяем можно ли рендерить
-  if (!webGLSupport.value.isSupported) {
-    loadError.value = `WebGL не поддерживается: ${webGLSupport.value.reason}`;
+  if (!webGLInfo.value.isSupported) {
+    if (props.mode === 'advanced' || props.mode === 'full') {
+      loadError.value = `WebGL не поддерживается: ${webGLInfo.value.reason}`;
+      emit('error', { error: new Error(webGLInfo.value.reason) });
+    }
     return false;
   }
 
-  // 7. Предупреждения для низкого качества
-  if (capabilityWarnings.value.length > 0) {
-    console.warn('[BaseScene] Capability warnings:', capabilityWarnings.value);
-  }
+  const settings = getOptimalWebGLSettings(webGLInfo.value);
+  gpuQuality.value = props.qualityOverride || settings.quality;
+  gpuName.value = webGLInfo.value.renderer?.substring(0, 30) || 'Unknown';
 
-  return capability.canRender3D;
+  console.log(`[UniversalThreeScene] WebGL: ${gpuQuality.value} quality, GPU: ${gpuName.value}`);
+  return true;
 };
 
-// === ИНИЦИАЛИЗАЦИЯ ===
-const init = () => {
-  if (!container.value || isInitialized) return;
+// === ИНИЦИАЛИЗАЦИЯ (callback для контроллера) ===
+const performInit = () => {
+  // ✅ ИСПРАВЛЕНО: Проверка что контейнер существует и компонент не размонтирован
+  if (!container.value || isInitialized || isDisposed) return;
+
+  // ✅ ИСПРАВЛЕНО: Проверка видимости контейнера перед инициализацией
+  const rect = container.value.getBoundingClientRect();
+  if (rect.width <= 0 || rect.height <= 0 || container.value.offsetParent === null) {
+    console.warn('[UniversalThreeScene] Container not visible, deferring init');
+    setTimeout(() => {
+      if (!isDisposed) performInit();
+    }, 100);
+    return;
+  }
+
+  if (props.mode === 'advanced' || props.mode === 'full') {
+    if (!checkWebGL()) {
+      isLoading.value = false;
+      return;
+    }
+  }
 
   isLoading.value = true;
   loadError.value = null;
 
-  if (!checkWebGL()) {
-    isLoading.value = false;
-    return;
-  }
-
   try {
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0xf5f7fa);
+    three.value = THREE;
+    scene.value = new THREE.Scene();
+    scene.value.background = new THREE.Color(0xf5f7fa);
 
-    camera = new THREE.PerspectiveCamera(
-        75,
-        container.value.clientWidth / container.value.clientHeight,
-        0.1,
-        1000
-    );
-    camera.position.set(0, CAMERA_Y, CAMERA_Z);
-    camera.lookAt(0, 0, 0);
+    const aspect = container.value.clientWidth / container.value.clientHeight || 1;
+    if (aspect <= 0) throw new Error('Invalid container dimensions');
 
-    defaultCameraPosition = camera.position.clone();
-    defaultCameraTarget = new THREE.Vector3(0, 0, 0);
+    camera.value = new THREE.PerspectiveCamera(CAMERA_CONFIG.fov, aspect, CAMERA_CONFIG.near, CAMERA_CONFIG.far);
+    camera.value.position.set(CAMERA_CONFIG.defaultPosition.x, CAMERA_CONFIG.defaultPosition.y, CAMERA_CONFIG.defaultPosition.z);
+    camera.value.lookAt(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z);
 
-    // ✅ НАСТРОЙКИ РЕНДЕРЕРА ПО ВОЗМОЖНОСТЯМ GPU
-    renderer = new THREE.WebGLRenderer({
-      antialias: webGLSettings.value.antialias,
+    defaultCameraPosition = camera.value.position.clone();
+    defaultCameraTarget = new THREE.Vector3(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z);
+
+    const rendererSettings = {
+      antialias: gpuQuality.value !== 'low',
       alpha: true,
-      powerPreference: webGLSettings.value.quality === 'high' ? 'high-performance' : 'default'
-    });
-    renderer.setSize(container.value.clientWidth, container.value.clientHeight);
-    renderer.setPixelRatio(webGLSettings.value.pixelRatio);
+      powerPreference: gpuQuality.value === 'high' ? 'high-performance' : 'default'
+    };
+    renderer.value = new THREE.WebGLRenderer(rendererSettings);
+    renderer.value.setSize(container.value.clientWidth, container.value.clientHeight);
+    renderer.value.setPixelRatio(gpuQuality.value === 'high' ? window.devicePixelRatio : 1);
 
-    if (webGLSettings.value.shadowMap) {
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    if (props.enableShadows && (props.mode === 'advanced' || props.mode === 'full')) {
+      renderer.value.shadowMap.enabled = true;
+      renderer.value.shadowMap.type = THREE.PCFSoftShadowMap;
     }
 
     container.value.innerHTML = '';
-    container.value.appendChild(renderer.domElement);
+    container.value.appendChild(renderer.value.domElement);
 
-    // ✅ ОБРАБОТКА ПОТЕРИ КОНТЕКСТА
-    handleWebGLContextLoss(renderer.domElement, (event) => {
-      console.log('[BaseScene] Context event:', event);
-      if (event === 'lost') {
-        isInitialized = false;
-        loadError.value = 'WebGL контекст потерян';
-      } else if (event === 'restored') {
-        loadError.value = null;
-        init();
-      }
-    });
-
-    // Освещение
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-    directionalLight.position.set(3, 3, 3);
-    if (webGLSettings.value.shadowMap) {
-      directionalLight.castShadow = true;
+    if (props.mode === 'advanced' || props.mode === 'full') {
+      handleWebGLContextLoss(renderer.value.domElement, (event) => {
+        console.log('[UniversalThreeScene] Context event:', event);
+        if (event === 'lost') {
+          isInitialized = false;
+          if (props.mode === 'full') loadError.value = 'WebGL контекст потерян';
+        } else if (event === 'restored') {
+          loadError.value = null;
+          if (!isDisposed) performInit();
+        }
+      });
     }
-    scene.add(directionalLight);
 
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    backLight.position.set(-2, 1, -2);
-    scene.add(backLight);
+    if (props.mode !== 'minimal') {
+      setupLighting();
+      setupControls();
+    }
 
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.05;
-    controls.enableZoom = true;
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 3;
-    controls.enablePan = false;
-    controls.target.set(0, 0, 0);
-
-    controls.addEventListener('change', checkCameraChanged);
     window.addEventListener('resize', onWindowResize);
-
-    createModel();
     isInitialized = true;
     isLoading.value = false;
     animate();
+
+    emit('ready', { scene: scene.value, camera: camera.value, renderer: renderer.value });
   } catch (error) {
-    console.error('[BaseScene] Init error:', error);
+    console.error('[UniversalThreeScene] Init error:', error);
     loadError.value = `Ошибка инициализации: ${error.message}`;
     isLoading.value = false;
+    emit('error', { error });
   }
 };
 
-// === СОЗДАНИЕ МОДЕЛИ (ПЕРЕДАЁМ THREE В КОМПОНЕНТ) ===
-const createModel = () => {
-  if (!scene || !props.modelComponent) return;
+// === ПУБЛИЧНЫЙ МЕТОД ИНИЦИАЛИЗАЦИИ (через контроллер) ===
+const init = async () => {
+  if (!container.value || isDisposed) return;
 
-  try {
-    // ✅ ПЕРЕДАЁМ THREE + scene В МОДЕЛЬ
-    modelInstance.value = new props.modelComponent({
-      THREE,  // ← Передаём THREE объект
-      scene,
-      voltage: props.voltage,
-      criticalVoltage: props.criticalVoltage,
-      status: props.status,
-      intensity: props.intensity
-    });
-    console.log('[BaseScene] Model created:', modelInstance.value);
-  } catch (error) {
-    console.error('[BaseScene] Create model error:', error);
-    loadError.value = `Ошибка создания модели: ${error.message}`;
+  // ✅ ИСПОЛЬЗУЕМ КОНТРОЛЛЕР ДЛЯ ИНИЦИАЛИЗАЦИИ
+  const result = await initController.initContainer(
+      container.value,
+      props.deviceId || 'unknown',
+      performInit,
+      {
+        maxAttempts: 30,
+        checkInterval: 100,
+        maxCheckTime: 10000
+      }
+  );
+
+  if (!result.success) {
+    console.warn('[UniversalThreeScene] Init failed:', result.reason);
+    if (props.mode === 'full') {
+      loadError.value = `Инициализация не удалась: ${result.reason}`;
+    }
   }
+
+  return result;
+};
+
+// === НАСТРОЙКА ОСВЕЩЕНИЯ ===
+const setupLighting = () => {
+  if (!scene.value) return;
+
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+  scene.value.add(ambientLight);
+
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+  directionalLight.position.set(3, 3, 3);
+  if (props.enableShadows && (props.mode === 'advanced' || props.mode === 'full')) {
+    directionalLight.castShadow = true;
+  }
+  scene.value.add(directionalLight);
+
+  if (props.mode === 'advanced' || props.mode === 'full') {
+    const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    backLight.position.set(-2, 1, -2);
+    scene.value.add(backLight);
+  }
+};
+
+// === НАСТРОЙКА КОНТРОЛОВ ===
+const setupControls = () => {
+  if (!camera.value || !renderer.value) return;
+
+  controls.value = new OrbitControls(camera.value, renderer.value.domElement);
+  controls.value.enableDamping = true;
+  controls.value.dampingFactor = 0.05;
+  controls.value.enableZoom = true;
+  controls.value.autoRotate = props.autoRotate;
+  controls.value.autoRotateSpeed = props.rotateSpeed * 60;
+  controls.value.enablePan = false;
+  controls.value.target.set(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z);
+  controls.value.addEventListener('change', checkCameraChanged);
 };
 
 // === АНИМАЦИЯ ===
 const animate = () => {
-  animationFrame = requestAnimationFrame(animate);
-  if (scene && camera && renderer) {
-    if (modelInstance.value?.animate) {
-      modelInstance.value.animate();
-    }
-    controls.update();
-    renderer.render(scene, camera);
+  // ✅ ИСПРАВЛЕНО: Не запускать анимацию если компонент размонтирован
+  if (isDisposed || !scene.value || !camera.value || !renderer.value) return;
+
+  if (controls.value) controls.value.update();
+  if (props.mode === 'full' && modelRef.value?.animate) {
+    modelRef.value.animate();
+  }
+  renderer.value.render(scene.value, camera.value);
+
+  // ✅ ИСПРАВЛЕНО: Рекурсивный вызов только если компонент активен
+  if (!isDisposed) {
+    animationFrame = requestAnimationFrame(animate);
   }
 };
 
 // === ОБНОВЛЕНИЕ МОДЕЛИ ===
 const updateModel = () => {
-  if (modelInstance.value?.update) {
-    modelInstance.value.update({
-      voltage: props.voltage,
-      criticalVoltage: props.criticalVoltage,
-      status: props.status,
-      intensity: props.intensity
-    });
-  }
+  // ✅ ИСПРАВЛЕНО: Проверка что модель существует и компонент не размонтирован
+  if (props.mode !== 'full' || !modelRef.value?.updateModel || isDisposed) return;
+  modelRef.value.updateModel(props.data);
+};
+
+// === СОБЫТИЯ ОТ МОДЕЛИ ===
+const onModelReady = (data) => {
+  // ✅ ИСПРАВЛЕНО: Проверка перед эмиссией
+  if (isDisposed) return;
+  console.log('[UniversalThreeScene] Model ready:', data);
+  emit('model-ready', data);
+};
+
+const onModelUpdate = (data) => {
+  if (isDisposed) return;
+  emit('model-update', data);
+};
+
+// === КАМЕРА ===
+const checkCameraChanged = () => {
+  if (!defaultCameraPosition || !camera.value || isDisposed) return;
+  const posChanged = Math.abs(camera.value.position.x - defaultCameraPosition.x) > 0.1 ||
+      Math.abs(camera.value.position.y - defaultCameraPosition.y) > 0.1 ||
+      Math.abs(camera.value.position.z - defaultCameraPosition.z) > 0.1;
+  const targetChanged = controls.value && (
+      Math.abs(controls.value.target.x - defaultCameraTarget.x) > 0.1 ||
+      Math.abs(controls.value.target.y - defaultCameraTarget.y) > 0.1 ||
+      Math.abs(controls.value.target.z - defaultCameraTarget.z) > 0.1
+  );
+  showResetButton.value = posChanged || targetChanged;
+};
+
+const resetCamera = () => {
+  if (!camera.value || !controls.value || !defaultCameraPosition || isDisposed) return;
+  camera.value.position.copy(defaultCameraPosition);
+  controls.value.target.copy(defaultCameraTarget);
+  controls.value.update();
+  showResetButton.value = false;
+};
+
+// === RESIZE ===
+const onWindowResize = () => {
+  if (!container.value || !camera.value || !renderer.value || isDisposed) return;
+  camera.value.aspect = container.value.clientWidth / container.value.clientHeight;
+  camera.value.updateProjectionMatrix();
+  renderer.value.setSize(container.value.clientWidth, container.value.clientHeight);
 };
 
 // === ПОВТОРНАЯ ИНИЦИАЛИЗАЦИЯ ===
-const retryInit = () => {
-  cleanup();
-  setTimeout(() => init(), 100);
+const retryInit = async () => {
+  if (isDisposed) return;
+  await cleanup();
+  if (!isDisposed) {
+    setTimeout(() => init(), 100);
+  }
 };
 
-// === ОЧИСТКА ===
-const cleanup = () => {
+// === ОЧИСТКА (через контроллер) ===
+const cleanup = async () => {
+  // ✅ ИСПРАВЛЕНО: Установить флаг ПЕРВЫМ делом чтобы остановить анимацию
+  isDisposed = true;
+
+  // ✅ Остановить animation frame
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
     animationFrame = null;
   }
 
-  if (modelInstance.value?.dispose) {
-    modelInstance.value.dispose();
+  // ✅ Очистить модель
+  if (props.mode === 'full' && modelRef.value?.dispose) {
+    modelRef.value.dispose();
   }
 
-  if (renderer) {
-    cleanupWebGL(renderer.getContext());
-    renderer.dispose();
-    renderer.forceContextLoss();
-    renderer = null;
+  // ✅ Очистить renderer
+  if (renderer.value) {
+    if (props.mode === 'advanced' || props.mode === 'full') {
+      cleanupWebGL(renderer.value.getContext());
+    }
+    renderer.value.dispose();
+    renderer.value.forceContextLoss?.();
+    renderer.value = null;
   }
 
+  // ✅ Очистить контейнер
   if (container.value) {
     container.value.innerHTML = '';
   }
 
-  if (scene) {
-    scene.traverse((object) => {
-      if (object.geometry) object.geometry.dispose();
+  // ✅ Очистить сцену
+  if (scene.value) {
+    scene.value.traverse((object) => {
+      if (object.geometry) object.geometry.dispose?.();
       if (object.material) {
         if (Array.isArray(object.material)) {
-          object.material.forEach((m) => m.dispose());
+          object.material.forEach(m => m.dispose?.());
         } else {
-          object.material.dispose();
+          object.material.dispose?.();
         }
       }
     });
-    scene = null;
+    scene.value = null;
   }
 
-  if (controls) {
-    controls.removeEventListener('change', checkCameraChanged);
-    controls.dispose();
-    controls = null;
+  // ✅ Очистить контролы
+  if (controls.value) {
+    controls.value.removeEventListener?.('change', checkCameraChanged);
+    controls.value.dispose?.();
+    controls.value = null;
   }
 
+  // ✅ Убрать слушатели
   window.removeEventListener('resize', onWindowResize);
-  modelInstance.value = null;
+
+  modelRef.value = null;
   isInitialized = false;
   showResetButton.value = false;
-};
 
-// === КАМЕРА ===
-const checkCameraChanged = () => {
-  if (!defaultCameraPosition || !camera) return;
+  // ✅ ОЧИСТКА ЧЕРЕЗ КОНТРОЛЛЕР
+  if (container.value) {
+    initController.cleanupContainer(container.value);
+  }
 
-  const posChanged =
-      Math.abs(camera.position.x - defaultCameraPosition.x) > 0.1 ||
-      Math.abs(camera.position.y - defaultCameraPosition.y) > 0.1 ||
-      Math.abs(camera.position.z - defaultCameraPosition.z) > 0.1;
-
-  const targetChanged = controls && (
-      Math.abs(controls.target.x - defaultCameraTarget.x) > 0.1 ||
-      Math.abs(controls.target.y - defaultCameraTarget.y) > 0.1 ||
-      Math.abs(controls.target.z - defaultCameraTarget.z) > 0.1
-  );
-
-  showResetButton.value = posChanged || targetChanged;
-};
-
-const resetCamera = () => {
-  if (!camera || !controls || !defaultCameraPosition) return;
-  camera.position.copy(defaultCameraPosition);
-  controls.target.copy(defaultCameraTarget);
-  controls.update();
-  showResetButton.value = false;
-};
-
-const onWindowResize = () => {
-  if (!container.value || !camera || !renderer) return;
-  camera.aspect = container.value.clientWidth / container.value.clientHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(container.value.clientWidth, container.value.clientHeight);
+  console.log('[UniversalThreeScene] Cleanup complete');
 };
 
 // === WATCH ===
-watch(() => props.show3D, (newVal, oldVal) => {
-  if (newVal && !oldVal) {
-    init();
-  } else if (!newVal && oldVal) {
+watch(() => props.mode, (newMode, oldMode) => {
+  if (newMode !== oldMode && isInitialized && !isDisposed) {
     cleanup();
+    setTimeout(() => {
+      if (!isDisposed) init();
+    }, 50);
   }
-}, { immediate: true });
+});
 
-watch(() => [props.voltage, props.status, props.intensity], () => {
-  updateModel();
+watch(() => props.data, () => {
+  if (props.mode === 'full' && !isDisposed) updateModel();
 }, { deep: true });
 
-watch(() => props.modelComponent, () => {
-  if (isInitialized) {
+watch(() => props.config, (newConfig) => {
+  if (props.mode === 'full' && isInitialized && !isDisposed) {
     cleanup();
-    setTimeout(() => init(), 50);
+    setTimeout(() => {
+      if (!isDisposed) init();
+    }, 50);
   }
-});
+}, { deep: true });
 
 // === LIFECYCLE ===
-onMounted(() => {
-  if (props.show3D) {
-    nextTick(() => {
-      initWhenReady(container.value, init, 30)
-          .then((result) => {
-            if (!result.success) {
-              console.warn('[BaseScene] Init failed:', result.reason);
-              loadError.value = `Инициализация не удалась: ${result.reason}`;
-            }
-          });
-    });
+onMounted(async () => {
+  // ✅ Сброс флага при монтировании
+  isDisposed = false;
+
+  if (props.mode === 'advanced' || props.mode === 'full') {
+    await nextTick();
+    if (!isDisposed) {
+      await init();
+    }
+  } else {
+    // Для minimal/basic инициализируем напрямую
+    if (!isDisposed) performInit();
   }
 });
 
-onUnmounted(() => {
-  cleanup();
+onUnmounted(async () => {
+  // ✅ Гарантированная очистка при размонтировании
+  await cleanup();
 });
 
+// === EXPOSE ===
 defineExpose({
+  // Методы управления
   init,
   cleanup,
   resetCamera,
+  retryInit,
+  updateModel,
+
+  // THREE объекты (для продвинутого использования)
   scene,
   camera,
   renderer,
-  webGLSupport,
-  webGLSettings,
-  capabilityWarnings
+  controls,
+  three,
+
+  // Статус
+  isInitialized,
+  isLoading,
+  webGLInfo,
+  gpuQuality,
+
+  // ✅ МЕТОДЫ КОНТРОЛЛЕРА (для внешнего управления)
+  isContainerInitialized: () => initController.isContainerInitialized(container.value),
+  waitForInit: () => initController.waitForInit(container.value),
+  checkContainerStatus: () => initController.checkContainerStatus(container.value)
 });
 </script>
 
 <style scoped>
-.three-scene-container {
+.universal-three-scene {
   width: 100%;
   aspect-ratio: 1 / 1;
   position: relative;
@@ -458,6 +554,12 @@ defineExpose({
   border: 1px solid #e4e7ed;
   border-radius: 4px;
   background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+.universal-three-scene.mode-minimal {
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .camera-reset-btn {
@@ -482,10 +584,6 @@ defineExpose({
   background: linear-gradient(145deg, rgba(64, 158, 255, 0.95) 0%, rgba(50, 140, 240, 0.9) 100%);
   border-color: #409eff;
   transform: scale(1.08);
-}
-
-.camera-reset-btn:active {
-  transform: scale(0.95);
 }
 
 .scene-loading {
@@ -573,37 +671,13 @@ defineExpose({
   margin-bottom: 3px;
 }
 
-.debug-row:last-child {
-  margin-bottom: 0;
-}
-
-.debug-label {
-  color: #909399;
-}
-
-.debug-value {
-  font-weight: 600;
-}
-
-.debug-value.success {
-  color: #67c23a;
-}
-
-.debug-value.error {
-  color: #f56c6c;
-}
-
-.debug-value.quality-high {
-  color: #67c23a;
-}
-
-.debug-value.quality-medium {
-  color: #e6a23c;
-}
-
-.debug-value.quality-low {
-  color: #f56c6c;
-}
+.debug-label { color: #909399; }
+.debug-value { font-weight: 600; }
+.debug-value.success { color: #67c23a; }
+.debug-value.error { color: #f56c6c; }
+.debug-value.quality-high { color: #67c23a; }
+.debug-value.quality-medium { color: #e6a23c; }
+.debug-value.quality-low { color: #f56c6c; }
 
 .gpu-name {
   max-width: 120px;
@@ -612,16 +686,9 @@ defineExpose({
   white-space: nowrap;
 }
 
-.debug-warnings {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.debug-warning {
-  color: #e6a23c;
-  font-size: 9px;
-  margin-top: 2px;
+.debug-enabled {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
 @keyframes spin {

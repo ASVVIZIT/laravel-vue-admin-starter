@@ -4,13 +4,13 @@
  * ============================================================================
  * 📁 Путь: controllers/DeviceController.js
  * ✅ Координация устройств
- * ✅ Отвечает за: загрузку, статус, команды устройств
+ * ✅ Рефакторинг: методы получили суффикс Controller(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { DeviceService } from '@/components/SmartLight/services/DeviceService.js';
-import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartlightStore.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export class DeviceController {
     constructor() {
@@ -19,41 +19,41 @@ export class DeviceController {
     }
 
     /**
-     * Загрузка всех устройств
+     * Загрузка всех устройств (суффикс Controller)
      * @returns {Promise<Array>} Массив устройств
      */
-    async loadDevices() {
-        logDebug('DeviceController', 'Загрузка устройств');
+    async loadDevicesController() {
+        logDebugUtils('DeviceController', 'Загрузка устройств');
         try {
-            const result = await this.deviceService.getAllDevices();
+            const result = await this.deviceService.getAllDevicesService();
             if (result.success) {
-                result.devices.forEach(device => {
+                result.data.forEach(device => {
                     this.store.deviceUpdateDevice(device);
                 });
-                logDebug('DeviceController', 'Устройства загружены', {
-                    count: result.devices.length
+                logDebugUtils('DeviceController', 'Устройства загружены', {
+                    count: result.data.length
                 });
-                return result.devices;
+                return result.data;
             } else {
                 throw new Error(result.message || 'Ошибка загрузки устройств');
             }
         } catch (error) {
-            logError('DeviceController', 'Ошибка загрузки устройств', error);
+            logErrorUtils('DeviceController', 'Ошибка загрузки устройств', error);
             throw error;
         }
     }
 
     /**
-     * Обновление статуса устройства
+     * Обновление статуса устройства (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @param {string} status - Статус
      * @param {number} intensity - Интенсивность
      * @returns {Promise<Object>} Результат операции
      */
-    async updateDeviceStatus(deviceId, status, intensity = 100) {
-        logDebug('DeviceController', 'Обновление статуса', { deviceId, status, intensity });
+    async updateDeviceStatusController(deviceId, status, intensity = 100) {
+        logDebugUtils('DeviceController', 'Обновление статуса', { deviceId, status, intensity });
         try {
-            const result = await this.deviceService.updateDeviceStatus(deviceId, status, intensity);
+            const result = await this.deviceService.updateDeviceStatusService(deviceId, status, intensity);
             if (result.success) {
                 const device = this.store.deviceGetDevice(deviceId);
                 if (device) {
@@ -68,20 +68,20 @@ export class DeviceController {
                 throw new Error(result.message || 'Ошибка обновления статуса');
             }
         } catch (error) {
-            logError('DeviceController', 'Ошибка обновления статуса', error);
+            logErrorUtils('DeviceController', 'Ошибка обновления статуса', error);
             throw error;
         }
     }
 
     /**
-     * Перевод в спящий режим
+     * Перевод в спящий режим (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {Promise<Object>} Результат операции
      */
-    async forceSleep(deviceId) {
-        logDebug('DeviceController', 'Перевод в сон', { deviceId });
+    async forceSleepController(deviceId) {
+        logDebugUtils('DeviceController', 'Перевод в сон', { deviceId });
         try {
-            const result = await this.deviceService.forceSleep(deviceId);
+            const result = await this.deviceService.forceSleepService(deviceId);
             if (result.success) {
                 const device = this.store.deviceGetDevice(deviceId);
                 if (device) {
@@ -92,20 +92,20 @@ export class DeviceController {
                 throw new Error(result.message || 'Ошибка перевода в сон');
             }
         } catch (error) {
-            logError('DeviceController', 'Ошибка перевода в сон', error);
+            logErrorUtils('DeviceController', 'Ошибка перевода в сон', error);
             throw error;
         }
     }
 
     /**
-     * Пробуждение устройства
+     * Пробуждение устройства (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {Promise<Object>} Результат операции
      */
-    async wakeDevice(deviceId) {
-        logDebug('DeviceController', 'Пробуждение', { deviceId });
+    async wakeDeviceController(deviceId) {
+        logDebugUtils('DeviceController', 'Пробуждение', { deviceId });
         try {
-            const result = await this.deviceService.wakeDevice(deviceId);
+            const result = await this.deviceService.wakeDeviceService(deviceId);
             if (result.success) {
                 const device = this.store.deviceGetDevice(deviceId);
                 if (device) {
@@ -120,17 +120,17 @@ export class DeviceController {
                 throw new Error(result.message || 'Ошибка пробуждения');
             }
         } catch (error) {
-            logError('DeviceController', 'Ошибка пробуждения', error);
+            logErrorUtils('DeviceController', 'Ошибка пробуждения', error);
             throw error;
         }
     }
 
     /**
-     * Получение устройства
+     * Получение устройства (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {Object} Устройство
      */
-    getDevice(deviceId) {
+    getDeviceController(deviceId) {
         return this.store.deviceGetDevice(deviceId);
     }
 }

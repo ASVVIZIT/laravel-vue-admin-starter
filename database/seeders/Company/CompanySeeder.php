@@ -10,8 +10,8 @@ class CompanySeeder extends Seeder
     /**
      * Количество компаний для создания
      */
-    protected const COUNT = 50000;
-    protected const PROGRESS_INTERVAL = 1000;
+    protected const COUNT = 5000;
+    protected const PROGRESS_INTERVAL = 100;
 
     /**
      * Запустить сидер.

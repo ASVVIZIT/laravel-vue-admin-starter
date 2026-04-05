@@ -1,17 +1,19 @@
 /**
  * ============================================================================
- * CORE TYPES INDEX — ГЛАВНЫЙ ЭКСПОРТ ТИПОВ
+ * CORE TYPES INDEX — ГЛАВНЫЙ ЭКСПОРТ ТИПОВ (СПРАВОЧНИКИ)
  * ============================================================================
  * 📁 Путь: api/core/types/index.js
+ * ✅ Используется: typesStore.js, GlobalSettingsForm.vue, DeviceSettingsForm.vue
+ * ✅ Рефакторинг: прямые экспорты классов с суффиксами *TypeApi
  * ============================================================================
  */
 
-export * from './batteryTypes/index.js';
-export * from './bulbTypes/index.js';
-export * from './powerSupplyTypes/index.js';
+export { CoreBatteryTypeApi, coreBatteryTypeApi } from './coreBatteryTypeApi.js';
+export { CoreBulbTypeApi, coreBulbTypeApi } from './coreBulbTypeApi.js';
+export { CorePowerSupplyTypeApi, corePowerSupplyTypeApi } from './corePowerSupplyTypeApi.js';
 
 export default {
-    batteryTypes: () => import('./batteryTypes/index.js'),
-    bulbTypes: () => import('./bulbTypes/index.js'),
-    powerSupplyTypes: () => import('./powerSupplyTypes/index.js')
+    coreBatteryTypeApi: () => import('./coreBatteryTypeApi.js'),
+    coreBulbTypeApi: () => import('./coreBulbTypeApi.js'),
+    corePowerSupplyTypeApi: () => import('./corePowerSupplyTypeApi.js')
 };

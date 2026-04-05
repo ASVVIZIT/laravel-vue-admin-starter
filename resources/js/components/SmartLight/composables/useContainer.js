@@ -9,7 +9,7 @@
  */
 
 import { ref, onMounted, onUnmounted, watch } from 'vue';
-import { logDebug } from '@/components/SmartLight/utils/appLogger.js';
+import { logDebugUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export function useContainer(containerRef) {
     const isVisible = ref(false);
@@ -69,7 +69,7 @@ export function useContainer(containerRef) {
             setupObservers();
         }
         watch([isVisible, isActiveTab], ([visible, active]) => {
-            logDebug('useContainer', 'Изменение видимости или активности', {
+            logDebugUtils('useContainer', 'Изменение видимости или активности', {
                 visible,
                 active,
                 container: containerRef.value

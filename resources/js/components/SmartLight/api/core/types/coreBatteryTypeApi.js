@@ -1,9 +1,16 @@
 /**
- * API для работы с типами аккумуляторов
- * Совместим с системой типов аккумуляторов
+ * ============================================================================
+ * CORE BATTERY TYPE API — НИЗКОУРОВНЕВЫЙ API ДЛЯ ТИПОВ АККУМУЛЯТОРОВ
+ * ============================================================================
+ * 📁 Путь: api/core/types/coreBatteryTypeApi.js
+ * ✅ Используется: CoreTypesApi, Services
+ * ✅ Назначение: Прямые запросы к эндпоинтам /battery-types
+ * ✅ Рефакторинг: методы с суффиксом TypeApi()
+ * ============================================================================
  */
+
 import { CoreBatteryTypeResource } from '@components/SmartLight/api/core/resource/coreBatteryTypeResource.js';
-import { logDebug, logError } from '@components/SmartLight/utils/appLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CoreBatteryTypeApi {
     constructor() {
@@ -11,17 +18,16 @@ export class CoreBatteryTypeApi {
     }
 
     /**
-     * Получение всех типов аккумуляторов
+     * Получение всех типов аккумуляторов (суффикс TypeApi)
      */
-    async getAllBatteryTypes() {
-        logDebug('coreBatteryTypeApi', 'Получение всех типов аккумуляторов');
+    async getAllBatteryTypesTypeApi() {
+        logDebugUtils('coreBatteryTypeApi', 'Получение всех типов аккумуляторов');
 
         try {
-            const response = await this.resource.getAll();
+            const response = await this.resource.getAllResource();
 
-            // Проверяем структуру ответа
             if (!response || !response.data || !Array.isArray(response.data)) {
-                logDebug('coreBatteryTypeApi', 'Получен некорректный ответ от API', { response });
+                logDebugUtils('coreBatteryTypeApi', 'Получен некорректный ответ от API', { response });
                 return {
                     success: true,
                     data: [],
@@ -35,7 +41,7 @@ export class CoreBatteryTypeApi {
                 message: 'Типы аккумуляторов успешно загружены'
             };
         } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка загрузки типов аккумуляторов', error);
+            logErrorUtils('coreBatteryTypeApi', 'Ошибка загрузки типов аккумуляторов', error);
             return {
                 success: false,
                 message: 'Не удалось загрузить типы аккумуляторов',
@@ -45,17 +51,16 @@ export class CoreBatteryTypeApi {
     }
 
     /**
-     * Получение типа аккумулятора по ID
+     * Получение типа аккумулятора по ID (суффикс TypeApi)
      */
-    async getBatteryTypeById(id) {
-        logDebug('coreBatteryTypeApi', 'Получение типа аккумулятора по ID', { id });
+    async getBatteryTypeByIdTypeApi(id) {
+        logDebugUtils('coreBatteryTypeApi', 'Получение типа аккумулятора по ID', { id });
 
         try {
-            const response = await this.resource.getById(`/${id}`);
+            const response = await this.resource.getByIdResource(id);
 
-            // Проверяем структуру ответа
             if (!response || !response.data) {
-                logDebug('coreBatteryTypeApi', 'Получен некорректный ответ от API', { response });
+                logDebugUtils('coreBatteryTypeApi', 'Получен некорректный ответ от API', { response });
                 return {
                     success: true,
                     data: null,
@@ -69,7 +74,7 @@ export class CoreBatteryTypeApi {
                 message: 'Тип аккумулятора успешно загружен'
             };
         } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка загрузки типа аккумулятора', error);
+            logErrorUtils('coreBatteryTypeApi', 'Ошибка загрузки типа аккумулятора', error);
             return {
                 success: false,
                 message: 'Не удалось загрузить тип аккумулятора',
@@ -79,17 +84,16 @@ export class CoreBatteryTypeApi {
     }
 
     /**
-     * Получение типов аккумуляторов для выпадающего списка
+     * Получение типов аккумуляторов для выпадающего списка (суффикс TypeApi)
      */
-    async getBatteryTypesForDropdown() {
-        logDebug('coreBatteryTypeApi', 'Получение типов аккумуляторов для выпадающего списка');
+    async getBatteryTypesForDropdownTypeApi() {
+        logDebugUtils('coreBatteryTypeApi', 'Получение типов аккумуляторов для выпадающего списка');
 
         try {
-            const response = await this.resource.getForDropdown();
+            const response = await this.resource.getForDropdownResource();
 
-            // Проверяем структуру ответа
             if (!response || !response.data || !Array.isArray(response.data)) {
-                logDebug('coreBatteryTypeApi', 'Получен некорректный ответ от API', { response });
+                logDebugUtils('coreBatteryTypeApi', 'Получен некорректный ответ от API', { response });
                 return {
                     success: true,
                     data: [],
@@ -110,7 +114,7 @@ export class CoreBatteryTypeApi {
                 message: 'Типы аккумуляторов успешно загружены'
             };
         } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка загрузки типов аккумуляторов', error);
+            logErrorUtils('coreBatteryTypeApi', 'Ошибка загрузки типов аккумуляторов', error);
             return {
                 success: false,
                 message: 'Не удалось загрузить типы аккумуляторов',
@@ -119,18 +123,17 @@ export class CoreBatteryTypeApi {
         }
     }
 
-    // Остальные методы без изменений
-    async checkBatteryTypeCompatibility(batteryTypeId, deviceId) {
-        logDebug('coreBatteryTypeApi', 'Проверка совместимости типа аккумулятора', {
+    /**
+     * Проверка совместимости типа аккумулятора с устройством (суффикс TypeApi)
+     */
+    async checkBatteryTypeCompatibilityTypeApi(batteryTypeId, deviceId) {
+        logDebugUtils('coreBatteryTypeApi', 'Проверка совместимости типа аккумулятора', {
             batteryTypeId,
             deviceId
         });
 
         try {
-            const response = await this.resource.checkCompatibility('', {
-                battery_type_id: batteryTypeId,
-                device_id: deviceId
-            });
+            const response = await this.resource.checkCompatibilityResource(batteryTypeId, deviceId);
 
             return {
                 success: true,
@@ -138,7 +141,7 @@ export class CoreBatteryTypeApi {
                 message: 'Совместимость проверена'
             };
         } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка проверки совместимости', error);
+            logErrorUtils('coreBatteryTypeApi', 'Ошибка проверки совместимости', error);
             return {
                 success: false,
                 message: 'Не удалось проверить совместимость',
@@ -146,109 +149,10 @@ export class CoreBatteryTypeApi {
             };
         }
     }
+}
 
-    async setDeviceType(deviceId, batteryTypeId, settings = {}) {
-        logDebug('coreBatteryTypeApi', 'Установка типа аккумулятора для устройства', {
-            deviceId,
-            batteryTypeId,
-            settings
-        });
-
-        try {
-            const response = await this.resource.post('/set-device-type', {
-                device_id: deviceId,
-                battery_type_id: batteryTypeId,
-                settings
-            });
-
-            return {
-                success: true,
-                response,
-                message: 'Тип аккумулятора установлен'
-            };
-        } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка установки типа аккумулятора', error);
-            return {
-                success: false,
-                message: 'Не удалось установить тип аккумулятора',
-                error: error.message
-            };
-        }
-    }
-
-    async updateBatteryType(batteryTypeId, params) {
-        logDebug('coreBatteryTypeApi', 'Обновление типа аккумулятора', {
-            batteryTypeId,
-            params
-        });
-
-        try {
-            const response = await this.resource.put(`/${batteryTypeId}`, params);
-
-            return {
-                success: true,
-                response,
-                message: 'Тип аккумулятора обновлен'
-            };
-        } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка обновления типа аккумулятора', error);
-            return {
-                success: false,
-                message: 'Не удалось обновить тип аккумулятора',
-                error: error.message
-            };
-        }
-    }
-
-    async getBatteryTypeStatus(deviceId) {
-        logDebug('coreBatteryTypeApi', 'Получение статуса типа аккумулятора', { deviceId });
-
-        try {
-            const response = await this.resource.get(`/status/${deviceId}`);
-            return {
-                success: true,
-                response,
-                message: 'Статус типа аккумулятора успешно загружен'
-            };
-        } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка загрузки статуса типа аккумулятора', error);
-            return {
-                success: false,
-                message: 'Не удалось загрузить статус типа аккумулятора',
-                error: error.message
-            };
-        }
-    }
-
-    async simulateVoltageChange(deviceId, targetVoltage, duration = 2000) {
-        logDebug('coreBatteryTypeApi', 'Симуляция изменения напряжения', {
-            deviceId,
-            targetVoltage,
-            duration
-        });
-
-        try {
-            const response = await this.resource.post('/simulate-voltage', {
-                device_id: deviceId,
-                target_voltage: targetVoltage,
-                duration
-            });
-
-            return {
-                success: true,
-                response,
-                message: 'Напряжение успешно изменено'
-            };
-        } catch (error) {
-            logError('coreBatteryTypeApi', 'Ошибка симуляции напряжения', error);
-            return {
-                success: false,
-                message: 'Не удалось симулировать напряжение',
-                error: error.message
-            };
-        }
-    }
-};
-
-// Экспорт экземпляра
+// ✅ Экспорт экземпляра
 export const coreBatteryTypeApi = new CoreBatteryTypeApi();
+
+// ✅ Экспорт по умолчанию
+export default coreBatteryTypeApi;

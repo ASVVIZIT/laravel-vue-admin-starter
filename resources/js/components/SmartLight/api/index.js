@@ -3,19 +3,15 @@
  * SMARTLIGHT API INDEX — ГЛАВНЫЙ ЭКСПОРТ
  * ============================================================================
  * 📁 Путь: api/index.js
- * ✅ Используется: Все компоненты SmartLight
+ * ✅ Используется: Все компоненты SmartLight, точка входа модуля
  * ============================================================================
  */
 
-// Core exports
 export * from './core/index.js';
-
-// Version exports
 export * from './v0/index.js';
 export * from './v1/index.js';
 export * from './v2/index.js';
 
-// Version selector
 export const getApiVersion = () => {
     if (typeof localStorage !== 'undefined') {
         return localStorage.getItem('smartlight_api_version') || 'v0';

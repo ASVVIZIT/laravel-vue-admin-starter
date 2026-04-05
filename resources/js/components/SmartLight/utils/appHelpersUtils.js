@@ -1,48 +1,49 @@
 /**
  * ============================================================================
- * HELPERS — ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+ * HELPERS UTILS — ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (УТИЛИТЫ)
  * ============================================================================
- * 📁 Путь: utils/appHelpers.js
+ * 📁 Путь: utils/appHelpersUtils.js
  * ✅ Используется: Все сервисы и компоненты
+ * ✅ Рефакторинг: файл переименован, функции получили суффикс Utils
  * ============================================================================
  */
 
 /**
- * Приведение строки к числу с валидацией
+ * Приведение строки к числу с валидацией (суффикс Utils)
  */
-export const toNumber = (value, defaultValue = 0) => {
+export const toNumberUtils = (value, defaultValue = 0) => {
     if (typeof value === 'number') return value;
     if (typeof value === 'string' && !isNaN(parseFloat(value))) return parseFloat(value);
     return defaultValue;
 };
 
 /**
- * Глубокое клонирование объекта
+ * Глубокое клонирование объекта (суффикс Utils)
  */
-export const deepClone = (obj) => {
+export const deepCloneUtils = (obj) => {
     if (obj === null || typeof obj !== 'object') return obj;
     if (obj instanceof Date) return new Date(obj);
-    if (Array.isArray(obj)) return obj.map(item => deepClone(item));
+    if (Array.isArray(obj)) return obj.map(item => deepCloneUtils(item));
     const cloned = {};
     for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            cloned[key] = deepClone(obj[key]);
+            cloned[key] = deepCloneUtils(obj[key]);
         }
     }
     return cloned;
 };
 
 /**
- * Проверка на пустое значение
+ * Проверка на пустое значение (суффикс Utils)
  */
-export const isEmpty = (value) => {
+export const isEmptyUtils = (value) => {
     return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
 };
 
 /**
- * Безопасное получение свойства из объекта
+ * Безопасное получение свойства из объекта (суффикс Utils)
  */
-export const safeGet = (obj, path, defaultValue = null) => {
+export const safeGetUtils = (obj, path, defaultValue = null) => {
     try {
         return path.split('.').reduce((acc, part) => acc?.[part], obj) ?? defaultValue;
     } catch {
@@ -50,4 +51,4 @@ export const safeGet = (obj, path, defaultValue = null) => {
     }
 };
 
-export default { toNumber, deepClone, isEmpty, safeGet };
+export default { toNumberUtils, deepCloneUtils, isEmptyUtils, safeGetUtils };

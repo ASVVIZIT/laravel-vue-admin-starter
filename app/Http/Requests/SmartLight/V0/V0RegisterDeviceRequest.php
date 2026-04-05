@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\SmartLight\Core;
+namespace App\Http\Requests\SmartLight\V0;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CoreRegisterDeviceRequest extends FormRequest
+class V0RegisterDeviceRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

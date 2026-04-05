@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Resources\SmartLight;
+namespace App\Http\Resources\SmartLight\Core;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class CommandResource extends JsonResource
+class CoreCommandResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

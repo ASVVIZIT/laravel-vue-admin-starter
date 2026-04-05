@@ -4,7 +4,7 @@ namespace App\Http\Resources\SmartLight;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class DeviceSettingsResource extends JsonResource
+class V0DeviceSettingsResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

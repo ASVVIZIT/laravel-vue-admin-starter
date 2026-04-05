@@ -1,17 +1,19 @@
 /**
  * ============================================================================
- * LAYOUT COMPONENTS — ЭКСПОРТ LAYOUT
+ * LAYOUT WRAPPERS — ЭКСПОРТ ОБЁРТОК
  * ============================================================================
  */
 
-export { default as SidebarLayoutWrapper } from './LayoutSidebarWrapper.vue';
-export { default as PanelLayoutWrapper } from './LayoutPanelWrapper.vue';
-export { default as CardLayoutWrapper } from './LayoutCardWrapper.vue';
-export { default as IconLayoutWrapper } from './LayoutIconWrapper.vue.vue';
+export { default as LayoutSidebarWrapper } from './LayoutSidebarWrapper.vue';
+export { default as LayoutPanelWrapper } from './LayoutPanelWrapper.vue';
+export { default as LayoutCardWrapper } from './LayoutCardWrapper.vue';
+export { default as LayoutIconWrapper } from './LayoutIconWrapper.vue';
+export { default as LayoutDebugWrapper } from './LayoutDebugWrapper.vue';
 
 export default {
-    SidebarLayoutWrapper: () => import('./LayoutSidebarWrapper.vue'),
-    PanelLayoutWrapper: () => import('./LayoutPanelWrapper.vue'),
-    CardLayoutWrapper: () => import('./LayoutCardWrapper.vue'),
-    IconLayoutWrapper: () => import('./LayoutIconWrapper.vue.vue'),
+    LayoutSidebarWrapper: () => import('./LayoutSidebarWrapper.vue'),
+    LayoutPanelWrapper: () => import('./LayoutPanelWrapper.vue'),
+    LayoutCardWrapper: () => import('./LayoutCardWrapper.vue'),
+    LayoutIconWrapper: () => import('./LayoutIconWrapper.vue'),
+    LayoutDebugWrapper: () => import('./LayoutDebugWrapper.vue')
 };

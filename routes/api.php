@@ -32,6 +32,11 @@ use App\Http\Controllers\TalkStream\CallController;
 use App\Http\Controllers\TalkStream\FriendRequestController;
 use App\Http\Controllers\Video\VideoController;
 
+
+use App\Http\Controllers\Api\SmartLight\Core as CoreControllers;
+use App\Http\Controllers\Api\SmartLight\V0 as V0Controllers;
+use App\Http\Controllers\Api\SmartLight\V1 as V1Controllers;
+
 use App\Http\Controllers\Api\SmartLight\DeviceController;
 use App\Http\Controllers\Api\SmartLight\TypesController;
 use App\Http\Controllers\Api\SmartLight\SettingsController;
@@ -343,65 +348,118 @@ Route::get('/debug/network', function(Request $request) {
     ]);
 });
 
-
 /*
 |--------------------------------------------------------------------------
- * SmartLight API Routes
- *--------------------------------------------------------------------------
- */
+| SmartLight API Routes — ТРИ СЛОЯ: Core, V0, V1
+|--------------------------------------------------------------------------
+| Core  → для фронтенда (человеческие пути, без версии)
+| V0    → legacy поддержка (старые клиенты)
+| V1    → версионированный API (внешняя интеграция)
+|--------------------------------------------------------------------------
+*/
 
-Route::namespace('Api\\SmartLight')->prefix('smart-light')->name('smart-light.')->group(function () {
+Route::namespace('Api\\SmartLight')
+    ->prefix('smart-light')
+    ->name('smart-light.')
+    ->group(function () {
 
-    // Публичные маршруты
-    Route::post('/register', [DeviceController::class, 'register'])
-        ->name('register');
+    // ===== ПУБЛИЧНЫЕ (без авторизации) =====
+    Route::post('/register', [CoreControllers\CoreDeviceController::class, 'register'])->name('register');
 
-    // Device Auth маршруты (для устройств) — ДОЛЖНЫ БЫТЬ ПЕРЕД user auth!
-    Route::middleware(SmartLightDeviceAuth::class)->group(function () {
-        Route::post('/{device_id}/telemetry', [TelemetryController::class, 'store'])->name('telemetry.store');
-        Route::get('/{device_id}/telemetry', [TelemetryController::class, 'index'])->name('telemetry.index');
-        Route::get('/{device_id}/settings', [DeviceController::class, 'getSettings'])->name('settings')->middleware('deprecated');
-        Route::post('/{device_id}/commands', [CommandController::class, 'sendCommand'])->name('commands.send');
-        Route::get('/{device_id}/commands', [CommandController::class, 'getCommand'])->name('commands.get');
+    // ===== DEVICE AUTH (для устройств, по api_key) =====
+    Route::middleware(\App\Http\Middleware\SmartLight\SmartLightDeviceAuth::class)->group(function () {
+        Route::post('/{device_id}/telemetry', [CoreControllers\CoreTelemetryController::class, 'store'])->name('telemetry.store');
+        Route::get('/{device_id}/telemetry', [CoreControllers\CoreTelemetryController::class, 'index'])->name('telemetry.index');
+        Route::get('/{device_id}/commands', [CoreControllers\CoreCommandController::class, 'getPending'])->name('commands.pending');
+
+        // Настройки для устройств (минимальный набор)
+        Route::get('/{device_id}/settings/device-auth', [CoreControllers\CoreDeviceSettingsController::class, 'getForDeviceAuth'])->name('settings.device-auth');
+
+        // Legacy endpoint (deprecated)
+        Route::get('/{device_id}/settings', [CoreControllers\CoreDeviceController::class, 'getLegacySettings'])->name('settings.legacy')->middleware('deprecated');
     });
 
-    // Защищённые маршруты (User Auth)
+    // ===== USER AUTH (для фронтенда, по Sanctum) =====
     Route::middleware('auth:sanctum')->group(function () {
 
-        // Устройства — ДОЛЖНЫ БЫТЬ ПОСЛЕ device-specific routes!
-        Route::get('/devices', [DeviceController::class, 'index'])->name('devices.index');
-        Route::get('/devices/dropdown', [DeviceController::class, 'listForDropdown'])->name('devices.dropdown');
-        Route::get('/devices/{device_id}', [DeviceController::class, 'show'])->name('devices.show');
-        Route::get('/{device_id}/ownership', [DeviceController::class, 'checkOwnership'])->name('devices.ownership');
+        // ===== CORE API — УСТРОЙСТВА (жизненный цикл + команды) =====
+        Route::prefix('devices')->name('devices.')->group(function () {
 
-        // Настройки устройств — ДОЛЖНЫ БЫТЬ ПОСЛЕ /devices/{id}!
-        Route::prefix('/{device_id}/device-settings')->group(function () {
-            Route::get('/', [DeviceSettingsController::class, 'show'])->name('device-settings.show');
-            Route::put('/', [DeviceSettingsController::class, 'update'])->name('device-settings.update');
-            Route::post('/reset', [DeviceSettingsController::class, 'reset'])->name('device-settings.reset');
-            Route::get('/defaults', [DeviceSettingsController::class, 'getDefaults'])->name('device-settings.defaults');
+            // CRUD + список
+            Route::get('/', [CoreControllers\CoreDeviceController::class, 'index'])->name('index');
+            Route::get('/dropdown', [CoreControllers\CoreDeviceController::class, 'listForDropdown'])->name('dropdown');
+            Route::get('/{device_id}', [CoreControllers\CoreDeviceController::class, 'show'])->name('show');
+            Route::delete('/{device_id}', [CoreControllers\CoreDeviceController::class, 'destroy'])->name('destroy');
+
+            // Проверка прав
+            Route::get('/{device_id}/ownership', [CoreControllers\CoreDeviceController::class, 'checkOwnership'])->name('ownership');
+
+            // Статус и интенсивность
+            Route::put('/{device_id}/status', [CoreControllers\CoreDeviceController::class, 'updateStatus'])->name('status.update');
+            Route::put('/{device_id}/intensity', [CoreControllers\CoreDeviceController::class, 'updateIntensity'])->name('intensity.update');
+
+            // Команды
+            Route::post('/{device_id}/sleep', [CoreControllers\CoreDeviceController::class, 'forceSleep'])->name('sleep');
+            Route::post('/{device_id}/wake', [CoreControllers\CoreDeviceController::class, 'wakeDevice'])->name('wake');
+
+            // Телеметрия и статусы
+            Route::get('/{device_id}/telemetry', [CoreControllers\CoreDeviceController::class, 'getTelemetry'])->name('telemetry');
+            Route::get('/{device_id}/battery', [CoreControllers\CoreDeviceController::class, 'getBatteryStatus'])->name('battery');
+            Route::get('/{device_id}/power', [CoreControllers\CoreDeviceController::class, 'getPowerStatus'])->name('power');
         });
 
-        // Типы устройств
-        Route::get('/battery-types', [TypesController::class, 'batteryTypes'])->name('battery-types.index');
-        Route::get('/bulb-types', [TypesController::class, 'bulbTypes'])->name('bulb-types.index');
-        Route::get('/power-supplies', [TypesController::class, 'powerSupplies'])->name('power-supplies.index');
+        // ===== CORE API — НАСТРОЙКИ (конфигурация) =====
+        Route::prefix('devices/{device_id}/settings')->name('devices.settings.')->group(function () {
+            Route::get('/', [CoreControllers\CoreDeviceSettingsController::class, 'show'])->name('show');
+            Route::put('/', [CoreControllers\CoreDeviceSettingsController::class, 'update'])->name('update');
+            Route::post('/reset', [CoreControllers\CoreDeviceSettingsController::class, 'reset'])->name('reset');
+            Route::get('/defaults', [CoreControllers\CoreDeviceSettingsController::class, 'getDefaults'])->name('defaults');
+        });
 
-        // Глобальные настройки
-        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
-        Route::post('/settings', [SettingsController::class, 'update'])->name('settings.update');
-        Route::post('/settings/reset', [SettingsController::class, 'reset'])->name('settings.reset');
+        // ===== СПРАВОЧНИКИ =====
+        Route::get('/battery-types', [CoreControllers\CoreTypesController::class, 'batteryTypes'])->name('battery-types.index');
+        Route::get('/bulb-types', [CoreControllers\CoreTypesController::class, 'bulbTypes'])->name('bulb-types.index');
+        Route::get('/power-supplies', [CoreControllers\CoreTypesController::class, 'powerSupplies'])->name('power-supplies.index');
 
-        // V1 API endpoints
+        // ===== ГЛОБАЛЬНЫЕ НАСТРОЙКИ =====
+        Route::get('/settings', [CoreControllers\CoreSettingsController::class, 'index'])->name('global-settings.index');
+        Route::post('/settings', [CoreControllers\CoreSettingsController::class, 'update'])->name('global-settings.update');
+        Route::post('/settings/reset', [CoreControllers\CoreSettingsController::class, 'reset'])->name('global-settings.reset');
+
+        // ===== V0 API (legacy) =====
+        Route::prefix('v0')->name('v0.')->group(function () {
+            Route::get('/devices', [V0Controllers\V0DeviceController::class, 'index'])->name('devices.index');
+            Route::get('/devices/{device_id}', [V0Controllers\V0DeviceController::class, 'show'])->name('devices.show');
+            Route::post('/devices/{device_id}/sleep', [V0Controllers\V0CommandController::class, 'sleep'])->name('devices.sleep');
+            Route::post('/devices/{device_id}/wake', [V0Controllers\V0CommandController::class, 'wake'])->name('devices.wake');
+            Route::post('/devices/{device_id}/status', [V0Controllers\V0CommandController::class, 'updateStatus'])->name('devices.status');
+
+            // V0 настройки (вложенный префикс)
+            Route::prefix('/devices/{device_id}/device-settings')->name('device-settings.')->group(function () {
+                Route::get('/', [V0Controllers\V0DeviceSettingsController::class, 'show'])->name('show');
+                Route::put('/', [V0Controllers\V0DeviceSettingsController::class, 'update'])->name('update');
+            });
+        });
+
+        // ===== V1 API (REST, строгий) =====
         Route::prefix('v1')->name('v1.')->group(function () {
-            Route::get('/devices', [DeviceController::class, 'apiIndex'])->name('devices.index');
-            Route::get('/devices/{device_id}/device-settings', [DeviceSettingsController::class, 'apiShow'])->name('device-settings.show');
-            Route::put('/devices/{device_id}/device-settings', [DeviceSettingsController::class, 'apiUpdate'])->name('device-settings.update');
-            Route::post('/devices/{device_id}/device-settings/reset', [DeviceSettingsController::class, 'apiReset'])->name('device-settings.reset');
-            Route::post('/devices/{device_id}/commands/sleep', [CommandController::class, 'apiForceSleep'])->name('commands.sleep');
-            Route::post('/devices/{device_id}/commands/wake', [CommandController::class, 'apiWakeDevice'])->name('commands.wake');
-            Route::post('/devices/{device_id}/commands/status', [CommandController::class, 'apiUpdateStatus'])->name('commands.status');
+            Route::apiResource('devices', V1Controllers\V1DeviceController::class)
+                ->only(['index', 'show', 'update', 'destroy'])
+                ->parameters(['devices' => 'device_id']);
+
+            Route::post('/devices/{device_id}/commands/sleep', [V1Controllers\V1CommandController::class, 'sleep'])->name('commands.sleep');
+            Route::post('/devices/{device_id}/commands/wake', [V1Controllers\V1CommandController::class, 'wake'])->name('commands.wake');
+            Route::post('/devices/{device_id}/commands/status', [V1Controllers\V1CommandController::class, 'status'])->name('commands.status');
+
+            Route::apiResource('devices.settings', V1Controllers\V1DeviceSettingsController::class)
+                ->only(['show', 'update'])
+                ->parameters(['settings' => 'device_id']);
+
+            Route::apiResource('battery-types', V1Controllers\V1TypesController::class)->only(['index', 'show'])->parameters(['battery-types' => 'battery_type_id']);
+            Route::apiResource('bulb-types', V1Controllers\V1TypesController::class)->only(['index', 'show'])->parameters(['bulb-types' => 'bulb_type_id']);
+            Route::apiResource('power-supplies', V1Controllers\V1TypesController::class)->only(['index', 'show'])->parameters(['power-supplies' => 'power_supply_id']);
         });
+
     });
 });
 

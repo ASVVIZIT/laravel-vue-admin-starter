@@ -4,11 +4,12 @@
  * ============================================================================
  * 📁 Путь: api/core/resource/coreSettingsResource.js
  * ✅ Используется: V0, V1, V2 ресурсы
+ * ✅ Рефакторинг: методы с суффиксом Resource(), вызовы через Base()
  * ============================================================================
  */
 
 import { CoreBaseResource } from './coreBaseResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CoreSettingsResource extends CoreBaseResource {
     constructor() {
@@ -16,67 +17,67 @@ export class CoreSettingsResource extends CoreBaseResource {
     }
 
     /**
-     * Получить глобальные настройки
+     * Получить глобальные настройки (суффикс Resource)
      */
-    async getGlobal() {
-        logDebug('coreSettingsResource', 'getGlobal');
-        return this.get('/settings');
+    async getGlobalResource() {
+        logDebugUtils('coreSettingsResource', 'getGlobalResource');
+        return this.getBase('/settings');
     }
 
     /**
-     * Обновить глобальные настройки
+     * Обновить глобальные настройки (суффикс Resource)
      */
-    async updateGlobal(settings) {
-        logDebug('coreSettingsResource', 'updateGlobal', { settings });
-        return this.post('/settings', { settings });
+    async updateGlobalResource(settings) {
+        logDebugUtils('coreSettingsResource', 'updateGlobalResource', { settings });
+        return this.postBase('/settings', { settings });
     }
 
     /**
-     * Сбросить глобальные настройки
+     * Сбросить глобальные настройки (суффикс Resource)
      */
-    async resetGlobal() {
-        logDebug('coreSettingsResource', 'resetGlobal');
-        return this.post('/settings/reset');
+    async resetGlobalResource() {
+        logDebugUtils('coreSettingsResource', 'resetGlobalResource');
+        return this.postBase('/settings/reset');
     }
 
     /**
-     * Получить настройки устройства
+     * Получить настройки устройства (суффикс Resource)
      */
-    async getDevice(deviceId) {
-        logDebug('coreSettingsResource', 'getDevice', { deviceId });
-        return this.get(`/${deviceId}/device-settings`);
+    async getDeviceResource(deviceId) {
+        logDebugUtils('coreSettingsResource', 'getDeviceResource', { deviceId });
+        return this.getBase(`/devices/${deviceId}/settings`);
     }
 
     /**
-     * Обновить настройки устройства
+     * Обновить настройки устройства (суффикс Resource)
      */
-    async updateDevice(deviceId, settings) {
-        logDebug('coreSettingsResource', 'updateDevice', { deviceId, settings });
-        return this.put(`/${deviceId}/device-settings`, settings);
+    async updateDeviceResource(deviceId, settings) {
+        logDebugUtils('coreSettingsResource', 'updateDeviceResource', { deviceId, settings });
+        return this.putBase(`/devices/${deviceId}/settings`, settings);
     }
 
     /**
-     * Сбросить настройки устройства
+     * Сбросить настройки устройства (суффикс Resource)
      */
-    async resetDevice(deviceId) {
-        logDebug('coreSettingsResource', 'resetDevice', { deviceId });
-        return this.post(`/${deviceId}/device-settings/reset`);
+    async resetDeviceResource(deviceId) {
+        logDebugUtils('coreSettingsResource', 'resetDeviceResource', { deviceId });
+        return this.postBase(`/devices/${deviceId}/settings/reset`);
     }
 
     /**
-     * Получить настройки по умолчанию
+     * Получить настройки по умолчанию (суффикс Resource)
      */
-    async getDefaults(deviceId) {
-        logDebug('coreSettingsResource', 'getDefaults', { deviceId });
-        return this.get(`/${deviceId}/device-settings/defaults`);
+    async getDefaultsResource(deviceId) {
+        logDebugUtils('coreSettingsResource', 'getDefaultsResource', { deviceId });
+        return this.getBase(`/devices/${deviceId}/settings/defaults`);
     }
 
     /**
-     * Проверить валидность настроек
+     * Проверить валидность настроек (суффикс Resource)
      */
-    async validate(deviceId, settings) {
-        logDebug('coreSettingsResource', 'validate', { deviceId, settings });
-        return this.post(`/${deviceId}/device-settings/validate`, settings);
+    async validateResource(deviceId, settings) {
+        logDebugUtils('coreSettingsResource', 'validateResource', { deviceId, settings });
+        return this.postBase(`/devices/${deviceId}/settings/validate`, settings);
     }
 }
 

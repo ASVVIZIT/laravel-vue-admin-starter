@@ -3,80 +3,73 @@
  * POWER STORE — ПОДСТОР ПИТАНИЯ
  * ============================================================================
  * 📁 Путь: stores/smartlight/powerStore.js
+ * ✅ Ленивая инициализация сторов внутри методов
+ * ✅ Рефакторинг: методы получили суффикс Store(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { useDeviceStore } from './deviceStore.js';
-import { useTypesStore } from './typesStore.js';
+import { ref } from 'vue';
 import { calculateDeviceRuntime } from '@/components/SmartLight/utils/appPowerUtils.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
-export const usePowerStore = defineStore('power', () => {
+export const usePowerStore = defineStore('smartlight-power', () => {
     const powerSupplies = ref({});
     const activePowerSupply = ref('standard');
     const loading = ref(false);
     const error = ref(null);
     const powerStatus = ref({
-        status: 'active',
-        voltage: 3.7,
-        current: 0,
-        power: 0,
-        lastUpdate: Date.now()
+        status: 'active', voltage: 3.7, current: 0, power: 0, lastUpdate: Date.now()
     });
 
-    // ✅ НУЖЕН ДОСТУП К DEVICE STORE ДЛЯ РАСЧЁТА
-    const deviceStore = useDeviceStore();
-    const typesStore = useTypesStore();
-
-    const init = async () => {
-        console.log('[PowerStore] Initializing...');
+    const initPowerStore = async () => {
+        logDebugUtils('PowerStore', 'Initializing...');
         const saved = localStorage.getItem('smartlight_power_settings');
         if (saved) {
             try {
                 const settings = JSON.parse(saved);
                 activePowerSupply.value = settings.activePowerSupply || 'standard';
-                console.log('[PowerStore] Loaded from localStorage');
+                logDebugUtils('PowerStore', 'Loaded from localStorage');
             } catch (e) {
-                console.error('[PowerStore] Load error:', e);
+                logErrorUtils('PowerStore', 'Load error', e);
             }
         }
         return { success: true };
     };
 
-    // ✅ РЕАЛЬНЫЙ РАСЧЁТ ВРЕМЕНИ РАБОТЫ
-    const calculateRuntime = (deviceId) => {
-        console.log('[PowerStore] Calculating runtime for:', deviceId);
+    // ✅ ЛЕНИВАЯ ИНИЦИАЛИЗАЦИЯ (без циклических зависимостей)
+    const calculateRuntimeStore = async (deviceId) => {
+        try {
+            const { useDeviceStore, useTypesStore } = await import('@/components/SmartLight/stores/index.js');
+            const deviceStore = useDeviceStore();
+            const typesStore = useTypesStore();
 
-        const device = deviceStore.getDevice(deviceId);
-        if (!device) {
-            console.warn('[PowerStore] Device not found:', deviceId);
+            logDebugUtils('PowerStore', `Calculating runtime for ${deviceId}`);
+
+            const device = deviceStore.getDeviceStore(deviceId);
+            if (!device) return 'N/A';
+
+            const batteryType = typesStore.getBatteryTypeByIdStore(device.battery_type_id);
+            if (!batteryType) return 'N/A';
+
+            const runtime = calculateDeviceRuntime(device, batteryType);
+            logDebugUtils('PowerStore', `Runtime calculated: ${runtime}`);
+            return runtime;
+        } catch (err) {
+            logErrorUtils('PowerStore', 'Error calculating runtime', err);
             return 'N/A';
         }
-
-        const batteryType = typesStore.getBatteryTypeById(device.battery_type_id);
-        if (!batteryType) {
-            console.warn('[PowerStore] Battery type not found:', device.battery_type_id);
-            return 'N/A';
-        }
-
-        // ✅ ВЫЗЫВАЕМ UTIL ФУНКЦИЮ
-        const runtime = calculateDeviceRuntime(device, batteryType);
-        console.log('[PowerStore] Runtime calculated:', runtime);
-        return runtime;
     };
 
-    const setActiveSupply = (supplyId) => {
+    const setActiveSupplyStore = (supplyId) => {
         activePowerSupply.value = supplyId;
-        localStorage.setItem('smartlight_power_settings', JSON.stringify({
-            activePowerSupply: supplyId
-        }));
-        console.log('[PowerStore] Active supply set to:', supplyId);
+        localStorage.setItem('smartlight_power_settings', JSON.stringify({ activePowerSupply: supplyId }));
+        logDebugUtils('PowerStore', 'Active supply set to:', supplyId);
     };
 
     return {
         powerSupplies, activePowerSupply, loading, error, powerStatus,
-        init, calculateRuntime, setActiveSupply
+        initPowerStore, calculateRuntimeStore, setActiveSupplyStore
     };
 });
 

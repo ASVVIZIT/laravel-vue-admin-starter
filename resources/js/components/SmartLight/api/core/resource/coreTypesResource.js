@@ -3,56 +3,57 @@
  * TYPES RESOURCE — ЯДРО (БАЗОВАЯ ЛОГИКА ТИПОВ)
  * ============================================================================
  * 📁 Путь: api/core/resource/coreTypesResource.js
- * ✅ Используется: V0, V1, V2 ресурсы
+ * ✅ Используется: V0, V1, V2 ресурсы, прямые вызовы
+ * ✅ Рефакторинг: методы с суффиксом Resource(), вызовы через Base()
  * ============================================================================
  */
 
 import { CoreBaseResource } from './coreBaseResource.js';
-import { logDebug, logError } from '@/components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CoreTypesResource extends CoreBaseResource {
     constructor() {
         super('/smart-light', null);
     }
 
-    async getBatteryTypes() {
-        logDebug('coreTypesResource', 'getBatteryTypes');
-        return this.get('/battery-types');
+    async getBatteryTypesResource() {
+        logDebugUtils('CoreTypesResource', 'getBatteryTypesResource');
+        return this.getBase('/battery-types');
     }
 
-    async getBatteryTypeById(id) {
-        logDebug('coreTypesResource', 'getBatteryTypeById', { id });
-        return this.get(`/battery-types/${id}`);
+    async getBatteryTypeByIdResource(id) {
+        logDebugUtils('CoreTypesResource', 'getBatteryTypeByIdResource', { id });
+        return this.getBase(`/battery-types/${id}`);
     }
 
-    async getBulbTypes() {
-        logDebug('coreTypesResource', 'getBulbTypes');
-        return this.get('/bulb-types');
+    async getBulbTypesResource() {
+        logDebugUtils('CoreTypesResource', 'getBulbTypesResource');
+        return this.getBase('/bulb-types');
     }
 
-    async getBulbTypeById(id) {
-        logDebug('coreTypesResource', 'getBulbTypeById', { id });
-        return this.get(`/bulb-types/${id}`);
+    async getBulbTypeByIdResource(id) {
+        logDebugUtils('CoreTypesResource', 'getBulbTypeByIdResource', { id });
+        return this.getBase(`/bulb-types/${id}`);
     }
 
-    async getPowerSupplies() {
-        logDebug('coreTypesResource', 'getPowerSupplies');
-        return this.get('/power-supplies');
+    async getPowerSuppliesResource() {
+        logDebugUtils('CoreTypesResource', 'getPowerSuppliesResource');
+        return this.getBase('/power-supplies');
     }
 
-    async getPowerSupplyById(id) {
-        logDebug('coreTypesResource', 'getPowerSupplyById', { id });
-        return this.get(`/power-supplies/${id}`);
+    async getPowerSupplyByIdResource(id) {
+        logDebugUtils('CoreTypesResource', 'getPowerSupplyByIdResource', { id });
+        return this.getBase(`/power-supplies/${id}`);
     }
 
-    async getForDropdown(type) {
-        logDebug('coreTypesResource', 'getForDropdown', { type });
-        return this.get(`/${type}/dropdown`);
+    async getForDropdownResource(type) {
+        logDebugUtils('CoreTypesResource', 'getForDropdownResource', { type });
+        return this.getBase(`/${type}/dropdown`);
     }
 
-    async checkCompatibility(type, typeId, deviceId) {
-        logDebug('coreTypesResource', 'checkCompatibility', { type, typeId, deviceId });
-        return this.post(`/${type}/check-compatibility`, {
+    async checkCompatibilityResource(type, typeId, deviceId) {
+        logDebugUtils('CoreTypesResource', 'checkCompatibilityResource', { type, typeId, deviceId });
+        return this.postBase(`/${type}/check-compatibility`, {
             type_id: typeId,
             device_id: deviceId
         });

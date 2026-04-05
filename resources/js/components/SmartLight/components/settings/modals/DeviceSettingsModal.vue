@@ -7,19 +7,26 @@
       class="device-settings-modal"
       @close="handleClose"
   >
+    <!-- Контент модалки -->
     <div v-if="device" class="modal-content">
+      <!-- Показываем лоадер пока типы не загружены -->
+      <el-skeleton v-if="!typesStore.typesLoaded" animated :rows="6" />
+
       <DeviceSettingsForm
+          v-else
           :device="device"
           :settings="localSettings"
           @update:settings="localSettings = $event"
       />
     </div>
 
+    <!-- Пустое состояние -->
     <div v-else class="modal-empty">
       <el-icon><InfoFilled /></el-icon>
       <p>Устройство не найдено</p>
     </div>
 
+    <!-- Footer с кнопками -->
     <template #footer>
       <el-button @click="handleClose">Отмена</el-button>
       <el-button type="primary" @click="handleSave" :loading="loading">
@@ -33,15 +40,24 @@
 import { ref, computed, watch } from 'vue';
 import { InfoFilled } from '@element-plus/icons-vue';
 import { ElNotification } from 'element-plus';
-import { useDeviceStore, useTypesStore } from '@components/SmartLight/stores/index.js';
-import DeviceSettingsForm from '../forms/DeviceSettingsForm.vue';
+import { useDeviceStore, useTypesStore } from '@/components/SmartLight/stores/index.js';
+import DeviceSettingsForm from '@/components/SmartLight/components/settings/forms/DeviceSettingsForm.vue';
 
 const props = defineProps({
-  modelValue: { type: Boolean, default: false },
-  deviceId: { type: String, default: null }
+  modelValue: {
+    type: Boolean,
+    default: false
+  },
+  deviceId: {
+    type: String,
+    default: null
+  }
 });
 
-const emit = defineEmits(['update:modelValue', 'saved']);
+const emit = defineEmits([
+  'update:modelValue',
+  'saved'
+]);
 
 const visible = defineModel();
 const deviceStore = useDeviceStore();
@@ -54,16 +70,26 @@ const localSettings = ref({
   emergency_sleep_interval: 3600,
   battery_type_id: 'li-ion-18650',
   bulb_type_id: 'classic',
-  battery_group_config: { enabled: false, type: 'series', count: 1 }
+  battery_group_config: {
+    enabled: false,
+    type: 'series',
+    count: 1
+  }
 });
 
 const device = computed(() => {
   if (!props.deviceId) return null;
-  return deviceStore.getDevice(props.deviceId);
+  return deviceStore.getDeviceStore(props.deviceId);
 });
 
-watch(() => props.modelValue, (newVal) => {
+// Гарантируем загрузку типов перед открытием модалки
+watch(() => props.modelValue, async (newVal) => {
   if (newVal && props.deviceId && device.value) {
+    // Ждём загрузки типов если ещё не загружены
+    if (!typesStore.typesLoaded) {
+      await typesStore.fetchTypesStore();
+    }
+
     localSettings.value = {
       critical_voltage: device.value.critical_voltage || 3.0,
       sleep_interval: device.value.sleep_interval || 600,
@@ -79,16 +105,21 @@ watch(() => props.modelValue, (newVal) => {
   }
 }, { immediate: true });
 
+// Закрытие модалки
 const handleClose = () => {
   emit('update:modelValue', false);
 };
 
+// Сохранение настроек
 const handleSave = async () => {
   if (!props.deviceId) return;
   loading.value = true;
   try {
-    const response = await deviceStore.updateDeviceSettings(props.deviceId, localSettings.value);
-    if (response.success) {
+    const response = await deviceStore.updateDeviceSettingsStore(
+        props.deviceId,
+        localSettings.value
+    );
+    if (response?.success) {
       ElNotification({
         title: 'Успех',
         message: 'Настройки устройства сохранены',
@@ -97,12 +128,12 @@ const handleSave = async () => {
       emit('saved', response.data);
       handleClose();
     } else {
-      throw new Error(response.message || 'Ошибка сохранения');
+      throw new Error(response?.message || 'Ошибка сохранения');
     }
   } catch (err) {
     ElNotification({
       title: 'Ошибка',
-      message: 'Не удалось сохранить: ' + err.message,
+      message: 'Не удалось сохранить: ' + (err.message || err),
       type: 'error'
     });
   } finally {

@@ -1,6 +1,5 @@
 <template>
-  <div class="card-layout-wrapper" :class="wrapperClass">
-    <!-- HEADER -->
+  <div class="layout-card-wrapper" :class="wrapperClass">
     <div v-if="title || $slots.header" class="card-header">
       <slot name="header">
         <h3 class="card-title">
@@ -13,12 +12,10 @@
       </slot>
     </div>
 
-    <!-- CONTENT -->
     <div class="card-content">
       <slot></slot>
     </div>
 
-    <!-- FOOTER -->
     <div v-if="$slots.footer" class="card-footer">
       <slot name="footer"></slot>
     </div>
@@ -36,23 +33,23 @@ const props = defineProps({
 });
 
 const wrapperClass = computed(() => ({
-  'card-layout-wrapper--bordered': props.bordered,
-  'card-layout-wrapper--shadow': props.shadow
+  'layout-card-wrapper--bordered': props.bordered,
+  'layout-card-wrapper--shadow': props.shadow
 }));
 </script>
 
 <style scoped>
-.card-layout-wrapper {
+.layout-card-wrapper {
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
 }
 
-.card-layout-wrapper--bordered {
+.layout-card-wrapper--bordered {
   border: 1px solid #ebeef5;
 }
 
-.card-layout-wrapper--shadow {
+.layout-card-wrapper--shadow {
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
 }
 

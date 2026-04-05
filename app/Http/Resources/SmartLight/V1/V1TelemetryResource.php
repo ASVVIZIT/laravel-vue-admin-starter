@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Resources\SmartLight;
+namespace App\Http\Resources\SmartLight\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class TelemetryResource extends JsonResource
+class V1TelemetryResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

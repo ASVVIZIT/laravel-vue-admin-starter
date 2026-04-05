@@ -5,43 +5,49 @@
  * 📁 Путь: api/core/resource/coreBaseResource.js
  * ✅ Используется: Все Resources (Core, V0, V1, V2)
  * ✅ Контекст: Автоматическое логирование с версией API
+ * ✅ Рефакторинг: методы с суффиксом Base(), импорты *Utils
  * ============================================================================
  */
 
 import request from '@/utils/request.js';
-import { coreApiContext } from '../utils/coreApiContext.js';
-import { logRequest, logResponse, logRequestError, logError } from '../utils/coreApiLogger.js';
-import { retry, delay } from '../utils/coreApiUtils.js';
+import { coreApiContextUtils } from '../utils/coreApiContextUtils.js';
+import {
+    logRequestUtils,
+    logResponseUtils,
+    logRequestErrorUtils,
+    logErrorUtils
+} from '../utils/coreApiLoggerUtils.js';
+import { retryUtils, delayUtils } from '../utils/coreApiUtils.js';
 
 export class CoreBaseResource {
     constructor(basePath, version = null) {
         this.basePath = basePath;
-        this.version = version || coreApiContext.getVersion();
-        this.context = coreApiContext;
-        this.defaultTimeout = coreApiContext.getTimeout();
-        this.maxRetries = coreApiContext.getRetryAttempts();
-        this.retryDelay = coreApiContext.getRetryDelay();
+        this.version = version || coreApiContextUtils.getVersion();
+        this.context = coreApiContextUtils;
+        this.defaultTimeout = coreApiContextUtils.getTimeout();
+        this.maxRetries = coreApiContextUtils.getRetryAttempts();
+        this.retryDelay = coreApiContextUtils.getRetryDelay();
     }
 
     /**
-     * Построение URL с учетом версии
+     * Построение URL с учетом версии (суффикс Base)
      */
-    buildUrl(path = '') {
+    buildUrlBase(path = '') {
         const versionPrefix = this.version ? `/${this.version}` : '';
         if (!path) return `${this.basePath}${versionPrefix}`;
         return `${this.basePath}${versionPrefix}${path.startsWith('/') ? path : '/' + path}`;
     }
 
     /**
-     * GET запрос с retry логикой
+     * GET запрос с retryUtils логикой (суффикс Base)
      */
-    async get(path = '', params = {}) {
-        const url = this.buildUrl(path);
-        const requestId = logRequest(this.constructor.name, 'GET', url, params);
+    async getBase(path = '', params = {}) {
+        const url = this.buildUrlBase(path);
+        const requestId = logRequestUtils(this.constructor.name, 'GET', url, params);
         const start = performance.now();
 
         try {
-            const response = await retry(
+            const response = await retryUtils(
                 () => request({
                     url,
                     method: 'get',
@@ -53,25 +59,25 @@ export class CoreBaseResource {
             );
 
             const duration = performance.now() - start;
-            logResponse(this.constructor.name, requestId, response.status, duration);
+            logResponseUtils(this.constructor.name, requestId, response.status, duration);
             return response;
         } catch (error) {
             const duration = performance.now() - start;
-            logRequestError(this.constructor.name, requestId, error, duration);
+            logRequestErrorUtils(this.constructor.name, requestId, error, duration);
             throw error;
         }
     }
 
     /**
-     * POST запрос с retry логикой
+     * POST запрос с retryUtils логикой (суффикс Base)
      */
-    async post(path, data = {}) {
-        const url = this.buildUrl(path);
-        const requestId = logRequest(this.constructor.name, 'POST', url, data);
+    async postBase(path, data = {}) {
+        const url = this.buildUrlBase(path);
+        const requestId = logRequestUtils(this.constructor.name, 'POST', url, data);
         const start = performance.now();
 
         try {
-            const response = await retry(
+            const response = await retryUtils(
                 () => request({
                     url,
                     method: 'post',
@@ -83,25 +89,25 @@ export class CoreBaseResource {
             );
 
             const duration = performance.now() - start;
-            logResponse(this.constructor.name, requestId, response.status, duration);
+            logResponseUtils(this.constructor.name, requestId, response.status, duration);
             return response;
         } catch (error) {
             const duration = performance.now() - start;
-            logRequestError(this.constructor.name, requestId, error, duration);
+            logRequestErrorUtils(this.constructor.name, requestId, error, duration);
             throw error;
         }
     }
 
     /**
-     * PUT запрос с retry логикой
+     * PUT запрос с retryUtils логикой (суффикс Base)
      */
-    async put(path, data = {}) {
-        const url = this.buildUrl(path);
-        const requestId = logRequest(this.constructor.name, 'PUT', url, data);
+    async putBase(path, data = {}) {
+        const url = this.buildUrlBase(path);
+        const requestId = logRequestUtils(this.constructor.name, 'PUT', url, data);
         const start = performance.now();
 
         try {
-            const response = await retry(
+            const response = await retryUtils(
                 () => request({
                     url,
                     method: 'put',
@@ -113,25 +119,25 @@ export class CoreBaseResource {
             );
 
             const duration = performance.now() - start;
-            logResponse(this.constructor.name, requestId, response.status, duration);
+            logResponseUtils(this.constructor.name, requestId, response.status, duration);
             return response;
         } catch (error) {
             const duration = performance.now() - start;
-            logRequestError(this.constructor.name, requestId, error, duration);
+            logRequestErrorUtils(this.constructor.name, requestId, error, duration);
             throw error;
         }
     }
 
     /**
-     * PATCH запрос с retry логикой
+     * PATCH запрос с retryUtils логикой (суффикс Base)
      */
-    async patch(path, data = {}) {
-        const url = this.buildUrl(path);
-        const requestId = logRequest(this.constructor.name, 'PATCH', url, data);
+    async patchBase(path, data = {}) {
+        const url = this.buildUrlBase(path);
+        const requestId = logRequestUtils(this.constructor.name, 'PATCH', url, data);
         const start = performance.now();
 
         try {
-            const response = await retry(
+            const response = await retryUtils(
                 () => request({
                     url,
                     method: 'patch',
@@ -143,25 +149,25 @@ export class CoreBaseResource {
             );
 
             const duration = performance.now() - start;
-            logResponse(this.constructor.name, requestId, response.status, duration);
+            logResponseUtils(this.constructor.name, requestId, response.status, duration);
             return response;
         } catch (error) {
             const duration = performance.now() - start;
-            logRequestError(this.constructor.name, requestId, error, duration);
+            logRequestErrorUtils(this.constructor.name, requestId, error, duration);
             throw error;
         }
     }
 
     /**
-     * DELETE запрос с retry логикой
+     * DELETE запрос с retryUtils логикой (суффикс Base)
      */
-    async delete(path) {
-        const url = this.buildUrl(path);
-        const requestId = logRequest(this.constructor.name, 'DELETE', url);
+    async deleteBase(path) {
+        const url = this.buildUrlBase(path);
+        const requestId = logRequestUtils(this.constructor.name, 'DELETE', url);
         const start = performance.now();
 
         try {
-            const response = await retry(
+            const response = await retryUtils(
                 () => request({
                     url,
                     method: 'delete',
@@ -172,54 +178,54 @@ export class CoreBaseResource {
             );
 
             const duration = performance.now() - start;
-            logResponse(this.constructor.name, requestId, response.status, duration);
+            logResponseUtils(this.constructor.name, requestId, response.status, duration);
             return response;
         } catch (error) {
             const duration = performance.now() - start;
-            logRequestError(this.constructor.name, requestId, error, duration);
+            logRequestErrorUtils(this.constructor.name, requestId, error, duration);
             throw error;
         }
     }
 
     /**
-     * Получить версию API
+     * Получить версию API (суффикс Base)
      */
-    getVersion() {
+    getVersionBase() {
         return this.version;
     }
 
     /**
-     * Установить версию API
+     * Установить версию API (суффикс Base)
      */
-    setVersion(version) {
+    setVersionBase(version) {
         this.version = version;
     }
 
     /**
-     * Получить контекст
+     * Получить контекст (суффикс Base)
      */
-    getContext() {
+    getContextBase() {
         return this.context;
     }
 
     /**
-     * Установить timeout
+     * Установить timeout (суффикс Base)
      */
-    setTimeout(timeout) {
+    setTimeoutBase(timeout) {
         this.defaultTimeout = timeout;
     }
 
     /**
-     * Установить количество retry попыток
+     * Установить количество retryUtils попыток (суффикс Base)
      */
-    setMaxRetries(retries) {
+    setMaxRetriesBase(retries) {
         this.maxRetries = retries;
     }
 
     /**
-     * Установить задержку retry
+     * Установить задержку retryUtils (суффикс Base)
      */
-    setRetryDelay(delay) {
+    setRetryDelayBase(delay) {
         this.retryDelay = delay;
     }
 }

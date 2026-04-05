@@ -258,14 +258,14 @@ export const BATTERY_TYPES = {
 /**
  * Получает тип аккумулятора по ID
  */
-export const getBatteryTypeById = (batteryTypeId) => {
+export const getBatteryTypeByIdStore = (batteryTypeId) => {
     return BATTERY_TYPES[batteryTypeId] || BATTERY_TYPES['li-ion-18650'];
 };
 
 /**
  * Возвращает типы аккумуляторов для выпадающего списка
  */
-export const getBatteryTypesForDropdown = () => {
+export const getBatteryTypesForDropdownStore = () => {
     return Object.entries(BATTERY_TYPES).map(([id, type]) => ({
         id,
         label: type.name,

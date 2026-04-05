@@ -1,16 +1,18 @@
 /**
  * ============================================================================
- * SETTINGS STORE — ПОДСТОР НАСТРОЕК
+ * SETTINGS STORE — ПОДСТОР НАСТРОЕК (ИСПРАВЛЕННАЯ ОБРАБОТКА 422)
  * ============================================================================
  * 📁 Путь: stores/smartlight/settingsStore.js
+ * ✅ Исправлено: структура запроса + обработка ошибок валидации
  * ============================================================================
  */
 
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { CoreSmartLightResource } from '@/components/SmartLight/api/core/resource/coreSmartLightResource.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
-export const useSettingsStore = defineStore('settings', () => {
+export const useSettingsStore = defineStore('smartlight-settings', () => {
     const globalSettings = ref({
         critical_voltage: 3.2,
         sleep_interval: 600,
@@ -24,71 +26,89 @@ export const useSettingsStore = defineStore('settings', () => {
     });
     const loading = ref(false);
     const error = ref(null);
+    const validationErrors = ref({}); // ✅ Новое: для хранения ошибок валидации
 
-    const init = async () => {
-        console.log('[SettingsStore] Initializing...');
+    const initSettingsStore = async () => {
+        logDebugUtils('SettingsStore', 'Initializing...');
         const saved = localStorage.getItem('smartlight_global_settings');
         if (saved) {
             try {
                 globalSettings.value = { ...globalSettings.value, ...JSON.parse(saved) };
-                console.log('[SettingsStore] Loaded from localStorage');
+                logDebugUtils('SettingsStore', 'Loaded from localStorage');
             } catch (e) {
-                console.error('[SettingsStore] Load error:', e);
+                logErrorUtils('SettingsStore', 'Load error', e);
             }
         }
         return true;
     };
 
-    const getGlobalSettings = async () => {
+    const getGlobalSettingsStore = async () => {
         loading.value = true;
         error.value = null;
-        console.log('[SettingsStore] Fetching global settings...');
+        validationErrors.value = {};
+        logDebugUtils('SettingsStore', 'Fetching global settings...');
         try {
             const resource = new CoreSmartLightResource();
-            const response = await resource.getGlobalSettings();
+            const response = await resource.getGlobalSettingsResource();
             if (response.success) {
                 globalSettings.value = { ...globalSettings.value, ...response.data };
-                console.log('[SettingsStore] Settings loaded');
+                logDebugUtils('SettingsStore', 'Settings loaded');
             }
             return response;
         } catch (err) {
             error.value = 'Не удалось загрузить настройки';
-            console.error('[SettingsStore] Error:', err.message);
+            logErrorUtils('SettingsStore', 'Error loading settings', err);
             return { success: false, message: err.message };
         } finally {
             loading.value = false;
         }
     };
 
-    const updateGlobalSettings = async (settings) => {
+    const updateGlobalSettingsStore = async (settings) => {
         loading.value = true;
         error.value = null;
-        console.log('[SettingsStore] Updating settings:', settings);
+        validationErrors.value = {}; // ✅ Сбрасываем ошибки перед новым запросом
+        logDebugUtils('SettingsStore', 'Updating settings', settings);
         try {
             const resource = new CoreSmartLightResource();
-            const response = await resource.updateGlobalSettings(settings);
+            // ✅ ИСПРАВЛЕНО: отправляем settings напрямую, без обёртки { settings }
+            const response = await resource.updateGlobalSettingsResource(settings);
             if (response.success) {
                 globalSettings.value = { ...globalSettings.value, ...settings };
                 localStorage.setItem('smartlight_global_settings', JSON.stringify(globalSettings.value));
-                console.log('[SettingsStore] Settings saved');
+                logDebugUtils('SettingsStore', 'Settings saved');
             }
             return response;
         } catch (err) {
-            error.value = 'Не удалось сохранить настройки';
-            console.error('[SettingsStore] Error:', err.message);
-            return { success: false, message: err.message };
+            const rawErrors = err.response?.data?.errors || {};
+
+            // ✅ Нормализуем ключи: settings.field → field
+            const { normalizeValidationErrorsUtils } = await import('@/components/SmartLight/utils/appFormattersUtils.js');
+            validationErrors.value = normalizeValidationErrorsUtils(rawErrors);
+
+            const errorMessage = err.response?.data?.message || 'Ошибка валидации';
+            error.value = errorMessage;
+
+            logErrorUtils('SettingsStore', errorMessage, err);
+
+            return {
+                success: false,
+                message: errorMessage,
+                errors: validationErrors.value
+            };
         } finally {
             loading.value = false;
         }
     };
 
-    const resetGlobalSettings = async () => {
+    const resetGlobalSettingsStore = async () => {
         loading.value = true;
         error.value = null;
-        console.log('[SettingsStore] Resetting settings...');
+        validationErrors.value = {};
+        logDebugUtils('SettingsStore', 'Resetting settings...');
         try {
             const resource = new CoreSmartLightResource();
-            const response = await resource.resetGlobalSettings();
+            const response = await resource.resetGlobalSettingsResource();
             if (response.success) {
                 globalSettings.value = {
                     critical_voltage: 3.2,
@@ -102,12 +122,12 @@ export const useSettingsStore = defineStore('settings', () => {
                     min_controller_voltage: 2.8
                 };
                 localStorage.setItem('smartlight_global_settings', JSON.stringify(globalSettings.value));
-                console.log('[SettingsStore] Settings reset');
+                logDebugUtils('SettingsStore', 'Settings reset');
             }
             return response;
         } catch (err) {
             error.value = 'Не удалось сбросить настройки';
-            console.error('[SettingsStore] Error:', err.message);
+            logErrorUtils('SettingsStore', 'Error resetting settings', err);
             return { success: false, message: err.message };
         } finally {
             loading.value = false;
@@ -115,8 +135,14 @@ export const useSettingsStore = defineStore('settings', () => {
     };
 
     return {
-        globalSettings, loading, error,
-        init, getGlobalSettings, updateGlobalSettings, resetGlobalSettings
+        globalSettings,
+        loading,
+        error,
+        validationErrors, // ✅ Экспортируем для использования в форме
+        initSettingsStore,
+        getGlobalSettingsStore,
+        updateGlobalSettingsStore,
+        resetGlobalSettingsStore
     };
 });
 

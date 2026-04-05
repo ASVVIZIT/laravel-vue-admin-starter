@@ -1,19 +1,16 @@
 <template>
   <div class="device-settings-panel" :class="{ 'panel-loading': loading }">
-    <!-- Инфо об устройстве -->
     <div class="device-info">
       <div class="device-name">{{ device.name }}</div>
       <el-tag :type="statusTagType" size="small">{{ statusText }}</el-tag>
     </div>
 
-    <!-- Форма настроек -->
     <DeviceSettingsForm
         :device="device"
         :settings="localSettings"
         @update:settings="localSettings = $event"
     />
 
-    <!-- Кнопки действий -->
     <div class="panel-actions">
       <el-button type="primary" @click="handleSave" :loading="saving" class="full-width">
         Сохранить
@@ -25,8 +22,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { ElNotification } from 'element-plus';
-import { useDeviceStore } from '@components/SmartLight/stores/index.js';
-import DeviceSettingsForm from '@/components/SmartLight/components/settings/DeviceSettingsForm.vue';
+import { useDeviceStore } from '@/components/SmartLight/stores/index.js';
+import DeviceSettingsForm from '@/components/SmartLight/components/settings/forms/DeviceSettingsForm.vue';
 
 const props = defineProps({
   deviceId: { type: String, required: true }
@@ -47,7 +44,7 @@ const localSettings = ref({
   battery_group_config: { enabled: false, type: 'series', count: 1 }
 });
 
-const device = computed(() => deviceStore.getDevice(props.deviceId));
+const device = computed(() => deviceStore.getDeviceStore(props.deviceId));
 
 const statusTagType = computed(() => {
   if (!device.value) return 'info';
@@ -92,7 +89,7 @@ const handleSave = async () => {
   if (!props.deviceId) return;
   saving.value = true;
   try {
-    const response = await deviceStore.updateDeviceSettings(props.deviceId, localSettings.value);
+    const response = await deviceStore.updateDeviceSettingsStore(props.deviceId, localSettings.value);
     if (response.success) {
       ElNotification({
         title: 'Успех',

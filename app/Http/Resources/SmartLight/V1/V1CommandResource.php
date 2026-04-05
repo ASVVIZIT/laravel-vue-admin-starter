@@ -4,7 +4,7 @@ namespace App\Http\Resources\SmartLight\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class CommandResource extends JsonResource
+class V1CommandResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

@@ -1,110 +1,75 @@
 /**
  * ============================================================================
- * SMART LIGHT RESOURCE — БАЗОВЫЙ API КЛИЕНТ
+ * SMART LIGHT RESOURCE — БАЗОВЫЙ API КЛИЕНТ (НАСЛЕДУЕТ BASE)
+ * ============================================================================
+ * 📁 Путь: api/core/resource/coreSmartLightResource.js
+ * ✅ Использует: CoreBaseResource (единый стандарт вместо прямого request)
+ * ✅ Endpoints: /smart-light/devices/{id}/wake
+ * ✅ Рефакторинг: методы с суффиксом Resource(), наследование CoreBaseResource
  * ============================================================================
  */
 
-import request from '@utils/request.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { CoreBaseResource } from './coreBaseResource.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
-const API_BASE = '/smart-light';
-const V1_API_BASE = '/v1/smart-light';
-
-export class CoreSmartLightResource {
+export class CoreSmartLightResource extends CoreBaseResource {
     constructor() {
-        this.apiBase = API_BASE;
-        this.v1ApiBase = V1_API_BASE;
+        super('/smart-light', null);
     }
 
-    async getDevices() {
-        logDebug('coreSmartLightResource', 'Получение устройств');
-        return request({
-            url: `${this.apiBase}/devices`,
-            method: 'get'
-        });
+    async getDevicesResource() {
+        logDebugUtils('coreSmartLightResource', 'getDevicesResource');
+        return this.getBase('/devices');
     }
 
-    async getDevice(deviceId) {
-        logDebug('coreSmartLightResource', 'Получение устройства', { deviceId });
-        return request({
-            url: `${this.apiBase}/devices/${deviceId}`,
-            method: 'get'
-        });
+    async getDeviceResource(deviceId) {
+        logDebugUtils('coreSmartLightResource', 'getDeviceResource', { deviceId });
+        return this.getBase(`/devices/${deviceId}`);
     }
 
-    async wakeDevice(deviceId) {
-        logDebug('coreSmartLightResource', 'Пробуждение устройства', { deviceId });
-        return request({
-            url: `${this.v1ApiBase}/devices/${deviceId}/commands/wake`,
-            method: 'post'
-        });
+    async wakeDeviceResource(deviceId) {
+        logDebugUtils('coreSmartLightResource', 'wakeDeviceResource', { deviceId });
+        return this.postBase(`/devices/${deviceId}/wake`);
     }
 
-    async forceSleep(deviceId) {
-        logDebug('coreSmartLightResource', 'Перевод в сон', { deviceId });
-        return request({
-            url: `${this.v1ApiBase}/devices/${deviceId}/commands/sleep`,
-            method: 'post'
-        });
+    async forceSleepResource(deviceId) {
+        logDebugUtils('coreSmartLightResource', 'forceSleepResource', { deviceId });
+        return this.postBase(`/devices/${deviceId}/sleep`);
     }
 
-    async sendCommand(deviceId, command, intensity = 100) {
-        logDebug('coreSmartLightResource', 'Отправка команды', { deviceId, command, intensity });
-        return request({
-            url: `${this.apiBase}/${deviceId}/commands`,
-            method: 'post',
-            data: { command, intensity }
-        });
+    async sendCommandResource(deviceId, command, intensity = 100) {
+        logDebugUtils('coreSmartLightResource', 'sendCommandResource', { deviceId, command, intensity });
+        return this.postBase(`/devices/${deviceId}/commands`, { command, intensity });
     }
 
-    async getGlobalSettings() {
-        logDebug('coreSmartLightResource', 'Получение глобальных настроек');
-        return request({
-            url: `${this.apiBase}/settings`,
-            method: 'get'
-        });
+    async getGlobalSettingsResource() {
+        logDebugUtils('coreSmartLightResource', 'getGlobalSettingsResource');
+        return this.getBase('/settings');
     }
 
-    async updateGlobalSettings(settings) {
-        logDebug('coreSmartLightResource', 'Обновление глобальных настроек', { settings });
-        return request({
-            url: `${this.apiBase}/settings`,
-            method: 'post',
-            data: { settings }
-        });
+    async updateGlobalSettingsResource(settings) {
+        logDebugUtils('coreSmartLightResource', 'updateGlobalSettingsResource', { settings });
+        return this.postBase('/settings', { settings });
     }
 
-    async resetGlobalSettings() {
-        logDebug('coreSmartLightResource', 'Сброс глобальных настроек');
-        return request({
-            url: `${this.apiBase}/settings/reset`,
-            method: 'post'
-        });
+    async resetGlobalSettingsResource() {
+        logDebugUtils('coreSmartLightResource', 'resetGlobalSettingsResource');
+        return this.postBase('/settings/reset');
     }
 
-    async getDeviceSettings(deviceId) {
-        logDebug('coreSmartLightResource', 'Получение настроек устройства', { deviceId });
-        return request({
-            url: `${this.apiBase}/${deviceId}/device-settings`,
-            method: 'get'
-        });
+    async getDeviceSettingsResource(deviceId) {
+        logDebugUtils('coreSmartLightResource', 'getDeviceSettingsResource', { deviceId });
+        return this.getBase(`/devices/${deviceId}/settings`);
     }
 
-    async updateDeviceSettings(deviceId, settings) {
-        logDebug('coreSmartLightResource', 'Обновление настроек устройства', { deviceId, settings });
-        return request({
-            url: `${this.apiBase}/${deviceId}/device-settings`,
-            method: 'put',
-            data: settings
-        });
+    async updateDeviceSettingsResource(deviceId, settings) {
+        logDebugUtils('coreSmartLightResource', 'updateDeviceSettingsResource', { deviceId, settings });
+        return this.putBase(`/devices/${deviceId}/settings`, settings);
     }
 
-    async resetDeviceSettings(deviceId) {
-        logDebug('coreSmartLightResource', 'Сброс настроек устройства', { deviceId });
-        return request({
-            url: `${this.apiBase}/${deviceId}/device-settings/reset`,
-            method: 'post'
-        });
+    async resetDeviceSettingsResource(deviceId) {
+        logDebugUtils('coreSmartLightResource', 'resetDeviceSettingsResource', { deviceId });
+        return this.postBase(`/devices/${deviceId}/settings/reset`);
     }
 }
 

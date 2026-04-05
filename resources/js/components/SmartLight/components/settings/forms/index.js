@@ -1,17 +1,13 @@
 /**
  * ============================================================================
- * LAYOUT COMPONENTS — ЭКСПОРТ LAYOUT
+ * SETTINGS FORMS — ЭКСПОРТ ФОРМ
  * ============================================================================
  */
 
 export { default as DeviceSettingsForm } from './DeviceSettingsForm.vue';
-export { default as DebugLayoutPanel } from '../panels/DebugPanel.vue';
-export { default as CardLayoutWrapper } from './CardLayoutWrapper.vue';
-export { default as LayoutSidebarWrapper } from './LayoutSidebarWrapper.vue';
+export { default as GlobalSettingsForm } from './GlobalSettingsForm.vue';
 
 export default {
-    IconLayoutWrapper: () => import('./IconLayoutWrapper.vue'),
-    DebugLayoutPanel: () => import('../panels/DebugPanel.vue'),
-    CardLayoutWrapper: () => import('./CardLayoutWrapper.vue'),
-    LayoutSidebarWrapper: () => import('./LayoutSidebarWrapper.vue')
+    DeviceSettingsForm: () => import('./DeviceSettingsForm.vue'),
+    GlobalSettingsForm: () => import('./GlobalSettingsForm.vue')
 };

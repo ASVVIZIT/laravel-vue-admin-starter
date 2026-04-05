@@ -4,13 +4,14 @@
  * ============================================================================
  * 📁 Путь: services/CommandService.js
  * ✅ Используется: DeviceController, CommandController
+ * ✅ Рефакторинг: методы получили суффикс Service(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { CoreSmartLightResource } from '@/components/SmartLight/api/core/resource/coreSmartLightResource.js';
-import { validateCommand } from '@/components/SmartLight/utils/appValidators.js';
-import { ApiUtils } from '@/components/SmartLight/api/core/utils/coreApiUtils.js';
-import { logDebug, logError } from '@/components/SmartLight/api/core/utils/coreApiLogger.js';
+import { validateCommandUtils } from '@/components/SmartLight/utils/appValidatorsUtils.js';
+import { CoreApiUtils } from '@/components/SmartLight/api/core/utils/coreApiUtils.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CommandService {
     constructor() {
@@ -18,18 +19,17 @@ export class CommandService {
         this.commandHistory = new Map();
     }
 
-    async sendCommand(deviceId, command, intensity = 100) {
-        logDebug('CommandService', 'Отправка команды', { deviceId, command, intensity });
+    async sendCommandService(deviceId, command, intensity = 100) {
+        logDebugUtils('CommandService', 'Отправка команды', { deviceId, command, intensity });
 
-        // ЛОГИРОВАНИЕ ЗАПРОСА
-        const requestId = ApiUtils.logApiRequest('POST', `/api/smart-light/devices/${deviceId}/command`, {
+        const requestId = CoreApiUtils.logApiRequest('POST', `/api/smart-light/devices/${deviceId}/command`, {
             command,
             intensity
         });
 
-        const validation = validateCommand(command, deviceId);
+        const validation = validateCommandUtils(command, deviceId);
         if (!validation.valid) {
-            logError('CommandService', 'Команда не прошла валидацию', {
+            logErrorUtils('CommandService', 'Команда не прошла валидацию', {
                 deviceId, command, intensity, errors: validation.errors
             });
             return {
@@ -40,38 +40,37 @@ export class CommandService {
             };
         }
 
-        // ДЕМО-РЕЖИМ
-        if (ApiUtils.isDebugMode()) {
-            await ApiUtils.delay(300);
-            const response = ApiUtils.getFakeResponse(true, 'Команда отправлена (демо)', {
+        if (CoreApiUtils.isDebugMode()) {
+            await CoreApiUtils.delay(300);
+            const response = CoreApiUtils.getFakeResponse(true, 'Команда отправлена (демо)', {
                 deviceId,
                 command,
                 intensity,
                 timestamp: new Date().toISOString()
             });
-            this.saveCommandHistory(deviceId, command, intensity, response);
+            this.saveCommandHistoryService(deviceId, command, intensity, response);
             return response;
         }
 
         try {
-            const response = await this.resource.sendCommand(deviceId, command, intensity);
-            ApiUtils.logApiResponse('POST', `/api/smart-light/devices/${deviceId}/command`, response, requestId);
-            this.saveCommandHistory(deviceId, command, intensity, response);
+            const response = await this.resource.sendCommandResource(deviceId, command, intensity);
+            CoreApiUtils.logApiResponse('POST', `/api/smart-light/devices/${deviceId}/command`, response, requestId);
+            this.saveCommandHistoryService(deviceId, command, intensity, response);
             return {
                 success: true,
                 message: 'Команда успешно отправлена',
                 data: response.data
             };
         } catch (error) {
-            ApiUtils.logApiError('POST', `/api/smart-light/devices/${deviceId}/command`, error, requestId);
-            const errorData = ApiUtils.handleApiError(error, 'CommandService.sendCommand');
-            logError('CommandService', 'Ошибка отправки команды', error);
+            CoreApiUtils.logApiError('POST', `/api/smart-light/devices/${deviceId}/command`, error, requestId);
+            const errorData = CoreApiUtils.handleApiError(error, 'CommandService.sendCommandService');
+            logErrorUtils('CommandService', 'Ошибка отправки команды', error);
             return errorData;
         }
     }
 
-    saveCommandHistory(deviceId, command, intensity, response) {
-        logDebug('CommandService', 'Сохранение истории команд', { deviceId, command, intensity });
+    saveCommandHistoryService(deviceId, command, intensity, response) {
+        logDebugUtils('CommandService', 'Сохранение истории команд', { deviceId, command, intensity });
         const history = this.commandHistory.get(deviceId) || [];
         history.unshift({
             deviceId, command, intensity, response,
@@ -80,23 +79,23 @@ export class CommandService {
         this.commandHistory.set(deviceId, history.slice(0, 100));
     }
 
-    getCommandHistory(deviceId) {
-        logDebug('CommandService', 'Получение истории команд', { deviceId });
+    getCommandHistoryService(deviceId) {
+        logDebugUtils('CommandService', 'Получение истории команд', { deviceId });
         return this.commandHistory.get(deviceId) || [];
     }
 
-    async forceSleep(deviceId) {
-        logDebug('CommandService', 'Отправка команды перевода в спящий режим', { deviceId });
+    async forceSleepService(deviceId) {
+        logDebugUtils('CommandService', 'Отправка команды перевода в спящий режим', { deviceId });
         try {
-            const response = await this.resource.forceSleep(deviceId);
-            this.saveCommandHistory(deviceId, 'EMERGENCY_SLEEP', 0, response);
+            const response = await this.resource.forceSleepResource(deviceId);
+            this.saveCommandHistoryService(deviceId, 'EMERGENCY_SLEEP', 0, response);
             return {
                 success: true,
                 message: 'Команда перевода в сон успешно отправлена',
                 data: response.data
             };
         } catch (error) {
-            logError('CommandService', 'Ошибка отправки команды перевода в сон', error);
+            logErrorUtils('CommandService', 'Ошибка отправки команды перевода в сон', error);
             return {
                 success: false,
                 message: 'Ошибка перевода в сон',
@@ -106,18 +105,18 @@ export class CommandService {
         }
     }
 
-    async wakeDevice(deviceId) {
-        logDebug('CommandService', 'Отправка команды пробуждения', { deviceId });
+    async wakeDeviceService(deviceId) {
+        logDebugUtils('CommandService', 'Отправка команды пробуждения', { deviceId });
         try {
-            const response = await this.resource.wakeDevice(deviceId);
-            this.saveCommandHistory(deviceId, 'WAKE_UP', 100, response);
+            const response = await this.resource.wakeDeviceResource(deviceId);
+            this.saveCommandHistoryService(deviceId, 'WAKE_UP', 100, response);
             return {
                 success: true,
                 message: 'Команда пробуждения успешно отправлена',
                 data: response.data
             };
         } catch (error) {
-            logError('CommandService', 'Ошибка отправки команды пробуждения', error);
+            logErrorUtils('CommandService', 'Ошибка отправки команды пробуждения', error);
             return {
                 success: false,
                 message: 'Ошибка пробуждения',
@@ -127,27 +126,27 @@ export class CommandService {
         }
     }
 
-    async sendStatusCommand(deviceId, status, intensity = 100) {
-        logDebug('CommandService', 'Отправка команды статуса', { deviceId, status, intensity });
+    async sendStatusCommandService(deviceId, status, intensity = 100) {
+        logDebugUtils('CommandService', 'Отправка команды статуса', { deviceId, status, intensity });
         const command = status === 'SLEEPING' ? 'EMERGENCY_SLEEP' : status;
-        return this.sendCommand(deviceId, command, intensity);
+        return this.sendCommandService(deviceId, command, intensity);
     }
 
-    getLastCommand(deviceId) {
-        logDebug('CommandService', 'Получение последней команды', { deviceId });
-        const history = this.getCommandHistory(deviceId);
+    getLastCommandService(deviceId) {
+        logDebugUtils('CommandService', 'Получение последней команды', { deviceId });
+        const history = this.getCommandHistoryService(deviceId);
         return history.length > 0 ? history[0] : null;
     }
 
-    async cancelLastCommand(deviceId) {
-        logDebug('CommandService', 'Отмена последней команды', { deviceId });
-        const lastCommand = this.getLastCommand(deviceId);
+    async cancelLastCommandService(deviceId) {
+        logDebugUtils('CommandService', 'Отмена последней команды', { deviceId });
+        const lastCommand = this.getLastCommandService(deviceId);
         if (!lastCommand) {
             return { success: false, message: 'Нет команд для отмены' };
         }
         try {
-            const response = await this.resource.cancelCommand(deviceId, lastCommand.command);
-            const history = this.getCommandHistory(deviceId);
+            const response = await this.resource.cancelCommandResource(deviceId, lastCommand.command);
+            const history = this.getCommandHistoryService(deviceId);
             history.shift();
             this.commandHistory.set(deviceId, history);
             return {
@@ -156,7 +155,7 @@ export class CommandService {
                 data: response.data
             };
         } catch (error) {
-            logError('CommandService', 'Ошибка отмены команды', error);
+            logErrorUtils('CommandService', 'Ошибка отмены команды', error);
             return {
                 success: false,
                 message: 'Не удалось отменить команду',

@@ -4,107 +4,108 @@
  * ============================================================================
  * 📁 Путь: api/core/resource/corePowerSupplyResource.js
  * ✅ Используется: V0, V1, V2 ресурсы
+ * ✅ Рефакторинг: методы с суффиксом Resource(), вызовы через Base()
  * ============================================================================
  */
 
 import { CoreBaseResource } from './coreBaseResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CorePowerSupplyResource extends CoreBaseResource {
     constructor() {
-        super('power-supplies');
+        super('/smart-light', null);
     }
 
-    async getAll() {
-        logDebug('corePowerSupplyResource', 'getAll');
-        return this.get('');
+    async getAllResource() {
+        logDebugUtils('corePowerSupplyResource', 'getAllResource');
+        return this.getBase('/power-supplies');
     }
 
-    async getById(id) {
-        logDebug('corePowerSupplyResource', 'getById', { id });
-        return this.get(`/${id}`);
+    async getByIdResource(id) {
+        logDebugUtils('corePowerSupplyResource', 'getByIdResource', { id });
+        return this.getBase(`/power-supplies/${id}`);
     }
 
-    async setDeviceType(deviceId, supplyId, settings = {}) {
-        logDebug('corePowerSupplyResource', 'setDeviceType', { deviceId, supplyId });
-        return this.post('/set-device-type', {
+    async setDeviceTypeResource(deviceId, supplyId, settings = {}) {
+        logDebugUtils('corePowerSupplyResource', 'setDeviceTypeResource', { deviceId, supplyId });
+        return this.postBase('/power-supplies/set-device-type', {
             device_id: deviceId,
             power_supply_id: supplyId,
-            settings: settings
+            settings
         });
     }
 
-    async activatePowerSupply(deviceId, supplyId) {
-        logDebug('corePowerSupplyResource', 'activatePowerSupply', { deviceId, supplyId });
-        return this.post('/activate', {
+    async activatePowerSupplyResource(deviceId, supplyId) {
+        logDebugUtils('corePowerSupplyResource', 'activatePowerSupplyResource', { deviceId, supplyId });
+        return this.postBase('/power-supplies/activate', {
             device_id: deviceId,
             power_supply_id: supplyId
         });
     }
 
-    async deactivatePowerSupply(deviceId) {
-        logDebug('corePowerSupplyResource', 'deactivatePowerSupply', { deviceId });
-        return this.post('/deactivate', {
+    async deactivatePowerSupplyResource(deviceId) {
+        logDebugUtils('corePowerSupplyResource', 'deactivatePowerSupplyResource', { deviceId });
+        return this.postBase('/power-supplies/deactivate', {
             device_id: deviceId
         });
     }
 
-    async checkPowerSupplyCompatibility(supplyId, deviceId) {
-        logDebug('corePowerSupplyResource', 'checkCompatibility', { supplyId, deviceId });
-        return this.post('/check-compatibility', {
+    async checkPowerSupplyCompatibilityResource(supplyId, deviceId) {
+        logDebugUtils('corePowerSupplyResource', 'checkPowerSupplyCompatibilityResource', { supplyId, deviceId });
+        return this.postBase('/power-supplies/check-compatibility', {
             power_supply_id: supplyId,
             device_id: deviceId
         });
     }
 
-    async simulateVoltageChange(deviceId, targetVoltage, duration = 2000) {
-        logDebug('corePowerSupplyResource', 'simulateVoltageChange', { deviceId, targetVoltage, duration });
-        return this.post('/simulate-voltage', {
+    async simulateVoltageChangeResource(deviceId, targetVoltage, duration = 2000) {
+        logDebugUtils('corePowerSupplyResource', 'simulateVoltageChangeResource', { deviceId, targetVoltage, duration });
+        return this.postBase('/power-supplies/simulate-voltage', {
             device_id: deviceId,
             target_voltage: targetVoltage,
-            duration: duration
+            duration
         });
     }
 
-    async simulatePowerFailure(deviceId, duration = 2000) {
-        logDebug('corePowerSupplyResource', 'simulatePowerFailure', { deviceId, duration });
-        return this.post('/simulate-failure', {
+    async simulatePowerFailureResource(deviceId, duration = 2000) {
+        logDebugUtils('corePowerSupplyResource', 'simulatePowerFailureResource', { deviceId, duration });
+        return this.postBase('/power-supplies/simulate-failure', {
             device_id: deviceId,
-            duration: duration
+            duration
         });
     }
 
-    async getPowerSupplyStatus(deviceId) {
-        logDebug('corePowerSupplyResource', 'getPowerSupplyStatus', { deviceId });
-        return this.get(`/status/${deviceId}`);
+    async getPowerSupplyStatusResource(deviceId) {
+        logDebugUtils('corePowerSupplyResource', 'getPowerSupplyStatusResource', { deviceId });
+        return this.getBase(`/power-supplies/status/${deviceId}`);
     }
 
-    async getPowerParameters(deviceId) {
-        logDebug('corePowerSupplyResource', 'getPowerParameters', { deviceId });
-        return this.get(`/parameters/${deviceId}`);
+    async getPowerParametersResource(deviceId) {
+        logDebugUtils('corePowerSupplyResource', 'getPowerParametersResource', { deviceId });
+        return this.getBase(`/power-supplies/parameters/${deviceId}`);
     }
 
-    async simulateCharging(deviceId, targetVoltage, duration = 2000) {
-        logDebug('corePowerSupplyResource', 'simulateCharging', { deviceId, targetVoltage, duration });
-        return this.post('/simulate-charging', {
-            device_id: deviceId,
-            target_voltage: targetVoltage,
-            duration: duration
-        });
-    }
-
-    async simulateDischarging(deviceId, targetVoltage, duration = 2000) {
-        logDebug('corePowerSupplyResource', 'simulateDischarging', { deviceId, targetVoltage, duration });
-        return this.post('/simulate-discharging', {
+    async simulateChargingResource(deviceId, targetVoltage, duration = 2000) {
+        logDebugUtils('corePowerSupplyResource', 'simulateChargingResource', { deviceId, targetVoltage, duration });
+        return this.postBase('/power-supplies/simulate-charging', {
             device_id: deviceId,
             target_voltage: targetVoltage,
-            duration: duration
+            duration
         });
     }
 
-    async simulateEmergency(deviceId) {
-        logDebug('corePowerSupplyResource', 'simulateEmergency', { deviceId });
-        return this.post('/simulate-emergency', {
+    async simulateDischargingResource(deviceId, targetVoltage, duration = 2000) {
+        logDebugUtils('corePowerSupplyResource', 'simulateDischargingResource', { deviceId, targetVoltage, duration });
+        return this.postBase('/power-supplies/simulate-discharging', {
+            device_id: deviceId,
+            target_voltage: targetVoltage,
+            duration
+        });
+    }
+
+    async simulateEmergencyResource(deviceId) {
+        logDebugUtils('corePowerSupplyResource', 'simulateEmergencyResource', { deviceId });
+        return this.postBase('/power-supplies/simulate-emergency', {
             device_id: deviceId
         });
     }

@@ -50,7 +50,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import BaseBulb from './BulbBaseSvg.vue';
 import { useSmartlightStore } from '@components/SmartLight/stores/smartlightStore.js';
-import { checkWebGLSupport, initWhenReady } from '@components/SmartLight/api/core/utils/apiWebglSupportUtils.js';
+import { checkWebGLSupport, initWhenReady } from '@components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
 
 const props = defineProps({
   status: {

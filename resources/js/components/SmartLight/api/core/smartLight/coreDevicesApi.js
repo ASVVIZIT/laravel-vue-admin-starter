@@ -3,27 +3,28 @@
  * DEVICES API — API ДЛЯ РАБОТЫ С УСТРОЙСТВАМИ
  * ============================================================================
  * 📁 Путь: api/core/smartLight/coreDevicesApi.js
- * ✅ Используется: DeviceService, Controllers
+ * ✅ Используется: DeviceStore, Controllers
+ * ✅ Рефакторинг: методы с суффиксом Api(), вызовы через Resource(), корректный синтаксис data:
  * ============================================================================
  */
 
 import { CoreSmartLightResource } from '@components/SmartLight/api/core/resource/coreSmartLightResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 const resource = new CoreSmartLightResource();
 
 export const CoreDevicesApi = {
-    async getDevices() {
-        logDebug('coreDevicesApi', 'getDevices called');
+    async getDevicesApi() {
+        logDebugUtils('CoreDevicesApi', 'getDevicesApi called');
         try {
-            const response = await resource.getDevices();
+            const response = await resource.getDevicesResource();
             return {
                 success: true,
                 message: response.data?.message || 'Устройства загружены',
                 data: response.data
             };
         } catch (error) {
-            logError('coreDevicesApi', 'getDevices error', error);
+            logErrorUtils('CoreDevicesApi', 'getDevicesApi error', error);
             throw {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка при работе с устройствами',
@@ -32,17 +33,17 @@ export const CoreDevicesApi = {
         }
     },
 
-    async getDeviceSettings(deviceId) {
-        logDebug('coreDevicesApi', 'getDeviceSettings called', { deviceId });
+    async getDeviceSettingsApi(deviceId) {
+        logDebugUtils('CoreDevicesApi', 'getDeviceSettingsApi called', { deviceId });
         try {
-            const response = await resource.getDeviceSettings(deviceId);
+            const response = await resource.getDeviceSettingsResource(deviceId);
             return {
                 success: true,
                 message: 'Настройки устройства загружены',
                 data: response.data
             };
         } catch (error) {
-            logError('coreDevicesApi', 'getDeviceSettings error', error);
+            logErrorUtils('CoreDevicesApi', 'getDeviceSettingsApi error', error);
             throw {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка загрузки настроек',
@@ -51,17 +52,17 @@ export const CoreDevicesApi = {
         }
     },
 
-    async checkOwnership(deviceId) {
-        logDebug('coreDevicesApi', 'checkOwnership called', { deviceId });
+    async checkOwnershipApi(deviceId) {
+        logDebugUtils('CoreDevicesApi', 'checkOwnershipApi called', { deviceId });
         try {
-            const response = await resource.checkOwnership(deviceId);
+            const response = await resource.checkOwnershipResource(deviceId);
             return {
                 success: true,
                 message: 'Проверка владения выполнена',
                 data: response.data
             };
         } catch (error) {
-            logError('coreDevicesApi', 'checkOwnership error', error);
+            logErrorUtils('CoreDevicesApi', 'checkOwnershipApi error', error);
             throw {
                 success: false,
                 message: error.response?.data?.message || 'Ошибка проверки владения',

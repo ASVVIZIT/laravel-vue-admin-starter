@@ -37,7 +37,7 @@ const types = ref({ data: [], meta: {} });
 const sortField = ref('name');
 const sortOrder = ref('asc');
 
-const fetchTypes = async (page = 1) => {
+const fetchTypesStore = async (page = 1) => {
   const response = await axios.get('/api/device-types', {
     params: {
       page,
@@ -55,14 +55,14 @@ const sortBy = (field) => {
     sortField.value = field;
     sortOrder.value = 'asc';
   }
-  fetchTypes();
+  fetchTypesStore();
 };
 
 const loadPage = (page) => {
-  fetchTypes(page);
+  fetchTypesStore(page);
 };
 
-onMounted(() => fetchTypes());
+onMounted(() => fetchTypesStore());
 </script>
 
 <style scoped>

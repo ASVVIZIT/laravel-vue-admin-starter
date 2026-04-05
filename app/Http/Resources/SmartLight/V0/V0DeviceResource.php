@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Resources\SmartLight;
+namespace App\Http\Resources\SmartLight\V0;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 

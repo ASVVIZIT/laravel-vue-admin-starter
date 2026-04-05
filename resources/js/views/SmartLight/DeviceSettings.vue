@@ -33,7 +33,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { ArrowLeft } from '@element-plus/icons-vue';
 import { ElNotification } from 'element-plus';
 import { useDeviceStore } from '@/components/SmartLight/stores/index.js';
-import DeviceSettingsForm from '@/components/SmartLight/components/settings/DeviceSettingsForm.vue';
+import DeviceSettingsForm from '@components/SmartLight/components/settings/forms/DeviceSettingsForm.vue';
 
 const router = useRouter();
 const route = useRoute();

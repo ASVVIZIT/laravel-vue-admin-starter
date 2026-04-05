@@ -1,181 +1,329 @@
 /**
  * ============================================================================
- * DEVICE STORE — ПОДСТОР УСТРОЙСТВ
+ * DEVICE STORE — УПРАВЛЕНИЕ УСТРОЙСТВАМИ (БЕЗОПАСНЫЙ ПАРСИНГ)
  * ============================================================================
  * 📁 Путь: stores/smartlight/deviceStore.js
+ * ✅ Использует: CoreDeviceResource из core/api
+ * ✅ Режим: Polling (WebSocket отключён временно)
+ * ✅ Рефакторинг: методы получили суффикс Store(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { CoreSmartLightResource } from '@/components/SmartLight/api/core/resource/coreSmartLightResource.js';
+import CoreDeviceResource from '@/components/SmartLight/api/core/resource/coreDeviceResource.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
-export const useDeviceStore = defineStore('device', () => {
+export const useDeviceStore = defineStore('smartlight-device', () => {
+    // === STATE ===
     const devices = ref([]);
-    const devicesMap = ref(new Map());
+    const devicesMap = ref({});
     const selectedDeviceId = ref(null);
     const loading = ref(false);
     const error = ref(null);
+    const lastUpdated = ref(null);
 
+    // === POLLING CONFIG ===
+    const pollingInterval = ref(null);
+    const pollingEnabled = ref(false);
+    const pollingDelay = ref(10000);
+    const pollingAttempts = ref(0);
+    const maxPollingAttempts = ref(5);
+
+    // === GETTERS ===
     const selectedDevice = computed(() => {
         if (!selectedDeviceId.value) return null;
-        return devicesMap.value.get(selectedDeviceId.value) || null;
+        return devicesMap.value[selectedDeviceId.value] || null;
     });
 
     const realDevices = computed(() => devices.value.filter(d => !d.is_fake));
     const fakeDevices = computed(() => devices.value.filter(d => d.is_fake));
 
-    const getDevice = (deviceId) => {
-        if (!deviceId) return null;
-        return devicesMap.value.get(deviceId) || null;
+    // ✅ Геттер с суффиксом Store()
+    const getDeviceStore = (deviceId) => {
+        return devicesMap.value[deviceId] || null;
     };
 
-    const updateDevice = (deviceData) => {
-        let device = devicesMap.value.get(deviceData.device_id);
-        if (!device) {
-            device = {
-                ...deviceData,
-                intensity: deviceData.intensity || 100,
-                voltage: deviceData.voltage || 3.7,
-                status: deviceData.status || 'OFF'
-            };
-            devicesMap.value.set(deviceData.device_id, device);
-            devices.value.push(device);
-        } else {
-            Object.assign(device, deviceData);
-        }
-        return device;
+    const getDeviceByTypeStore = (typeId, elementType) => {
+        return devices.value.find(d => {
+            if (elementType === 'battery') return d.battery_type_id === typeId;
+            if (elementType === 'bulb') return d.bulb_type_id === typeId;
+            if (elementType === 'power') return d.power_supply_id === typeId;
+            return false;
+        });
     };
 
-    const updateDeviceStatus = (deviceId, status) => {
-        const device = devicesMap.value.get(deviceId);
-        if (device) device.status = status;
-    };
+    // === ACTIONS ===
 
-    const updateDeviceIntensity = (deviceId, intensity) => {
-        const device = devicesMap.value.get(deviceId);
-        if (device) device.intensity = intensity;
-    };
-
-    const selectDevice = (deviceId) => {
-        selectedDeviceId.value = deviceId;
-    };
-
-    const fetchDevices = async () => {
+    // ✅ Действие с суффиксом Store()
+    const fetchDevicesStore = async () => {
         loading.value = true;
         error.value = null;
-        console.log('[DeviceStore] Fetching devices from API...');
-        try {
-            const resource = new CoreSmartLightResource();
-            const response = await resource.getDevices();
+        logDebugUtils('DeviceStore', 'Запрос устройств');
 
-            let devicesArray = [];
-            if (response.data?.data && Array.isArray(response.data.data)) {
-                devicesArray = response.data.data;
-            } else if (Array.isArray(response.data)) {
-                devicesArray = response.data;
-            } else if (response.devices && Array.isArray(response.devices)) {
-                devicesArray = response.devices;
+        try {
+            const resource = new CoreDeviceResource();
+            const response = await resource.getAllResource();
+
+            // ✅ БЕЗОПАСНАЯ ПРОВЕРКА ТИПА ОТВЕТА
+            if (typeof response === 'string') {
+                throw new Error(`API вернул строку. Проверьте маршрут: /api/smart-light/devices`);
+            }
+            if (!response || typeof response !== 'object') {
+                throw new Error(`Неверный тип ответа: ${typeof response}`);
             }
 
-            console.log('[DeviceStore] Devices to load:', devicesArray.length);
+            logDebugUtils('DeviceStore', 'Response received', { status: response.success });
 
-            devices.value = [];
-            devicesMap.value = new Map();
-            devicesArray.forEach(device => {
-                console.log('[DeviceStore] Adding device:', device.device_id, device.name);
-                updateDevice(device);
-            });
+            let devicesList = [];
+            let isSuccess = false;
 
-            console.log('[DeviceStore] Final devices count:', devices.value.length);
-            return { success: true, devices: devices.value };
-        } catch (err) {
-            error.value = 'Не удалось загрузить устройства';
-            console.error('[DeviceStore] Error:', err.message);
-            return { success: false, message: err.message };
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const wakeDevice = async (deviceId) => {
-        loading.value = true;
-        console.log('[DeviceStore] Waking device:', deviceId);
-        try {
-            const resource = new CoreSmartLightResource();
-            const response = await resource.wakeDevice(deviceId);
-            const device = devicesMap.value.get(deviceId);
-            if (device) {
-                device.status = 'ON';
-                device.intensity = 100;
+            // Формат 1: Прямой массив [...]
+            if (Array.isArray(response)) {
+                devicesList = response;
+                isSuccess = true;
             }
-            console.log('[DeviceStore] Device awakened:', deviceId);
-            return { success: true, data: response.data };
+            // Формат 2: { success: true, data: [...] }
+            else if (response.success !== false && Array.isArray(response.data)) {
+                devicesList = response.data;
+                isSuccess = true;
+            }
+            // Формат 3: { data: { data: [...] } } (Laravel API Resource)
+            else if (response.data?.data && Array.isArray(response.data.data)) {
+                devicesList = response.data.data;
+                isSuccess = true;
+            }
+            // Формат 4: { data: [...] } (простая обёртка)
+            else if (Array.isArray(response.data) && !('success' in response)) {
+                devicesList = response.data;
+                isSuccess = true;
+            }
+
+            if (isSuccess) {
+                devices.value = devicesList;
+                devicesMap.value = devicesList.reduce((acc, d) => {
+                    if (d?.device_id) acc[d.device_id] = d;
+                    return acc;
+                }, {});
+                lastUpdated.value = new Date();
+                pollingAttempts.value = 0;
+                logDebugUtils('DeviceStore', `Загружено устройств: ${devicesList.length}`);
+                return { success: true, count: devicesList.length };
+            } else {
+                logErrorUtils('DeviceStore', 'Не распознан формат ответа', { response });
+                throw new Error(`Неизвестный формат ответа от сервера`);
+            }
         } catch (err) {
-            console.error('[DeviceStore] Wake error:', err.message);
-            return { success: false, message: err.message };
+            logErrorUtils('DeviceStore', 'Ошибка загрузки', err);
+            error.value = err.message || 'Не удалось загрузить устройства';
+            pollingAttempts.value++;
+            if (pollingAttempts.value >= maxPollingAttempts.value) {
+                logErrorUtils('DeviceStore', 'Лимит попыток исчерпан');
+                stopPollingStore();
+            }
+            return { success: false, error: err.message };
         } finally {
             loading.value = false;
         }
     };
 
-    const forceSleep = async (deviceId) => {
-        loading.value = true;
-        console.log('[DeviceStore] Putting device to sleep:', deviceId);
-        try {
-            const resource = new CoreSmartLightResource();
-            const response = await resource.forceSleep(deviceId);
-            const device = devicesMap.value.get(deviceId);
-            if (device) device.status = 'SLEEPING';
-            console.log('[DeviceStore] Device sleeping:', deviceId);
-            return { success: true, data: response.data };
-        } catch (err) {
-            console.error('[DeviceStore] Sleep error:', err.message);
-            return { success: false, message: err.message };
-        } finally {
-            loading.value = false;
+    const startPollingStore = () => {
+        if (pollingInterval.value) return;
+        logDebugUtils('DeviceStore', `Polling запущен: ${pollingDelay.value}ms`);
+        pollingInterval.value = setInterval(async () => {
+            try { await fetchDevicesStore(); } catch (e) { logErrorUtils('DeviceStore', 'Polling error', e); }
+        }, pollingDelay.value);
+        pollingEnabled.value = true;
+    };
+
+    const stopPollingStore = () => {
+        if (pollingInterval.value) {
+            clearInterval(pollingInterval.value);
+            pollingInterval.value = null;
+        }
+        pollingEnabled.value = false;
+    };
+
+    const setPollingDelayStore = (ms) => {
+        pollingDelay.value = ms;
+        if (pollingEnabled.value) {
+            stopPollingStore();
+            startPollingStore();
         }
     };
 
-    const updateDeviceSettings = async (deviceId, settings) => {
-        loading.value = true;
-        console.log('[DeviceStore] Updating device settings:', deviceId, settings);
-        try {
-            const resource = new CoreSmartLightResource();
-            const formattedSettings = {
-                critical_voltage: Number(settings.critical_voltage) || 3.0,
-                sleep_interval: Number(settings.sleep_interval) || 600,
-                emergency_sleep_interval: Number(settings.emergency_sleep_interval) || 3600,
-                battery_type_id: settings.battery_type_id || 'li-ion-18650',
-                bulb_type_id: settings.bulb_type_id || 'classic',
-                capacity: Number(settings.capacity) || 3500,
-                power_config: settings.power_config || {},
-                battery_group_config: {
-                    enabled: !!settings.battery_group_config?.enabled,
-                    type: settings.battery_group_config?.type || 'series',
-                    count: Number(settings.battery_group_config?.count) || 1
-                }
+    /**
+     * Полное обновление объекта устройства (для настроек, смены типа и т.д.)
+     */
+    const updateDeviceStore = (deviceData) => {
+        if (!deviceData?.device_id) return;
+
+        const existing = devicesMap.value[deviceData.device_id];
+        if (existing) {
+            // ✅ Полное слияние: сохраняем старые данные + накладываем новые
+            devicesMap.value[deviceData.device_id] = {
+                ...existing,
+                ...deviceData,
+                updated_at: new Date().toISOString()
             };
-            const response = await resource.updateDeviceSettings(deviceId, formattedSettings);
-            if (response.success) {
-                const device = devicesMap.value.get(deviceId);
-                if (device) Object.assign(device, formattedSettings);
+            // ✅ Обновляем и в массиве для реактивности
+            const idx = devices.value.findIndex(d => d.device_id === deviceData.device_id);
+            if (idx !== -1) {
+                devices.value[idx] = devicesMap.value[deviceData.device_id];
             }
-            console.log('[DeviceStore] Settings saved:', deviceId);
+            logDebugUtils('DeviceStore', `Device fully updated: ${deviceData.device_id}`);
+        }
+    };
+
+    const updateDeviceTelemetryStore = (id, telemetry) => {
+        const device = devicesMap.value[id];
+        if (device) {
+            Object.assign(device, telemetry, { updated_at: new Date().toISOString() });
+        }
+    };
+
+    const selectDeviceStore = (id) => {
+        selectedDeviceId.value = id;
+    };
+
+    const updateDeviceStatusStore = async (id, status) => {
+        try {
+            const resource = new CoreDeviceResource();
+            const res = await resource.updateStatusResource(id, status);
+            if (res?.success) {
+                const d = devicesMap.value[id];
+                if (d) {
+                    d.status = status;
+                    d.updated_at = new Date().toISOString();
+                }
+            }
+            return res;
+        } catch (e) {
+            logErrorUtils('DeviceStore', 'Status error', e);
+            throw e;
+        }
+    };
+
+    const updateDeviceIntensityStore = async (id, intensity) => {
+        try {
+            const resource = new CoreDeviceResource();
+            const res = await resource.updateIntensityResource(id, intensity);
+            if (res?.success) {
+                const d = devicesMap.value[id];
+                if (d) {
+                    d.intensity = intensity;
+                    d.updated_at = new Date().toISOString();
+                }
+            }
+            return res;
+        } catch (e) {
+            logErrorUtils('DeviceStore', 'Intensity error', e);
+            throw e;
+        }
+    };
+
+    const updateDeviceSettingsStore = async (deviceId, settings) => {
+        try {
+            logDebugUtils('DeviceStore', `Updating settings for device ${deviceId}`, settings);
+            const resource = new CoreDeviceResource();
+            const response = await resource.updateSettingsResource(deviceId, settings);
+
+            if (response?.success) {
+                const device = devicesMap.value[deviceId];
+                if (device) {
+                    Object.assign(device, settings, { updated_at: new Date().toISOString() });
+                    logDebugUtils('DeviceStore', `Device ${deviceId} settings updated`);
+                }
+            }
             return response;
         } catch (err) {
-            console.error('[DeviceStore] Settings error:', err.message);
-            return { success: false, message: err.message };
-        } finally {
-            loading.value = false;
+            logErrorUtils('DeviceStore', `Error updating device ${deviceId} settings`, err);
+            throw err;
         }
     };
 
+    const wakeDeviceStore = async (id) => {
+        try {
+            const resource = new CoreDeviceResource();
+            const res = await resource.wakeResource(id);
+            if (res?.success) {
+                const d = devicesMap.value[id];
+                if (d) {
+                    d.status = 'ON';
+                    d.updated_at = new Date().toISOString();
+                }
+            }
+            return res;
+        } catch (e) {
+            logErrorUtils('DeviceStore', 'Wake error', e);
+            throw e;
+        }
+    };
+
+    const forceSleepStore = async (id) => {
+        try {
+            const resource = new CoreDeviceResource();
+            const res = await resource.sleepResource(id);
+            if (res?.success) {
+                const d = devicesMap.value[id];
+                if (d) {
+                    d.status = 'SLEEPING';
+                    d.updated_at = new Date().toISOString();
+                }
+            }
+            return res;
+        } catch (e) {
+            logErrorUtils('DeviceStore', 'Sleep error', e);
+            throw e;
+        }
+    };
+
+    const cleanupStore = () => {
+        stopPollingStore();
+        logDebugUtils('DeviceStore', 'Cleanup');
+    };
+
+    const initStore = async () => {
+        logDebugUtils('DeviceStore', 'Init');
+        await fetchDevicesStore();
+        if (!pollingEnabled.value) {
+            startPollingStore();
+        }
+    };
+
+    // === EXPOSE ===
     return {
-        devices, devicesMap, selectedDeviceId, loading, error,
-        selectedDevice, realDevices, fakeDevices,
-        getDevice, updateDevice, updateDeviceStatus, updateDeviceIntensity,
-        selectDevice, fetchDevices, wakeDevice, forceSleep, updateDeviceSettings
+        // State
+        devices,
+        devicesMap,
+        selectedDeviceId,
+        selectedDevice,
+        loading,
+        error,
+        lastUpdated,
+        realDevices,
+        fakeDevices,
+        pollingEnabled,
+        pollingDelay,
+        pollingAttempts,
+        // Getters
+        getDeviceStore,
+        getDeviceByTypeStore,
+        // Actions
+        fetchDevicesStore,
+        startPollingStore,
+        stopPollingStore,
+        setPollingDelayStore,
+        updateDeviceTelemetryStore,
+        updateDeviceStore,
+        selectDeviceStore,
+        updateDeviceStatusStore,
+        updateDeviceIntensityStore,
+        updateDeviceSettingsStore,
+        wakeDeviceStore,
+        forceSleepStore,
+        cleanupStore,
+        initStore
     };
 });
 

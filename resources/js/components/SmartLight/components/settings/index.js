@@ -1,7 +1,13 @@
-export { default as DeviceSettingsModal } from './DeviceSettingsModal.vue';
-export { default as GlobalSettingsModal } from './GlobalSettingsModal.vue';
+/**
+ * ============================================================================
+ * SETTINGS COMPONENTS — ГЛАВНЫЙ ЭКСПОРТ НАСТРОЕК
+ * ============================================================================
+ */
+
+export * from './forms/index.js';
+export * from './modals/index.js';
 
 export default {
-    DeviceSettingsModal: () => import('./DeviceSettingsModal.vue'),
-    GlobalSettingsModal: () => import('./GlobalSettingsModal.vue')
+    forms: () => import('./forms/index.js'),
+    modals: () => import('./modals/index.js')
 };

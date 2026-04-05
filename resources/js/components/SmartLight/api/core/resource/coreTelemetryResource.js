@@ -4,11 +4,12 @@
  * ============================================================================
  * 📁 Путь: api/core/resource/coreTelemetryResource.js
  * ✅ Используется: V0, V1, V2 ресурсы
+ * ✅ Рефакторинг: методы с суффиксом Resource(), вызовы через Base()
  * ============================================================================
  */
 
 import { CoreBaseResource } from './coreBaseResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CoreTelemetryResource extends CoreBaseResource {
     constructor() {
@@ -16,64 +17,64 @@ export class CoreTelemetryResource extends CoreBaseResource {
     }
 
     /**
-     * Отправить телеметрию
+     * Отправить телеметрию (суффикс Resource)
      */
-    async send(deviceId, data) {
-        logDebug('coreTelemetryResource', 'send', { deviceId, data });
-        return this.post(`/${deviceId}/telemetry`, data);
+    async sendResource(deviceId, data) {
+        logDebugUtils('coreTelemetryResource', 'sendResource', { deviceId, data });
+        return this.postBase(`/${deviceId}/telemetry`, data);
     }
 
     /**
-     * Получить телеметрию устройства
+     * Получить телеметрию устройства (суффикс Resource)
      */
-    async get(deviceId, params = {}) {
-        logDebug('coreTelemetryResource', 'get', { deviceId, params });
-        return this.get(`/${deviceId}/telemetry`, params);
+    async getResource(deviceId, params = {}) {
+        logDebugUtils('coreTelemetryResource', 'getResource', { deviceId, params });
+        return this.getBase(`/${deviceId}/telemetry`, params);
     }
 
     /**
-     * Получить последнюю телеметрию
+     * Получить последнюю телеметрию (суффикс Resource)
      */
-    async getLatest(deviceId) {
-        logDebug('coreTelemetryResource', 'getLatest', { deviceId });
-        return this.get(`/${deviceId}/telemetry`, { limit: 1 });
+    async getLatestResource(deviceId) {
+        logDebugUtils('coreTelemetryResource', 'getLatestResource', { deviceId });
+        return this.getBase(`/${deviceId}/telemetry`, { limit: 1 });
     }
 
     /**
-     * Получить историю телеметрии
+     * Получить историю телеметрии (суффикс Resource)
      */
-    async getHistory(deviceId, options = {}) {
-        logDebug('coreTelemetryResource', 'getHistory', { deviceId, options });
+    async getHistoryResource(deviceId, options = {}) {
+        logDebugUtils('coreTelemetryResource', 'getHistoryResource', { deviceId, options });
         const params = new URLSearchParams();
         if (options.limit) params.append('limit', options.limit);
         if (options.start) params.append('start', options.start);
         if (options.end) params.append('end', options.end);
         if (options.interval) params.append('interval', options.interval);
-        return this.get(`/${deviceId}/telemetry/history`, params);
+        return this.getBase(`/${deviceId}/telemetry/history`, params);
     }
 
     /**
-     * Получить статистику телеметрии
+     * Получить статистику телеметрии (суффикс Resource)
      */
-    async getStatistics(deviceId, period = 'day') {
-        logDebug('coreTelemetryResource', 'getStatistics', { deviceId, period });
-        return this.get(`/${deviceId}/telemetry/statistics`, { period });
+    async getStatisticsResource(deviceId, period = 'day') {
+        logDebugUtils('coreTelemetryResource', 'getStatisticsResource', { deviceId, period });
+        return this.getBase(`/${deviceId}/telemetry/statistics`, { period });
     }
 
     /**
-     * Экспортировать телеметрию
+     * Экспортировать телеметрию (суффикс Resource)
      */
-    async export(deviceId, format = 'csv', options = {}) {
-        logDebug('coreTelemetryResource', 'export', { deviceId, format, options });
-        return this.get(`/${deviceId}/telemetry/export`, { format, ...options });
+    async exportResource(deviceId, format = 'csv', options = {}) {
+        logDebugUtils('coreTelemetryResource', 'exportResource', { deviceId, format, options });
+        return this.getBase(`/${deviceId}/telemetry/export`, { format, ...options });
     }
 
     /**
-     * Очистить историю телеметрии
+     * Очистить историю телеметрии (суффикс Resource)
      */
-    async clear(deviceId, beforeDate) {
-        logDebug('coreTelemetryResource', 'clear', { deviceId, beforeDate });
-        return this.delete(`/${deviceId}/telemetry`, { before: beforeDate });
+    async clearResource(deviceId, beforeDate) {
+        logDebugUtils('coreTelemetryResource', 'clearResource', { deviceId, beforeDate });
+        return this.deleteBase(`/${deviceId}/telemetry`, { before: beforeDate });
     }
 }
 

@@ -4,33 +4,29 @@
  * ============================================================================
  * 📁 Путь: services/DeviceService.js
  * ✅ Бизнес-логика + API вызовы
- * ✅ Отвечает за: CRUD устройств, статус, команды
+ * ✅ Рефакторинг: методы получили суффикс Service(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { CoreSmartLightResource } from '@/components/SmartLight/api/core/resource/coreSmartLightResource.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class DeviceService {
     constructor() {
         this.resource = new CoreSmartLightResource();
     }
 
-    /**
-     * Получение всех устройств
-     * @returns {Promise<Object>} Результат загрузки
-     */
-    async getAllDevices() {
-        logDebug('DeviceService', 'Получение всех устройств');
+    async getAllDevicesService() {
+        logDebugUtils('DeviceService', 'Получение всех устройств');
         try {
-            const response = await this.resource.getDevices();
+            const response = await this.resource.getDevicesResource();
             return {
                 success: true,
                 data: response.data || [],
                 message: 'Устройства успешно загружены'
             };
         } catch (error) {
-            logError('DeviceService', 'Ошибка загрузки устройств', error);
+            logErrorUtils('DeviceService', 'Ошибка загрузки устройств', error);
             return {
                 success: false,
                 error: error.message,
@@ -39,24 +35,17 @@ export class DeviceService {
         }
     }
 
-    /**
-     * Обновление статуса устройства
-     * @param {string} deviceId - ID устройства
-     * @param {string} status - Статус
-     * @param {number} intensity - Интенсивность
-     * @returns {Promise<Object>} Результат обновления
-     */
-    async updateDeviceStatus(deviceId, status, intensity = 100) {
-        logDebug('DeviceService', 'Обновление статуса', { deviceId, status, intensity });
+    async updateDeviceStatusService(deviceId, status, intensity = 100) {
+        logDebugUtils('DeviceService', 'Обновление статуса', { deviceId, status, intensity });
         try {
-            const response = await this.resource.sendCommand(deviceId, status, intensity);
+            const response = await this.resource.sendCommandResource(deviceId, status, intensity);
             return {
                 success: true,
                 data: response.data,
                 message: 'Статус устройства успешно обновлен'
             };
         } catch (error) {
-            logError('DeviceService', 'Ошибка обновления статуса', error);
+            logErrorUtils('DeviceService', 'Ошибка обновления статуса', error);
             return {
                 success: false,
                 error: error.message,
@@ -65,22 +54,17 @@ export class DeviceService {
         }
     }
 
-    /**
-     * Перевод в спящий режим
-     * @param {string} deviceId - ID устройства
-     * @returns {Promise<Object>} Результат операции
-     */
-    async forceSleep(deviceId) {
-        logDebug('DeviceService', 'Перевод в спящий режим', { deviceId });
+    async forceSleepService(deviceId) {
+        logDebugUtils('DeviceService', 'Перевод в спящий режим', { deviceId });
         try {
-            const response = await this.resource.forceSleep(deviceId);
+            const response = await this.resource.forceSleepResource(deviceId);
             return {
                 success: true,
                 data: response.data,
                 message: 'Устройство успешно переведено в спящий режим'
             };
         } catch (error) {
-            logError('DeviceService', 'Ошибка перевода в спящий режим', error);
+            logErrorUtils('DeviceService', 'Ошибка перевода в спящий режим', error);
             return {
                 success: false,
                 error: error.message,
@@ -89,22 +73,17 @@ export class DeviceService {
         }
     }
 
-    /**
-     * Пробуждение устройства
-     * @param {string} deviceId - ID устройства
-     * @returns {Promise<Object>} Результат операции
-     */
-    async wakeDevice(deviceId) {
-        logDebug('DeviceService', 'Пробуждение устройства', { deviceId });
+    async wakeDeviceService(deviceId) {
+        logDebugUtils('DeviceService', 'Пробуждение устройства', { deviceId });
         try {
-            const response = await this.resource.wakeDevice(deviceId);
+            const response = await this.resource.wakeDeviceResource(deviceId);
             return {
                 success: true,
                 data: response.data,
                 message: 'Устройство успешно пробуждено'
             };
         } catch (error) {
-            logError('DeviceService', 'Ошибка пробуждения', error);
+            logErrorUtils('DeviceService', 'Ошибка пробуждения', error);
             return {
                 success: false,
                 error: error.message,

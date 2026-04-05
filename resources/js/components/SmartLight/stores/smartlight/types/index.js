@@ -7,8 +7,8 @@
  * ============================================================================
  */
 
-export { BATTERY_TYPES, getBatteryTypeById, getBatteryTypesForDropdown } from './batteryTypes.js';
-export { BULB_TYPES, getBulbTypeById, getBulbTypesForDropdown } from './bulbTypes.js';
+export { BATTERY_TYPES, getBatteryTypeByIdStore, getBatteryTypesForDropdownStore } from './batteryTypes.js';
+export { BULB_TYPES, getBulbTypeByIdStore, getBulbTypesForDropdownStore } from './bulbTypes.js';
 export { POWER_SUPPLY_TYPES, getPowerSupplyById, getPowerSuppliesForDropdown } from './powerSupplyTypes.js';
 export { DEVICE_TYPES, DEVICE_STATE, BATTERY_TYPE_IDS, BULB_TYPE_IDS, POWER_SUPPLY_TYPE_IDS } from './deviceTypes.js';
 

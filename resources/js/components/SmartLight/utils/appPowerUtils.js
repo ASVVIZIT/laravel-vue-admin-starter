@@ -8,8 +8,8 @@
  * ============================================================================
  */
 
-import { formatRuntimeWithSettings } from './appFormatters.js';
-import { logDebug } from './appLogger.js';
+import { formatRuntimeWithSettingsUtils } from './appFormattersUtils.js';
+import { logDebugUtils } from './appLoggerUtils.js';
 
 /**
  * Получает потребление устройства (из объекта или по умолчанию)
@@ -54,7 +54,7 @@ export const calculateDeviceRuntimeHours = (device, batteryType) => {
 
     const runtimeHours = remainingCapacity / currentConsumption;
 
-    logDebug('appPowerUtils', 'Время работы рассчитано', {
+    logDebugUtils('appPowerUtils', 'Время работы рассчитано', {
         deviceId: device.device_id,
         runtimeHours
     });
@@ -72,7 +72,7 @@ export const calculateDeviceRuntime = (device, batteryType) => {
     if (!device || !batteryType) return 'N/A';
 
     const runtimeHours = calculateDeviceRuntimeHours(device, batteryType);
-    return formatRuntimeWithSettings(runtimeHours);
+    return formatRuntimeWithSettingsUtils(runtimeHours);
 };
 
 /**

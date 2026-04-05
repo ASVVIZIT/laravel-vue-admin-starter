@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\SmartLight\Core;
+namespace App\Http\Requests\SmartLight\V0;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class CoreUpdateTelemetryRequest extends FormRequest
+class V0UpdateTelemetryRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.

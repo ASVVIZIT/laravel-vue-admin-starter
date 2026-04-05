@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Resources\SmartLight;
+namespace App\Http\Resources\SmartLight\V1;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class DeviceResource extends JsonResource
+class V1DeviceResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

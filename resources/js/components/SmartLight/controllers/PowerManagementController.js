@@ -4,14 +4,14 @@
  * ============================================================================
  * 📁 Путь: controllers/PowerManagementController.js
  * ✅ Координация между Components, Services, Store
- * ✅ Отвечает за: расчёт времени, сохранение потребления, проверки
+ * ✅ Рефакторинг: методы получили суффикс Controller(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { PowerService } from '@/components/SmartLight/services/PowerService.js';
 import { SettingsController } from '@/components/SmartLight/controllers/SettingsController.js';
-import { useSmartlightStore } from '@/components/SmartLight/stores/index.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { useSmartlightStore } from '@/components/SmartLight/stores/smartlightStore.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export class PowerManagementController {
     constructor() {
@@ -21,29 +21,29 @@ export class PowerManagementController {
     }
 
     /**
-     * Получает время работы устройства
+     * Получает время работы устройства (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {string} форматированное время
      */
-    getDeviceRuntime(deviceId) {
+    getDeviceRuntimeController(deviceId) {
         try {
-            logDebug('PowerManagementController', 'Запрос времени работы', { deviceId });
-            return this.powerService.calculateRuntime(deviceId);
+            logDebugUtils('PowerManagementController', 'Запрос времени работы', { deviceId });
+            return this.powerService.calculateRuntimeService(deviceId);
         } catch (error) {
-            logError('PowerManagementController', 'Ошибка получения времени работы', error);
+            logErrorUtils('PowerManagementController', 'Ошибка получения времени работы', error);
             return 'N/A';
         }
     }
 
     /**
-     * Сохраняет потребление устройства
+     * Сохраняет потребление устройства (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @param {number} consumption_mA - Потребление в мА
      * @returns {Promise<Object>} результат
      */
-    async saveDeviceConsumption(deviceId, consumption_mA) {
+    async saveDeviceConsumptionController(deviceId, consumption_mA) {
         try {
-            logDebug('PowerManagementController', 'Сохранение потребления', {
+            logDebugUtils('PowerManagementController', 'Сохранение потребления', {
                 deviceId, consumption_mA
             });
 
@@ -63,14 +63,13 @@ export class PowerManagementController {
             });
 
             if (response.success) {
-                //   ОБНОВЛЯЕМ STORE ДЛЯ РЕАКТИВНОСТИ
                 const updatedDevice = {
                     ...device,
                     power_config: updatedPowerConfig
                 };
                 this.store.deviceUpdateDevice(updatedDevice);
 
-                logDebug('PowerManagementController', 'Потребление сохранено', {
+                logDebugUtils('PowerManagementController', 'Потребление сохранено', {
                     deviceId, consumption_mA
                 });
 
@@ -79,27 +78,26 @@ export class PowerManagementController {
 
             return { success: false, message: response.message || 'Ошибка сохранения' };
         } catch (error) {
-            logError('PowerManagementController', 'Ошибка сохранения потребления', error);
+            logErrorUtils('PowerManagementController', 'Ошибка сохранения потребления', error);
             return { success: false, message: error.message };
         }
     }
 
     /**
-     * Сохраняет настройки управления питанием
+     * Сохраняет настройки управления питанием (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @param {Object} settings - Настройки
      * @returns {Promise<Object>} результат
      */
-    async savePowerManagementSettings(deviceId, settings) {
+    async savePowerManagementSettingsController(deviceId, settings) {
         try {
-            logDebug('PowerManagementController', 'Сохранение настроек питания', {
+            logDebugUtils('PowerManagementController', 'Сохранение настроек питания', {
                 deviceId, settings
             });
 
             const response = await this.store.deviceUpdateDeviceSettings(deviceId, settings);
 
             if (response.success) {
-                //   ОБНОВЛЯЕМ STORE ДЛЯ РЕАКТИВНОСТИ
                 const device = this.store.deviceGetDevice(deviceId);
                 if (device) {
                     const updatedDevice = {
@@ -116,46 +114,46 @@ export class PowerManagementController {
 
             return { success: false, message: response.message || 'Ошибка сохранения' };
         } catch (error) {
-            logError('PowerManagementController', 'Ошибка сохранения настроек', error);
+            logErrorUtils('PowerManagementController', 'Ошибка сохранения настроек', error);
             return { success: false, message: error.message };
         }
     }
 
     /**
-     * Получает потребление устройства
+     * Получает потребление устройства (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {number} потребление в мА
      */
-    getDeviceConsumption(deviceId) {
-        return this.powerService.getDeviceConsumption(deviceId);
+    getDeviceConsumptionController(deviceId) {
+        return this.powerService.getDeviceConsumptionService(deviceId);
     }
 
     /**
-     * Получает потребление в Wh
+     * Получает потребление в Wh (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {number} потребление в Wh
      */
-    getPowerConsumptionWh(deviceId) {
-        return this.powerService.calculatePowerConsumptionWh(deviceId);
+    getPowerConsumptionWhController(deviceId) {
+        return this.powerService.calculatePowerConsumptionWhService(deviceId);
     }
 
     /**
-     * Получает цвет батареи
+     * Получает цвет батареи (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @returns {string} HEX цвет
      */
-    getBatteryColor(deviceId) {
-        return this.powerService.getBatteryColor(deviceId);
+    getBatteryColorController(deviceId) {
+        return this.powerService.getBatteryColorService(deviceId);
     }
 
     /**
-     * Проверяет совместимость источника питания
+     * Проверяет совместимость источника питания (суффикс Controller)
      * @param {string} deviceId - ID устройства
      * @param {string} supplyId - ID источника питания
      * @returns {Object} результат проверки
      */
-    checkPowerSupplyCompatibility(deviceId, supplyId) {
-        return this.powerService.checkPowerSupplyCompatibility(deviceId, supplyId);
+    checkPowerSupplyCompatibilityController(deviceId, supplyId) {
+        return this.powerService.checkPowerSupplyCompatibilityService(deviceId, supplyId);
     }
 }
 

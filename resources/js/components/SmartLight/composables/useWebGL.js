@@ -11,7 +11,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue';
 import * as THREE from 'three';
 import { checkWebGLSupport } from '@/components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 import { useContainer } from './useContainer.js';
 
 export function useWebGL(containerRef) {
@@ -23,9 +23,9 @@ export function useWebGL(containerRef) {
     const { isVisible, isActiveTab } = useContainer(containerRef);
 
     const initScene = () => {
-        logDebug('useWebGL', 'Инициализация 3D-сцены', { webGLSupported: isWebGLSupported.value });
+        logDebugUtils('useWebGL', 'Инициализация 3D-сцены', { webGLSupported: isWebGLSupported.value });
         if (!containerRef.value || !isWebGLSupported.value) {
-            logDebug('useWebGL', 'Контейнер или WebGL не поддерживается');
+            logDebugUtils('useWebGL', 'Контейнер или WebGL не поддерживается');
             return false;
         }
         cleanupScene();
@@ -54,7 +54,7 @@ export function useWebGL(containerRef) {
             animate();
             return true;
         } catch (e) {
-            logError('useWebGL', 'Ошибка инициализации 3D', e);
+            logErrorUtils('useWebGL', 'Ошибка инициализации 3D', e);
             return false;
         }
     };
@@ -66,12 +66,12 @@ export function useWebGL(containerRef) {
             if (controls) controls.update();
             renderer.render(scene, camera);
         } catch (e) {
-            logError('useWebGL', 'Ошибка рендеринга', e);
+            logErrorUtils('useWebGL', 'Ошибка рендеринга', e);
         }
     };
 
     const cleanupScene = () => {
-        logDebug('useWebGL', 'Очистка ресурсов 3D');
+        logDebugUtils('useWebGL', 'Очистка ресурсов 3D');
         if (animationFrame.value) {
             cancelAnimationFrame(animationFrame.value);
             animationFrame.value = null;

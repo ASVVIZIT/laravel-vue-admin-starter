@@ -6,12 +6,14 @@
       :close-on-click-modal="false"
       class="global-settings-modal"
   >
+    <!-- Форма глобальных настроек -->
     <GlobalSettingsForm
         ref="formRef"
         @saved="handleSaved"
         @cancelled="handleCancelled"
     />
 
+    <!-- Footer с кнопками -->
     <template #footer>
       <el-button @click="visible = false">Отмена</el-button>
       <el-button @click="handleReset" :loading="loading">Сбросить</el-button>
@@ -25,18 +27,24 @@
 <script setup>
 import { ref } from 'vue';
 import { ElNotification } from 'element-plus';
-import GlobalSettingsForm from '../forms/GlobalSettingsForm.vue';
+import { useTypesStore } from '@/components/SmartLight/stores/index.js';
+import GlobalSettingsForm from '@/components/SmartLight/components/settings/forms/GlobalSettingsForm.vue';
 
 const visible = defineModel();
 const formRef = ref(null);
+const typesStore = useTypesStore(); // ✅ Добавлен для ожидания загрузки типов
 const loading = ref(false);
 
+// Сохранение настроек
 const handleSave = async () => {
   if (!formRef.value) return;
   loading.value = true;
   try {
+    // Ждём загрузки типов если форма их использует
+    if (!typesStore.typesLoaded) {
+      await typesStore.fetchTypesStore();
+    }
     await formRef.value.saveSettings();
-    // @saved сработает внутри formRef.value.saveSettings()
   } catch (error) {
     ElNotification({
       title: 'Ошибка',
@@ -48,6 +56,7 @@ const handleSave = async () => {
   }
 };
 
+// Сброс настроек
 const handleReset = async () => {
   if (!formRef.value) return;
   loading.value = true;
@@ -69,6 +78,7 @@ const handleReset = async () => {
   }
 };
 
+// Обработка успешного сохранения
 const handleSaved = () => {
   ElNotification({
     title: 'Успех',
@@ -78,9 +88,8 @@ const handleSaved = () => {
   visible.value = false;
 };
 
-const handleCancelled = () => {
-  // Обработка отмены
-};
+// Обработка отмены
+const handleCancelled = () => {};
 </script>
 
 <style scoped>

@@ -1,37 +1,55 @@
 <?php
 
-namespace App\Http\Resources\SmartLight;
+namespace App\Http\Resources\SmartLight\Core;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class DeviceResource extends JsonResource
+class CoreDeviceResource extends JsonResource
 {
-    /**
-     * Transform the resource into an array.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
-     */
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
+            // === ИДЕНТИФИКАТОРЫ ===
             'id' => $this->id,
-            'user_id' => $this->user_id,
             'device_id' => $this->device_id,
             'name' => $this->name,
+            'display_name' => $this->display_name,
+            'is_fake' => (bool) $this->is_fake,
+
+            // === СТАТУС И ТЕЛЕМЕТРИЯ (только чтение) ===
+            'device_type' => $this->device_type,
             'status' => $this->status,
             'voltage' => (float) $this->voltage,
-            'intensity' => (int) $this->current_telemetry?->intensity ?? 100,
+            'intensity' => (int) ($this->intensity ?? 0),
+            'battery_progress' => (float) $this->battery_progress,
+            'voltage_color' => $this->voltage_color,
             'estimated_runtime' => $this->estimated_runtime,
-            'critical_voltage' => (float) $this->critical_voltage,
+
+            // === СПРАВОЧНИКИ (для отображения) ===
+            'battery_type' => $this->batteryType?->only(['id', 'name', 'short_name']),
+            'bulb_type' => $this->bulbType?->only(['id', 'name', 'short_name']),
+            'power_supply' => $this->powerSupply?->only(['id', 'name', 'short_name']),
+
+            // === НАСТРОЙКИ ДЛЯ ФОРМЫ (ЕДИНЫЙ ИСТОЧНИК) ===
+            // ✅ ВСЕ редактируемые поля — только здесь
+            'form_settings' => [
+                'critical_voltage' => (float) $this->critical_voltage,
+                'sleep_interval' => (int) $this->sleep_interval,
+                'emergency_sleep_interval' => (int) $this->emergency_sleep_interval,
+                'battery_type_id' => $this->battery_type_id,
+                'bulb_type_id' => $this->bulb_type_id,
+                'power_supply_id' => $this->power_supply_id,
+                'battery_group_config' => $this->battery_group_config,
+                // Дополнительные настройки из JSON
+                ...(is_array($this->settings) ? $this->settings : []),
+            ],
+
+            // === МЕТА-ДАННЫЕ ===
             'battery_capacity' => (int) $this->battery_capacity,
-            'device_type' => $this->device_type,
-            'is_fake' => (bool) $this->is_fake,
-            'last_telemetry_at' => $this->current_telemetry?->received_at?->format('Y-m-d H:i:s'),
-            'created_at' => $this->created_at->format('Y-m-d H:i:s'),
-            'updated_at' => $this->updated_at->format('Y-m-d H:i:s'),
-            'settings' => $this->settings,
-            'battery_group_config' => $this->battery_group_config
+            'settings_updated_at' => $this->settings_updated_at?->toISOString(),
+            'created_at' => $this->created_at?->toISOString(),
+            'updated_at' => $this->updated_at?->toISOString(),
+            'deleted_at' => $this->deleted_at?->toISOString(),
         ];
     }
 }

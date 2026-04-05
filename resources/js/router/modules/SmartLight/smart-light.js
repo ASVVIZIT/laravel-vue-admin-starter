@@ -1,4 +1,9 @@
-// resources/js/router/modules/SmartLight/smart-light.js
+/**
+ * ============================================================================
+ * SMART LIGHT ROUTES — МАРШРУТЫ МОДУЛЯ
+ * ============================================================================
+ */
+
 export default [
     {
         path: '/smart-light',
@@ -13,7 +18,7 @@ export default [
         },
         children: [
             {
-                path: 'dashboard', // Вероятно, здесь должна быть часть пути, например 'dashboard'
+                path: 'dashboard',
                 name: 'SmartLightDashboard',
                 component: () => import('@/views/SmartLight/Dashboard.vue'),
                 meta: {
@@ -38,7 +43,7 @@ export default [
             {
                 path: 'settings',
                 name: 'SmartLightSettings',
-                component: () => import('@components/SmartLight/components/settings/GlobalSettingsPanel.vue'),
+                component: () => import('@components/SmartLight/components/layout/panels/GlobalSettingsPanel.vue'),
                 meta: {
                     title: 'Настройки SmartLight',
                     elSvgIcon: 'SetUp',
@@ -49,10 +54,11 @@ export default [
             {
                 path: 'device/:id/settings',
                 name: 'SmartLightDeviceSettings',
-                component: () => import('@components/SmartLight/components/settings/DeviceSettings.vue'),
-                meta: { // Добавляем пустой объект meta или с нужными свойствами
-                    title: 'Настройки устройства', // Если нужно отображать в меню (хотя hidden=true)
-                    permissions: ['manage_own_smart_light'] // Если нужно для проверки
+                component: () => import('@components/SmartLight/components/settings/modals/DeviceSettingsModal.vue'),
+                meta: {
+                    title: 'Настройки устройства',
+                    elSvgIcon: 'SetUp',
+                    permissions: ['manage_own_smart_light']
                 },
                 hidden: true,
                 props: true

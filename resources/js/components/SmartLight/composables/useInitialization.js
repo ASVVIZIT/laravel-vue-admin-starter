@@ -9,18 +9,17 @@
  */
 
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
-// ✅ ИСПРАВЛЕНО — используем checkContainerReady вместо forceInit
 import { checkContainerReady } from '@/components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
-import { logDebug } from '@/components/SmartLight/utils/appLogger.js';
+import { logDebugUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export function useInitialization(containerRef, deviceId) {
     const isInitialized = ref(false);
     const initAttempts = ref(0);
     const maxInitAttempts = ref(30);
 
-    // ✅ ИСПРАВЛЕНО — используем checkContainerReady + nextTick вместо forceInit
+    // checkContainerReady + nextTick вместо forceInit
     const forceInitWithRetry = (initCallback, options = { maxAttempts: 20, delay: 100 }) => {
-        logDebug('useInitialization', 'Принудительная инициализация', { deviceId, options });
+        logDebugUtils('useInitialization', 'Принудительная инициализация', { deviceId, options });
         let attempts = 0;
 
         const tryInit = () => {
@@ -28,12 +27,12 @@ export function useInitialization(containerRef, deviceId) {
             initAttempts.value = attempts;
 
             if (containerRef.value && isInitialized.value) {
-                logDebug('useInitialization', 'Компонент уже инициализирован', { deviceId });
+                logDebugUtils('useInitialization', 'Компонент уже инициализирован', { deviceId });
                 return true;
             }
 
             if (containerRef.value) {
-                logDebug('useInitialization', 'Попытка инициализации', {
+                logDebugUtils('useInitialization', 'Попытка инициализации', {
                     deviceId,
                     attempt: attempts,
                     maxAttempts: options.maxAttempts
@@ -54,7 +53,7 @@ export function useInitialization(containerRef, deviceId) {
                 return false;
             }
 
-            logDebug('useInitialization', 'Превышено количество попыток', {
+            logDebugUtils('useInitialization', 'Превышено количество попыток', {
                 deviceId,
                 attempts,
                 maxAttempts: options.maxAttempts
@@ -66,14 +65,14 @@ export function useInitialization(containerRef, deviceId) {
     };
 
     const delayedInit = (initCallback, delay = 500) => {
-        logDebug('useInitialization', 'Отложенная инициализация', { deviceId, delay });
+        logDebugUtils('useInitialization', 'Отложенная инициализация', { deviceId, delay });
         setTimeout(() => {
             forceInitWithRetry(initCallback, { maxAttempts: 10, delay: 50 });
         }, delay);
     };
 
     const initOnMount = (initCallback) => {
-        logDebug('useInitialization', 'Инициализация при монтировании', { deviceId });
+        logDebugUtils('useInitialization', 'Инициализация при монтировании', { deviceId });
         onMounted(() => {
             setTimeout(() => {
                 if (!forceInitWithRetry(initCallback, { maxAttempts: 5, delay: 50 })) {
@@ -88,7 +87,7 @@ export function useInitialization(containerRef, deviceId) {
     };
 
     const initOnModeChange = (initCallback) => {
-        logDebug('useInitialization', 'Инициализация при изменении режима', { deviceId });
+        logDebugUtils('useInitialization', 'Инициализация при изменении режима', { deviceId });
         watch(() => containerRef.value, (newContainer) => {
             if (newContainer) {
                 forceInitWithRetry(initCallback, { maxAttempts: 15, delay: 100 });

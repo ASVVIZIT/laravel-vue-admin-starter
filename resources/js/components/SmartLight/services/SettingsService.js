@@ -4,35 +4,29 @@
  * ============================================================================
  * 📁 Путь: services/SettingsService.js
  * ✅ Бизнес-логика + API вызовы
- * ✅ Отвечает за: сохранение/загрузка настроек устройств и глобальных
+ * ✅ Рефакторинг: методы получили суффикс Service(), импорты обновлены на *Utils
  * ============================================================================
  */
 
 import { CoreSmartLightResource } from '@/components/SmartLight/api/core/resource/coreSmartLightResource.js';
-import { logDebug, logError } from '@/components/SmartLight/utils/appLogger.js';
+import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class SettingsService {
     constructor() {
         this.resource = new CoreSmartLightResource();
     }
 
-    /**
-     * Получение настроек устройства
-     * @param {string} deviceId - ID устройства
-     * @returns {Promise<Object>} Результат загрузки
-     */
-    async getDeviceSettings(deviceId) {
-        logDebug('SettingsService', 'Получение настроек', { deviceId });
-
+    async getDeviceSettingsService(deviceId) {
+        logDebugUtils('SettingsService', 'Получение настроек', { deviceId });
         try {
-            const response = await this.resource.getDeviceSettings(deviceId);
+            const response = await this.resource.getDeviceSettingsResource(deviceId);
             return {
                 success: true,
                 data: response.data,
                 message: 'Настройки успешно загружены'
             };
         } catch (error) {
-            logError('SettingsService', 'Ошибка загрузки настроек', error);
+            logErrorUtils('SettingsService', 'Ошибка загрузки настроек', error);
             return {
                 success: false,
                 error: error.message,
@@ -41,24 +35,17 @@ export class SettingsService {
         }
     }
 
-    /**
-     * Обновление настроек устройства
-     * @param {string} deviceId - ID устройства
-     * @param {Object} settings - Настройки
-     * @returns {Promise<Object>} Результат обновления
-     */
-    async updateDeviceSettings(deviceId, settings) {
-        logDebug('SettingsService', 'Обновление настроек', { deviceId, settings });
-
+    async updateDeviceSettingsService(deviceId, settings) {
+        logDebugUtils('SettingsService', 'Обновление настроек', { deviceId, settings });
         try {
-            const response = await this.resource.updateDeviceSettings(deviceId, settings);
+            const response = await this.resource.updateDeviceSettingsResource(deviceId, settings);
             return {
                 success: true,
                 data: response.data,
                 message: 'Настройки успешно обновлены'
             };
         } catch (error) {
-            logError('SettingsService', 'Ошибка обновления настроек', error);
+            logErrorUtils('SettingsService', 'Ошибка обновления настроек', error);
             return {
                 success: false,
                 error: error.message,
@@ -67,23 +54,17 @@ export class SettingsService {
         }
     }
 
-    /**
-     * Сброс настроек устройства
-     * @param {string} deviceId - ID устройства
-     * @returns {Promise<Object>} Результат сброса
-     */
-    async resetDeviceSettings(deviceId) {
-        logDebug('SettingsService', 'Сброс настроек', { deviceId });
-
+    async resetDeviceSettingsService(deviceId) {
+        logDebugUtils('SettingsService', 'Сброс настроек', { deviceId });
         try {
-            const response = await this.resource.resetDeviceSettings(deviceId);
+            const response = await this.resource.resetDeviceSettingsResource(deviceId);
             return {
                 success: true,
                 data: response.data,
                 message: 'Настройки успешно сброшены'
             };
         } catch (error) {
-            logError('SettingsService', 'Ошибка сброса настроек', error);
+            logErrorUtils('SettingsService', 'Ошибка сброса настроек', error);
             return {
                 success: false,
                 error: error.message,
@@ -92,22 +73,17 @@ export class SettingsService {
         }
     }
 
-    /**
-     * Получение глобальных настроек
-     * @returns {Promise<Object>} Результат загрузки
-     */
-    async getGlobalSettings() {
-        logDebug('SettingsService', 'Получение глобальных настроек');
-
+    async getGlobalSettingsService() {
+        logDebugUtils('SettingsService', 'Получение глобальных настроек');
         try {
-            const response = await this.resource.getGlobalSettings();
+            const response = await this.resource.getGlobalSettingsResource();
             return {
                 success: true,
                 data: response.data,
                 message: 'Глобальные настройки успешно загружены'
             };
         } catch (error) {
-            logError('SettingsService', 'Ошибка загрузки глобальных настроек', error);
+            logErrorUtils('SettingsService', 'Ошибка загрузки глобальных настроек', error);
             return {
                 success: false,
                 error: error.message,
@@ -116,23 +92,17 @@ export class SettingsService {
         }
     }
 
-    /**
-     * Обновление глобальных настроек
-     * @param {Object} settings - Настройки
-     * @returns {Promise<Object>} Результат обновления
-     */
-    async updateGlobalSettings(settings) {
-        logDebug('SettingsService', 'Обновление глобальных настроек', { settings });
-
+    async updateGlobalSettingsService(settings) {
+        logDebugUtils('SettingsService', 'Обновление глобальных настроек', { settings });
         try {
-            const response = await this.resource.updateGlobalSettings(settings);
+            const response = await this.resource.updateGlobalSettingsResource(settings);
             return {
                 success: true,
-                data: response.data,
+                data: esponse.data,
                 message: 'Глобальные настройки успешно обновлены'
             };
         } catch (error) {
-            logError('SettingsService', 'Ошибка обновления глобальных настроек', error);
+            logErrorUtils('SettingsService', 'Ошибка обновления глобальных настроек', error);
             return {
                 success: false,
                 error: error.message,
@@ -141,22 +111,17 @@ export class SettingsService {
         }
     }
 
-    /**
-     * Сброс глобальных настроек
-     * @returns {Promise<Object>} Результат сброса
-     */
-    async resetGlobalSettings() {
-        logDebug('SettingsService', 'Сброс глобальных настроек');
-
+    async resetGlobalSettingsService() {
+        logDebugUtils('SettingsService', 'Сброс глобальных настроек');
         try {
-            const response = await this.resource.resetGlobalSettings();
+            const response = await this.resource.resetGlobalSettingsResource();
             return {
                 success: true,
                 data: response.data,
                 message: 'Глобальные настройки успешно сброшены'
             };
         } catch (error) {
-            logError('SettingsService', 'Ошибка сброса глобальных настроек', error);
+            logErrorUtils('SettingsService', 'Ошибка сброса глобальных настроек', error);
             return {
                 success: false,
                 error: error.message,

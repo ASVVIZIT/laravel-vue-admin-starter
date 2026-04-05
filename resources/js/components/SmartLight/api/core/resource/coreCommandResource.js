@@ -4,11 +4,12 @@
  * ============================================================================
  * 📁 Путь: api/core/resource/coreCommandResource.js
  * ✅ Используется: V0, V1, V2 ресурсы
+ * ✅ Рефакторинг: методы с суффиксом Resource(), вызовы через Base()
  * ============================================================================
  */
 
 import { CoreBaseResource } from './coreBaseResource.js';
-import { logDebug, logError } from '@components/SmartLight/api/core/utils/coreApiLogger.js';
+import { logDebugUtils, logErrorUtils } from '@components/SmartLight/api/core/utils/coreApiLoggerUtils.js';
 
 export class CoreCommandResource extends CoreBaseResource {
     constructor() {
@@ -16,62 +17,62 @@ export class CoreCommandResource extends CoreBaseResource {
     }
 
     /**
-     * Отправить команду устройству
+     * Отправить команду устройству (суффикс Resource)
      */
-    async send(deviceId, command, intensity = 100) {
-        logDebug('coreCommandResource', 'send', { deviceId, command, intensity });
-        return this.post(`/${deviceId}/commands`, { command, intensity });
+    async sendResource(deviceId, command, intensity = 100) {
+        logDebugUtils('coreCommandResource', 'sendResource', { deviceId, command, intensity });
+        return this.postBase(`/${deviceId}/commands`, { command, intensity });
     }
 
     /**
-     * Получить pending команду
+     * Получить pending команду (суффикс Resource)
      */
-    async getPending(deviceId) {
-        logDebug('coreCommandResource', 'getPending', { deviceId });
-        return this.get(`/${deviceId}/commands`);
+    async getPendingResource(deviceId) {
+        logDebugUtils('coreCommandResource', 'getPendingResource', { deviceId });
+        return this.getBase(`/${deviceId}/commands`);
     }
 
     /**
-     * Перевести в сон
+     * Перевести в сон (суффикс Resource)
      */
-    async sleep(deviceId) {
-        logDebug('coreCommandResource', 'sleep', { deviceId });
-        return this.post(`/${deviceId}/commands`, { command: 'SLEEPING' });
+    async sleepResource(deviceId) {
+        logDebugUtils('coreCommandResource', 'sleepResource', { deviceId });
+        return this.postBase(`/${deviceId}/commands`, { command: 'SLEEPING' });
     }
 
     /**
-     * Пробудить
+     * Пробудить (суффикс Resource)
      */
-    async wake(deviceId) {
-        logDebug('coreCommandResource', 'wake', { deviceId });
-        return this.post(`/${deviceId}/commands`, { command: 'WAKE_UP', intensity: 100 });
+    async wakeResource(deviceId) {
+        logDebugUtils('coreCommandResource', 'wakeResource', { deviceId });
+        return this.postBase(`/${deviceId}/commands`, { command: 'WAKE_UP', intensity: 100 });
     }
 
     /**
-     * Экстренный сон
+     * Экстренный сон (суффикс Resource)
      */
-    async emergencySleep(deviceId, reason = 'low_battery') {
-        logDebug('coreCommandResource', 'emergencySleep', { deviceId, reason });
-        return this.post(`/${deviceId}/commands`, {
+    async emergencySleepResource(deviceId, reason = 'low_battery') {
+        logDebugUtils('coreCommandResource', 'emergencySleepResource', { deviceId, reason });
+        return this.postBase(`/${deviceId}/commands`, {
             command: 'EMERGENCY_SLEEP',
             reason
         });
     }
 
     /**
-     * Обновить статус
+     * Обновить статус (суффикс Resource)
      */
-    async updateStatus(deviceId, status) {
-        logDebug('coreCommandResource', 'updateStatus', { deviceId, status });
-        return this.post(`/${deviceId}/commands`, { command: 'STATUS_UPDATE', status });
+    async updateStatusResource(deviceId, status) {
+        logDebugUtils('coreCommandResource', 'updateStatusResource', { deviceId, status });
+        return this.postBase(`/${deviceId}/commands`, { command: 'STATUS_UPDATE', status });
     }
 
     /**
-     * Отменить команду
+     * Отменить команду (суффикс Resource)
      */
-    async cancel(deviceId, commandId) {
-        logDebug('coreCommandResource', 'cancel', { deviceId, commandId });
-        return this.delete(`/${deviceId}/commands/${commandId}`);
+    async cancelResource(deviceId, commandId) {
+        logDebugUtils('coreCommandResource', 'cancelResource', { deviceId, commandId });
+        return this.deleteBase(`/${deviceId}/commands/${commandId}`);
     }
 }
 

@@ -1,26 +1,58 @@
 /**
  * ============================================================================
- * STORES INDEX — ГЛАВНЫЙ ЭКСПОРТ
+ * STORES INDEX — ГЛАВНЫЙ ЭКСПОРТ СТОРОВ
  * ============================================================================
  * 📁 Путь: stores/index.js
+ * ✅ Поддерживает модульные сторы и агрегатор (обратная совместимость)
  * ============================================================================
  */
 
-// ✅ ПРЯМОЙ ЭКСПОРТ ПОДСТОРОВ (рекомендуется)
-export { useDeviceStore } from './smartlight/deviceStore.js';
-export { useSettingsStore } from './smartlight/settingsStore.js';
-export { useTypesStore } from './smartlight/typesStore.js';
-export { useInterfaceStore } from './smartlight/interfaceStore.js';
-export { usePowerStore } from './smartlight/powerStore.js';
+import { createPinia } from 'pinia';
+import { useDeviceStore } from './smartlight/deviceStore.js';
+import { useSettingsStore } from './smartlight/settingsStore.js';
+import { useTypesStore } from './smartlight/typesStore.js';
+import { useInterfaceStore } from './smartlight/interfaceStore.js';
+import { usePowerStore } from './smartlight/powerStore.js';
+import { useVisualizationConfigStore } from './smartlight/visualizationConfigStore.js';
 
-// ✅ ОБЪЕДИНЁННЫЙ STORE (для удобства)
-export { useSmartlightStore } from './smartlightStore.js';
+/**
+ * Инициализация Pinia и всех сторов
+ */
+export const setupStores = (app) => {
+    const pinia = createPinia();
+    app.use(pinia);
 
+    useSettingsStore();
+    useInterfaceStore();
+    useTypesStore();
+    usePowerStore();
+    useVisualizationConfigStore();
+    // useDeviceStore инициализируется в Dashboard.vue при первом использовании
+
+    console.log('[Stores] ✅ All stores initialized');
+    return pinia;
+};
+
+/**
+ * Экспорт модульных сторов
+ */
+export {
+    useDeviceStore,
+    useSettingsStore,
+    useTypesStore,
+    useInterfaceStore,
+    usePowerStore,
+    useVisualizationConfigStore
+};
+
+/**
+ * Экспорт для ленивой загрузки
+ */
 export default {
-    useDeviceStore: () => import('./smartlight/deviceStore.js'),
-    useSettingsStore: () => import('./smartlight/settingsStore.js'),
-    useTypesStore: () => import('./smartlight/typesStore.js'),
-    useInterfaceStore: () => import('./smartlight/interfaceStore.js'),
-    usePowerStore: () => import('./smartlight/powerStore.js'),
-    useSmartlightStore: () => import('./smartlightStore.js')
+    deviceStore: () => import('./smartlight/deviceStore.js'),
+    settingsStore: () => import('./smartlight/settingsStore.js'),
+    typesStore: () => import('./smartlight/typesStore.js'),
+    interfaceStore: () => import('./smartlight/interfaceStore.js'),
+    powerStore: () => import('./smartlight/powerStore.js'),
+    visualizationConfigStore: () => import('./smartlight/visualizationConfigStore.js')
 };

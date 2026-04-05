@@ -6,14 +6,14 @@
  * ============================================================================
  */
 
-export { coreApiContext, CoreApiContext } from './coreApiContext.js';
-export * from './coreApiLogger.js';
+export { coreApiContextUtils, CoreApiContextUtils } from './coreApiContextUtils.js';
+export * from './coreApiLoggerUtils.js';
 export * from './coreApiUtils.js';
 export * from './coreApiWebglSupportUtils.js';
 
 export default {
-    coreApiContext: () => import('./coreApiContext.js'),
-    coreApiLogger: () => import('./coreApiLogger.js'),
+    coreApiContextUtils: () => import('./coreApiContextUtils.js'),
+    coreApiLoggerUtils: () => import('./coreApiLoggerUtils.js'),
     coreApiUtils: () => import('./coreApiUtils.js'),
     coreApiWebglSupportUtils: () => import('./coreApiWebglSupportUtils.js')
 };
