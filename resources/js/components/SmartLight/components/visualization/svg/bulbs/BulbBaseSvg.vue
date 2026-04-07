@@ -1,5 +1,9 @@
 <template>
-  <div class="bulb-base-svg" :class="statusClass" :style="{ width: containerWidth, height: containerHeight }">
+  <div
+      class="bulb-base-svg"
+      :class="statusClass"
+      :style="{ width: containerWidth, height: containerHeight }"
+  >
     <!-- Слот для кастомизации лампы -->
     <slot name="bulb">
       <!-- Базовая реализация лампы -->
@@ -9,7 +13,7 @@
       </div>
     </slot>
 
-    <!-- Свечение -->
+    <!-- Свечение (только если активно) -->
     <div v-if="isOn && showGlow" class="bulb-glow" :style="{ opacity: glowOpacity }"></div>
 
     <!-- Индикатор статуса -->
@@ -58,13 +62,17 @@ const statusIndicatorClass = computed(() => ({
   'indicator-error': props.status === 'ERROR'
 }));
 
+// ✅ Цвет стекла с учётом статуса и интенсивности
 const glassColor = computed(() => {
   if (props.status === 'OFF') return '#e0e0e0';
   if (props.status === 'SLEEPING') return '#fff7e6';
   if (props.status === 'ERROR') return '#fef0f0';
-  return '#ffffff';
+  // При ON: прозрачность зависит от интенсивности
+  const alpha = 0.4 + (props.intensity / 100) * 0.4;
+  return `rgba(255, 255, 255, ${alpha})`;
 });
 
+// ✅ Прозрачность свечения зависит от интенсивности
 const glowOpacity = computed(() => {
   if (!props.showGlow || !isOn.value) return 0;
   return 0.3 + (props.intensity / 100) * 0.5;
@@ -89,7 +97,7 @@ const glowOpacity = computed(() => {
   height: 40px;
   border-radius: 50%;
   border: 1px solid #d0d0d0;
-  transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease, opacity 0.3s ease;
 }
 
 .bulb-base {
@@ -158,20 +166,12 @@ const glowOpacity = computed(() => {
 }
 
 @keyframes bulb-glow {
-  0%, 100% {
-    opacity: 0.8;
-  }
-  50% {
-    opacity: 1;
-  }
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
 }
 
 @keyframes indicator-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 </style>

@@ -13,12 +13,16 @@
           <!-- Купол -->
           <div class="bulb-dome" :style="{ backgroundColor: domeColor }"></div>
           <!-- LED чипы -->
-          <div class="led-chips">
+          <div class="bulb-chips">
             <div
                 v-for="i in chipCount"
                 :key="i"
-                class="led-chip"
-                :style="{ backgroundColor: chipColor }"
+                class="bulb-chip"
+                :style="{
+                backgroundColor: chipColor,
+                opacity: chipOpacity,
+                transform: `rotate(${(i - 1) * chipAngle}deg) translateY(-8px)`
+              }"
             ></div>
           </div>
           <!-- Радиатор -->
@@ -50,20 +54,31 @@ const props = defineProps({
 });
 
 const configStore = useVisualizationConfigStore();
+// ✅ Динамический поиск конфига по фиксированному ID типа
 const config = computed(() => configStore.getBulbConfigStore('led'));
 
-const shortName = computed(() => config.value?.shortName || 'LED');
-const chipCount = computed(() => config.value?.visualConfig?.material?.chips?.count || 5);
+const shortName = computed(() => config.value?.shortName ?? 'LED');
 
+// ✅ Цвет купола с учётом статуса
 const domeColor = computed(() => {
-  if (props.status === 'OFF') return '#f0f0f0';
+  if (props.status === 'OFF') return '#e0e0e0';
+  if (props.status === 'SLEEPING') return '#fff7e6';
   return 'rgba(255, 255, 255, 0.6)';
 });
 
+// ✅ Параметры LED чипов из конфига
+const chipCount = computed(() => config.value?.visualConfig?.material?.chips?.count ?? 5);
+const chipAngle = computed(() => 360 / chipCount.value);
+
 const chipColor = computed(() => {
-  if (props.status === 'OFF') return '#c0c0c0';
-  if (props.status === 'SLEEPING') return '#ff9800';
+  if (props.status === 'OFF') return '#909399';
+  if (props.status === 'SLEEPING') return '#e6a23c';
   return '#ffffff';
+});
+
+const chipOpacity = computed(() => {
+  if (props.status !== 'ON') return 0.3;
+  return 0.5 + (props.intensity / 100) * 0.5;
 });
 </script>
 
@@ -84,38 +99,47 @@ const chipColor = computed(() => {
 
 .bulb-dome {
   width: 40px;
-  height: 35px;
+  height: 30px;
   border-radius: 50% 50% 0 0;
   border: 1px solid #d0d0d0;
+  border-bottom: none;
   transition: background-color 0.3s ease;
 }
 
-.led-chips {
+.bulb-chips {
   position: absolute;
-  top: 10px;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 30px;
+  height: 20px;
   display: flex;
-  gap: 4px;
+  justify-content: center;
+  align-items: center;
 }
 
-.led-chip {
+.bulb-chip {
+  position: absolute;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  transition: background-color 0.3s ease;
+  border-radius: 2px;
+  transition: background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
 }
 
 .bulb-heatsink {
   width: 30px;
   height: 15px;
-  background: #cccccc;
-  margin-top: -2px;
+  background: linear-gradient(to bottom, #cccccc, #999999);
+  border-radius: 0 0 2px 2px;
+  margin-top: -1px;
 }
 
 .bulb-base {
   width: 20px;
   height: 20px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
+  background: #666666;
+  border-radius: 0 0 2px 2px;
+  margin-top: -1px;
 }
 
 .bulb-led-details {

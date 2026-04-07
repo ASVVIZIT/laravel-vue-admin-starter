@@ -1,9 +1,10 @@
 <template>
   <div class="battery-21700-svg">
-    <!-- Базовый компонент с конфигом из store -->
+    <!-- Базовый компонент с динамическими параметрами -->
     <BatteryBaseSvg
         :voltage="voltage"
         :critical-voltage="criticalVoltage"
+        :status="status"
         :min-voltage="minVoltage"
         :max-voltage="maxVoltage"
         :colors="colors"
@@ -31,26 +32,30 @@ import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smar
 const props = defineProps({
   voltage: { type: Number, default: 3.7 },
   criticalVoltage: { type: Number, default: 3.2 },
+  status: { type: String, default: 'ON' },
   height: { type: String, default: '50px' },
   showLevels: { type: Boolean, default: true },
   showMarkers: { type: Boolean, default: true }
 });
 
 const configStore = useVisualizationConfigStore();
+// ✅ Динамический поиск конфига по фиксированному ID типа
 const config = computed(() => configStore.getBatteryConfigStore('li-ion-21700'));
 
-const minVoltage = computed(() => config.value?.specs?.minVoltage || 2.5);
-const maxVoltage = computed(() => config.value?.specs?.maxVoltage || 4.2);
-const colors = computed(() => config.value?.visualConfig?.colors || {
+// ✅ Получение параметров из specs, а не хардкод
+const minVoltage = computed(() => config.value?.specs?.minVoltage ?? 2.5);
+const maxVoltage = computed(() => config.value?.specs?.maxVoltage ?? 4.2);
+const colors = computed(() => config.value?.visualConfig?.colors ?? {
   normal: '#409eff',
   warning: '#e6a23c',
   critical: '#f56c6c',
   off: '#909399'
 });
-const scale = computed(() => config.value?.visualConfig?.scale || 1.2);
-const shortName = computed(() => config.value?.shortName || '21700');
-const capacity = computed(() => config.value?.specs?.capacity || 5000);
+const scale = computed(() => config.value?.visualConfig?.scale ?? 1.2);
+const shortName = computed(() => config.value?.shortName ?? '21700');
+const capacity = computed(() => config.value?.specs?.capacity ?? 5000);
 
+// ✅ Конвертация цвета крышки из числа в строку
 const capColorHex = computed(() => {
   const colorValue = config.value?.visualConfig?.material?.cap?.color;
   if (typeof colorValue === 'number') {

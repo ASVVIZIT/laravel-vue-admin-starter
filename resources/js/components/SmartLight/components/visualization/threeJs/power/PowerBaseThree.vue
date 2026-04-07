@@ -11,6 +11,7 @@ const props = defineProps({
   camera: { type: Object, default: null },
   renderer: { type: Object, default: null },
   visualConfig: { type: Object, required: true },
+  specs: { type: Object, default: () => ({}) },
   voltage: { type: Number, default: 220 },
   status: { type: String, default: 'OFF' },
   width: { type: String, default: '80px' },
@@ -24,8 +25,7 @@ const containerWidth = computed(() => props.width);
 const containerHeight = computed(() => props.height);
 
 const powerModel = shallowRef(null);
-const indicator = shallowRef(null);
-const sun = shallowRef(null);
+const statusLed = shallowRef(null);
 const isDisposed = ref(false);
 
 const createModel = () => {
@@ -34,27 +34,26 @@ const createModel = () => {
   const { geometry, material, scale } = props.visualConfig;
   powerModel.value = new props.three.Group();
 
-  const { width, height, depth } = geometry.dimensions;
+  const dims = geometry.dimensions || { width: 1, height: 1, depth: 0.5 };
+  let bodyGeo;
 
-  // Корпус
-  const bodyGeometry = new props.three.BoxGeometry(width * scale, height * scale, depth * scale);
-  const bodyMaterial = new props.three.MeshStandardMaterial(material.body);
-  const body = new props.three.Mesh(bodyGeometry, bodyMaterial);
+  if (geometry.type === 'box') {
+    bodyGeo = new props.three.BoxGeometry(dims.width * scale, dims.height * scale, dims.depth * scale);
+  } else {
+    bodyGeo = new props.three.BoxGeometry(1 * scale, 0.8 * scale, 0.5 * scale);
+  }
+
+  const bodyMat = new props.three.MeshStandardMaterial(material.body);
+  const body = new props.three.Mesh(bodyGeo, bodyMat);
   powerModel.value.add(body);
 
-  // Индикатор
+  // Индикатор статуса (LED)
   if (material.indicator) {
-    createIndicator(material.indicator, scale);
-  }
-
-  // Клеммы/провода
-  if (material.terminals || material.wires) {
-    createTerminalsOrWires(material, scale);
-  }
-
-  // Солнце для solar
-  if (material.sun) {
-    createSun(material.sun, scale);
+    const ledGeo = new props.three.SphereGeometry(0.05 * scale, 16, 16);
+    const ledMat = new props.three.MeshBasicMaterial({ color: material.indicator.color || 0x666666 });
+    statusLed.value = new props.three.Mesh(ledGeo, ledMat);
+    statusLed.value.position.set(dims.width * scale * 0.4, dims.height * scale * 0.35, dims.depth * scale * 0.51);
+    powerModel.value.add(statusLed.value);
   }
 
   props.scene.add(powerModel.value);
@@ -62,101 +61,36 @@ const createModel = () => {
   emit('model-ready', { model: powerModel.value });
 };
 
-const createIndicator = (indicatorMat, scale) => {
-  const indicatorGeometry = new props.three.SphereGeometry(0.05 * scale, 16, 16);
-  const indicatorMaterial = new props.three.MeshBasicMaterial({ color: indicatorMat.color });
-  indicator.value = new props.three.Mesh(indicatorGeometry, indicatorMaterial);
-  indicator.value.position.set(0.35 * scale, 0.2 * scale, 0.21 * scale);
-  powerModel.value.add(indicator.value);
-};
-
-const createTerminalsOrWires = (material, scale) => {
-  if (material.wires) {
-    const wireGeometry = new props.three.CylinderGeometry(0.03, 0.03, 0.5, 8);
-
-    const positiveMaterial = new props.three.MeshStandardMaterial({ color: material.wires.positive });
-    const positiveWire = new props.three.Mesh(wireGeometry, positiveMaterial);
-    positiveWire.position.set(-0.2 * scale, -0.35 * scale, 0.2 * scale);
-    positiveWire.rotation.x = Math.PI / 2;
-    powerModel.value.add(positiveWire);
-
-    const negativeMaterial = new props.three.MeshStandardMaterial({ color: material.wires.negative });
-    const negativeWire = new props.three.Mesh(wireGeometry, negativeMaterial);
-    negativeWire.position.set(0.2 * scale, -0.35 * scale, 0.2 * scale);
-    negativeWire.rotation.x = Math.PI / 2;
-    powerModel.value.add(negativeWire);
-  }
-
-  if (material.terminals) {
-    const terminalGeometry = new props.three.CylinderGeometry(0.06, 0.06, 0.15, 16);
-    const positions = [
-      { x: -0.4, z: 0.26, color: material.terminals.positive },
-      { x: -0.15, z: 0.26, color: material.terminals.positive },
-      { x: 0.15, z: 0.26, color: material.terminals.negative },
-      { x: 0.4, z: 0.26, color: material.terminals.negative }
-    ];
-
-    positions.forEach((pos) => {
-      const terminalMaterial = new props.three.MeshStandardMaterial({ color: pos.color });
-      const terminal = new props.three.Mesh(terminalGeometry, terminalMaterial);
-      terminal.position.set(pos.x * scale, -0.35 * scale, pos.z * scale);
-      terminal.rotation.x = Math.PI / 2;
-      powerModel.value.add(terminal);
-    });
-  }
-};
-
-const createSun = (sunMat, scale) => {
-  const sunGeometry = new props.three.SphereGeometry(0.15 * scale, 16, 16);
-  const sunMaterial = new props.three.MeshBasicMaterial({
-    color: sunMat.color,
-    transparent: true,
-    opacity: sunMat.opacity
-  });
-  sun.value = new props.three.Mesh(sunGeometry, sunMaterial);
-  sun.value.position.set(0.5 * scale, 0.5 * scale, 0.5 * scale);
-  powerModel.value.add(sun.value);
-};
-
 const updateModel = () => {
-  if (!indicator.value || isDisposed.value) return;
+  if (!statusLed.value || isDisposed.value) return;
 
-  const { indicator: indicatorMat } = props.visualConfig.material;
+  const { indicator } = props.visualConfig.material;
+  let color = indicator.color || 0x666666;
 
   if (props.status === 'ON' || props.status === 'ACTIVE') {
-    indicator.value.material.color.setHex(indicatorMat.activeColor);
-    indicator.value.material.emissive = new props.three.Color(indicatorMat.activeColor);
-    indicator.value.material.emissiveIntensity = 0.5;
+    color = indicator.activeColor || 0x67c23a;
+    statusLed.value.material.emissive = new props.three.Color(color);
+    statusLed.value.material.emissiveIntensity = 0.8;
   } else if (props.status === 'ERROR') {
-    indicator.value.material.color.setHex(0xf56c6c);
-    indicator.value.material.emissive = new props.three.Color(0xf56c6c);
-    indicator.value.material.emissiveIntensity = 0.5;
+    color = props.visualConfig.colors.error || 0xf56c6c;
+    statusLed.value.material.emissive = new props.three.Color(color);
+    statusLed.value.material.emissiveIntensity = 1.0;
   } else {
-    indicator.value.material.color.setHex(indicatorMat.color);
-    indicator.value.material.emissive = new props.three.Color(0x000000);
-    indicator.value.material.emissiveIntensity = 0;
+    statusLed.value.material.emissive = new props.three.Color(0x000000);
+    statusLed.value.material.emissiveIntensity = 0;
   }
 
-  // Солнце для solar
-  if (sun.value) {
-    if (props.status === 'ON' || props.status === 'ACTIVE') {
-      sun.value.material.opacity = 0.8;
-      sun.value.scale.set(1.2, 1.2, 1.2);
-    } else {
-      sun.value.material.opacity = 0.3;
-      sun.value.scale.set(1, 1, 1);
-    }
-  }
-
-  emit('model-update', { status: props.status });
+  statusLed.value.material.color.setHex(color);
+  emit('model-update', { status: props.status, voltage: props.voltage });
 };
 
 const animate = () => {
   if (powerModel.value && !isDisposed.value && props.visualConfig.animation?.rotate) {
     powerModel.value.rotation.y += props.visualConfig.animation.speed;
   }
-  if (sun.value && !isDisposed.value && props.visualConfig.animation?.sunRotate) {
-    sun.value.rotation.y += 0.01;
+  if (props.visualConfig.animation?.pulse && statusLed.value) {
+    const t = Date.now() * 0.002;
+    statusLed.value.scale.setScalar(1 + Math.sin(t) * 0.2);
   }
 };
 
@@ -167,27 +101,13 @@ const dispose = () => {
   if (powerModel.value && props.scene) {
     props.scene.remove(powerModel.value);
     powerModel.value.traverse((obj) => {
-      if (obj.geometry) {
-        obj.geometry.dispose();
-        obj.geometry = null;
-      }
-      if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(m => {
-            m.dispose();
-            m = null;
-          });
-        } else {
-          obj.material.dispose();
-          obj.material = null;
-        }
-      }
+      if (obj.geometry) { obj.geometry.dispose(); obj.geometry = null; }
+      if (obj.material) { obj.material.dispose(); obj.material = null; }
     });
     powerModel.value = null;
   }
 
-  indicator.value = null;
-  sun.value = null;
+  statusLed.value = null;
 };
 
 let animationFrame = null;
@@ -201,18 +121,11 @@ const startAnimation = () => {
   loop();
 };
 
-onMounted(() => {
-  createModel();
-  startAnimation();
-});
+onMounted(() => { createModel(); startAnimation(); });
+onUnmounted(() => { if (animationFrame) cancelAnimationFrame(animationFrame); dispose(); });
 
-onUnmounted(() => {
-  if (animationFrame) cancelAnimationFrame(animationFrame);
-  dispose();
-});
-
-watch(() => props.visualConfig, (newConfig, oldConfig) => {
-  if (oldConfig && JSON.stringify(newConfig) !== JSON.stringify(oldConfig)) {
+watch(() => props.visualConfig, (newCfg, oldCfg) => {
+  if (oldCfg && JSON.stringify(newCfg) !== JSON.stringify(oldCfg)) {
     dispose();
     powerModel.value = null;
     isDisposed.value = false;
@@ -220,20 +133,11 @@ watch(() => props.visualConfig, (newConfig, oldConfig) => {
   }
 }, { deep: true });
 
-watch(() => props.status, () => {
-  if (!isDisposed.value) {
-    updateModel();
-  }
-}, { deep: true });
+watch(() => [props.status, props.voltage], () => { if (!isDisposed.value) updateModel(); }, { deep: true });
 
 defineExpose({ updateModel, animate, dispose, isDisposed });
 </script>
 
 <style scoped>
-.power-base-three {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+.power-base-three { position: relative; display: flex; justify-content: center; align-items: center; background: transparent; }
 </style>

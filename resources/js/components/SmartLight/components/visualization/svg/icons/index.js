@@ -1,16 +1,16 @@
 /**
  * ============================================================================
- * SVG ICONS — ЭКСПОРТ ИКОНОК
+ * SVG ICONS — ЭКСПОРТ ИКОНОК БАТАРЕЙ
+ * ============================================================================
+ * 📁 Путь: visualization/svg/icons/index.js
+ * ✅ Исправлено: пути экспорта, ленивая загрузка, структура
  * ============================================================================
  */
 
-// === БАЗОВЫЕ ИКОНКИ ===
 export { default as BatteryFullIcon } from './BatteryFullIcon.vue';
 export { default as BatteryLowIcon } from './BatteryLowIcon.vue';
 export { default as BatteryCriticalIcon } from './BatteryCriticalIcon.vue';
 export { default as BatteryChargingIcon } from './BatteryChargingIcon.vue';
-
-// === УНИВЕРСАЛЬНЫЙ КОМПОНЕНТ ===
 export { default as CompositeIcon } from './CompositeIcon.vue';
 
 export default {

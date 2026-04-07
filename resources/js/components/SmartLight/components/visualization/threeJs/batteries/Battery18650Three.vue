@@ -1,5 +1,4 @@
 <template>
-  <!-- Передаёт конфиг в Base компонент -->
   <BatteryBaseThree
       :three="three"
       :scene="scene"
@@ -8,7 +7,10 @@
       :visual-config="visualConfig"
       :specs="specs"
       :voltage="voltage"
-      :critical-voltage="criticalVoltage"
+      :status="status"
+      :intensity="intensity"
+      :width="width"
+      :height="height"
       @model-ready="onModelReady"
       @model-update="onModelUpdate"
   />
@@ -19,13 +21,18 @@ import { computed } from 'vue';
 import BatteryBaseThree from './BatteryBaseThree.vue';
 import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
 
+// ❌ НЕТ import * as THREE
+
 const props = defineProps({
   three: { type: Object, required: true },
   scene: { type: Object, required: true },
   camera: { type: Object, default: null },
   renderer: { type: Object, default: null },
   voltage: { type: Number, default: 3.7 },
-  criticalVoltage: { type: Number, default: 3.2 }
+  status: { type: String, default: 'OFF' },
+  intensity: { type: Number, default: 0 },
+  width: { type: String, default: '80px' },
+  height: { type: String, default: '80px' }
 });
 
 const emit = defineEmits(['model-ready', 'model-update']);
@@ -34,8 +41,12 @@ const configStore = useVisualizationConfigStore();
 const config = computed(() => configStore.getBatteryConfigStore('li-ion-18650'));
 
 const visualConfig = computed(() => config.value?.visualConfig || {});
-const specs = computed(() => config.value?.specs || { minVoltage: 2.5, maxVoltage: 4.2 });
+const specs = computed(() => config.value?.specs || { minVoltage: 2.5, maxVoltage: 4.2, nominalVoltage: 3.7 });
 
 const onModelReady = (data) => emit('model-ready', data);
 const onModelUpdate = (data) => emit('model-update', data);
 </script>
+
+<style scoped>
+/* Стили управляются базовым компонентом */
+</style>

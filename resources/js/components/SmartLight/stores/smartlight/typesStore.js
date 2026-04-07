@@ -13,9 +13,9 @@ import { ref, computed } from 'vue';
 import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 // ✅ ПРЯМОЙ ИМПОРТ НИЗКОУРОВНЕВЫХ API
-import { coreBatteryTypeApi } from '@components/SmartLight/api/core/types/coreBatteryTypeApi.js';
-import { coreBulbTypeApi } from '@components/SmartLight/api/core/types/coreBulbTypeApi.js';
-import { corePowerSupplyTypeApi } from '@components/SmartLight/api/core/types/corePowerSupplyTypeApi.js';
+import { coreBatteryTypeApi } from '@/components/SmartLight/api/core/types/coreBatteryTypeApi.js';
+import { coreBulbTypeApi } from '@/components/SmartLight/api/core/types/coreBulbTypeApi.js';
+import { corePowerSupplyTypeApi } from '@/components/SmartLight/api/core/types/corePowerSupplyTypeApi.js';
 
 // Фолбэк-константы если API не отвечает
 import { BATTERY_TYPES } from '@/components/SmartLight/stores/smartlight/types/batteryTypes.js';
@@ -46,7 +46,7 @@ export const useTypesStore = defineStore('smartlight-types', () => {
         }))
     );
 
-    const powerSuppliesForDropdownStore = computed(() =>
+    const powerSupplyTypesForDropdownStore = computed(() =>
         Object.values(powerSupplyTypes.value).map(t => ({
             value: t.id,
             label: t.name || t.short_name || t.id
@@ -59,7 +59,6 @@ export const useTypesStore = defineStore('smartlight-types', () => {
     const getPowerSupplyByIdStore = (id) => powerSupplyTypes.value[id] || null;
 
     // === ACTIONS ===
-
     const fetchTypesStore = async () => {
         if (typesLoaded.value && !loading.value) {
             return { success: true, cached: true };
@@ -100,7 +99,6 @@ export const useTypesStore = defineStore('smartlight-types', () => {
             });
 
             return { success: true };
-
         } catch (err) {
             logErrorUtils('TypesStore', 'Failed to fetch types', err);
             error.value = err.message || 'Не удалось загрузить справочники';
@@ -136,7 +134,9 @@ export const useTypesStore = defineStore('smartlight-types', () => {
         }
     };
 
-    // === EXPOSE ===
+    // ========================================================================
+    // EXPOSE
+    // ========================================================================
     return {
         // State
         batteryTypes,
@@ -145,13 +145,15 @@ export const useTypesStore = defineStore('smartlight-types', () => {
         typesLoaded,
         loading,
         error,
+
         // Getters
         batteryTypesForDropdownStore,
         bulbTypesForDropdownStore,
-        powerSuppliesForDropdownStore,
+        powerSupplyTypesForDropdownStore,
         getBatteryTypeByIdStore,
         getBulbTypeByIdStore,
         getPowerSupplyByIdStore,
+
         // Actions
         fetchTypesStore,
         refreshTypesStore,

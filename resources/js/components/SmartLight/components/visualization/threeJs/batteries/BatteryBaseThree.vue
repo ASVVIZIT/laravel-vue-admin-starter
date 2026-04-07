@@ -1,250 +1,150 @@
 <template>
-  <div ref="container" class="battery-base-three" :style="{ width: containerWidth, height: containerHeight }"></div>
+  <div class="battery-base-three" :style="{ width, height }"></div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
+import { onMounted, onUnmounted, watch, defineProps, defineEmits, shallowRef, markRaw } from 'vue';
+import * as THREE from 'three';
 
 const props = defineProps({
-  /** THREE namespace от BaseScene */
   three: { type: Object, required: true },
-  /** THREE.Scene от BaseScene */
   scene: { type: Object, required: true },
-  /** THREE.Camera от BaseScene */
   camera: { type: Object, default: null },
-  /** THREE.WebGLRenderer от BaseScene */
   renderer: { type: Object, default: null },
-  /** Конфиг визуализации из store */
-  visualConfig: { type: Object, required: true },
-  /** Спецификации из store */
-  specs: { type: Object, required: true },
-  /** Текущее напряжение */
+  visualConfig: { type: Object, default: () => ({}) },
+  specs: { type: Object, default: () => ({ minVoltage: 2.5, maxVoltage: 4.2 }) },
   voltage: { type: Number, default: 3.7 },
-  /** Критическое напряжение */
-  criticalVoltage: { type: Number, default: 3.2 },
-  /** Ширина компонента */
+  status: { type: String, default: 'OFF' },
   width: { type: String, default: '80px' },
-  /** Высота компонента */
   height: { type: String, default: '80px' }
 });
 
 const emit = defineEmits(['model-ready', 'model-update']);
+const mesh = shallowRef(null);
+const parts = shallowRef({});
 
-const container = ref(null);
-const containerWidth = computed(() => props.width);
-const containerHeight = computed(() => props.height);
-
-// ✅ shallowRef для ThreeJS объектов (не вызывает реактивность)
-const batteryModel = shallowRef(null);
-const batteryFill = shallowRef(null);
-const isDisposed = ref(false);
-
-const createModel = () => {
-  if (!props.scene || !props.three || isDisposed.value) return;
-
-  const { geometry, material, scale } = props.visualConfig;
-  batteryModel.value = new props.three.Group();
-
-  if (geometry.type === 'cylinder') {
-    createCylinderBattery(geometry, material, scale);
-  } else if (geometry.type === 'box') {
-    createBoxBattery(geometry, material, scale);
-  }
-
-  props.scene.add(batteryModel.value);
-  updateModel();
-  emit('model-ready', { model: batteryModel.value });
-};
-
-const createCylinderBattery = (geometry, material, scale) => {
-  const { radius, height, segments } = geometry.dimensions;
-
-  // Корпус
-  const bodyGeometry = new props.three.CylinderGeometry(
-      radius * scale,
-      radius * scale,
-      height * scale,
-      segments
-  );
-  const bodyMaterial = new props.three.MeshPhysicalMaterial(material.body);
-  const body = new props.three.Mesh(bodyGeometry, bodyMaterial);
-  batteryModel.value.add(body);
-
-  // Заполнение
-  const fillGeometry = new props.three.CylinderGeometry(
-      radius * 0.84 * scale,
-      radius * 0.84 * scale,
-      (height - 0.2) * scale,
-      segments
-  );
-  const fillMaterial = new props.three.MeshPhysicalMaterial(material.fill);
-  batteryFill.value = new props.three.Mesh(fillGeometry, fillMaterial);
-  batteryFill.value.position.y = -0.15 * scale;
-  batteryModel.value.add(batteryFill.value);
-
-  // Крышка
-  const capGeometry = new props.three.CylinderGeometry(
-      radius * 1.04 * scale,
-      radius * 1.04 * scale,
-      0.15 * scale,
-      segments
-  );
-  const capMaterial = new props.three.MeshStandardMaterial(material.cap);
-  const cap = new props.three.Mesh(capGeometry, capMaterial);
-  cap.position.y = (height / 2 + 0.075) * scale;
-  batteryModel.value.add(cap);
-};
-
-const createBoxBattery = (geometry, material, scale) => {
-  const { width, height, depth } = geometry.dimensions;
-
-  // Корпус
-  const bodyGeometry = new props.three.BoxGeometry(
-      width * scale,
-      height * scale,
-      depth * scale
-  );
-  const bodyMaterial = new props.three.MeshPhysicalMaterial(material.body);
-  const body = new props.three.Mesh(bodyGeometry, bodyMaterial);
-  batteryModel.value.add(body);
-
-  // Заполнение
-  const fillGeometry = new props.three.BoxGeometry(
-      (width - 0.2) * scale,
-      (height - 0.05) * scale,
-      (depth - 0.1) * scale
-  );
-  const fillMaterial = new props.three.MeshPhysicalMaterial(material.fill);
-  batteryFill.value = new props.three.Mesh(fillGeometry, fillMaterial);
-  batteryFill.value.position.y = 0.02 * scale;
-  batteryModel.value.add(batteryFill.value);
-
-  // Провода
-  if (material.wires) {
-    createWires(material.wires, scale);
-  }
-};
-
-const createWires = (wires, scale) => {
-  const wireGeometry = new props.three.CylinderGeometry(0.03, 0.03, 0.5, 8);
-
-  const positiveMaterial = new props.three.MeshStandardMaterial({ color: wires.positive });
-  const positiveWire = new props.three.Mesh(wireGeometry, positiveMaterial);
-  positiveWire.position.set(-0.3 * scale, -0.2 * scale, 0.8 * scale);
-  positiveWire.rotation.x = Math.PI / 2;
-  batteryModel.value.add(positiveWire);
-
-  const negativeMaterial = new props.three.MeshStandardMaterial({ color: wires.negative });
-  const negativeWire = new props.three.Mesh(wireGeometry, negativeMaterial);
-  negativeWire.position.set(0.3 * scale, -0.2 * scale, 0.8 * scale);
-  negativeWire.rotation.x = Math.PI / 2;
-  batteryModel.value.add(negativeWire);
-};
-
-const updateModel = () => {
-  if (!batteryFill.value || isDisposed.value) return;
-
+// === УРОВЕНЬ ЗАРЯДА ===
+const getLevel = () => {
   const { minVoltage, maxVoltage } = props.specs;
-  const progress = Math.min(1, Math.max(0, ((props.voltage - minVoltage) / (maxVoltage - minVoltage))));
-  const scale = Math.max(0.05, progress);
-
-  batteryFill.value.scale.set(1, scale, 1);
-
-  const { colors } = props.visualConfig;
-  if (progress < 0.3) {
-    batteryFill.value.material.color.setHex(colors.critical);
-  } else if (progress < 0.6) {
-    batteryFill.value.material.color.setHex(colors.warning);
-  } else {
-    batteryFill.value.material.color.setHex(colors.normal);
-  }
-
-  emit('model-update', { voltage: props.voltage, progress });
+  const v = Math.max(minVoltage, Math.min(maxVoltage, props.voltage));
+  return (v - minVoltage) / (maxVoltage - minVoltage);
 };
 
-const animate = () => {
-  if (batteryModel.value && !isDisposed.value && props.visualConfig.animation?.rotate) {
-    batteryModel.value.rotation.y += props.visualConfig.animation.speed;
-  }
+// === ЦВЕТ ПО ПОРОГУ ===
+const getColorByLevel = (level) => {
+  if (props.status === 'OFF') return props.visualConfig.colors.off;
+  if (level >= 0.5) return props.visualConfig.colors.normal;
+  if (level >= 0.2) return props.visualConfig.colors.warning;
+  return props.visualConfig.colors.critical;
 };
 
-// ✅ Защита от двойного dispose
-const dispose = () => {
-  if (isDisposed.value) return;
-  isDisposed.value = true;
+// === СОЗДАНИЕ МОДЕЛИ ===
+const createModel = () => {
+  const group = new THREE.Group();
+  const cfg = props.visualConfig;
+  const geo = cfg.geometry;
+  const level = getLevel();
 
-  if (batteryModel.value && props.scene) {
-    props.scene.remove(batteryModel.value);
-    batteryModel.value.traverse((obj) => {
-      if (obj.geometry) {
-        obj.geometry.dispose();
-        obj.geometry = null;
-      }
-      if (obj.material) {
-        if (Array.isArray(obj.material)) {
-          obj.material.forEach(m => {
-            m.dispose();
-            m = null;
-          });
-        } else {
-          obj.material.dispose();
-          obj.material = null;
-        }
-      }
+  if (cfg.type === 'battery-cylindrical') {
+    // Корпус
+    const bodyGeo = new THREE.CylinderGeometry(geo.radius, geo.radius, geo.height, geo.segments);
+    const bodyMat = new THREE.MeshPhysicalMaterial({ color: 0xf5f7fa, ...cfg.materials.body, side: THREE.DoubleSide });
+    parts.value.body = markRaw(new THREE.Mesh(bodyGeo, bodyMat));
+    group.add(parts.value.body);
+
+    // Заливка
+    const fillGeo = new THREE.CylinderGeometry(geo.radius * 0.95, geo.radius * 0.95, geo.height, geo.segments);
+    const fillMat = new THREE.MeshStandardMaterial({ color: getColorByLevel(level), ...cfg.materials.fill });
+    parts.value.fill = markRaw(new THREE.Mesh(fillGeo, fillMat));
+    parts.value.fill.position.y = -geo.height / 2;
+    parts.value.fill.scale.y = Math.max(0.01, level);
+    parts.value.fill.userData = { isFill: true, h: geo.height };
+    group.add(parts.value.fill);
+
+    // Кольца порогов
+    cfg.thresholds.forEach((t, i) => {
+      const ringGeo = new THREE.TorusGeometry(geo.radius + 0.02, cfg.materials.ring.radius, 8, 32);
+      const ringMat = new THREE.MeshStandardMaterial({ color: getColorByLevel(t), emissive: 0x000000, metalness: 0.5 });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = Math.PI / 2;
+      ring.position.y = -geo.height / 2 + t * geo.height;
+      ring.userData = { isRing: true, threshold: t };
+      group.add(ring);
     });
-    batteryModel.value = null;
+
+    // Крышки
+    const capGeo = new THREE.CylinderGeometry(geo.radius * 1.05, geo.radius * 1.05, 0.2, geo.segments);
+    const capMat = new THREE.MeshStandardMaterial({ ...cfg.materials.cap });
+    const topCap = new THREE.Mesh(capGeo, capMat); topCap.position.y = geo.height / 2 + 0.1;
+    const botCap = new THREE.Mesh(capGeo, capMat); botCap.position.y = -geo.height / 2 - 0.1;
+    group.add(topCap); group.add(botCap);
+  }
+  else if (cfg.type === 'battery-box') {
+    // Свинцовокислотный / Li-Po
+    const bodyGeo = new THREE.BoxGeometry(geo.width, geo.height, geo.depth);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x333333, transparent: true, ...cfg.materials.body });
+    parts.value.body = markRaw(new THREE.Mesh(bodyGeo, bodyMat));
+    group.add(parts.value.body);
+
+    const fillGeo = new THREE.BoxGeometry(geo.width * 0.9, geo.height * 0.9, geo.depth * 0.9);
+    const fillMat = new THREE.MeshStandardMaterial({ color: getColorByLevel(level), ...cfg.materials.fill });
+    parts.value.fill = markRaw(new THREE.Mesh(fillGeo, fillMat));
+    parts.value.fill.position.y = -geo.height / 2;
+    parts.value.fill.scale.y = Math.max(0.01, level);
+    parts.value.fill.userData = { isFill: true, h: geo.height };
+    group.add(parts.value.fill);
+
+    // Клеммы
+    const termGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.3, 12);
+    const termMat = new THREE.MeshStandardMaterial({ ...cfg.materials.terminal });
+    const p = new THREE.Mesh(termGeo, termMat); p.position.set(-0.8, geo.height/2 + 0.15, 0);
+    const n = new THREE.Mesh(termGeo, termMat.clone()); n.position.set(0.8, geo.height/2 + 0.15, 0); n.material.color.set(0x333333);
+    group.add(p); group.add(n);
   }
 
-  batteryFill.value = null;
+  mesh.value = markRaw(group);
+  if (props.scene?.add) props.scene.add(mesh.value);
+  updateVisuals();
+  return mesh.value;
 };
 
-// ✅ Анимационный цикл
-let animationFrame = null;
-const startAnimation = () => {
-  const loop = () => {
-    if (!isDisposed.value) {
-      animate();
-      animationFrame = requestAnimationFrame(loop);
+// === ОБНОВЛЕНИЕ ВИЗУАЛА ===
+const updateVisuals = () => {
+  if (!mesh.value || !parts.value.fill) return;
+  const level = getLevel();
+  const color = getColorByLevel(level);
+
+  parts.value.fill.material.color.setHex(color);
+  parts.value.fill.scale.y = Math.max(0.01, level);
+
+  // Обновляем кольца
+  mesh.value.children.forEach(c => {
+    if (c.userData?.isRing) {
+      c.material.color.setHex(getColorByLevel(c.userData.threshold));
+      c.material.emissive.setHex(level >= c.userData.threshold ? color : 0x000000);
+      c.material.emissiveIntensity = level >= c.userData.threshold ? 0.5 : 0;
     }
-  };
-  loop();
+  });
+
+  // Пульсация при <20%
+  if (level < 0.2 && props.status !== 'OFF' && parts.value.fill.material) {
+    parts.value.fill.material.opacity = 0.7 + 0.2 * Math.sin(Date.now() * 0.005);
+    parts.value.fill.material.needsUpdate = true;
+  }
 };
 
-onMounted(() => {
-  createModel();
-  startAnimation();
-});
-
+// === LIFECYCLE ===
+onMounted(() => { if (props.scene?.add) createModel(); emit('model-ready', { type: cfg.type, level: getLevel() }); });
 onUnmounted(() => {
-  if (animationFrame) cancelAnimationFrame(animationFrame);
-  dispose();
+  if (mesh.value && props.scene?.remove) {
+    props.scene.remove(mesh.value);
+    mesh.value.traverse(o => { o.geometry?.dispose?.(); if(o.material) Array.isArray(o.material)?o.material.forEach(m=>m.dispose?.()):o.material.dispose?.(); });
+  }
+  mesh.value = null; parts.value = {};
 });
 
-// ✅ Пересоздание модели при смене конфига
-watch(() => props.visualConfig, (newConfig, oldConfig) => {
-  if (oldConfig && JSON.stringify(newConfig) !== JSON.stringify(oldConfig)) {
-    dispose();
-    batteryModel.value = null;
-    isDisposed.value = false;
-    setTimeout(() => createModel(), 50);
-  }
-}, { deep: true });
-
-// ✅ Обновление при изменении напряжения
-watch(() => [props.voltage, props.criticalVoltage], () => {
-  if (!isDisposed.value) {
-    updateModel();
-  }
-}, { deep: true });
-
-defineExpose({ updateModel, animate, dispose, isDisposed });
+watch(() => [props.voltage, props.status], () => { if(mesh.value) { updateVisuals(); emit('model-update', { voltage: props.voltage, level: getLevel() }); } });
+defineExpose({ updateVisuals, getMesh: () => mesh.value, getLevel });
 </script>
 
-<style scoped>
-.battery-base-three {
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-</style>
+<style scoped>.battery-base-three{width:v-bind(width);height:v-bind(height)}</style>

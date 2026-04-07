@@ -1,65 +1,65 @@
 <template>
-  <BatteryFullIcon
-      :voltage="2.8"
-      :critical-voltage="criticalVoltage"
-      :min-voltage="minVoltage"
-      :max-voltage="maxVoltage"
-      :size="size"
-      :icon-size="iconSize"
-      :show-label="showLabel"
-      status="low"
-  />
+  <div class="battery-low-icon">
+    <BatteryFullIcon
+        :voltage="voltage"
+        :critical-voltage="criticalVoltage"
+        :min-voltage="minVoltage"
+        :max-voltage="maxVoltage"
+        :size="size"
+        :icon-size="iconSize"
+        :show-label="showLabel"
+        :show-status-badge="showStatusBadge"
+        :rotation="rotation"
+        status="low"
+    />
+  </div>
 </template>
 
 <script setup>
+/**
+ * Иконка низкого заряда батареи.
+ * Явно задаёт статус "low" и пробрасывает все параметры в базовый компонент.
+ */
 import BatteryFullIcon from './BatteryFullIcon.vue';
 
 const props = defineProps({
+  /** Текущее напряжение (по умолчанию 3.0В — зона low) */
+  voltage: { type: Number, default: 3.0 },
+  /** Критическое напряжение */
   criticalVoltage: { type: Number, default: 3.2 },
+  /** Мин. напряжение типа батареи */
   minVoltage: { type: Number, default: 2.5 },
+  /** Макс. напряжение типа батареи */
   maxVoltage: { type: Number, default: 4.2 },
+  /** Размер контейнера иконки */
   size: { type: String, default: '32px' },
+  /** Размер SVG внутри */
   iconSize: { type: Number, default: 24 },
-  showLabel: { type: Boolean, default: true }
+  /** Показывать лейбл с напряжением */
+  showLabel: { type: Boolean, default: true },
+  /** Показывать статусный бейдж */
+  showStatusBadge: { type: Boolean, default: true },
+  /** Вращение иконки (градусы) */
+  rotation: { type: Number, default: 0 }
 });
 </script>
 
 <style scoped>
 .battery-low-icon {
-  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
-:deep(.battery-base-svg) {
-  width: 100%;
-  height: 100%;
+/* Усиленная пульсация для low-статуса */
+:deep(.battery-status-badge) {
+  background-color: #e6a23c !important;
+  border-color: #fff;
+  box-shadow: 0 0 6px rgba(230, 162, 60, 0.6);
 }
 
-:deep(.battery-fill) {
+:deep(.battery-fill-overlay) {
   background: linear-gradient(90deg, #e6a23c 0%, #f56c6c 100%) !important;
-}
-
-.low-indicator {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  width: 10px;
-  height: 10px;
-  border: 2px solid;
-  border-radius: 50%;
-  animation: low-pulse 1s infinite;
-}
-
-@keyframes low-pulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: scale(1.1);
-  }
 }
 </style>

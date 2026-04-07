@@ -5,9 +5,12 @@
       :camera="camera"
       :renderer="renderer"
       :visual-config="visualConfig"
+      :specs="specs"
       :voltage="voltage"
       :status="status"
       :intensity="intensity"
+      :width="width"
+      :height="height"
       @model-ready="onModelReady"
       @model-update="onModelUpdate"
   />
@@ -26,7 +29,8 @@ const props = defineProps({
   voltage: { type: Number, default: 3.7 },
   status: { type: String, default: 'OFF' },
   intensity: { type: Number, default: 0 },
-  rgbColor: { type: String, default: '#ffffff' }
+  width: { type: String, default: '80px' },
+  height: { type: String, default: '80px' }
 });
 
 const emit = defineEmits(['model-ready', 'model-update']);
@@ -35,7 +39,12 @@ const configStore = useVisualizationConfigStore();
 const config = computed(() => configStore.getBulbConfigStore('smart-rgb'));
 
 const visualConfig = computed(() => config.value?.visualConfig || {});
+const specs = computed(() => config.value?.specs || { efficiency: 60, colorTemp: 6500, lifespan: 15000 });
 
 const onModelReady = (data) => emit('model-ready', data);
 const onModelUpdate = (data) => emit('model-update', data);
 </script>
+
+<style scoped>
+/* Контейнер и стили управляются BulbBaseThree */
+</style>

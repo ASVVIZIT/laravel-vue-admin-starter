@@ -1,127 +1,120 @@
 <template>
-  <div class="power-dc24v-three"></div>
+  <div class="power-dc24v-svg">
+    <PowerBaseSvg
+        :status="status"
+        :voltage="voltage"
+        :label="label"
+        :width="width"
+        :height="height"
+        :show-glow="showGlow"
+    >
+      <template #power>
+        <div class="power-dc24v">
+          <!-- Иконка промышленной клеммной колодки -->
+          <div class="power-dc24v-icon" :style="{ backgroundColor: iconColor }">
+            <svg viewBox="0 0 24 24" width="20" height="16" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="6" width="20" height="10" rx="2" />
+              <line x1="7" y1="4" x2="7" y2="8" stroke-linecap="round"/>
+              <line x1="11" y1="4" x2="11" y2="8" stroke-linecap="round"/>
+              <line x1="17" y1="4" x2="17" y2="8" stroke-linecap="round"/>
+              <circle cx="7" cy="11" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="11" cy="11" r="1.5" fill="currentColor" stroke="none"/>
+              <circle cx="17" cy="11" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <!-- Провода (4 шт для 24В) -->
+          <div class="power-dc24v-wires">
+            <div class="wire pos"></div>
+            <div class="wire pos"></div>
+            <div class="wire neg"></div>
+            <div class="wire neg"></div>
+          </div>
+          <div class="power-dc24v-label">{{ label }}</div>
+        </div>
+      </template>
+    </PowerBaseSvg>
+  </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
-import * as THREE from 'three';
+import { computed } from 'vue';
+import PowerBaseSvg from './PowerBaseSvg.vue';
+import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
 
 const props = defineProps({
-  voltage: { type: Number, default: 24 },
   status: { type: String, default: 'OFF' },
-  scene: { type: Object, required: true },
-  camera: { type: Object },
-  renderer: { type: Object }
+  voltage: { type: Number, default: 24 },
+  width: { type: String, default: '60px' },
+  height: { type: String, default: '80px' },
+  showGlow: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['model-ready', 'model-update']);
+const configStore = useVisualizationConfigStore();
+const config = computed(() => configStore.getPowerSupplyConfigStore('dc-24v'));
 
-let powerModel = null;
-let statusLed = null;
+const label = computed(() => config.value?.shortName ?? 'DC 24V');
 
-const createModel = () => {
-  powerModel = new THREE.Group();
-
-  // Блок питания 24V (больше)
-  const boxGeometry = new THREE.BoxGeometry(1.2, 0.7, 0.5);
-  const boxMaterial = new THREE.MeshStandardMaterial({
-    color: 0x2d3436,
-    roughness: 0.5,
-    metalness: 0.4
-  });
-  const box = new THREE.Mesh(boxGeometry, boxMaterial);
-  powerModel.add(box);
-
-  // LED индикаторы (2 шт)
-  const ledGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-  const powerLedMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
-  statusLed = new THREE.Mesh(ledGeometry, powerLedMaterial);
-  statusLed.position.set(0.45, 0.25, 0.26);
-  powerModel.add(statusLed);
-
-  const outputLedGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-  const outputLedMaterial = new THREE.MeshBasicMaterial({ color: 0x666666 });
-  const outputLed = new THREE.Mesh(outputLedGeometry, outputLedMaterial);
-  outputLed.position.set(0.35, 0.25, 0.26);
-  powerModel.add(outputLed);
-
-  // 4 клеммы
-  const terminalGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.15, 16);
-  const positiveMaterial = new THREE.MeshStandardMaterial({ color: 0xf56c6c, roughness: 0.3, metalness: 0.7 });
-  const negativeMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.3, metalness: 0.7 });
-
-  const positions = [
-    { x: -0.4, z: 0.26, material: positiveMaterial },
-    { x: -0.15, z: 0.26, material: positiveMaterial },
-    { x: 0.15, z: 0.26, material: negativeMaterial },
-    { x: 0.4, z: 0.26, material: negativeMaterial }
-  ];
-
-  positions.forEach((pos) => {
-    const terminal = new THREE.Mesh(terminalGeometry, pos.material);
-    terminal.position.set(pos.x, -0.35, pos.z);
-    terminal.rotation.x = Math.PI / 2;
-    powerModel.add(terminal);
-  });
-
-  // Радиатор
-  const finGeometry = new THREE.BoxGeometry(0.1, 0.15, 0.05);
-  const finMaterial = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.4, metalness: 0.6 });
-  for (let i = 0; i < 5; i++) {
-    const fin = new THREE.Mesh(finGeometry, finMaterial);
-    fin.position.set(-0.4 + (i * 0.2), -0.4, 0);
-    powerModel.add(fin);
-  }
-
-  props.scene.add(powerModel);
-  updateModel();
-  emit('model-ready', { model: powerModel });
-};
-
-const updateModel = () => {
-  if (!statusLed) return;
-  if (props.status === 'ON' || props.status === 'ACTIVE') {
-    statusLed.material.color.setHex(0x67c23a);
-    statusLed.material.emissive = new THREE.Color(0x67c23a);
-    statusLed.material.emissiveIntensity = 0.5;
-  } else if (props.status === 'ERROR') {
-    statusLed.material.color.setHex(0xf56c6c);
-    statusLed.material.emissive = new THREE.Color(0xf56c6c);
-    statusLed.material.emissiveIntensity = 0.5;
-  } else {
-    statusLed.material.color.setHex(0x666666);
-    statusLed.material.emissive = new THREE.Color(0x000000);
-    statusLed.material.emissiveIntensity = 0;
-  }
-  emit('model-update', { status: props.status });
-};
-
-const animate = () => {
-  if (powerModel) {
-    powerModel.rotation.y += 0.005;
-    powerModel.rotation.x = Math.sin(Date.now() * 0.001) * 0.1;
-  }
-};
-
-const dispose = () => {
-  if (powerModel) {
-    props.scene.remove(powerModel);
-    powerModel.traverse((obj) => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-  }
-};
-
-onMounted(() => { createModel(); });
-onUnmounted(() => { dispose(); });
-
-defineExpose({ updateModel, animate, dispose });
+const iconColor = computed(() => {
+  if (props.status === 'ERROR') return '#fef0f0';
+  if (props.status === 'ON' || props.status === 'ACTIVE') return '#e8f5e9';
+  return '#f5f7fa';
+});
 </script>
 
 <style scoped>
-.power-dc24v-three {
-  width: 100%;
-  height: 100%;
+.power-dc24v-svg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.power-dc24v {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.power-dc24v-icon {
+  width: 40px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #d0d0d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #263238;
+  color: #eceff1;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.power-dc24v-icon:hover { background: #37474f; }
+
+.power-dc24v-wires {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 2px;
+}
+
+.wire {
+  width: 2px;
+  height: 14px;
+  border-radius: 1px;
+  transition: box-shadow 0.3s ease;
+}
+
+.wire.pos { background: #f56c6c; }
+.wire.neg { background: #333333; }
+
+.power-status-on .wire.pos,
+.power-status-active .wire.pos { box-shadow: 0 0 6px rgba(245, 108, 108, 0.6); }
+.power-status-on .wire.neg,
+.power-status-active .wire.neg { box-shadow: 0 0 6px rgba(51, 51, 51, 0.4); }
+
+.power-dc24v-label {
+  font-size: 8px;
+  color: #606266;
+  text-align: center;
+  margin-top: 2px;
 }
 </style>

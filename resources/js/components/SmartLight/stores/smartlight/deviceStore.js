@@ -1,11 +1,12 @@
 /**
  * ============================================================================
- * DEVICE STORE — УПРАВЛЕНИЕ УСТРОЙСТВАМИ (БЕЗОПАСНЫЙ ПАРСИНГ)
+ * DEVICE STORE — УПРАВЛЕНИЕ УСТРОЙСТВАМИ (БЕЗОПАСНЫЙ ПАРСИНГ + СТАБИЛЬНЫЙ ПОРЯДОК)
  * ============================================================================
  * 📁 Путь: stores/smartlight/deviceStore.js
  * ✅ Использует: CoreDeviceResource из core/api
  * ✅ Режим: Polling (WebSocket отключён временно)
  * ✅ Рефакторинг: методы получили суффикс Store(), импорты обновлены на *Utils
+ * ✅ ИСПРАВЛЕНО: Стабильный порядок устройств, реактивность Vue 3, сортировка
  * ============================================================================
  */
 
@@ -15,7 +16,9 @@ import CoreDeviceResource from '@/components/SmartLight/api/core/resource/coreDe
 import { logDebugUtils, logErrorUtils } from '@/components/SmartLight/utils/appLoggerUtils.js';
 
 export const useDeviceStore = defineStore('smartlight-device', () => {
-    // === STATE ===
+    // ========================================================================
+    // STATE
+    // ========================================================================
     const devices = ref([]);
     const devicesMap = ref({});
     const selectedDeviceId = ref(null);
@@ -23,14 +26,19 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
     const error = ref(null);
     const lastUpdated = ref(null);
 
-    // === POLLING CONFIG ===
+    // ========================================================================
+    // POLLING CONFIG
+    // ========================================================================
     const pollingInterval = ref(null);
     const pollingEnabled = ref(false);
     const pollingDelay = ref(10000);
     const pollingAttempts = ref(0);
     const maxPollingAttempts = ref(5);
 
-    // === GETTERS ===
+    // ========================================================================
+    // GETTERS
+    // ========================================================================
+
     const selectedDevice = computed(() => {
         if (!selectedDeviceId.value) return null;
         return devicesMap.value[selectedDeviceId.value] || null;
@@ -39,7 +47,6 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
     const realDevices = computed(() => devices.value.filter(d => !d.is_fake));
     const fakeDevices = computed(() => devices.value.filter(d => d.is_fake));
 
-    // ✅ Геттер с суффиксом Store()
     const getDeviceStore = (deviceId) => {
         return devicesMap.value[deviceId] || null;
     };
@@ -53,9 +60,65 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
         });
     };
 
-    // === ACTIONS ===
+    // ========================================================================
+    // HELPERS — ВНУТРЕННИЕ ФУНКЦИИ
+    // ========================================================================
 
-    // ✅ Действие с суффиксом Store()
+    const sortDevices = (devicesList) => {
+        return [...devicesList].sort((a, b) => {
+            if (a.is_fake && !b.is_fake) return 1;
+            if (!a.is_fake && b.is_fake) return -1;
+            return a.device_id.localeCompare(b.device_id);
+        });
+    };
+
+    const replaceDevicesList = (newList) => {
+        const freshList = newList.map(d => ({ ...d })); // ← Новые ссылки чтобы пуллинг обновлял новые данные при перерисовке.
+        devices.value = sortDevices(freshList);
+        devicesMap.value = freshList.reduce((acc, d) => {
+            if (d?.device_id) acc[d.device_id] = d;
+            return acc;
+        }, {});
+    };
+
+    const updateDeviceInList = (deviceData) => {
+        if (!deviceData?.device_id) return;
+
+        const idx = devices.value.findIndex(d => d.device_id === deviceData.device_id);
+        if (idx !== -1) {
+            const updatedDevice = {
+                ...devices.value[idx],
+                ...deviceData,
+                updated_at: new Date().toISOString()
+            };
+            const newDevices = [...devices.value];
+            newDevices[idx] = updatedDevice;
+            devices.value = newDevices;
+            devicesMap.value[deviceData.device_id] = updatedDevice;
+        }
+    };
+
+    const addDeviceSorted = (newDevice) => {
+        if (!newDevice?.device_id) return;
+
+        const insertIdx = devices.value.findIndex(d =>
+            d.device_id.localeCompare(newDevice.device_id) > 0
+        );
+
+        const newDevices = [...devices.value];
+        if (insertIdx === -1) {
+            newDevices.push(newDevice);
+        } else {
+            newDevices.splice(insertIdx, 0, newDevice);
+        }
+        devices.value = newDevices;
+        devicesMap.value[newDevice.device_id] = newDevice;
+    };
+
+    // ========================================================================
+    // ACTIONS
+    // ========================================================================
+
     const fetchDevicesStore = async () => {
         loading.value = true;
         error.value = null;
@@ -65,7 +128,6 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             const resource = new CoreDeviceResource();
             const response = await resource.getAllResource();
 
-            // ✅ БЕЗОПАСНАЯ ПРОВЕРКА ТИПА ОТВЕТА
             if (typeof response === 'string') {
                 throw new Error(`API вернул строку. Проверьте маршрут: /api/smart-light/devices`);
             }
@@ -78,33 +140,22 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             let devicesList = [];
             let isSuccess = false;
 
-            // Формат 1: Прямой массив [...]
             if (Array.isArray(response)) {
                 devicesList = response;
                 isSuccess = true;
-            }
-            // Формат 2: { success: true, data: [...] }
-            else if (response.success !== false && Array.isArray(response.data)) {
+            } else if (response.success !== false && Array.isArray(response.data)) {
                 devicesList = response.data;
                 isSuccess = true;
-            }
-            // Формат 3: { data: { data: [...] } } (Laravel API Resource)
-            else if (response.data?.data && Array.isArray(response.data.data)) {
+            } else if (response.data?.data && Array.isArray(response.data.data)) {
                 devicesList = response.data.data;
                 isSuccess = true;
-            }
-            // Формат 4: { data: [...] } (простая обёртка)
-            else if (Array.isArray(response.data) && !('success' in response)) {
+            } else if (Array.isArray(response.data) && !('success' in response)) {
                 devicesList = response.data;
                 isSuccess = true;
             }
 
             if (isSuccess) {
-                devices.value = devicesList;
-                devicesMap.value = devicesList.reduce((acc, d) => {
-                    if (d?.device_id) acc[d.device_id] = d;
-                    return acc;
-                }, {});
+                replaceDevicesList(devicesList);
                 lastUpdated.value = new Date();
                 pollingAttempts.value = 0;
                 logDebugUtils('DeviceStore', `Загружено устройств: ${devicesList.length}`);
@@ -131,7 +182,11 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
         if (pollingInterval.value) return;
         logDebugUtils('DeviceStore', `Polling запущен: ${pollingDelay.value}ms`);
         pollingInterval.value = setInterval(async () => {
-            try { await fetchDevicesStore(); } catch (e) { logErrorUtils('DeviceStore', 'Polling error', e); }
+            try {
+                await fetchDevicesStore();
+            } catch (e) {
+                logErrorUtils('DeviceStore', 'Polling error', e);
+            }
         }, pollingDelay.value);
         pollingEnabled.value = true;
     };
@@ -152,33 +207,26 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
         }
     };
 
-    /**
-     * Полное обновление объекта устройства (для настроек, смены типа и т.д.)
-     */
     const updateDeviceStore = (deviceData) => {
         if (!deviceData?.device_id) return;
-
-        const existing = devicesMap.value[deviceData.device_id];
-        if (existing) {
-            // ✅ Полное слияние: сохраняем старые данные + накладываем новые
-            devicesMap.value[deviceData.device_id] = {
-                ...existing,
-                ...deviceData,
-                updated_at: new Date().toISOString()
-            };
-            // ✅ Обновляем и в массиве для реактивности
-            const idx = devices.value.findIndex(d => d.device_id === deviceData.device_id);
-            if (idx !== -1) {
-                devices.value[idx] = devicesMap.value[deviceData.device_id];
-            }
-            logDebugUtils('DeviceStore', `Device fully updated: ${deviceData.device_id}`);
-        }
+        updateDeviceInList(deviceData);
+        logDebugUtils('DeviceStore', `Device fully updated: ${deviceData.device_id}`);
     };
 
     const updateDeviceTelemetryStore = (id, telemetry) => {
         const device = devicesMap.value[id];
         if (device) {
-            Object.assign(device, telemetry, { updated_at: new Date().toISOString() });
+            devicesMap.value[id] = {
+                ...device,
+                ...telemetry,
+                updated_at: new Date().toISOString()
+            };
+            const idx = devices.value.findIndex(d => d.device_id === id);
+            if (idx !== -1) {
+                const newDevices = [...devices.value];
+                newDevices[idx] = devicesMap.value[id];
+                devices.value = newDevices;
+            }
         }
     };
 
@@ -191,11 +239,7 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             const resource = new CoreDeviceResource();
             const res = await resource.updateStatusResource(id, status);
             if (res?.success) {
-                const d = devicesMap.value[id];
-                if (d) {
-                    d.status = status;
-                    d.updated_at = new Date().toISOString();
-                }
+                updateDeviceInList({ device_id: id, status, updated_at: new Date().toISOString() });
             }
             return res;
         } catch (e) {
@@ -209,11 +253,7 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             const resource = new CoreDeviceResource();
             const res = await resource.updateIntensityResource(id, intensity);
             if (res?.success) {
-                const d = devicesMap.value[id];
-                if (d) {
-                    d.intensity = intensity;
-                    d.updated_at = new Date().toISOString();
-                }
+                updateDeviceInList({ device_id: id, intensity, updated_at: new Date().toISOString() });
             }
             return res;
         } catch (e) {
@@ -229,11 +269,12 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             const response = await resource.updateSettingsResource(deviceId, settings);
 
             if (response?.success) {
-                const device = devicesMap.value[deviceId];
-                if (device) {
-                    Object.assign(device, settings, { updated_at: new Date().toISOString() });
-                    logDebugUtils('DeviceStore', `Device ${deviceId} settings updated`);
-                }
+                updateDeviceInList({
+                    device_id: deviceId,
+                    ...settings,
+                    updated_at: new Date().toISOString()
+                });
+                logDebugUtils('DeviceStore', `Device ${deviceId} settings updated`);
             }
             return response;
         } catch (err) {
@@ -247,11 +288,7 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             const resource = new CoreDeviceResource();
             const res = await resource.wakeResource(id);
             if (res?.success) {
-                const d = devicesMap.value[id];
-                if (d) {
-                    d.status = 'ON';
-                    d.updated_at = new Date().toISOString();
-                }
+                updateDeviceInList({ device_id: id, status: 'ON', updated_at: new Date().toISOString() });
             }
             return res;
         } catch (e) {
@@ -265,11 +302,7 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
             const resource = new CoreDeviceResource();
             const res = await resource.sleepResource(id);
             if (res?.success) {
-                const d = devicesMap.value[id];
-                if (d) {
-                    d.status = 'SLEEPING';
-                    d.updated_at = new Date().toISOString();
-                }
+                updateDeviceInList({ device_id: id, status: 'SLEEPING', updated_at: new Date().toISOString() });
             }
             return res;
         } catch (e) {
@@ -291,7 +324,9 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
         }
     };
 
-    // === EXPOSE ===
+    // ========================================================================
+    // EXPOSE
+    // ========================================================================
     return {
         // State
         devices,
@@ -306,9 +341,11 @@ export const useDeviceStore = defineStore('smartlight-device', () => {
         pollingEnabled,
         pollingDelay,
         pollingAttempts,
+
         // Getters
         getDeviceStore,
         getDeviceByTypeStore,
+
         // Actions
         fetchDevicesStore,
         startPollingStore,

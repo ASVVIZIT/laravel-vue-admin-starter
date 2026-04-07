@@ -50,8 +50,8 @@ class DeviceService
      */
     public function updateDeviceVoltage(SmartLightDevice $device, float $voltage): SmartLightDevice
     {
-        // Get device type limits
         $deviceType = $device->device_type;
+
         $limits = [
             'node_mcu_v3' => [2.5, 4.2],
             'esp32' => [2.5, 4.2],
@@ -61,6 +61,7 @@ class DeviceService
         $range = $limits[$deviceType] ?? [2.5, 4.2];
 
         $voltage = max($range[0], min($range[1], $voltage));
+
         $device->voltage = $voltage;
         $device->save();
 
@@ -96,16 +97,15 @@ class DeviceService
     {
         $device->status = 'ON';
 
-        // Restore default voltage based on device type
         $deviceTypeDefaults = [
             'node_mcu_v3' => 3.7,
             'esp32' => 3.7,
-            'raspberry_pi' => 5.0
+            'raspberry_pi' => 5.0,
         ];
 
         $defaultVoltage = $deviceTypeDefaults[$device->device_type] ?? 3.7;
-        $device->voltage = $defaultVoltage;
 
+        $device->voltage = $defaultVoltage;
         $device->save();
 
         return $device;
@@ -118,17 +118,16 @@ class DeviceService
     {
         $device->status = 'SLEEPING';
 
-        // Reduce voltage for sleep mode
         $sleepVoltage = max(2.5, $device->voltage * 0.8);
-        $device->voltage = $sleepVoltage;
 
+        $device->voltage = $sleepVoltage;
         $device->save();
 
         return $device;
     }
 
     /**
-     * Calculate remaining runtime considering shared power source
+     * Calculate remaining runtime considering shared power source.
      */
     public function calculateSharedPowerRuntime(SmartLightDevice $device): array
     {
@@ -151,10 +150,13 @@ class DeviceService
             'controller_only_runtime' => $this->formatRuntime($controllerRuntime),
             'remaining_capacity_mah' => round($remainingCapacity, 1),
             'total_capacity_mah' => $totalCapacity,
-            'current_voltage' => $currentVoltage
+            'current_voltage' => $currentVoltage,
         ];
     }
 
+    /**
+     * Format runtime in human-readable format.
+     */
     private function formatRuntime(float $hours): string
     {
         if ($hours < 1) {
@@ -170,6 +172,9 @@ class DeviceService
         return round($days, 1) . ' ' . $this->declineWord(floor($days), ['день', 'дня', 'дней']);
     }
 
+    /**
+     * Decline Russian word based on number.
+     */
     private function declineWord(int $number, array $words): string
     {
         $number = abs($number) % 100;

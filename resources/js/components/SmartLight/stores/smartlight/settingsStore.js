@@ -24,9 +24,10 @@ export const useSettingsStore = defineStore('smartlight-settings', () => {
         controller_runtime: 86400,
         min_controller_voltage: 2.8
     });
+
     const loading = ref(false);
     const error = ref(null);
-    const validationErrors = ref({}); // ✅ Новое: для хранения ошибок валидации
+    const validationErrors = ref({});
 
     const initSettingsStore = async () => {
         logDebugUtils('SettingsStore', 'Initializing...');
@@ -47,9 +48,11 @@ export const useSettingsStore = defineStore('smartlight-settings', () => {
         error.value = null;
         validationErrors.value = {};
         logDebugUtils('SettingsStore', 'Fetching global settings...');
+
         try {
             const resource = new CoreSmartLightResource();
             const response = await resource.getGlobalSettingsResource();
+
             if (response.success) {
                 globalSettings.value = { ...globalSettings.value, ...response.data };
                 logDebugUtils('SettingsStore', 'Settings loaded');
@@ -67,12 +70,15 @@ export const useSettingsStore = defineStore('smartlight-settings', () => {
     const updateGlobalSettingsStore = async (settings) => {
         loading.value = true;
         error.value = null;
-        validationErrors.value = {}; // ✅ Сбрасываем ошибки перед новым запросом
+        validationErrors.value = {};
+
         logDebugUtils('SettingsStore', 'Updating settings', settings);
+
         try {
             const resource = new CoreSmartLightResource();
             // ✅ ИСПРАВЛЕНО: отправляем settings напрямую, без обёртки { settings }
             const response = await resource.updateGlobalSettingsResource(settings);
+
             if (response.success) {
                 globalSettings.value = { ...globalSettings.value, ...settings };
                 localStorage.setItem('smartlight_global_settings', JSON.stringify(globalSettings.value));
@@ -105,10 +111,13 @@ export const useSettingsStore = defineStore('smartlight-settings', () => {
         loading.value = true;
         error.value = null;
         validationErrors.value = {};
+
         logDebugUtils('SettingsStore', 'Resetting settings...');
+
         try {
             const resource = new CoreSmartLightResource();
             const response = await resource.resetGlobalSettingsResource();
+
             if (response.success) {
                 globalSettings.value = {
                     critical_voltage: 3.2,
@@ -134,11 +143,14 @@ export const useSettingsStore = defineStore('smartlight-settings', () => {
         }
     };
 
+    // ========================================================================
+    // EXPOSE
+    // ========================================================================
     return {
         globalSettings,
         loading,
         error,
-        validationErrors, // ✅ Экспортируем для использования в форме
+        validationErrors,
         initSettingsStore,
         getGlobalSettingsStore,
         updateGlobalSettingsStore,

@@ -1,5 +1,5 @@
 <template>
-  <div class="power-ac220v-svg">
+  <div class="power-standard-svg">
     <PowerBaseSvg
         :status="status"
         :voltage="voltage"
@@ -9,18 +9,15 @@
         :show-glow="showGlow"
     >
       <template #power>
-        <div class="power-ac220v">
-          <!-- Иконка европейской розетки -->
-          <div class="power-ac220v-icon" :style="{ backgroundColor: iconColor }">
+        <div class="power-standard">
+          <!-- Иконка стандартного блока питания -->
+          <div class="power-standard-icon" :style="{ backgroundColor: iconColor }">
             <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 4h10v16H7z" />
-              <circle cx="9.5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-              <circle cx="14.5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-              <path d="M5 6v12M19 6v12" stroke-width="2"/>
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
             </svg>
           </div>
           <!-- Подпись -->
-          <div class="power-ac220v-label">{{ label }}</div>
+          <div class="power-standard-label">{{ label }}</div>
         </div>
       </template>
     </PowerBaseSvg>
@@ -34,19 +31,17 @@ import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smar
 
 const props = defineProps({
   status: { type: String, default: 'OFF' },
-  voltage: { type: Number, default: 220 },
+  voltage: { type: Number, default: 0 },
   width: { type: String, default: '60px' },
   height: { type: String, default: '80px' },
   showGlow: { type: Boolean, default: true }
 });
 
 const configStore = useVisualizationConfigStore();
-// ✅ Динамический поиск конфига по ID типа
-const config = computed(() => configStore.getPowerSupplyConfigStore('ac-220v'));
+const config = computed(() => configStore.getPowerSupplyConfigStore('standard'));
 
-const label = computed(() => config.value?.shortName ?? 'AC 220V');
+const label = computed(() => config.value?.shortName ?? 'Standard');
 
-// ✅ Цвет иконки меняется по статусу активности/ошибки
 const iconColor = computed(() => {
   if (props.status === 'ERROR') return '#fef0f0';
   if (props.status === 'ON' || props.status === 'ACTIVE') return '#e8f5e9';
@@ -55,20 +50,20 @@ const iconColor = computed(() => {
 </script>
 
 <style scoped>
-.power-ac220v-svg {
+.power-standard-svg {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
 }
 
-.power-ac220v {
+.power-standard {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.power-ac220v-icon {
+.power-standard-icon {
   width: 42px;
   height: 42px;
   border-radius: 8px;
@@ -77,15 +72,15 @@ const iconColor = computed(() => {
   align-items: center;
   justify-content: center;
   color: #606266;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.power-ac220v-icon:hover {
-  border-color: #409eff;
-  color: #409eff;
+.power-standard-icon:hover {
+  color: #67c23a;
+  border-color: #67c23a;
 }
 
-.power-ac220v-label {
+.power-standard-label {
   margin-top: 4px;
   font-size: 8px;
   color: #606266;

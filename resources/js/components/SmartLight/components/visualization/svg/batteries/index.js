@@ -1,6 +1,10 @@
 /**
  * ============================================================================
- * SVG BATTERIES — ЭКСПОРТ 2D БАТАРЕЙ
+ * SVG BATTERIES — ЭКСПОРТ 2D ВИЗУАЛИЗАЦИИ АККУМУЛЯТОРОВ
+ * ============================================================================
+ * 📁 Путь: visualization/svg/batteries/index.js
+ * ✅ Назначение: Централизованный экспорт всех SVG-компонентов батарей
+ * ✅ Используется: BatteryRenderer.vue (через dynamic import)
  * ============================================================================
  */
 
@@ -17,7 +21,7 @@ export default {
     Battery18650Svg: () => import('./Battery18650Svg.vue'),
     Battery21700Svg: () => import('./Battery21700Svg.vue'),
     BatteryCylindricalSvg: () => import('./BatteryCylindricalSvg.vue'),
-    BatteryLiPoSvg: () => import('./BatteryLiPoSvg.vue'),
     BatteryLeadAcidSvg: () => import('./BatteryLeadAcidSvg.vue'),
+    BatteryLiPoSvg: () => import('./BatteryLiPoSvg.vue'),
     BatteryPrismaticSvg: () => import('./BatteryPrismaticSvg.vue')
 };

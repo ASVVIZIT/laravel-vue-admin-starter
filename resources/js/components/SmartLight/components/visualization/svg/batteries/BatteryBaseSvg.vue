@@ -6,17 +6,30 @@
 
       <!-- Корпус батареи -->
       <div class="battery-body">
-        <div class="battery" :class="{ 'battery-critical': isCritical }">
-          <!-- Нормальный уровень -->
+        <!-- ✅ Класс battery-critical только если НЕ спит И напряжение критическое -->
+        <div
+            class="battery"
+            :class="{
+            'battery-critical': isCritical && status !== 'SLEEPING',
+            'battery--sleeping': status === 'SLEEPING'
+          }"
+        >
+          <!-- Нормальный уровень (выше critical_voltage) -->
           <div
               class="battery-normal"
-              :style="{ width: normalProgress + '%', backgroundColor: normalColor }"
+              :style="{
+              width: normalProgress + '%',
+              backgroundColor: normalColor
+            }"
           ></div>
 
-          <!-- Критический уровень -->
+          <!-- Критический уровень (ниже critical_voltage) -->
           <div
-              class="battery-critical"
-              :style="{ width: criticalProgress + '%', backgroundColor: criticalColor }"
+              class="battery-critical-fill"
+              :style="{
+              width: criticalProgress + '%',
+              backgroundColor: criticalColor
+            }"
           >
             <div class="battery-critical-pattern"></div>
           </div>
@@ -26,6 +39,7 @@
               v-if="showMarkers"
               class="battery-mark critical-threshold"
               :style="{ left: criticalThresholdPosition + '%' }"
+              :title="`Крит. порог: ${formattedCriticalThreshold}В`"
           ></div>
 
           <!-- Маркер текущего уровня -->
@@ -33,6 +47,7 @@
               v-if="showMarkers"
               class="battery-mark current-level"
               :style="{ left: currentLevelPosition + '%' }"
+              :title="`Текущее: ${voltage.toFixed(2)}В`"
           ></div>
 
           <!-- Крышка -->
@@ -46,11 +61,14 @@
 
     <!-- Уровни напряжения -->
     <div v-if="showLevels" class="battery-levels">
-      <span class="battery-level" style="left: 0%">{{ minVoltage }} В</span>
-      <span class="battery-level" :style="{ left: criticalThresholdPosition + '%' }">
-                {{ formattedCriticalThreshold }} В
-            </span>
-      <span class="battery-level" style="left: 100%">{{ maxVoltage }} В</span>
+      <span class="battery-level" style="left: 0%">{{ minVoltage.toFixed(1) }} В</span>
+      <span
+          class="battery-level"
+          :style="{ left: criticalThresholdPosition + '%' }"
+      >
+        {{ formattedCriticalThreshold }} В
+      </span>
+      <span class="battery-level" style="left: 100%">{{ maxVoltage.toFixed(1) }} В</span>
     </div>
   </div>
 </template>
@@ -61,13 +79,15 @@ import { computed } from 'vue';
 const props = defineProps({
   /** Текущее напряжение */
   voltage: { type: Number, default: 3.7 },
-  /** Критическое напряжение */
+  /** Критическое напряжение (из настроек устройства) */
   criticalVoltage: { type: Number, default: 3.2 },
-  /** Минимальное напряжение (из specs) */
+  /** Статус устройства (ON, OFF, SLEEPING, ERROR) */
+  status: { type: String, default: 'ON' },
+  /** Минимальное напряжение типа батареи (из specs) */
   minVoltage: { type: Number, default: 2.5 },
-  /** Максимальное напряжение (из specs) */
+  /** Максимальное напряжение типа батареи (из specs) */
   maxVoltage: { type: Number, default: 4.2 },
-  /** Цвета для статусов (из visualConfig.colors) */
+  /** Цвета для статусов */
   colors: {
     type: Object,
     default: () => ({
@@ -83,40 +103,59 @@ const props = defineProps({
   showLevels: { type: Boolean, default: true },
   /** Показывать маркеры */
   showMarkers: { type: Boolean, default: true },
-  /** Масштаб (из visualConfig.scale) */
+  /** Масштаб */
   scale: { type: Number, default: 1.0 },
-  /** Цвет крышки (из visualConfig.material.cap.color) */
+  /** Цвет крышки */
   capColor: { type: String, default: '#409eff' }
 });
 
 const containerHeight = computed(() => props.height);
 const totalRange = computed(() => props.maxVoltage - props.minVoltage);
 
+// ✅ Прогресс "нормального" уровня (от criticalVoltage до maxVoltage)
 const normalProgress = computed(() => {
+  if (totalRange.value <= 0) return 0;
   const normalRange = props.maxVoltage - props.criticalVoltage;
   const normalValue = Math.max(0, props.voltage - props.criticalVoltage);
-  return (normalValue / totalRange.value) * 100;
+  return Math.min(100, (normalValue / totalRange.value) * 100);
 });
 
+// ✅ Прогресс "критического" уровня (от minVoltage до criticalVoltage)
 const criticalProgress = computed(() => {
-  const criticalValue = Math.max(0, Math.min(props.criticalVoltage - props.minVoltage, props.voltage));
-  return (criticalValue / totalRange.value) * 100;
+  if (totalRange.value <= 0) return 0;
+  const criticalValue = Math.max(0, Math.min(
+      props.criticalVoltage - props.minVoltage,
+      props.voltage - props.minVoltage
+  ));
+  return Math.min(100, (criticalValue / totalRange.value) * 100);
 });
 
+// ✅ Позиция маркера критического порога (в % от общего диапазона)
 const criticalThresholdPosition = computed(() => {
+  if (totalRange.value <= 0) return 0;
   return ((props.criticalVoltage - props.minVoltage) / totalRange.value) * 100;
 });
 
+// ✅ Позиция маркера текущего уровня
 const currentLevelPosition = computed(() => {
-  return ((props.voltage - props.minVoltage) / totalRange.value) * 100;
+  if (totalRange.value <= 0) return 0;
+  const clampedVoltage = Math.max(
+      props.minVoltage,
+      Math.min(props.maxVoltage, props.voltage)
+  );
+  return ((clampedVoltage - props.minVoltage) / totalRange.value) * 100;
 });
 
-const isCritical = computed(() => props.voltage < props.criticalVoltage);
+// ✅ Критическое состояние только если НЕ спит
+const isCritical = computed(() =>
+    props.voltage < props.criticalVoltage && props.status !== 'SLEEPING'
+);
 
+// ✅ Цвет с учётом статуса
 const normalColor = computed(() => {
+  if (props.status === 'SLEEPING') return '#dcdfe6'; // Приглушенный при сне
   if (props.voltage < props.criticalVoltage) return props.colors.critical;
-  if (props.voltage < 3.4) return props.colors.warning;
-  if (props.voltage < 3.8) return props.colors.normal;
+  if (props.voltage < props.criticalVoltage + 0.3) return props.colors.warning;
   return props.colors.normal;
 });
 
@@ -148,14 +187,22 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   background: #f5f7fa;
   overflow: hidden;
   box-sizing: border-box;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
-.battery.battery-critical {
-  border-color: #f56c6c;
-  animation: battery-pulse 2s infinite;
+/* === Спокойный режим при сне (без пульсации) === */
+.battery--sleeping {
+  border-color: #e6a23c;
+  background: #fdf6ec;
+  animation: none !important;
+}
+.battery--sleeping .battery-normal,
+.battery--sleeping .battery-critical-fill {
+  opacity: 0.6;
+  filter: grayscale(40%);
 }
 
+/* === Нормальный уровень === */
 .battery-normal {
   position: absolute;
   top: 0;
@@ -165,7 +212,8 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   transition: width 0.3s ease, background-color 0.3s ease;
 }
 
-.battery-critical {
+/* === Критический уровень === */
+.battery-critical-fill {
   position: absolute;
   top: 0;
   left: 0;
@@ -190,6 +238,7 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   );
 }
 
+/* === Маркеры === */
 .battery-mark {
   position: absolute;
   top: -3px;
@@ -210,6 +259,7 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   background-color: transparent;
 }
 
+/* === Крышка === */
 .battery-cap {
   position: absolute;
   top: -1px;
@@ -220,6 +270,7 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   border-radius: 1px;
 }
 
+/* === Контакты === */
 .battery-plus,
 .battery-minus {
   position: absolute;
@@ -230,15 +281,10 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   font-size: 11px;
   z-index: 10;
 }
+.battery-plus { left: -12px; }
+.battery-minus { right: -12px; }
 
-.battery-plus {
-  left: -12px;
-}
-
-.battery-minus {
-  right: -12px;
-}
-
+/* === Уровни напряжения === */
 .battery-levels {
   display: flex;
   justify-content: space-between;
@@ -257,12 +303,14 @@ const formattedCriticalThreshold = computed(() => props.criticalVoltage.toFixed(
   white-space: nowrap;
 }
 
+/* === Тревожная пульсация (только если НЕ спит и критический разряд) === */
+.battery.battery-critical {
+  border-color: #f56c6c;
+  animation: battery-pulse 2s infinite;
+}
+
 @keyframes battery-pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(245, 108, 108, 0);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 108, 108, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(245, 108, 108, 0); }
 }
 </style>

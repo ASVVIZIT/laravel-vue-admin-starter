@@ -10,23 +10,31 @@
     >
       <template #bulb>
         <div class="bulb-smart-rgb">
-          <!-- RGB Купол -->
-          <div class="bulb-rgb-dome" :style="{ backgroundColor: domeColor }"></div>
+          <!-- Купол с RGB-подсветкой -->
+          <div
+              class="bulb-dome"
+              :style="{
+              backgroundColor: domeColor,
+              boxShadow: rgbGlow
+            }"
+          ></div>
           <!-- RGB чипы -->
-          <div class="rgb-chips">
+          <div class="bulb-chips">
             <div
-                v-for="(color, index) in chipColors"
-                :key="index"
-                class="rgb-chip"
-                :style="{ backgroundColor: color, opacity: chipOpacity }"
+                v-for="(color, i) in chipColors"
+                :key="i"
+                class="bulb-chip"
+                :style="{
+                backgroundColor: color,
+                opacity: chipOpacity,
+                transform: `rotate(${(i - 1) * chipAngle}deg) translateY(-8px)`
+              }"
             ></div>
           </div>
           <!-- Радиатор -->
           <div class="bulb-heatsink"></div>
           <!-- Цоколь -->
           <div class="bulb-base"></div>
-          <!-- Индикатор режима -->
-          <div class="smart-indicator" :class="modeIndicatorClass"></div>
         </div>
       </template>
     </BulbBaseSvg>
@@ -34,6 +42,7 @@
     <!-- Специфичные детали типа Smart RGB -->
     <div class="bulb-smart-rgb-details">
       <span class="bulb-type-label">{{ shortName }}</span>
+      <span class="bulb-rgb-indicator" :style="{ backgroundColor: activeRgbColor }"></span>
     </div>
   </div>
 </template>
@@ -46,39 +55,52 @@ import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smar
 const props = defineProps({
   status: { type: String, default: 'OFF' },
   intensity: { type: Number, default: 0 },
-  rgbColor: { type: String, default: '#ffffff' },
-  mode: { type: String, default: 'white', validator: v => ['white', 'rgb', 'scene', 'night'].includes(v) },
   width: { type: String, default: '60px' },
   height: { type: String, default: '80px' },
   showGlow: { type: Boolean, default: true }
 });
 
 const configStore = useVisualizationConfigStore();
+// ✅ Динамический поиск конфига по фиксированному ID типа
 const config = computed(() => configStore.getBulbConfigStore('smart-rgb'));
 
-const shortName = computed(() => config.value?.shortName || 'RGB');
-const chipColors = computed(() => config.value?.visualConfig?.material?.chips?.colors || [
-  '#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#ffff00'
-]);
+const shortName = computed(() => config.value?.shortName ?? 'RGB');
 
+// ✅ Цвет купола с учётом статуса
 const domeColor = computed(() => {
-  if (props.status === 'OFF') return '#f0f0f0';
-  if (props.status === 'SLEEPING') return 'rgba(255, 180, 100, 0.4)';
+  if (props.status === 'OFF') return '#e0e0e0';
+  if (props.status === 'SLEEPING') return '#fff7e6';
   return 'rgba(255, 255, 255, 0.6)';
 });
 
-const chipOpacity = computed(() => {
-  if (props.status === 'OFF') return 0.2;
-  if (props.status === 'SLEEPING') return 0.4;
-  return 0.8 + (props.intensity / 100) * 0.2;
+// ✅ RGB свечение (анимированное при ON)
+const rgbGlow = computed(() => {
+  if (props.status !== 'ON') return 'none';
+  return `0 0 20px rgba(255, 100, 100, 0.5), 0 0 40px rgba(100, 255, 100, 0.3), 0 0 60px rgba(100, 100, 255, 0.2)`;
 });
 
-const modeIndicatorClass = computed(() => ({
-  'indicator-white': props.mode === 'white',
-  'indicator-rgb': props.mode === 'rgb',
-  'indicator-scene': props.mode === 'scene',
-  'indicator-night': props.mode === 'night'
-}));
+// ✅ Параметры RGB чипов из конфига
+const chipColors = computed(() => {
+  const colors = config.value?.visualConfig?.material?.chips?.colors ?? [0xff0000, 0x00ff00, 0x0000ff];
+  return colors.map(c => {
+    if (typeof c === 'number') return '#' + c.toString(16).padStart(6, '0');
+    return c;
+  });
+});
+const chipCount = computed(() => chipColors.value.length);
+const chipAngle = computed(() => 360 / chipCount.value);
+
+const chipOpacity = computed(() => {
+  if (props.status !== 'ON') return 0.3;
+  return 0.5 + (props.intensity / 100) * 0.5;
+});
+
+// ✅ Активный RGB цвет для индикатора (циклически меняется при ON)
+const activeRgbColor = computed(() => {
+  if (props.status !== 'ON') return '#909399';
+  const index = Math.floor(Date.now() / 500) % chipColors.value.length;
+  return chipColors.value[index];
+});
 </script>
 
 <style scoped>
@@ -96,66 +118,68 @@ const modeIndicatorClass = computed(() => ({
   align-items: center;
 }
 
-.bulb-rgb-dome {
+.bulb-dome {
   width: 40px;
-  height: 35px;
+  height: 30px;
   border-radius: 50% 50% 0 0;
   border: 1px solid #d0d0d0;
-  transition: background-color 0.3s ease;
+  border-bottom: none;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.rgb-chips {
+.bulb-chips {
   position: absolute;
-  top: 8px;
+  top: 15px;
   left: 50%;
   transform: translateX(-50%);
+  width: 30px;
+  height: 20px;
   display: flex;
-  gap: 3px;
+  justify-content: center;
+  align-items: center;
 }
 
-.rgb-chip {
+.bulb-chip {
+  position: absolute;
   width: 6px;
   height: 6px;
-  border-radius: 50%;
-  transition: opacity 0.3s ease;
+  border-radius: 2px;
+  transition: background-color 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
 }
 
 .bulb-heatsink {
   width: 30px;
   height: 15px;
-  background: #cccccc;
-  margin-top: -2px;
+  background: linear-gradient(to bottom, #cccccc, #999999);
+  border-radius: 0 0 2px 2px;
+  margin-top: -1px;
 }
 
 .bulb-base {
   width: 20px;
   height: 20px;
-  background: #ffffff;
-  border: 1px solid #d0d0d0;
+  background: #666666;
+  border-radius: 0 0 2px 2px;
+  margin-top: -1px;
 }
-
-.smart-indicator {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 1px solid #fff;
-  z-index: 20;
-}
-
-.indicator-white { background: #ffffff; box-shadow: 0 0 6px #ffffff; }
-.indicator-rgb { background: linear-gradient(135deg, #ff4444 0%, #44ff44 50%, #4444ff 100%); }
-.indicator-scene { background: linear-gradient(135deg, #ff9800 0%, #e91e63 100%); }
-.indicator-night { background: #3f51b5; box-shadow: 0 0 6px #3f51b5; }
 
 .bulb-smart-rgb-details {
+  display: flex;
+  gap: 6px;
   font-size: 8px;
   color: #606266;
+  align-items: center;
 }
 
 .bulb-type-label {
   font-weight: 600;
+}
+
+.bulb-rgb-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #dcdfe6;
+  transition: background-color 0.3s ease;
 }
 </style>

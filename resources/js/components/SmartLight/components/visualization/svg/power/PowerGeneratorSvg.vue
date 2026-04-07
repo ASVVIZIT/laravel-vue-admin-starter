@@ -1,5 +1,5 @@
 <template>
-  <div class="power-ac220v-svg">
+  <div class="power-generator-svg">
     <PowerBaseSvg
         :status="status"
         :voltage="voltage"
@@ -9,18 +9,18 @@
         :show-glow="showGlow"
     >
       <template #power>
-        <div class="power-ac220v">
-          <!-- Иконка европейской розетки -->
-          <div class="power-ac220v-icon" :style="{ backgroundColor: iconColor }">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 4h10v16H7z" />
-              <circle cx="9.5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-              <circle cx="14.5" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-              <path d="M5 6v12M19 6v12" stroke-width="2"/>
+        <div class="power-generator">
+          <!-- Иконка генератора -->
+          <div class="power-generator-icon" :style="{ backgroundColor: iconColor }">
+            <svg viewBox="0 0 24 24" width="22" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 16v4H5v-4" />
+              <path d="M20 12H4l2-4h12l2 4z" />
+              <path d="M6 8V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+              <path d="M9 12v4M15 12v4" />
             </svg>
           </div>
           <!-- Подпись -->
-          <div class="power-ac220v-label">{{ label }}</div>
+          <div class="power-generator-label">{{ label }}</div>
         </div>
       </template>
     </PowerBaseSvg>
@@ -41,34 +41,32 @@ const props = defineProps({
 });
 
 const configStore = useVisualizationConfigStore();
-// ✅ Динамический поиск конфига по ID типа
-const config = computed(() => configStore.getPowerSupplyConfigStore('ac-220v'));
+const config = computed(() => configStore.getPowerSupplyConfigStore('generator'));
 
-const label = computed(() => config.value?.shortName ?? 'AC 220V');
+const label = computed(() => config.value?.shortName ?? 'Generator');
 
-// ✅ Цвет иконки меняется по статусу активности/ошибки
 const iconColor = computed(() => {
   if (props.status === 'ERROR') return '#fef0f0';
-  if (props.status === 'ON' || props.status === 'ACTIVE') return '#e8f5e9';
+  if (props.status === 'ON' || props.status === 'ACTIVE') return '#e3f2fd';
   return '#f5f7fa';
 });
 </script>
 
 <style scoped>
-.power-ac220v-svg {
+.power-generator-svg {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
 }
 
-.power-ac220v {
+.power-generator {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.power-ac220v-icon {
+.power-generator-icon {
   width: 42px;
   height: 42px;
   border-radius: 8px;
@@ -76,16 +74,16 @@ const iconColor = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #606266;
-  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  color: #455a64;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-.power-ac220v-icon:hover {
+.power-generator-icon:hover {
+  color: #1976d2;
   border-color: #409eff;
-  color: #409eff;
 }
 
-.power-ac220v-label {
+.power-generator-label {
   margin-top: 4px;
   font-size: 8px;
   color: #606266;

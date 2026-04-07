@@ -19,7 +19,11 @@ export const usePowerStore = defineStore('smartlight-power', () => {
     const loading = ref(false);
     const error = ref(null);
     const powerStatus = ref({
-        status: 'active', voltage: 3.7, current: 0, power: 0, lastUpdate: Date.now()
+        status: 'active',
+        voltage: 3.7,
+        current: 0,
+        power: 0,
+        lastUpdate: Date.now()
     });
 
     const initPowerStore = async () => {
@@ -67,9 +71,18 @@ export const usePowerStore = defineStore('smartlight-power', () => {
         logDebugUtils('PowerStore', 'Active supply set to:', supplyId);
     };
 
+    // ========================================================================
+    // EXPOSE
+    // ========================================================================
     return {
-        powerSupplies, activePowerSupply, loading, error, powerStatus,
-        initPowerStore, calculateRuntimeStore, setActiveSupplyStore
+        powerSupplies,
+        activePowerSupply,
+        loading,
+        error,
+        powerStatus,
+        initPowerStore,
+        calculateRuntimeStore,
+        setActiveSupplyStore
     };
 });
 

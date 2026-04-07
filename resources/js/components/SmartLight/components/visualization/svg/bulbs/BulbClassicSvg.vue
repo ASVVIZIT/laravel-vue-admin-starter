@@ -13,7 +13,7 @@
           <!-- Колба -->
           <div class="bulb-glass" :style="{ backgroundColor: glassColor }"></div>
           <!-- Нить накала -->
-          <div class="bulb-filament" :style="{ borderColor: filamentColor }"></div>
+          <div class="bulb-filament" :style="{ borderColor: filamentColor, opacity: filamentOpacity }"></div>
           <!-- Цоколь -->
           <div class="bulb-base"></div>
         </div>
@@ -33,33 +33,36 @@ import BulbBaseSvg from './BulbBaseSvg.vue';
 import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
 
 const props = defineProps({
-  /** Статус лампы (ON, OFF, SLEEPING, ERROR) */
   status: { type: String, default: 'OFF' },
-  /** Интенсивность (0-100) */
   intensity: { type: Number, default: 0 },
-  /** Ширина компонента */
   width: { type: String, default: '60px' },
-  /** Высота компонента */
   height: { type: String, default: '80px' },
-  /** Показывать свечение */
   showGlow: { type: Boolean, default: true }
 });
 
 const configStore = useVisualizationConfigStore();
+// ✅ Динамический поиск конфига по фиксированному ID типа
 const config = computed(() => configStore.getBulbConfigStore('classic'));
 
-const shortName = computed(() => config.value?.shortName || 'Classic');
+const shortName = computed(() => config.value?.shortName ?? 'Classic');
 
+// ✅ Цвет стекла с учётом статуса
 const glassColor = computed(() => {
   if (props.status === 'OFF') return '#e0e0e0';
   if (props.status === 'SLEEPING') return '#fff7e6';
   return 'rgba(255, 255, 255, 0.4)';
 });
 
+// ✅ Цвет и прозрачность нити накала
 const filamentColor = computed(() => {
   if (props.status === 'OFF') return '#909399';
   if (props.status === 'SLEEPING') return '#e6a23c';
   return '#ffff00';
+});
+
+const filamentOpacity = computed(() => {
+  if (props.status !== 'ON') return 0.3;
+  return 0.6 + (props.intensity / 100) * 0.4;
 });
 </script>
 
@@ -95,7 +98,7 @@ const filamentColor = computed(() => {
   height: 15px;
   border: 2px solid;
   border-radius: 50%;
-  transition: border-color 0.3s ease;
+  transition: border-color 0.3s ease, opacity 0.3s ease;
 }
 
 .bulb-base {

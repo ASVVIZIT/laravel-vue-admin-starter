@@ -98,10 +98,6 @@ class SmartLightDevice extends Model
         return sprintf('%dч %dм', (int)$hours, (int)(($hours%1)*60));
     }
 
-    // МУТАТОРЫ
-    public function setSettingsAttribute($value): void { $this->attributes['settings'] = is_array($value) ? json_encode($value) : $value; }
-    public function setBatteryGroupConfigAttribute($value): void { $this->attributes['battery_group_config'] = is_array($value) ? json_encode($value) : $value; }
-
     // СКОУПЫ
     public function scopeReal($query) { return $query->where('is_fake', false); }
     public function scopeFake($query) { return $query->where('is_fake', true); }

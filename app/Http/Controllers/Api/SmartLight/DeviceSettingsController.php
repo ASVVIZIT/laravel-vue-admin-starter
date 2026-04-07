@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\SmartLight;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\SmartLight\UpdateDeviceSettingsRequest;
+use App\Http\Requests\SmartLight\Core\CoreUpdateDeviceSettingsRequest;
 use App\Models\SmartLight\SmartLightDevice;
 use App\Services\SmartLight\DeviceSettingsService;
 use Illuminate\Http\Request;
@@ -31,7 +31,7 @@ class DeviceSettingsController extends Controller
     /**
      * Update device settings
      */
-    public function update(UpdateDeviceSettingsRequest $request, $device_id)
+    public function update(CoreUpdateDeviceSettingsRequest $request, $device_id)
     {
         $device = SmartLightDevice::where('device_id', $device_id)->firstOrFail();
         $this->authorize('update', $device);
@@ -125,7 +125,7 @@ class DeviceSettingsController extends Controller
     /**
      * V1 API: Update device settings
      */
-    public function apiUpdate(UpdateDeviceSettingsRequest $request, $device_id)
+    public function apiUpdate(CoreUpdateDeviceSettingsRequest $request, $device_id)
     {
         return $this->update($request, $device_id);
     }

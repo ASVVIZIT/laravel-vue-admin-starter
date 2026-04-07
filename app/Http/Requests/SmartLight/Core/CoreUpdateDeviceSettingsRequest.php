@@ -7,11 +7,17 @@ use Illuminate\Validation\Rule;
 
 class CoreUpdateDeviceSettingsRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-        return true; // Авторизация проверяется в контроллере через Policy
+        return true;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     */
     public function rules(): array
     {
         return [
@@ -36,6 +42,9 @@ class CoreUpdateDeviceSettingsRequest extends FormRequest
         ];
     }
 
+    /**
+     * Get custom messages for validator errors.
+     */
     public function messages(): array
     {
         return [

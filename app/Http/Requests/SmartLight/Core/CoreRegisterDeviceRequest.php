@@ -24,7 +24,7 @@ class CoreRegisterDeviceRequest extends FormRequest
             'device_type' => 'required|string|in:node_mcu_v3,esp32,esp8266,custom',
             'hardware_version' => 'nullable|string|max:50',
             'firmware_version' => 'nullable|string|max:50',
-            'initial_settings' => 'nullable|array'
+            'initial_settings' => 'nullable|array',
         ];
     }
 
@@ -37,7 +37,7 @@ class CoreRegisterDeviceRequest extends FormRequest
             'mac_address.regex' => 'MAC-адрес должен быть в формате AA:BB:CC:DD:EE:FF',
             'device_type.in' => 'Недопустимый тип устройства. Допустимые: node_mcu_v3, esp32, esp8266, custom',
             'hardware_version.max' => 'Версия оборудования не должна превышать 50 символов',
-            'firmware_version.max' => 'Версия прошивки не должна превышать 50 символов'
+            'firmware_version.max' => 'Версия прошивки не должна превышать 50 символов',
         ];
     }
 }

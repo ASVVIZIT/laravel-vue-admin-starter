@@ -1,112 +1,134 @@
 <template>
-  <div class="power-solar-three"></div>
+  <div class="power-solar-svg">
+    <PowerBaseSvg
+        :status="status"
+        :voltage="voltage"
+        :label="label"
+        :width="width"
+        :height="height"
+        :show-glow="showGlow"
+    >
+      <template #power>
+        <div class="power-solar">
+          <!-- Солнечная панель -->
+          <div class="solar-panel" :style="{ backgroundColor: panelColor }">
+            <!-- Ячейки панели -->
+            <div
+                v-for="i in cellCount"
+                :key="i"
+                class="solar-cell"
+                :style="{ backgroundColor: cellColor }"
+            ></div>
+          </div>
+          <!-- Солнце (анимированное) -->
+          <div
+              v-if="isActive"
+              class="solar-sun"
+              :style="{
+              backgroundColor: sunColor,
+              animation: isActive ? 'sun-pulse 2s infinite' : 'none'
+            }"
+          ></div>
+          <div class="power-solar-label">{{ label }}</div>
+        </div>
+      </template>
+    </PowerBaseSvg>
+  </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
-import * as THREE from 'three';
+import { computed } from 'vue';
+import PowerBaseSvg from './PowerBaseSvg.vue';
+import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
 
 const props = defineProps({
-  voltage: { type: Number, default: 12 },
   status: { type: String, default: 'OFF' },
-  scene: { type: Object, required: true },
-  camera: { type: Object },
-  renderer: { type: Object }
+  voltage: { type: Number, default: 0 },
+  width: { type: String, default: '60px' },
+  height: { type: String, default: '80px' },
+  showGlow: { type: Boolean, default: true }
 });
 
-const emit = defineEmits(['model-ready', 'model-update']);
+const configStore = useVisualizationConfigStore();
+// ✅ Динамический поиск конфига по фиксированному ID типа
+const config = computed(() => configStore.getPowerSupplyConfigStore('solar'));
 
-let powerModel = null;
-let sun = null;
+const label = computed(() => config.value?.shortName ?? 'Solar');
+const isActive = computed(() => props.status === 'ON' || props.status === 'ACTIVE');
 
-const createModel = () => {
-  powerModel = new THREE.Group();
+// ✅ Параметры панели из конфига (с fallback)
+const panelColor = computed(() => {
+  const colorValue = config.value?.visualConfig?.material?.panel?.color;
+  return typeof colorValue === 'number' ? '#' + colorValue.toString(16).padStart(6, '0') : '#1a237e';
+});
 
-  // Солнечная панель
-  const panelGeometry = new THREE.BoxGeometry(1.2, 0.05, 0.8);
-  const panelMaterial = new THREE.MeshStandardMaterial({
-    color: 0x1a237e,
-    roughness: 0.3,
-    metalness: 0.5
-  });
-  const panel = new THREE.Mesh(panelGeometry, panelMaterial);
-  panel.rotation.x = Math.PI / 6;
-  powerModel.add(panel);
+const cellColor = computed(() => {
+  const colorValue = config.value?.visualConfig?.material?.cells?.color;
+  return typeof colorValue === 'number' ? '#' + colorValue.toString(16).padStart(6, '0') : '#283593';
+});
 
-  // Ячейки
-  const cellGeometry = new THREE.PlaneGeometry(0.35, 0.25);
-  const cellMaterial = new THREE.MeshStandardMaterial({
-    color: 0x283593,
-    roughness: 0.2,
-    metalness: 0.6
-  });
+const cellCount = computed(() => config.value?.visualConfig?.material?.cells?.count ?? 6);
 
-  for (let x = -0.4; x <= 0.4; x += 0.4) {
-    for (let z = -0.25; z <= 0.25; z += 0.5) {
-      const cell = new THREE.Mesh(cellGeometry, cellMaterial);
-      cell.position.set(x, 0.03, z);
-      cell.rotation.x = Math.PI / 2;
-      powerModel.add(cell);
-    }
-  }
-
-  // Солнце
-  const sunGeometry = new THREE.SphereGeometry(0.15, 16, 16);
-  const sunMaterial = new THREE.MeshBasicMaterial({
-    color: 0xff9800,
-    transparent: true,
-    opacity: 0.6
-  });
-  sun = new THREE.Mesh(sunGeometry, sunMaterial);
-  sun.position.set(0.5, 0.5, 0.5);
-  powerModel.add(sun);
-
-  props.scene.add(powerModel);
-  updateModel();
-  emit('model-ready', { model: powerModel });
-};
-
-const updateModel = () => {
-  if (!sun) return;
-  if (props.status === 'ON' || props.status === 'ACTIVE') {
-    sun.material.opacity = 0.8;
-    sun.scale.set(1.2, 1.2, 1.2);
-  } else {
-    sun.material.opacity = 0.3;
-    sun.scale.set(1, 1, 1);
-  }
-  emit('model-update', { status: props.status });
-};
-
-const animate = () => {
-  if (powerModel) {
-    powerModel.rotation.y += 0.005;
-    powerModel.rotation.x = Math.sin(Date.now() * 0.001) * 0.1;
-  }
-  if (sun) {
-    sun.rotation.y += 0.01;
-  }
-};
-
-const dispose = () => {
-  if (powerModel) {
-    props.scene.remove(powerModel);
-    powerModel.traverse((obj) => {
-      if (obj.geometry) obj.geometry.dispose();
-      if (obj.material) obj.material.dispose();
-    });
-  }
-};
-
-onMounted(() => { createModel(); });
-onUnmounted(() => { dispose(); });
-
-defineExpose({ updateModel, animate, dispose });
+const sunColor = computed(() => {
+  const colorValue = config.value?.visualConfig?.material?.sun?.color;
+  return typeof colorValue === 'number' ? '#' + colorValue.toString(16).padStart(6, '0') : '#ff9800';
+});
 </script>
 
 <style scoped>
-.power-solar-three {
-  width: 100%;
-  height: 100%;
+.power-solar-svg {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.power-solar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.solar-panel {
+  width: 50px;
+  height: 25px;
+  border-radius: 4px;
+  border: 1px solid #d0d0d0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 2px;
+  padding: 2px;
+  background: #1a237e;
+  transition: background-color 0.3s ease;
+}
+
+.solar-cell {
+  border-radius: 2px;
+  background: #283593;
+  transition: background-color 0.3s ease;
+}
+
+.solar-sun {
+  position: absolute;
+  top: -15px;
+  right: -10px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ff9800;
+  box-shadow: 0 0 10px rgba(255, 152, 0, 0.6);
+}
+
+.power-solar-label {
+  margin-top: 4px;
+  font-size: 8px;
+  color: #606266;
+}
+
+@keyframes sun-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
 }
 </style>

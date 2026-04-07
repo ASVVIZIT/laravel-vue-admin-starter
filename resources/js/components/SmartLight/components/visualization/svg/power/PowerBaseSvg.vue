@@ -1,15 +1,19 @@
 <template>
-  <div class="power-base-svg" :class="statusClass" :style="{ width: containerWidth, height: containerHeight }">
+  <div
+      class="power-base-svg"
+      :class="statusClass"
+      :style="{ width: containerWidth, height: containerHeight }"
+  >
     <!-- Слот для кастомизации источника питания -->
     <slot name="power">
-      <!-- Базовая реализация -->
+      <!-- Дефолтное отображение, если нет контента -->
       <div class="power-default">
         <div class="power-icon" :style="{ backgroundColor: iconColor }"></div>
         <div class="power-label">{{ label }}</div>
       </div>
     </slot>
 
-    <!-- Индикатор статуса -->
+    <!-- Индикатор статуса (точка) -->
     <div class="power-status-indicator" :class="statusIndicatorClass"></div>
 
     <!-- Свечение (если активно) -->
@@ -151,20 +155,12 @@ const glowOpacity = computed(() => {
 }
 
 @keyframes power-glow {
-  0%, 100% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 0.8; }
 }
 
 @keyframes indicator-pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 </style>

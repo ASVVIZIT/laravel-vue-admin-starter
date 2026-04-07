@@ -25,7 +25,7 @@ const props = defineProps({
   scene: { type: Object, required: true },
   camera: { type: Object, default: null },
   renderer: { type: Object, default: null },
-  voltage: { type: Number, default: 220 },
+  voltage: { type: Number, default: 0 },
   status: { type: String, default: 'OFF' },
   width: { type: String, default: '80px' },
   height: { type: String, default: '80px' }
@@ -34,13 +34,12 @@ const props = defineProps({
 const emit = defineEmits(['model-ready', 'model-update']);
 
 const configStore = useVisualizationConfigStore();
-const config = computed(() => configStore.getPowerSupplyConfigStore('generator'));
+const config = computed(() => configStore.getPowerSupplyConfigStore('standard'));
 
 const visualConfig = computed(() => config.value?.visualConfig || {});
 const specs = computed(() => config.value?.specs || {
-  voltageRange: { min: 180, max: 240 },
-  currentRange: { min: 0, max: 10000 },
-  type: 'ac-generator'
+  voltageRange: { min: 0, max: 50 },
+  currentRange: { min: 0, max: 1000 }
 });
 
 const onModelReady = (data) => emit('model-ready', data);

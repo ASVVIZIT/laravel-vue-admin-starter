@@ -1,7 +1,7 @@
 <template>
   <div class="composite-icon" :style="{ width: size, height: size }">
     <LayoutIconWrapper
-        :icon="iconComponent"
+        :icon="icon"
         :size="iconSize"
         :color="color"
         :rotation="rotation"
@@ -9,24 +9,22 @@
         :spin-duration="spinDuration"
         :vertical="vertical"
     >
-      <!-- Overlay slot -->
       <template #overlay>
         <slot name="overlay"></slot>
       </template>
 
-      <!-- Badge slot -->
       <template #badge>
         <slot name="badge"></slot>
       </template>
 
-      <!-- Label slot -->
       <slot name="label"></slot>
     </LayoutIconWrapper>
   </div>
 </template>
 
 <script setup>
-import LayoutIconWrapper from '@components/SmartLight/components/layout/wrappers/LayoutIconWrapper.vue';
+// ✅ Исправлен путь импорта: добавлен слеш после @/
+import LayoutIconWrapper from '@/components/SmartLight/components/layout/wrappers/LayoutIconWrapper.vue';
 
 const props = defineProps({
   icon: { type: Object, required: true },
@@ -38,15 +36,8 @@ const props = defineProps({
   spinDuration: { type: String, default: '2s' },
   vertical: { type: Boolean, default: false }
 });
-
-const iconComponent = props.icon;
 </script>
 
 <style scoped>
-.composite-icon {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
+.composite-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; }
 </style>

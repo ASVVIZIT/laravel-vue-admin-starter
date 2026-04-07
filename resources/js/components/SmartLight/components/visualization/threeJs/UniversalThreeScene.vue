@@ -1,111 +1,120 @@
 <template>
-  <div ref="container" class="universal-three-scene" :class="[`mode-${mode}`, { 'debug-enabled': enableDebug && mode !== 'minimal' }]">
-    <!-- Кнопка сброса камеры (режимы basic+) -->
-    <div
-        v-if="showResetButton && mode !== 'minimal'"
-        class="camera-reset-btn"
-        @click="resetCamera"
-        title="Сбросить камеру"
-    >
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+  <div
+      ref="container"
+      class="universal-three-scene"
+      :class="[`mode-${mode}`, { 'debug-enabled': effectiveDebug }]"
+  >
+    <!-- Debug overlay -->
+    <div v-if="effectiveDebug && showDebugOverlay" class="debug-overlay" @click.stop>
+      <div class="debug-header">🔍 3D</div>
+      <div class="debug-row"><span>mode:</span><span>{{ mode }}</span></div>
+      <div class="debug-row"><span>model:</span><span>{{ hasModel ? '✓' : '✗' }}</span></div>
+      <div class="debug-row"><span>init:</span><span>{{ isInitialized && !isRecovering ? '✓' : '⏳' }}</span></div>
+      <el-button size="small" @click="forceRetry" type="primary" class="debug-btn" :disabled="isInitRunning">🔄</el-button>
+    </div>
+
+    <!-- Reset camera -->
+    <div v-if="showResetButton && mode !== 'minimal'" class="camera-reset-btn" @click="resetCamera" title="Сброс">
+      <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
         <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0020 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 004 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
       </svg>
     </div>
 
-    <!-- Индикатор загрузки (режимы advanced+) -->
+    <!-- Loading / Error -->
     <div v-if="isLoading && mode !== 'minimal' && mode !== 'basic'" class="scene-loading">
-      <div class="loading-spinner"></div>
-      <span class="loading-text">Загрузка 3D...</span>
+      <div class="loading-spinner"></div><span class="loading-text">{{ initStatusText }}</span>
     </div>
-
-    <!-- Индикатор ошибки (режимы advanced+) -->
     <div v-if="loadError && mode !== 'minimal' && mode !== 'basic'" class="scene-error">
       <el-icon class="error-icon"><WarningFilled /></el-icon>
       <span class="error-text">{{ loadError }}</span>
-      <el-button v-if="mode === 'full'" size="small" @click="retryInit" type="primary">Повторить</el-button>
+      <el-button size="small" @click="forceRetry" type="primary" class="error-btn" :disabled="isInitRunning">🔄</el-button>
     </div>
 
-    <!-- Debug панель (только режим advanced/full + enableDebug) -->
-    <div v-if="enableDebug && mode !== 'minimal' && mode !== 'basic'" class="scene-debug">
-      <div class="debug-header">3D Status</div>
-      <div class="debug-row">
-        <span class="debug-label">WebGL:</span>
-        <span :class="['debug-value', webGLInfo?.isSupported ? 'success' : 'error']">
-                    {{ webGLInfo?.isSupported ? '✓' : '✗' }}
-                </span>
-      </div>
-      <div v-if="webGLInfo?.isSupported" class="debug-row">
-        <span class="debug-label">Качество:</span>
-        <span :class="['debug-value', 'quality-' + gpuQuality]">{{ gpuQuality }}</span>
-      </div>
-      <div v-if="webGLInfo?.isSupported" class="debug-row">
-        <span class="debug-label">GPU:</span>
-        <span class="debug-value gpu-name">{{ gpuName }}</span>
+    <!-- Debug panel -->
+    <div v-if="effectiveDebug && mode !== 'minimal' && mode !== 'basic'" class="scene-debug">
+      <div class="debug-row"><span>GL:</span><span :class="webGLInfo?.isSupported && !isRecovering ? 'ok' : 'err'">{{ webGLInfo?.isSupported && !isRecovering ? '✓' : '⏳' }}</span></div>
+      <div v-if="webGLInfo?.isSupported" class="debug-row"><span>Q:</span><span>{{ gpuQuality }}</span></div>
+    </div>
+
+    <!-- Slot -->
+    <slot v-if="mode === 'minimal' && !hasModel" name="content"></slot>
+
+    <!-- ✅ МОДЕЛЬ: БЕЗ v-show на компоненте! -->
+    <div
+        v-if="mode === 'full'"
+        ref="modelContainer"
+        class="model-container"
+        :style="{ display: shouldRenderModel ? 'block' : 'none' }"
+    >
+      <!-- Компонент модели: всегда в DOM, видимость через CSS родителя -->
+      <component
+          :is="modelComponent"
+          :key="modelKey"
+          ref="modelRef"
+          :three="three"
+          :scene="scene"
+          :camera="camera"
+          :renderer="renderer"
+          :config="config"
+          :data="data"
+          @model-ready="onModelReady"
+          @model-update="onModelUpdate"
+      />
+      <!-- Заглушка пока модель не загрузилась -->
+      <div v-if="!isModelLoaded && hasModel && hasConfig" class="model-loading">
+        <span v-if="isRecovering">🔄 Recovering...</span>
+        <span v-else-if="modelLoadTimeout">⏱ Timeout ({{ modelLoadTime }}s)</span>
+        <span v-else-if="modelError">❌ {{ modelError }}</span>
+        <span v-else>🧊 Loading... ({{ modelLoadTime }}s)</span>
       </div>
     </div>
 
-    <!-- Слот для кастомного контента (режим minimal) -->
-    <slot v-if="mode === 'minimal' && !modelComponent" name="content"></slot>
-
-    <!-- ✅ ИСПРАВЛЕНО: Добавлена проверка isInitialized для предотвращения рендера до готовности -->
-    <component
-        v-if="mode === 'full' && modelComponent && isInitialized && !isDisposed"
-        :is="modelComponent"
-        ref="modelRef"
-        :three="three"
-        :scene="scene"
-        :camera="camera"
-        :renderer="renderer"
-        :config="config"
-        :data="data"
-        @model-ready="onModelReady"
-        @model-update="onModelUpdate"
-    />
+    <!-- Placeholder -->
+    <div v-else-if="mode === 'full' && !shouldRenderModel" class="model-placeholder">
+      <div class="placeholder-icon">🧊</div>
+      <div class="placeholder-text">
+        <div v-if="!hasModel">no model</div>
+        <div v-else-if="!hasConfig">no config</div>
+        <div v-else-if="!isInitialized && !initTimeout">{{ initStatusText || 'init...' }}</div>
+        <div v-else-if="initTimeout">timeout</div>
+        <div v-else-if="isDisposed">disposed</div>
+      </div>
+      <el-button size="small" @click="forceRetry" type="info" class="retry-btn" v-if="!isDisposed" :disabled="isInitRunning">🔄</el-button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineExpose, useSlots } from 'vue';
+// ✅ ИМПОРТИРУЕМ shallowRef и markRaw
+import { ref, shallowRef, markRaw, computed, onMounted, onUnmounted, watch, nextTick, defineExpose } from 'vue';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import { WarningFilled } from '@element-plus/icons-vue';
-
-// ✅ ИМПОРТ КОНТРОЛЛЕРА ИНИЦИАЛИЗАЦИИ
 import InitializationController from '@/components/SmartLight/controllers/InitializationController.js';
-
-// ✅ ИМПОРТ UTILS
 import {
   checkWebGLSupport,
   getOptimalWebGLSettings,
   cleanupWebGL,
   handleWebGLContextLoss
 } from '@/components/SmartLight/api/core/utils/coreApiWebglSupportUtils.js';
+import { useInterfaceStore } from '@/components/SmartLight/stores/smartlight/interfaceStore.js';
+import { registerRenderer } from '@/components/SmartLight/api/core/utils/coreWebglContextManagerUtils.js';
 
 // === ПРОПСЫ ===
 const props = defineProps({
-  /** Режим работы: minimal, basic, advanced, full */
   mode: {
     type: String,
     default: 'basic',
     validator: (v) => ['minimal', 'basic', 'advanced', 'full'].includes(v)
   },
-  /** ID устройства (для режима full) */
   deviceId: { type: String, default: null },
-  /** Конфиг визуализации из store (для режима full) */
   config: { type: Object, default: null },
-  /** Данные для обновления модели (для режима full) */
   data: { type: Object, default: () => ({}) },
-  /** Компонент модели для режима full */
-  modelComponent: { type: Object, default: null },
-  /** Включить отладочную панель (режимы advanced/full) */
+  modelComponent: { type: [Object, Function], default: null },
   enableDebug: { type: Boolean, default: false },
-  /** Авто-анимация вращения (режимы basic+) */
   autoRotate: { type: Boolean, default: true },
-  /** Скорость авто-вращения */
   rotateSpeed: { type: Number, default: 0.01 },
-  /** Включить тени (режимы advanced/full) */
   enableShadows: { type: Boolean, default: false },
-  /** Качество рендеринга (переопределение авто-определения) */
   qualityOverride: {
     type: String,
     default: null,
@@ -113,41 +122,80 @@ const props = defineProps({
   }
 });
 
-// === EMITS ===
 const emit = defineEmits(['ready', 'error', 'model-ready', 'model-update']);
-
-// === СЛОТЫ ===
-const slots = useSlots();
+const interfaceStore = useInterfaceStore();
 
 // === РЕФЫ ===
 const container = ref(null);
+const modelContainer = ref(null);
 const modelRef = ref(null);
 const isLoading = ref(false);
 const loadError = ref(null);
+const initTimeout = ref(false);
+const initStatusText = ref('');
 const showResetButton = ref(false);
 const webGLInfo = ref(null);
 const gpuQuality = ref('low');
 const gpuName = ref('N/A');
+const isMounting = ref(false);
+const isInitRunning = ref(false);
+const isAnimating = ref(false);
+const isRecovering = ref(false);
+const showDebugOverlay = ref(false);
 
-// === THREE ОБЪЕКТЫ ===
-const three = ref(null);
-const scene = ref(null);
-const camera = ref(null);
-const renderer = ref(null);
-const controls = ref(null);
+// ✅ THREE.JS ОБЪЕКТЫ: shallowRef + markRaw (НЕ проксируются!)
+const three = shallowRef(null);
+const scene = shallowRef(null);
+const camera = shallowRef(null);
+const renderer = shallowRef(null);
+const controls = shallowRef(null);
+
+// === ПЕРЕМЕННЫЕ МОДЕЛИ ===
+const isModelLoaded = ref(false);
+const modelLoadTime = ref(0);
+const modelError = ref(null);
+const modelLoadStart = ref(0);
+const modelLoadTimeout = ref(false);
 
 // === ВНУТРЕННИЕ ПЕРЕМЕННЫЕ ===
 let animationFrame = null;
 let isInitialized = false;
-// ✅ ИСПРАВЛЕНО: Флаг для предотвращения анимации после размонтирования
 let isDisposed = false;
 let defaultCameraPosition = null;
 let defaultCameraTarget = null;
-
-// ✅ КОНТРОЛЛЕР ИНИЦИАЛИЗАЦИИ
+let isLogging = false;
+let resizeObserver = null;
+let lastConfigHash = '';
+let modelLoadTimer = null;
+let cleanupRenderer = null;
 const initController = new InitializationController();
 
-// === КОНСТАНТЫ ===
+// === COMPUTED ===
+const hasModel = computed(() => !!props.modelComponent);
+const hasConfig = computed(() => !!props.config);
+const effectiveDebug = computed(() => props.enableDebug || showDebugOverlay.value);
+const modelKey = computed(() => `model-${props.deviceId}-${props.config?.id || 'no-id'}-${props.mode}`);
+
+const shouldRenderModel = computed(() =>
+    props.mode === 'full' &&
+    hasModel.value &&
+    hasConfig.value &&
+    !isDisposed &&
+    !isMounting.value &&
+    container.value
+);
+
+// ✅ GUARD: можно ли показывать модель
+const isReadyForModel = computed(() =>
+    isInitialized &&
+    !isDisposed &&
+    !isRecovering.value &&
+    scene.value?.add &&
+    camera.value &&
+    renderer.value?.render &&
+    modelContainer.value?.isConnected
+);
+
 const CAMERA_CONFIG = {
   fov: 75,
   near: 0.1,
@@ -156,73 +204,162 @@ const CAMERA_CONFIG = {
   defaultTarget: { x: 0, y: 0, z: 0 }
 };
 
-// === WEBGL ПРОВЕРКА ===
-const checkWebGL = () => {
-  webGLInfo.value = checkWebGLSupport();
+// === ЛОГИРОВАНИЕ ===
+const logToPanel = (component, message, data = null) => {
+  if (isLogging) return;
+  try {
+    isLogging = true;
+    const keywords = ['error', 'timeout', 'success', 'init', 'step', 'mount', 'recover', 'model'];
+    if (keywords.some((k) => message.toLowerCase().includes(k))) {
+      const logData = data && Object.keys(data).length > 0 ? data : null;
+      if (logData) {
+        console.log(`[${component}] ${message}`, logData);
+      } else {
+        console.log(`[${component}] ${message}`);
+      }
+      interfaceStore.addLogStore({
+        component,
+        message,
+        logData,
+        level: message.toLowerCase().includes('error') ? 'error' : 'info'
+      });
+    }
+  } finally {
+    isLogging = false;
+  }
+};
 
+// === ТАЙМЕРЫ ===
+const startModelLoadTimer = () => {
+  modelLoadStart.value = Date.now();
+  modelLoadTime.value = 0;
+  modelLoadTimeout.value = false;
+  modelError.value = null;
+
+  if (modelLoadTimer) clearInterval(modelLoadTimer);
+  modelLoadTimer = setInterval(() => {
+    modelLoadTime.value = Math.round((Date.now() - modelLoadStart.value) / 1000);
+  }, 1000);
+
+  setTimeout(() => {
+    if (!isModelLoaded.value && hasModel.value) {
+      modelLoadTimeout.value = true;
+      logToPanel('UniversalThreeScene', 'Model load timeout', {
+        deviceId: props.deviceId,
+        loadTime: modelLoadTime.value,
+        isModelLoaded: isModelLoaded.value,
+        modelRef: !!modelRef.value
+      });
+    }
+    if (modelLoadTimer) clearInterval(modelLoadTimer);
+  }, 30000);
+};
+
+const stopModelLoadTimer = () => {
+  if (modelLoadTimer) {
+    clearInterval(modelLoadTimer);
+    modelLoadTimer = null;
+  }
+};
+
+// === ОБРАБОТЧИКИ ===
+const onModelReady = (d) => {
+  isModelLoaded.value = true;
+  stopModelLoadTimer();
+  logToPanel('UniversalThreeScene', 'Model ready', { loadTime: modelLoadTime.value });
+  if (!isDisposed) emit('model-ready', d);
+};
+
+const onModelUpdate = (d) => {
+  if (!isDisposed) emit('model-update', d);
+};
+
+// === METHODS ===
+const startResizeObserver = () => {
+  if (!container.value || resizeObserver) return;
+  resizeObserver = new ResizeObserver((entries) => {
+    for (const entry of entries) {
+      if (entry.contentRect.width > 0 && entry.contentRect.height > 0 && !isInitialized && !isDisposed && props.mode === 'full') {
+        logToPanel('UniversalThreeScene', 'Container resized', { size: `${entry.contentRect.width}x${entry.contentRect.height}` });
+        performInit();
+      }
+    }
+  });
+  resizeObserver.observe(container.value);
+};
+
+const checkWebGL = () => {
+  initStatusText.value = 'Checking WebGL...';
+  webGLInfo.value = checkWebGLSupport();
   if (!webGLInfo.value.isSupported) {
+    logToPanel('UniversalThreeScene', 'WebGL not supported', { reason: webGLInfo.value.reason });
     if (props.mode === 'advanced' || props.mode === 'full') {
-      loadError.value = `WebGL не поддерживается: ${webGLInfo.value.reason}`;
-      emit('error', { error: new Error(webGLInfo.value.reason) });
+      loadError.value = `WebGL: ${webGLInfo.value.reason}`;
     }
     return false;
   }
-
   const settings = getOptimalWebGLSettings(webGLInfo.value);
   gpuQuality.value = props.qualityOverride || settings.quality;
-  gpuName.value = webGLInfo.value.renderer?.substring(0, 30) || 'Unknown';
-
-  console.log(`[UniversalThreeScene] WebGL: ${gpuQuality.value} quality, GPU: ${gpuName.value}`);
+  gpuName.value = webGLInfo.value.renderer?.substring(0, 20) || 'Unknown';
+  initStatusText.value = `WebGL OK (${gpuQuality.value})`;
   return true;
 };
 
-// === ИНИЦИАЛИЗАЦИЯ (callback для контроллера) ===
 const performInit = () => {
-  // ✅ ИСПРАВЛЕНО: Проверка что контейнер существует и компонент не размонтирован
-  if (!container.value || isInitialized || isDisposed) return;
-
-  // ✅ ИСПРАВЛЕНО: Проверка видимости контейнера перед инициализацией
-  const rect = container.value.getBoundingClientRect();
-  if (rect.width <= 0 || rect.height <= 0 || container.value.offsetParent === null) {
-    console.warn('[UniversalThreeScene] Container not visible, deferring init');
-    setTimeout(() => {
-      if (!isDisposed) performInit();
-    }, 100);
-    return;
-  }
-
-  if (props.mode === 'advanced' || props.mode === 'full') {
-    if (!checkWebGL()) {
-      isLoading.value = false;
-      return;
-    }
-  }
-
-  isLoading.value = true;
-  loadError.value = null;
+  if (!container.value || isInitialized || isDisposed || isInitRunning.value) return;
+  isInitRunning.value = true;
+  initStatusText.value = 'Allocating...';
 
   try {
-    three.value = THREE;
-    scene.value = new THREE.Scene();
+    const w = container.value.clientWidth || container.value.getBoundingClientRect().width;
+    const h = container.value.clientHeight || container.value.getBoundingClientRect().height;
+    if (w <= 0 || h <= 0) {
+      initStatusText.value = 'Waiting...';
+      startResizeObserver();
+      isInitRunning.value = false;
+      return;
+    }
+    if (resizeObserver) {
+      resizeObserver.disconnect();
+      resizeObserver = null;
+    }
+    if ((props.mode === 'advanced' || props.mode === 'full') && !checkWebGL()) {
+      isInitRunning.value = false;
+      return;
+    }
+
+    isLoading.value = true;
+    loadError.value = null;
+    initTimeout.value = false;
+
+    const timeoutId = setTimeout(() => {
+      if (!isInitialized && !isDisposed) {
+        initTimeout.value = true;
+        loadError.value = 'Timeout';
+        isLoading.value = false;
+        isInitRunning.value = false;
+      }
+    }, 10000);
+
+    // ✅ THREE: используем markRaw + shallowRef
+    three.value = markRaw(THREE);
+
+    scene.value = markRaw(new THREE.Scene());
     scene.value.background = new THREE.Color(0xf5f7fa);
 
-    const aspect = container.value.clientWidth / container.value.clientHeight || 1;
-    if (aspect <= 0) throw new Error('Invalid container dimensions');
-
-    camera.value = new THREE.PerspectiveCamera(CAMERA_CONFIG.fov, aspect, CAMERA_CONFIG.near, CAMERA_CONFIG.far);
+    const aspect = w / h;
+    camera.value = markRaw(new THREE.PerspectiveCamera(CAMERA_CONFIG.fov, aspect, CAMERA_CONFIG.near, CAMERA_CONFIG.far));
     camera.value.position.set(CAMERA_CONFIG.defaultPosition.x, CAMERA_CONFIG.defaultPosition.y, CAMERA_CONFIG.defaultPosition.z);
     camera.value.lookAt(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z);
-
     defaultCameraPosition = camera.value.position.clone();
-    defaultCameraTarget = new THREE.Vector3(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z);
+    defaultCameraTarget = markRaw(new THREE.Vector3(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z));
 
-    const rendererSettings = {
+    renderer.value = markRaw(new THREE.WebGLRenderer({
       antialias: gpuQuality.value !== 'low',
       alpha: true,
       powerPreference: gpuQuality.value === 'high' ? 'high-performance' : 'default'
-    };
-    renderer.value = new THREE.WebGLRenderer(rendererSettings);
-    renderer.value.setSize(container.value.clientWidth, container.value.clientHeight);
+    }));
+    renderer.value.setSize(w, h);
     renderer.value.setPixelRatio(gpuQuality.value === 'high' ? window.devicePixelRatio : 1);
 
     if (props.enableShadows && (props.mode === 'advanced' || props.mode === 'full')) {
@@ -230,18 +367,44 @@ const performInit = () => {
       renderer.value.shadowMap.type = THREE.PCFSoftShadowMap;
     }
 
-    container.value.innerHTML = '';
-    container.value.appendChild(renderer.value.domElement);
+    if (container.value?.isConnected) {
+      const oldCanvas = container.value.querySelector('canvas');
+      if (oldCanvas?.parentNode === container.value) oldCanvas.remove();
+      container.value.appendChild(renderer.value.domElement);
+    } else {
+      clearTimeout(timeoutId);
+      isInitRunning.value = false;
+      return;
+    }
 
     if (props.mode === 'advanced' || props.mode === 'full') {
+      cleanupRenderer = registerRenderer(renderer.value, {
+        onContextLost: () => {
+          logToPanel('UniversalThreeScene', 'Global context lost - entering recovery');
+          isRecovering.value = true;
+          isAnimating.value = false;
+          if (animationFrame) {
+            cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+          }
+          loadError.value = 'WebGL context lost - recovering...';
+        },
+        onContextRestored: () => {
+          logToPanel('UniversalThreeScene', 'Global context restored');
+          loadError.value = null;
+          setTimeout(() => {
+            if (!isDisposed && !isInitRunning.value) performInit();
+          }, 300);
+        }
+      });
+
       handleWebGLContextLoss(renderer.value.domElement, (event) => {
-        console.log('[UniversalThreeScene] Context event:', event);
         if (event === 'lost') {
           isInitialized = false;
-          if (props.mode === 'full') loadError.value = 'WebGL контекст потерян';
-        } else if (event === 'restored') {
+          if (props.mode === 'full') loadError.value = 'Context lost';
+        } else if (event === 'restored' && !isDisposed && !isInitRunning.value) {
           loadError.value = null;
-          if (!isDisposed) performInit();
+          performInit();
         }
       });
     }
@@ -250,132 +413,88 @@ const performInit = () => {
       setupLighting();
       setupControls();
     }
-
     window.addEventListener('resize', onWindowResize);
+
     isInitialized = true;
     isLoading.value = false;
-    animate();
+    initTimeout.value = false;
+    isInitRunning.value = false;
+    clearTimeout(timeoutId);
+    isAnimating.value = true;
 
+    if (hasModel.value) {
+      startModelLoadTimer();
+      logToPanel('UniversalThreeScene', 'Waiting for model component', { isAsync: typeof props.modelComponent === 'function' });
+    }
+
+    animate();
     emit('ready', { scene: scene.value, camera: camera.value, renderer: renderer.value });
+    logToPanel('UniversalThreeScene', 'Init SUCCESS', { deviceId: props.deviceId, quality: gpuQuality.value });
+
   } catch (error) {
-    console.error('[UniversalThreeScene] Init error:', error);
-    loadError.value = `Ошибка инициализации: ${error.message}`;
+    logToPanel('UniversalThreeScene', 'Init ERROR', { error: error.message });
+    loadError.value = `Init error: ${error.message}`;
     isLoading.value = false;
+    isInitRunning.value = false;
     emit('error', { error });
   }
 };
 
-// === ПУБЛИЧНЫЙ МЕТОД ИНИЦИАЛИЗАЦИИ (через контроллер) ===
-const init = async () => {
-  if (!container.value || isDisposed) return;
-
-  // ✅ ИСПОЛЬЗУЕМ КОНТРОЛЛЕР ДЛЯ ИНИЦИАЛИЗАЦИИ
-  const result = await initController.initContainer(
-      container.value,
-      props.deviceId || 'unknown',
-      performInit,
-      {
-        maxAttempts: 30,
-        checkInterval: 100,
-        maxCheckTime: 10000
-      }
-  );
-
-  if (!result.success) {
-    console.warn('[UniversalThreeScene] Init failed:', result.reason);
-    if (props.mode === 'full') {
-      loadError.value = `Инициализация не удалась: ${result.reason}`;
-    }
-  }
-
-  return result;
+const animate = () => {
+  if (!isAnimating.value || isDisposed || !scene.value || !camera.value || !renderer.value || isRecovering.value) return;
+  if (controls.value) controls.value.update();
+  if (props.mode === 'full' && modelRef.value?.animate) modelRef.value.animate();
+  renderer.value.render(scene.value, camera.value);
+  if (!isDisposed) animationFrame = requestAnimationFrame(animate);
 };
 
-// === НАСТРОЙКА ОСВЕЩЕНИЯ ===
 const setupLighting = () => {
   if (!scene.value) return;
-
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
-  scene.value.add(ambientLight);
-
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
-  directionalLight.position.set(3, 3, 3);
-  if (props.enableShadows && (props.mode === 'advanced' || props.mode === 'full')) {
-    directionalLight.castShadow = true;
-  }
-  scene.value.add(directionalLight);
-
-  if (props.mode === 'advanced' || props.mode === 'full') {
-    const backLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    backLight.position.set(-2, 1, -2);
-    scene.value.add(backLight);
-  }
+  scene.value.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const dl = new THREE.DirectionalLight(0xffffff, 1.2);
+  dl.position.set(3, 3, 3);
+  if (props.enableShadows && (props.mode === 'advanced' || props.mode === 'full')) dl.castShadow = true;
+  scene.value.add(dl);
 };
 
-// === НАСТРОЙКА КОНТРОЛОВ ===
 const setupControls = () => {
   if (!camera.value || !renderer.value) return;
-
-  controls.value = new OrbitControls(camera.value, renderer.value.domElement);
+  controls.value = markRaw(new OrbitControls(camera.value, renderer.value.domElement));
   controls.value.enableDamping = true;
   controls.value.dampingFactor = 0.05;
   controls.value.enableZoom = true;
   controls.value.autoRotate = props.autoRotate;
   controls.value.autoRotateSpeed = props.rotateSpeed * 60;
   controls.value.enablePan = false;
-  controls.value.target.set(CAMERA_CONFIG.defaultTarget.x, CAMERA_CONFIG.defaultTarget.y, CAMERA_CONFIG.defaultTarget.z);
+  controls.value.target.copy(defaultCameraTarget);
   controls.value.addEventListener('change', checkCameraChanged);
 };
 
-// === АНИМАЦИЯ ===
-const animate = () => {
-  // ✅ ИСПРАВЛЕНО: Не запускать анимацию если компонент размонтирован
-  if (isDisposed || !scene.value || !camera.value || !renderer.value) return;
-
-  if (controls.value) controls.value.update();
-  if (props.mode === 'full' && modelRef.value?.animate) {
-    modelRef.value.animate();
-  }
-  renderer.value.render(scene.value, camera.value);
-
-  // ✅ ИСПРАВЛЕНО: Рекурсивный вызов только если компонент активен
-  if (!isDisposed) {
-    animationFrame = requestAnimationFrame(animate);
-  }
-};
-
-// === ОБНОВЛЕНИЕ МОДЕЛИ ===
 const updateModel = () => {
-  // ✅ ИСПРАВЛЕНО: Проверка что модель существует и компонент не размонтирован
   if (props.mode !== 'full' || !modelRef.value?.updateModel || isDisposed) return;
   modelRef.value.updateModel(props.data);
 };
 
-// === СОБЫТИЯ ОТ МОДЕЛИ ===
-const onModelReady = (data) => {
-  // ✅ ИСПРАВЛЕНО: Проверка перед эмиссией
-  if (isDisposed) return;
-  console.log('[UniversalThreeScene] Model ready:', data);
-  emit('model-ready', data);
-};
-
-const onModelUpdate = (data) => {
-  if (isDisposed) return;
-  emit('model-update', data);
-};
-
-// === КАМЕРА ===
 const checkCameraChanged = () => {
   if (!defaultCameraPosition || !camera.value || isDisposed) return;
-  const posChanged = Math.abs(camera.value.position.x - defaultCameraPosition.x) > 0.1 ||
-      Math.abs(camera.value.position.y - defaultCameraPosition.y) > 0.1 ||
-      Math.abs(camera.value.position.z - defaultCameraPosition.z) > 0.1;
-  const targetChanged = controls.value && (
-      Math.abs(controls.value.target.x - defaultCameraTarget.x) > 0.1 ||
-      Math.abs(controls.value.target.y - defaultCameraTarget.y) > 0.1 ||
-      Math.abs(controls.value.target.z - defaultCameraTarget.z) > 0.1
-  );
-  showResetButton.value = posChanged || targetChanged;
+  const pc = camera.value.position;
+  const dt = defaultCameraTarget;
+  if (
+      Math.abs(pc.x - defaultCameraPosition.x) > 0.1 ||
+      Math.abs(pc.y - defaultCameraPosition.y) > 0.1 ||
+      Math.abs(pc.z - defaultCameraPosition.z) > 0.1
+  ) {
+    showResetButton.value = true;
+    return;
+  }
+  if (
+      controls.value &&
+      (Math.abs(controls.value.target.x - dt.x) > 0.1 ||
+          Math.abs(controls.value.target.y - dt.y) > 0.1 ||
+          Math.abs(controls.value.target.z - dt.z) > 0.1)
+  ) {
+    showResetButton.value = true;
+  }
 };
 
 const resetCamera = () => {
@@ -386,161 +505,174 @@ const resetCamera = () => {
   showResetButton.value = false;
 };
 
-// === RESIZE ===
 const onWindowResize = () => {
   if (!container.value || !camera.value || !renderer.value || isDisposed) return;
-  camera.value.aspect = container.value.clientWidth / container.value.clientHeight;
-  camera.value.updateProjectionMatrix();
-  renderer.value.setSize(container.value.clientWidth, container.value.clientHeight);
-};
-
-// === ПОВТОРНАЯ ИНИЦИАЛИЗАЦИЯ ===
-const retryInit = async () => {
-  if (isDisposed) return;
-  await cleanup();
-  if (!isDisposed) {
-    setTimeout(() => init(), 100);
+  const w = container.value.clientWidth;
+  const h = container.value.clientHeight;
+  if (w > 0 && h > 0) {
+    camera.value.aspect = w / h;
+    camera.value.updateProjectionMatrix();
+    renderer.value.setSize(w, h);
   }
 };
 
-// === ОЧИСТКА (через контроллер) ===
 const cleanup = async () => {
-  // ✅ ИСПРАВЛЕНО: Установить флаг ПЕРВЫМ делом чтобы остановить анимацию
-  isDisposed = true;
-
-  // ✅ Остановить animation frame
+  logToPanel('UniversalThreeScene', 'Cleanup started');
+  stopModelLoadTimer();
+  isAnimating.value = false;
   if (animationFrame) {
     cancelAnimationFrame(animationFrame);
     animationFrame = null;
   }
-
-  // ✅ Очистить модель
-  if (props.mode === 'full' && modelRef.value?.dispose) {
-    modelRef.value.dispose();
+  isDisposed = true;
+  isInitRunning.value = false;
+  isMounting.value = false;
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
   }
-
-  // ✅ Очистить renderer
+  if (cleanupRenderer && typeof cleanupRenderer === 'function') {
+    try { cleanupRenderer(); } catch (e) {}
+  }
   if (renderer.value) {
-    if (props.mode === 'advanced' || props.mode === 'full') {
-      cleanupWebGL(renderer.value.getContext());
-    }
-    renderer.value.dispose();
-    renderer.value.forceContextLoss?.();
+    try {
+      if (props.mode === 'advanced' || props.mode === 'full') cleanupWebGL(renderer.value.getContext());
+      renderer.value.dispose();
+      renderer.value.forceContextLoss?.();
+    } catch (e) {}
     renderer.value = null;
   }
-
-  // ✅ Очистить контейнер
-  if (container.value) {
-    container.value.innerHTML = '';
-  }
-
-  // ✅ Очистить сцену
   if (scene.value) {
-    scene.value.traverse((object) => {
-      if (object.geometry) object.geometry.dispose?.();
-      if (object.material) {
-        if (Array.isArray(object.material)) {
-          object.material.forEach(m => m.dispose?.());
-        } else {
-          object.material.dispose?.();
+    try {
+      scene.value.traverse((o) => {
+        if (o.geometry) o.geometry.dispose?.();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach((m) => m.dispose?.());
+          else o.material.dispose?.();
         }
-      }
-    });
+      });
+    } catch (e) {}
     scene.value = null;
   }
-
-  // ✅ Очистить контролы
   if (controls.value) {
-    controls.value.removeEventListener?.('change', checkCameraChanged);
-    controls.value.dispose?.();
+    try {
+      controls.value.removeEventListener?.('change', checkCameraChanged);
+      controls.value.dispose?.();
+    } catch (e) {}
     controls.value = null;
   }
-
-  // ✅ Убрать слушатели
-  window.removeEventListener('resize', onWindowResize);
-
-  modelRef.value = null;
-  isInitialized = false;
-  showResetButton.value = false;
-
-  // ✅ ОЧИСТКА ЧЕРЕЗ КОНТРОЛЛЕР
-  if (container.value) {
-    initController.cleanupContainer(container.value);
+  camera.value = null;
+  three.value = null;
+  try { window.removeEventListener('resize', onWindowResize); } catch (e) {}
+  if (container.value?.isConnected) {
+    const c = container.value.querySelector('canvas');
+    if (c?.parentNode === container.value) c.remove();
   }
+  isInitialized = false;
+  isRecovering.value = false;
+  loadError.value = null;
+  initTimeout.value = false;
+  initStatusText.value = '';
+  showResetButton.value = false;
+  if (container.value) {
+    try { initController.cleanupContainerController(container.value); } catch (e) {}
+  }
+  logToPanel('UniversalThreeScene', 'Cleanup complete');
+};
 
-  console.log('[UniversalThreeScene] Cleanup complete');
+const forceRetry = async () => {
+  if (isInitRunning.value) return;
+  logToPanel('UniversalThreeScene', 'Force retry', { mode: props.mode });
+  await cleanup();
+  await nextTick();
+  isModelLoaded.value = false;
+  modelError.value = null;
+  if (!isDisposed) performInit();
 };
 
 // === WATCH ===
-watch(() => props.mode, (newMode, oldMode) => {
-  if (newMode !== oldMode && isInitialized && !isDisposed) {
-    cleanup();
-    setTimeout(() => {
-      if (!isDisposed) init();
-    }, 50);
+watch(() => props.mode, async (newMode, oldMode) => {
+  if (newMode !== oldMode && !isDisposed) {
+    logToPanel('UniversalThreeScene', 'Mode changed', { from: oldMode, to: newMode });
+    if (isInitialized) {
+      await cleanup();
+      isInitialized = false;
+      isModelLoaded.value = false;
+      if (newMode === 'full') performInit();
+    } else if (newMode === 'full') {
+      performInit();
+    }
   }
 });
 
 watch(() => props.data, () => {
-  if (props.mode === 'full' && !isDisposed) updateModel();
+  if (props.mode === 'full' && isInitialized && !isDisposed && !isRecovering.value) updateModel();
 }, { deep: true });
 
-watch(() => props.config, (newConfig) => {
-  if (props.mode === 'full' && isInitialized && !isDisposed) {
-    cleanup();
-    setTimeout(() => {
-      if (!isDisposed) init();
-    }, 50);
+watch(() => props.config, async (newConfig) => {
+  if (!newConfig) return;
+  const newHash = JSON.stringify(newConfig);
+  if (newHash === lastConfigHash) return;
+  lastConfigHash = newHash;
+  if (props.mode === 'full' && isInitialized && !isDisposed && !isRecovering.value) {
+    logToPanel('UniversalThreeScene', 'Config updated, restarting');
+    await cleanup();
+    isInitialized = false;
+    isModelLoaded.value = false;
+    await nextTick();
+    if (!isDisposed) performInit();
   }
 }, { deep: true });
 
 // === LIFECYCLE ===
-onMounted(async () => {
-  // ✅ Сброс флага при монтировании
-  isDisposed = false;
+const handleDebugToggle = (event) => {
+  if (event.ctrlKey || event.metaKey) {
+    event.preventDefault();
+    showDebugOverlay.value = !showDebugOverlay.value;
+    logToPanel('UniversalThreeScene', 'Debug toggled', { visible: showDebugOverlay.value });
+  }
+};
 
-  if (props.mode === 'advanced' || props.mode === 'full') {
+onMounted(async () => {
+  isDisposed = false;
+  isInitRunning.value = false;
+  isAnimating.value = false;
+  isRecovering.value = false;
+  isModelLoaded.value = false;
+  modelError.value = null;
+  if (container.value) container.value.addEventListener('click', handleDebugToggle);
+  logToPanel('UniversalThreeScene', 'Mounted', { mode: props.mode });
+  if (props.mode === 'full') {
     await nextTick();
-    if (!isDisposed) {
-      await init();
-    }
-  } else {
-    // Для minimal/basic инициализируем напрямую
-    if (!isDisposed) performInit();
+    setTimeout(() => { if (!isDisposed && !isInitialized) performInit(); }, 50);
   }
 });
 
 onUnmounted(async () => {
-  // ✅ Гарантированная очистка при размонтировании
+  if (container.value) container.value.removeEventListener('click', handleDebugToggle);
   await cleanup();
 });
 
 // === EXPOSE ===
 defineExpose({
-  // Методы управления
-  init,
+  init: performInit,
   cleanup,
   resetCamera,
-  retryInit,
+  forceRetry,
   updateModel,
-
-  // THREE объекты (для продвинутого использования)
   scene,
   camera,
   renderer,
   controls,
   three,
-
-  // Статус
   isInitialized,
   isLoading,
   webGLInfo,
   gpuQuality,
-
-  // ✅ МЕТОДЫ КОНТРОЛЛЕРА (для внешнего управления)
-  isContainerInitialized: () => initController.isContainerInitialized(container.value),
-  waitForInit: () => initController.waitForInit(container.value),
-  checkContainerStatus: () => initController.checkContainerStatus(container.value)
+  isRecovering,
+  isModelLoaded,
+  modelLoadTime,
+  modelError
 });
 </script>
 
@@ -550,149 +682,77 @@ defineExpose({
   aspect-ratio: 1 / 1;
   position: relative;
   overflow: hidden;
-  padding: 2px;
+  padding: 1px;
   border: 1px solid #e4e7ed;
   border-radius: 4px;
-  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  background: linear-gradient(145deg, #fff 0%, #f8f9fa 100%);
+  font-size: 7px;
 }
-
-.universal-three-scene.mode-minimal {
-  padding: 0;
-  border: none;
-  background: transparent;
-}
+.universal-three-scene.mode-minimal { padding: 0; border: none; background: transparent; }
 
 .camera-reset-btn {
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 28px;
-  height: 28px;
-  background: linear-gradient(145deg, rgba(0, 0, 0, 0.75) 0%, rgba(20, 20, 20, 0.85) 100%);
+  bottom: 2px;
+  right: 2px;
+  width: 12px;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
+  border-radius: 3px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #fff;
   z-index: 999;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
 }
+.camera-reset-btn:hover { background: rgba(64, 158, 255, 0.9); border-color: #409eff; }
 
-.camera-reset-btn:hover {
-  background: linear-gradient(145deg, rgba(64, 158, 255, 0.95) 0%, rgba(50, 140, 240, 0.9) 100%);
-  border-color: #409eff;
-  transform: scale(1.08);
+.scene-loading, .scene-error {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, 0.95); z-index: 100; gap: 4px; font-size: 8px;
 }
-
-.scene-loading {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.9);
-  z-index: 100;
-  gap: 10px;
-}
-
+.scene-error { background: rgba(254, 240, 240, 0.95); color: #f56c6c; }
 .loading-spinner {
-  width: 30px;
-  height: 30px;
-  border: 3px solid #e4e7ed;
-  border-top-color: #409eff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
+  width: 16px; height: 16px; border: 2px solid #e4e7ed;
+  border-top-color: #409eff; border-radius: 50%; animation: spin 1s linear infinite;
 }
-
-.loading-text {
-  font-size: 12px;
-  color: #606266;
-}
-
-.scene-error {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(254, 240, 240, 0.95);
-  z-index: 100;
-  gap: 8px;
-}
-
-.error-icon {
-  font-size: 32px;
-  color: #f56c6c;
-}
-
-.error-text {
-  font-size: 12px;
-  color: #f56c6c;
-  text-align: center;
-  padding: 0 10px;
-}
+.error-icon { font-size: 16px; }
+.error-btn, .retry-btn, .debug-btn { padding: 2px 4px !important; height: 18px !important; font-size: 7px !important; min-width: 18px !important; }
 
 .scene-debug {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  background: rgba(0, 0, 0, 0.85);
-  padding: 8px 10px;
-  border-radius: 4px;
-  z-index: 99;
-  font-size: 10px;
-  color: #fff;
-  min-width: 150px;
+  position: absolute; top: 2px; left: 2px; background: #000c;
+  padding: 2px 4px; border-radius: 3px; z-index: 99;
+  font-size: 7px; color: #fff; min-width: 65px; width: 65px;
 }
+.debug-row { display: flex; justify-content: space-between; gap: 4px; }
+.ok { color: #67c23a; }
+.err { color: #f56c6c; }
 
-.debug-header {
-  font-size: 11px;
-  font-weight: 600;
-  color: #409eff;
-  margin-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
-  padding-bottom: 4px;
+.debug-overlay {
+  position: absolute; top: 2px; left: 2px; background: rgba(30, 30, 40, 0.95);
+  padding: 2px 4px; border-radius: 3px; z-index: 1000;
+  font-size: 7px; color: #fff; min-width: 120px; border: 1px solid #409eff; cursor: default;
 }
+.debug-overlay .debug-header { font-weight: 700; color: #409eff; margin-bottom: 2px; border-bottom: 1px solid rgba(255,255,255,0.2); padding-bottom: 1px; }
+.debug-overlay .debug-row { display: flex; justify-content: space-between; gap: 4px; margin-bottom: 1px; }
 
-.debug-row {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 3px;
+.model-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+.model-loading {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: rgba(245, 247, 250, 0.9); color: #606266; font-size: 8px; z-index: 60;
 }
-
-.debug-label { color: #909399; }
-.debug-value { font-weight: 600; }
-.debug-value.success { color: #67c23a; }
-.debug-value.error { color: #f56c6c; }
-.debug-value.quality-high { color: #67c23a; }
-.debug-value.quality-medium { color: #e6a23c; }
-.debug-value.quality-low { color: #f56c6c; }
-
-.gpu-name {
-  max-width: 120px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.model-placeholder {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; background: rgba(245, 247, 250, 0.95);
+  z-index: 50; gap: 2px; color: #909399; text-align: center;
 }
+.placeholder-icon { font-size: 16px; opacity: 0.6; }
+.placeholder-text { line-height: 1.2; }
+.placeholder-hint { font-size: 6px; color: #c0c4cc; }
 
-.debug-enabled {
-  border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+.debug-enabled { border-color: #409eff; box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.3); }
 </style>
