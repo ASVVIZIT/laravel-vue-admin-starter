@@ -1,5 +1,19 @@
 <template>
-  <div class="device-card" :class="{ 'device-card--selected': isSelected }" @click="handleCardClick">
+  <div
+      class="device-card"
+      :class="{
+      'device-card--selected': isSelected,
+      'device-card--updating': isUpdating
+    }"
+      @click="handleCardClick"
+  >
+    <!-- === ИНДИКАТОР ОБНОВЛЕНИЯ (в углу) === -->
+    <transition name="fade">
+      <div v-if="isUpdating" class="card-sync-indicator" title="Синхронизация...">
+        <el-icon class="is-pulsing"><Refresh /></el-icon>
+      </div>
+    </transition>
+
     <!-- HEADER -->
     <div class="card-header">
       <h3 class="card-title" :title="device.name">{{ device.name }}</h3>
@@ -51,13 +65,18 @@
       <el-tooltip content="Настройки" placement="top"><el-button size="small" @click.stop="handleSettingsClick">⚙️</el-button></el-tooltip>
     </div>
 
+    <!-- FOOTER: Last Sync -->
+    <div class="card-footer" v-if="lastSynced">
+      <span class="sync-time" :title="lastSynced">⏱ {{ formatLastSync(lastSynced) }}</span>
+    </div>
+
     <div v-if="isFake" class="fake-badge">🎭</div>
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
-import { Moon, Sunny } from '@element-plus/icons-vue';
+import { Refresh, Moon, Sunny } from '@element-plus/icons-vue';
 import { useDeviceStore, useInterfaceStore, useTypesStore } from '@/components/SmartLight/stores/index.js';
 import { PowerManagementController } from '@/components/SmartLight/controllers/PowerManagementController.js';
 import { calculateBatteryColor, calculateBatteryCriticalProgress } from '@/components/SmartLight/utils/appDeviceUtils.js';
@@ -72,11 +91,20 @@ const interfaceStore = useInterfaceStore();
 const typesStore = useTypesStore();
 const powerController = new PowerManagementController();
 
+// === COMPUTED: Update state ===
+const isUpdating = computed(() => deviceStore.isDeviceUpdatingStore?.(props.device?.device_id) || false);
+const lastSynced = computed(() => deviceStore.getDeviceLastSyncedStore?.(props.device?.device_id));
+
 const isFake = computed(() => props.device.is_fake === true);
 const isSelected = computed(() => deviceStore.selectedDevice?.device_id === props.device.device_id);
 const is3DMode = computed(() => interfaceStore.getDevice3DModeStore?.(props.device.device_id) || false);
 
-const statusClass = computed(() => ({ 'status--on': props.device.status === 'ON', 'status--off': props.device.status === 'OFF', 'status--sleeping': props.device.status === 'SLEEPING', 'status--error': props.device.status === 'ERROR' }));
+const statusClass = computed(() => ({
+  'status--on': props.device.status === 'ON',
+  'status--off': props.device.status === 'OFF',
+  'status--sleeping': props.device.status === 'SLEEPING',
+  'status--error': props.device.status === 'ERROR'
+}));
 const statusText = computed(() => ({ ON: 'Вкл', OFF: 'Выкл', SLEEPING: 'Сон', ERROR: 'Ошб' }[props.device.status] || '—'));
 const bulbLabel = computed(() => props.device.bulb_type?.short_name || props.device.bulb_type?.name || typesStore.getBulbTypeByIdStore?.(props.device.bulb_type_id)?.short_name || props.device.bulb_type_id || '—');
 const batteryLabel = computed(() => props.device.battery_type?.short_name || props.device.battery_type?.name || typesStore.getBatteryTypeByIdStore?.(props.device.battery_type_id)?.short_name || props.device.battery_type_id || '—');
@@ -93,34 +121,72 @@ const sleepButtonIcon = computed(() => props.device.status === 'SLEEPING' ? Sunn
 const sleepTooltip = computed(() => props.device.status === 'SLEEPING' ? 'Пробудить' : 'Сон');
 const mode3DTooltip = computed(() => is3DMode.value ? '2D' : '3D');
 
+// === FORMATTERS ===
+const formatLastSync = (timestamp) => {
+  if (!timestamp) return '';
+  const diff = Date.now() - new Date(timestamp).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}с`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}м`;
+  const hours = Math.floor(minutes / 60);
+  return `${hours}ч`;
+};
+
+// === ACTIONS ===
 const handleCardClick = () => emit('device-selected', props.device);
 const handlePowerClick = () => emit('power-click', props.device);
 const handleSleepClick = () => emit(props.device.status === 'SLEEPING' ? 'wake-click' : 'sleep-click', props.device);
 const handleSettingsClick = () => emit('open-settings', props.device);
 
-// ✅ ЛОГИРОВАНИЕ ПЕРЕКЛЮЧЕНИЯ 3D В ОБЩУЮ ПАНЕЛЬ
 const handle3DToggle = () => {
   const id = props.device.device_id;
   const from = interfaceStore.getDevice3DModeStore(id);
   const to = !from;
-  interfaceStore.addLogStore({ component: 'DeviceCard', message: '3D toggle', data: { deviceId: id, from, to }, level: 'info' });
-  interfaceStore.toggleDevice3DModeStore(id);
+  interfaceStore.addLogStore?.({ component: 'DeviceCard', message: '3D toggle', data: { deviceId: id, from, to }, level: 'info' });
+  interfaceStore.toggleDevice3DModeStore?.(id);
 };
 </script>
 
 <style scoped>
-.device-card { position: relative; width: 190px; height: 190px; border-radius: 6px; background: #fff; border: 1px solid #ebeef5; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; flex-direction: column; overflow: hidden; transition: all 0.15s ease; cursor: pointer; font-size: 9px; }
+.device-card {
+  position: relative;
+  height: 200px;
+  min-width: 180px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #ebeef5;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  font-size: 9px;
+}
 .device-card:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.1); border-color: #dcdfe6; }
 .device-card--selected { border-color: #409eff; box-shadow: 0 0 0 2px rgba(64,158,255,0.15); }
-.card-header { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; background: #f5f7fa; border-bottom: 1px solid #ebeef5; flex-shrink: 0; }
+.device-card--updating { animation: subtle-glow 1.5s ease-in-out infinite; }
+.card-sync-indicator {
+  position: absolute; top: 6px; right: 6px; z-index: 10;
+  background: rgba(64,158,255,0.9); border-radius: 50%;
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+  animation: pulse 1s ease-in-out infinite;
+}
+.card-sync-indicator .el-icon { color: #fff; font-size: 12px; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.1);opacity:0.8} }
+@keyframes subtle-glow { 0%,100%{box-shadow:0 0 0 0 rgba(64,158,255,0)} 50%{box-shadow:0 0 0 2px rgba(64,158,255,0.15)} }
+.fade-enter-active,.fade-leave-active{transition:opacity 0.2s}
+.fade-enter-from,.fade-leave-to{opacity:0}
+.card-header { display: flex; justify-content: space-between; align-items: center; padding: 2px 4px; background: #f5f7fa; border-bottom: 1px solid #ebeef5; flex-shrink: 0; }
 .card-title { margin: 0; font-size: 10px; font-weight: 600; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px; }
 .card-status { padding: 1px 4px; border-radius: 3px; font-size: 8px; font-weight: 600; flex-shrink: 0; }
 .status--on { background: #f0f9eb; color: #67c23a; }
 .status--off { background: #f5f7fa; color: #909399; }
 .status--sleeping { background: #fdf6ec; color: #e6a23c; }
 .status--error { background: #fef0f0; color: #f56c6c; }
-.card-visuals { display: flex; gap: 3px; justify-content: center; align-items: flex-start; padding: 3px 4px; border-bottom: 1px dashed #ebeef5; flex-shrink: 0; }
-.visual-item { flex: 0 0 46%; max-width: 46%; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.card-visuals { display: flex; gap: 3px; justify-content: center; align-items: flex-start; padding: 2px 2px; border-bottom: 1px dashed #ebeef5; flex-shrink: 0; }
+.visual-item { flex: 0 0 42%; max-width: 42%; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .visual-label { font-size: 7px; color: #606266; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; font-weight: 500; }
 .card-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 3px 4px; flex-shrink: 0; }
 .metric { text-align: center; }
@@ -129,5 +195,7 @@ const handle3DToggle = () => {
 .card-controls { display: flex; justify-content: space-between; gap: 2px; padding: 3px 4px; border-top: 1px dashed #ebeef5; flex-shrink: 0; margin-top: auto; }
 .card-controls .el-button { flex: 1; font-size: 9px; padding: 3px 1px; min-width: auto; height: 22px; }
 :deep(.card-controls .el-button .el-icon) { font-size: 11px; }
-.fake-badge { position: absolute; top: 3px; left: 3px; padding: 1px 3px; background: #fdf6ec; border: 1px solid #e6a23c; border-radius: 3px; font-size: 7px; color: #e6a23c; font-weight: 600; z-index: 1; pointer-events: none; }
+.card-footer { padding: 2px 4px; text-align: right; background: #c1d1debf; border-top: 1px solid #ebeef5; font-size: 8px; color: #909399; }
+.sync-time { white-space: nowrap; }
+.fake-badge { position: absolute; top: 22px; left: 2px; padding: 2px 2px; background: #fdf6ec; border: 1px solid #e6a23c; border-radius: 3px; font-size: 7px; color: #e6a23c; font-weight: 600; z-index: 1; pointer-events: none; }
 </style>

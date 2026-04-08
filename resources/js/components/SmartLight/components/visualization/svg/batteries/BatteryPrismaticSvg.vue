@@ -1,6 +1,5 @@
 <template>
-  <div class="battery-prismatic-svg">
-    <!-- Базовый компонент с параметрами для призматических батарей -->
+  <div class="battery-prismatic-wrapper">
     <BatteryBaseSvg
         :voltage="voltage"
         :critical-voltage="criticalVoltage"
@@ -10,92 +9,62 @@
         :colors="colors"
         :height="height"
         :show-levels="showLevels"
-        :show-markers="showMarkers"
-        :scale="scale"
         :cap-color="capColorHex"
+        :is-box="true"
+        :body-color="bodyColorHex"
     />
-
-    <!-- Специфичные детали призматической батареи (плоская форма) -->
-    <div class="battery-prismatic-details">
-      <span class="battery-type-label">{{ shortName }}</span>
-      <span class="battery-capacity-label">{{ capacity }}мАч</span>
-      <span class="battery-chemistry-badge">{{ chemistry }}</span>
+    <div class="battery-details" v-if="showDetails">
+      <span class="label">{{ shortName }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import BatteryBaseSvg from './BatteryBaseSvg.vue';
-import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
+import { computed } from 'vue'
+import BatteryBaseSvg from './BatteryBaseSvg.vue'
+import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js'
 
 const props = defineProps({
-  voltage: { type: Number, default: 3.2 },
-  criticalVoltage: { type: Number, default: 2.5 },
+  voltage: { type: Number, default: 12.0 },
+  criticalVoltage: { type: Number, default: 10.5 },
   status: { type: String, default: 'ON' },
+  batteryTypeId: { type: String, default: 'lead-acid-12v' },
   height: { type: String, default: '50px' },
   showLevels: { type: Boolean, default: true },
-  showMarkers: { type: Boolean, default: true }
-});
+  showDetails: { type: Boolean, default: true }
+})
 
-const configStore = useVisualizationConfigStore();
-// ✅ Поиск конфига для призматической батареи (LiFePO4 и др.)
-const config = computed(() => configStore.getBatteryConfigStore('li-fe-po4'));
+const configStore = useVisualizationConfigStore()
+const config = computed(() => configStore.getBatteryConfigStore(props.batteryTypeId))
 
-// ✅ Параметры из specs
-const minVoltage = computed(() => config.value?.specs?.minVoltage ?? 2.0);
-const maxVoltage = computed(() => config.value?.specs?.maxVoltage ?? 3.65);
-const colors = computed(() => config.value?.visualConfig?.colors ?? {
-  normal: '#4caf50',
-  warning: '#ff9800',
-  critical: '#f44336',
-  off: '#9e9e9e'
-});
-const scale = computed(() => config.value?.visualConfig?.scale ?? 1.25);
-const shortName = computed(() => config.value?.shortName ?? 'LiFePO4');
-const capacity = computed(() => config.value?.specs?.capacity ?? 6000);
-const chemistry = computed(() => config.value?.specs?.chemistry?.toUpperCase() ?? 'LI-FE-PO4');
+const minVoltage = computed(() => config.value?.specs?.minVoltage ?? 10.5)
+const maxVoltage = computed(() => config.value?.specs?.maxVoltage ?? 14.4)
+const colors = computed(() => config.value?.visualConfig?.colors ?? {})
+const shortName = computed(() => config.value?.shortName ?? 'Block')
 
-// ✅ Конвертация цвета крышки
 const capColorHex = computed(() => {
-  const colorValue = config.value?.visualConfig?.material?.cap?.color;
-  if (typeof colorValue === 'number') {
-    return '#' + colorValue.toString(16).padStart(6, '0');
-  }
-  return '#ffa640';
-});
+  const c = config.value?.visualConfig?.materials?.terminal?.color
+  return typeof c === 'number' ? '#' + c.toString(16).padStart(6, '0') : '#333'
+})
+const bodyColorHex = computed(() => {
+  const c = config.value?.visualConfig?.materials?.body?.color
+  return typeof c === 'number' ? '#' + c.toString(16).padStart(6, '0') : '#444'
+})
 </script>
 
 <style scoped>
-.battery-prismatic-svg {
+.battery-prismatic-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
 }
-
-.battery-prismatic-details {
-  display: flex;
-  gap: 6px;
-  font-size: 8px;
+.battery-details {
+  margin-top: 4px;
+  font-size: 9px;
   color: #606266;
-  align-items: center;
+  text-align: center;
 }
-
-.battery-type-label {
+.label {
   font-weight: 600;
-}
-
-.battery-capacity-label {
-  color: #909399;
-}
-
-.battery-chemistry-badge {
-  background: #e8f5e9;
-  color: #2e7d32;
-  padding: 1px 4px;
-  border-radius: 2px;
-  font-size: 7px;
-  font-weight: 500;
 }
 </style>

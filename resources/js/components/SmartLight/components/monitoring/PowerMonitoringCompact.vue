@@ -195,7 +195,7 @@ watch(
 .power-monitoring-compact {
   background: #fff;
   border-radius: 4px;
-  min-height: 48px;
+  min-height: 40px;
   border: 1px solid #e4e7ed;
   overflow: hidden;
 }
@@ -214,7 +214,7 @@ watch(
 
 .skeleton-metrics {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(10, 1fr);
   gap: 2px;
 }
 
@@ -230,7 +230,7 @@ watch(
   display: flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 3px;
+  padding: 1px 2px;
   background: linear-gradient(135deg, #f0f9eb 0%, #e8f5e9 100%);
   border: 1px solid #e1f3d8;
   border-radius: 3px;
@@ -267,7 +267,7 @@ watch(
 /* === Metrics Grid === */
 .monitoring-metrics {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(10, 1fr);
   gap: 2px;
 }
 

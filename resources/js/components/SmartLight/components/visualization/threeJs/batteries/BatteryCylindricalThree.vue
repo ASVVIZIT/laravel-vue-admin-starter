@@ -48,5 +48,10 @@ const onModelUpdate = (data) => emit('model-update', data);
 </script>
 
 <style scoped>
-/* Стили контейнера управляются BatteryBaseThree */
+.battery-three-wrapper {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+}
 </style>

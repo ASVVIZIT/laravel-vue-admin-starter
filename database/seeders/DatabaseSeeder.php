@@ -5,50 +5,40 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\PermissionRegistrar;
 
-# ✅ ПОЛНЫЙ СБРОС + СИДИНГ (ОСНОВНОЙ СПОСОБ)
-# php artisan migrate:fresh --seed
-
-# ✅ ТОЛЬКО КАНАЛЫ (через сидер)
-# php artisan db:seed --class=Database\\Seeders\\CompanyContactChannels\\CompanyContactChannelsSeeder
-
-# ✅ ТОЛЬКО КАНАЛЫ (через команду)
-# php artisan seed:channels
-
-# ✅ БЫСТРЫЙ РЕЖИМ (изменить CURRENT_MODE на MODE_FAST)
-# php artisan db:seed --class=Database\\Seeders\\CompanyContactChannels\\FastCompanyContactChannelSeeder
-
-# ✅ ТОЛЬКО КОМПАНИИ
-# php artisan db:seed --class=Database\\Seeders\\Company\\CompanySeeder
+/**
+ * ============================================================================
+ * ГЛАВНЫЙ СИДЕР БАЗЫ ДАННЫХ
+ * ============================================================================
+ * 📁 Путь: database/seeders/DatabaseSeeder.php
+ * ✅ Запуск: php artisan migrate:fresh --seed
+ * ✅ Порядок: Базовые → Интерфейс → Защита → SmartLight
+ * ============================================================================
+ */
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ГЛОБАЛЬНЫЙ СБРОС КЕША перед всеми сидерами
+        // Глобальный сброс кеша прав перед всеми сидерами
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        $this->command->info('🚀 Запуск сидеров...');
+        $this->command->info('🚀 <bg=blue;fg=white> ЗАПУСК СИДЕРОВ </>');
+        $this->command->newLine();
 
-        // 1. Базовые данные (роли, пользователи, права)
+        // === 1. БАЗОВЫЕ ДАННЫЕ ===
         $this->call(\Database\Seeders\Base\AdminBaseSeeder::class);
 
-        // 2. Интерфейс админки
+        // === 2. ИНТЕРФЕЙС АДМИНКИ ===
         $this->call(\Database\Seeders\Interface\AdminMenuSeeder::class);
-
-        // 3. Интерфейс шаблонизатора таблицы
         $this->call(\Database\Seeders\Interface\Template\TemplateSeeder::class);
 
-        // 4. Электрическая защита
+        // === 3. ЭЛЕКТРИЧЕСКАЯ ЗАЩИТА ===
         $this->call(\Database\Seeders\ElectricalProtection\ElectricalProtectionSeeder::class);
 
-        // 5. SmartLight (когда будет готов)
-        $this->call(\Database\Seeders\SmartLight\SmartLightPermissionsSeeder::class);
-        // 5.1 SmartLight (Фейковые данные для отладки интерфейса)
-        $this->call([
-            \Database\Seeders\SmartLight\SmartLightDeviceSeeder::class,
-            \Database\Seeders\SmartLight\SmartLightTelemetrySeeder::class
-        ]);
+        // === 4. SMARTLIGHT (полный пакет) ===
+        $this->call(\Database\Seeders\SmartLight\SmartLightMainSeeder::class);
 
-        $this->command->info('✅ Все сидеры завершены!');
+        $this->command->newLine();
+        $this->command->info('✅ <bg=green;fg=black> ВСЕ СИДЕРЫ ЗАВЕРШЕНЫ </>');
     }
 }

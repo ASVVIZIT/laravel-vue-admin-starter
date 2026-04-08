@@ -1,6 +1,5 @@
 <template>
-  <div class="battery-18650-svg">
-    <!-- Базовый компонент с динамическими параметрами -->
+  <div class="battery-cylindrical-svg">
     <BatteryBaseSvg
         :voltage="voltage"
         :critical-voltage="criticalVoltage"
@@ -14,76 +13,51 @@
         :scale="scale"
         :cap-color="capColorHex"
     />
-
-    <!-- Специфичные детали типа 18650 -->
-    <div class="battery-18650-details">
+    <div class="battery-cylindrical-details">
       <span class="battery-type-label">{{ shortName }}</span>
       <span class="battery-capacity-label">{{ capacity }}мАч</span>
+      <span v-if="chemistry" class="battery-chemistry-badge">{{ chemistry }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import BatteryBaseSvg from './BatteryBaseSvg.vue';
-import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
+import { computed } from 'vue'
+import BatteryBaseSvg from './BatteryBaseSvg.vue'
+import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js'
 
 const props = defineProps({
   voltage: { type: Number, default: 3.7 },
-  criticalVoltage: { type: Number, default: 3.2 },
+  criticalVoltage: { type: Number, default: 2.5 },
   status: { type: String, default: 'ON' },
+  batteryTypeId: { type: String, default: 'li-ion-18650' },
   height: { type: String, default: '50px' },
   showLevels: { type: Boolean, default: true },
   showMarkers: { type: Boolean, default: true }
-});
+})
 
-const configStore = useVisualizationConfigStore();
-// ✅ Динамический поиск конфига по фиксированному ID типа
-const config = computed(() => configStore.getBatteryConfigStore('li-ion-18650'));
+const configStore = useVisualizationConfigStore()
+const config = computed(() => configStore.getBatteryConfigStore(props.batteryTypeId))
 
-// ✅ Получение параметров из specs, а не хардкод
-const minVoltage = computed(() => config.value?.specs?.minVoltage ?? 2.5);
-const maxVoltage = computed(() => config.value?.specs?.maxVoltage ?? 4.2);
-const colors = computed(() => config.value?.visualConfig?.colors ?? {
-  normal: '#67c23a',
-  warning: '#e6a23c',
-  critical: '#f56c6c',
-  off: '#909399'
-});
-const scale = computed(() => config.value?.visualConfig?.scale ?? 1.15);
-const shortName = computed(() => config.value?.shortName ?? '18650');
-const capacity = computed(() => config.value?.specs?.capacity ?? 3500);
+const minVoltage = computed(() => config.value?.specs?.minVoltage ?? 2.5)
+const maxVoltage = computed(() => config.value?.specs?.maxVoltage ?? 4.2)
+const colors = computed(() => config.value?.visualConfig?.colors ?? { normal: '#67c23a', warning: '#e6a23c', critical: '#f56c6c', off: '#909399' })
+const scale = computed(() => config.value?.visualConfig?.scale ?? 1.0)
+const shortName = computed(() => config.value?.shortName ?? '18650')
+const capacity = computed(() => config.value?.specs?.capacity ?? 3500)
+const chemistry = computed(() => config.value?.specs?.chemistry?.toUpperCase() ?? 'LI-ION')
 
-// ✅ Конвертация цвета крышки из числа (0xffa640) в строку ('#ffa640')
 const capColorHex = computed(() => {
-  const colorValue = config.value?.visualConfig?.material?.cap?.color;
-  if (typeof colorValue === 'number') {
-    return '#' + colorValue.toString(16).padStart(6, '0');
-  }
-  return '#ffa640';
-});
+  const colorValue = config.value?.visualConfig?.materials?.cap?.color
+  if (typeof colorValue === 'number') return '#' + colorValue.toString(16).padStart(6, '0')
+  return '#ffa640'
+})
 </script>
 
 <style scoped>
-.battery-18650-svg {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.battery-18650-details {
-  display: flex;
-  gap: 8px;
-  font-size: 8px;
-  color: #606266;
-}
-
-.battery-type-label {
-  font-weight: 600;
-}
-
-.battery-capacity-label {
-  color: #909399;
-}
+.battery-cylindrical-svg{display:flex;flex-direction:column;align-items:center;gap:4px}
+.battery-cylindrical-details{display:flex;gap:6px;font-size:8px;color:#606266;align-items:center}
+.battery-type-label{font-weight:600}
+.battery-capacity-label{color:#909399}
+.battery-chemistry-badge{background:#e3f2fd;color:#1976d2;padding:1px 4px;border-radius:2px;font-size:7px;font-weight:500}
 </style>

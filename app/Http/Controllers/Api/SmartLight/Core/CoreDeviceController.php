@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\SmartLight\Core;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\SmartLight\Core\CoreDeviceResource;
 use App\Models\SmartLight\SmartLightDevice;
+use App\Models\SmartLight\SmartLightUser;
 use App\Services\SmartLight\DeviceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,31 +14,48 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Events\SmartLight\DeviceCommandSent;
 
+/**
+ * ============================================================================
+ * CORE DEVICE CONTROLLER — УПРАВЛЕНИЕ УСТРОЙСТВАМИ ОСВЕЩЕНИЯ
+ * ============================================================================
+ * 📁 Путь: app/Http/Controllers/Api/SmartLight/Core/CoreDeviceController.php
+ * ✅ Архитектура: Логика прав делегирована в модели (SmartLightUser, SmartLightDevice)
+ * ✅ Исправление: Прямая проверка прав через Auth::user()->can() (обход проблемы с кэшем)
+ * ✅ Фильтрация: Явная логика для вкладок "Мои" / "Реальные" / "Фейковые"
+ * ============================================================================
+ */
+
 class CoreDeviceController extends Controller
 {
     /**
      * Constructor with dependency injection.
      */
-    public function __construct(private DeviceService $deviceService)
-    {
-        //
-    }
+    public function __construct(private DeviceService $deviceService) {}
+
+    // ========================================================================
+    // 📋 LIST & FILTER
+    // ========================================================================
 
     /**
-     * Get all devices with pagination.
-     *
      * GET /smart-light/devices
+     *
+     * ✅ Исправлено: Прямая проверка прав, явная фильтрация по вкладке "Мои"
      */
     public function index(Request $request)
     {
+        // 🔥 Сброс кэша прав (гарантирует актуальность после сидинга/изменений)
+        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+        // === 1. Базовый запрос с отношениями ===
         $query = SmartLightDevice::with(['batteryType', 'bulbType', 'powerSupply']);
 
-        // Фильтрация по правам доступа
-        if (!Auth::user()?->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT)) {
-            $query->where('user_id', Auth::id());
-        }
+        // === 2. Фильтрация по правам доступа (через скоуп модели) ===
+        // ✅ Скоуп теперь использует прямую проверку прав (без создания нового экземпляра)
+        $query->forSmartLightUser();
 
-        // Поиск по имени или device_id
+        // === 3. Дополнительные фильтры ===
+
+        // 🔍 Поиск по имени или device_id
         if ($search = $request->input('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
@@ -45,24 +63,40 @@ class CoreDeviceController extends Controller
             });
         }
 
-        // Фильтр по статусу
+        // 📊 Фильтр по статусу
         if ($status = $request->input('status')) {
             $query->where('status', $status);
         }
 
-        // Фильтр по типу: только фейковые или только реальные
-        if ($request->boolean('fake_only')) {
-            $query->where('is_fake', true);
-        } elseif ($request->boolean('real_only')) {
-            $query->where('is_fake', false);
-        }
+        // 🎯 Фильтр по вкладке (явная логика)
+        $tab = $request->input('tab', 'all');
 
-        // ✅ СТАБИЛЬНАЯ СОРТИРОВКА: сначала по is_fake, потом по device_id
+        match ($tab) {
+            // "Реальные" — только is_fake = false
+            'real' => $query->where('is_fake', false),
+
+            // "Фейковые" — только is_fake = true
+            'fake' => $query->where('is_fake', true),
+
+            // "Мои" — ТОЛЬКО устройства текущего пользователя (игнорирует права админа)
+            // ✅ Это гарантирует, что в табе "Мои" пользователь видит именно свои устройства
+            'personal' => $query->where('user_id', Auth::id()),
+
+            // "Все" или неизвестное — без дополнительных фильтров
+            default => null,
+        };
+
+        // === 4. Сортировка и пагинация ===
         $devices = $query
-            ->orderBy('is_fake', 'asc')
+            ->orderBy('name', 'asc')
             ->orderBy('device_id', 'asc')
-            ->paginate($request->input('per_page', 10));
+            ->paginate($request->input('per_page', 120));
 
+        // === 5. Динамические вкладки на основе прав ===
+        // ✅ Получаем через модель, но права проверяются через сервис (без каста)
+        $tabs = SmartLightUser::current()?->getSmartLightTabs() ?? [];
+
+        // === 6. Ответ ===
         return response()->json([
             'success' => true,
             'data' => CoreDeviceResource::collection($devices),
@@ -71,13 +105,17 @@ class CoreDeviceController extends Controller
                 'per_page' => $devices->perPage(),
                 'current_page' => $devices->currentPage(),
                 'last_page' => $devices->lastPage(),
+                'has_more' => $devices->hasMorePages(),
+                'tabs' => $tabs, // ✅ Динамические вкладки
             ],
         ], 200);
     }
 
+    // ========================================================================
+    // 👁️ READ SINGLE
+    // ========================================================================
+
     /**
-     * Get single device by device_id.
-     *
      * GET /smart-light/devices/{device_id}
      */
     public function show(string $device_id)
@@ -95,32 +133,25 @@ class CoreDeviceController extends Controller
     }
 
     /**
-     * Get devices for dropdown selection.
-     *
      * GET /smart-light/devices/dropdown
      */
     public function listForDropdown(Request $request)
     {
-        $query = SmartLightDevice::query();
-
-        if (!Auth::user()?->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT)) {
-            $query->where('user_id', Auth::id());
-        }
+        $query = SmartLightDevice::query()->forSmartLightUser();
 
         $devices = $query
             ->select('device_id as id', 'name as label', 'status', 'is_fake')
             ->orderBy('name')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $devices,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $devices], 200);
     }
 
+    // ========================================================================
+    // ✏️ UPDATE STATE
+    // ========================================================================
+
     /**
-     * Update device status.
-     *
      * PUT /smart-light/devices/{device_id}/status
      */
     public function updateStatus(Request $request, string $device_id)
@@ -134,14 +165,11 @@ class CoreDeviceController extends Controller
         $this->authorize('update', $device);
 
         $updateData = ['status' => $validated['status']];
-
         if (isset($validated['intensity'])) {
             $updateData['intensity'] = (int) $validated['intensity'];
         }
 
         $device->update($updateData);
-
-        // ✅ ИСПРАВЛЕНО: передаём $intensity как int, а не массив
         $intensityValue = isset($validated['intensity']) ? (int) $validated['intensity'] : 0;
 
         Cache::put("cmd_{$device_id}", [
@@ -151,10 +179,7 @@ class CoreDeviceController extends Controller
             'timestamp' => now()->timestamp,
         ], 120);
 
-        // ✅ ИСПРАВЛЕНО: передаём $intensityValue как int (не массив)
         event(new DeviceCommandSent($device_id, 'STATUS_UPDATE', $intensityValue));
-
-        // ✅ Загружаем отношения для корректного ответа ресурса
         $device->load(['batteryType', 'bulbType', 'powerSupply']);
 
         return response()->json([
@@ -165,8 +190,6 @@ class CoreDeviceController extends Controller
     }
 
     /**
-     * Update device intensity only.
-     *
      * PUT /smart-light/devices/{device_id}/intensity
      */
     public function updateIntensity(Request $request, string $device_id)
@@ -187,8 +210,6 @@ class CoreDeviceController extends Controller
         ], 120);
 
         event(new DeviceCommandSent($device_id, 'SET_INTENSITY', (int) $validated['intensity']));
-
-        // ✅ Загружаем отношения для корректного ответа ресурса
         $device->load(['batteryType', 'bulbType', 'powerSupply']);
 
         return response()->json([
@@ -198,9 +219,11 @@ class CoreDeviceController extends Controller
         ], 200);
     }
 
+    // ========================================================================
+    // 😴 SLEEP / WAKE
+    // ========================================================================
+
     /**
-     * Force sleep device (emergency).
-     *
      * POST /smart-light/devices/{device_id}/sleep
      */
     public function forceSleep(Request $request, string $device_id)
@@ -220,16 +243,11 @@ class CoreDeviceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Команда сна отправлена',
-            'data' => [
-                'device_id' => $device_id,
-                'status' => $device->status,
-            ],
+            'data' => ['device_id' => $device_id, 'status' => $device->status],
         ], 200);
     }
 
     /**
-     * Wake up device.
-     *
      * POST /smart-light/devices/{device_id}/wake
      */
     public function wakeDevice(Request $request, string $device_id)
@@ -249,16 +267,15 @@ class CoreDeviceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Устройство пробуждено',
-            'data' => [
-                'device_id' => $device_id,
-                'status' => $device->status,
-            ],
+            'data' => ['device_id' => $device_id, 'status' => $device->status],
         ], 200);
     }
 
+    // ========================================================================
+    // 📊 TELEMETRY & STATUS
+    // ========================================================================
+
     /**
-     * Get device telemetry history.
-     *
      * GET /smart-light/devices/{device_id}/telemetry
      */
     public function getTelemetry(Request $request, string $device_id)
@@ -272,7 +289,6 @@ class CoreDeviceController extends Controller
         ]);
 
         $query = $device->telemetry();
-
         $periods = [
             '1h' => now()->subHour(),
             '6h' => now()->subHours(6),
@@ -290,15 +306,10 @@ class CoreDeviceController extends Controller
             ->limit($validated['limit'] ?? 100)
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => $telemetry,
-        ], 200);
+        return response()->json(['success' => true, 'data' => $telemetry], 200);
     }
 
     /**
-     * Get battery status summary.
-     *
      * GET /smart-light/devices/{device_id}/battery
      */
     public function getBatteryStatus(string $device_id)
@@ -314,14 +325,12 @@ class CoreDeviceController extends Controller
                 'critical_voltage' => $device->critical_voltage,
                 'battery_progress' => $device->battery_progress,
                 'voltage_color' => $device->voltage_color,
-                'is_critical' => $device->isBatteryCritical(),
+                'is_critical' => $device->voltage <= $device->critical_voltage,
             ],
         ], 200);
     }
 
     /**
-     * Get power status summary.
-     *
      * GET /smart-light/devices/{device_id}/power
      */
     public function getPowerStatus(string $device_id)
@@ -340,9 +349,11 @@ class CoreDeviceController extends Controller
         ], 200);
     }
 
+    // ========================================================================
+    // ➕ REGISTER / ❌ DELETE
+    // ========================================================================
+
     /**
-     * Register new device.
-     *
      * POST /smart-light/devices/register
      */
     public function register(Request $request)
@@ -382,16 +393,11 @@ class CoreDeviceController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Устройство зарегистрировано',
-            'data' => [
-                'device_id' => $device->device_id,
-                'api_key' => $device->api_key,
-            ],
+            'data' => ['device_id' => $device->device_id, 'api_key' => $device->api_key],
         ], 201);
     }
 
     /**
-     * Delete device (soft delete).
-     *
      * DELETE /smart-light/devices/{device_id}
      */
     public function destroy(string $device_id)
@@ -401,20 +407,17 @@ class CoreDeviceController extends Controller
 
         $device->telemetry()->delete();
         $device->delete();
-
         Cache::forget("cmd_{$device_id}");
-
         Log::info('Device soft-deleted', ['device_id' => $device_id]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Устройство удалено',
-        ], 200);
+        return response()->json(['success' => true, 'message' => 'Устройство удалено'], 200);
     }
 
+    // ========================================================================
+    // ⚙️ SETTINGS
+    // ========================================================================
+
     /**
-     * Update device settings (battery, bulb, power supply types + intervals).
-     *
      * PUT /smart-light/devices/{device_id}/settings
      */
     public function updateSettings(Request $request, string $device_id)
@@ -459,18 +462,12 @@ class CoreDeviceController extends Controller
         // 2. Обновляем JSON-настройки (если переданы)
         if (!empty($validated['settings']) && is_array($validated['settings'])) {
             $currentSettings = is_array($device->settings) ? $device->settings : [];
-            $updatedSettings = array_merge($currentSettings, $validated['settings']);
-            $device->settings = $updatedSettings;
+            $device->settings = array_merge($currentSettings, $validated['settings']);
             $device->save();
         }
 
-        // ✅ Загружаем отношения для корректного ответа ресурса
         $device->load(['batteryType', 'bulbType', 'powerSupply']);
-
-        Log::info('Device settings updated', [
-            'device_id' => $device_id,
-            'updated_fields' => array_keys($validated)
-        ]);
+        Log::info('Device settings updated', ['device_id' => $device_id]);
 
         return response()->json([
             'success' => true,
@@ -480,8 +477,6 @@ class CoreDeviceController extends Controller
     }
 
     /**
-     * Get legacy settings for device polling.
-     *
      * GET /smart-light/devices/{device_id}/settings (legacy)
      */
     public function getLegacySettings(Request $request, string $device_id)
@@ -504,9 +499,11 @@ class CoreDeviceController extends Controller
         ], 200);
     }
 
+    // ========================================================================
+    // 🔐 OWNERSHIP CHECK
+    // ========================================================================
+
     /**
-     * Check device ownership.
-     *
      * GET /smart-light/devices/{device_id}/ownership
      */
     public function checkOwnership(Request $request, string $device_id)

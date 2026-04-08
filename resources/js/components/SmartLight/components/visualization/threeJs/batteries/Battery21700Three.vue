@@ -7,7 +7,6 @@
       :visual-config="visualConfig"
       :specs="specs"
       :voltage="voltage"
-      :critical-voltage="criticalVoltage"
       :status="status"
       :width="width"
       :height="height"
@@ -17,34 +16,32 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
-import BatteryBaseThree from './BatteryBaseThree.vue';
-import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js';
+import { computed } from 'vue'
+import BatteryBaseThree from './BatteryBaseThree.vue'
+import { useVisualizationConfigStore } from '@/components/SmartLight/stores/smartlight/visualizationConfigStore.js'
 
 const props = defineProps({
-  three: { type: Object, required: true },
-  scene: { type: Object, required: true },
-  camera: { type: Object, default: null },
-  renderer: { type: Object, default: null },
-  voltage: { type: Number, default: 3.7 },
-  criticalVoltage: { type: Number, default: 3.2 },
-  status: { type: String, default: 'ON' },
-  width: { type: String, default: '80px' },
-  height: { type: String, default: '80px' }
-});
+  three: Object, scene: Object, camera: Object, renderer: Object,
+  visualConfig: Object, specs: Object, voltage: Number,
+  status: String, width: String, height: String
+})
 
-const emit = defineEmits(['model-ready', 'model-update']);
+const emit = defineEmits(['model-ready', 'model-update'])
+const configStore = useVisualizationConfigStore()
+const config = computed(() => configStore.getBatteryConfigStore('li-ion-21700'))
 
-const configStore = useVisualizationConfigStore();
-const config = computed(() => configStore.getBatteryConfigStore('li-ion-21700'));
+const visualConfig = computed(() => config.value?.visualConfig || {})
+const specs = computed(() => config.value?.specs || {})
 
-const visualConfig = computed(() => config.value?.visualConfig || {});
-const specs = computed(() => config.value?.specs || { minVoltage: 2.5, maxVoltage: 4.2, nominalVoltage: 3.7, capacity: 5000 });
-
-const onModelReady = (data) => emit('model-ready', data);
-const onModelUpdate = (data) => emit('model-update', data);
+const onModelReady = (d) => emit('model-ready', d)
+const onModelUpdate = (d) => emit('model-update', d)
 </script>
 
 <style scoped>
-/* Контейнер управляется BatteryBaseThree */
+.battery-three-wrapper {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+}
 </style>

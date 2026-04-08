@@ -36,7 +36,7 @@ const statusText = computed(() => ({
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 8px;
+  padding: 2px 4px;
   border-radius: 3px;
   font-size: 11px;
   font-weight: 600;

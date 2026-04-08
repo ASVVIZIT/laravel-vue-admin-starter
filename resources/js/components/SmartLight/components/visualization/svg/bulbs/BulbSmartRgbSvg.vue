@@ -108,7 +108,7 @@ const activeRgbColor = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .bulb-smart-rgb {

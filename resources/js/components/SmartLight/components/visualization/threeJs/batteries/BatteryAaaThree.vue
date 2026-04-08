@@ -36,15 +36,20 @@ const props = defineProps({
 const emit = defineEmits(['model-ready', 'model-update']);
 
 const configStore = useVisualizationConfigStore();
-const config = computed(() => configStore.getBatteryConfigStore('alkaline-aa'));
+const config = computed(() => configStore.getBatteryConfigStore('alkaline-aaa'));
 
 const visualConfig = computed(() => config.value?.visualConfig || {});
-const specs = computed(() => config.value?.specs || { minVoltage: 0.9, maxVoltage: 1.5, nominalVoltage: 1.5, capacity: 2800 });
+const specs = computed(() => config.value?.specs || { minVoltage: 0.9, maxVoltage: 1.5, nominalVoltage: 1.5, capacity: 1200 });
 
 const onModelReady = (data) => emit('model-ready', data);
 const onModelUpdate = (data) => emit('model-update', data);
 </script>
 
 <style scoped>
-/* Стили контейнера управляются BatteryBaseThree */
+.battery-three-wrapper {
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+}
 </style>

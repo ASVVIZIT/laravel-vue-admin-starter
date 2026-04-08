@@ -1,143 +1,32 @@
 <template>
-  <div ref="container" class="power-base-three" :style="{ width: containerWidth, height: containerHeight }"></div>
+  <div class="power-base-three" :style="{ width, height }"></div>
 </template>
-
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue';
+import { onMounted, onUnmounted, watch, shallowRef, markRaw } from 'vue';
+import * as THREE from 'three';
 
-const props = defineProps({
-  three: { type: Object, required: true },
-  scene: { type: Object, required: true },
-  camera: { type: Object, default: null },
-  renderer: { type: Object, default: null },
-  visualConfig: { type: Object, required: true },
-  specs: { type: Object, default: () => ({}) },
-  voltage: { type: Number, default: 220 },
-  status: { type: String, default: 'OFF' },
-  width: { type: String, default: '80px' },
-  height: { type: String, default: '80px' }
-});
-
-const emit = defineEmits(['model-ready', 'model-update']);
-
-const container = ref(null);
-const containerWidth = computed(() => props.width);
-const containerHeight = computed(() => props.height);
-
-const powerModel = shallowRef(null);
-const statusLed = shallowRef(null);
-const isDisposed = ref(false);
+const props = defineProps({ three:Object, scene:Object, config:{type:Object,default:()=>({})}, data:{type:Object,default:()=>({})}, width:String, height:String });
+const emit = defineEmits(['model-ready','model-update']);
+const mesh = shallowRef(null); const parts = shallowRef({});
 
 const createModel = () => {
-  if (!props.scene || !props.three || isDisposed.value) return;
+  if(!props.scene) return console.warn('PowBase: scene null');
+  const g = new THREE.Group(); const c = props.config?.visualConfig || {}; const geo = c.geometry || {}; const on = props.data?.status==='ON';
+  parts.value.body = new THREE.Mesh(new THREE.BoxGeometry(geo.w||1.5, geo.h||0.8, geo.d||0.5), new THREE.MeshStandardMaterial({color:0x2d3436,roughness:0.5}));
+  g.add(parts.value.body);
 
-  const { geometry, material, scale } = props.visualConfig;
-  powerModel.value = new props.three.Group();
+  parts.value.ind = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.05), new THREE.MeshBasicMaterial({color: on ? 0x67c23a : 0x555555}));
+  parts.value.ind.position.set((geo.w||1.5)/2-0.2, (geo.h||0.8)/2-0.15, (geo.d||0.5)/2+0.03);
+  g.add(parts.value.ind);
 
-  const dims = geometry.dimensions || { width: 1, height: 1, depth: 0.5 };
-  let bodyGeo;
-
-  if (geometry.type === 'box') {
-    bodyGeo = new props.three.BoxGeometry(dims.width * scale, dims.height * scale, dims.depth * scale);
-  } else {
-    bodyGeo = new props.three.BoxGeometry(1 * scale, 0.8 * scale, 0.5 * scale);
-  }
-
-  const bodyMat = new props.three.MeshStandardMaterial(material.body);
-  const body = new props.three.Mesh(bodyGeo, bodyMat);
-  powerModel.value.add(body);
-
-  // Индикатор статуса (LED)
-  if (material.indicator) {
-    const ledGeo = new props.three.SphereGeometry(0.05 * scale, 16, 16);
-    const ledMat = new props.three.MeshBasicMaterial({ color: material.indicator.color || 0x666666 });
-    statusLed.value = new props.three.Mesh(ledGeo, ledMat);
-    statusLed.value.position.set(dims.width * scale * 0.4, dims.height * scale * 0.35, dims.depth * scale * 0.51);
-    powerModel.value.add(statusLed.value);
-  }
-
-  props.scene.add(powerModel.value);
-  updateModel();
-  emit('model-ready', { model: powerModel.value });
+  mesh.value=markRaw(g); props.scene.add(mesh.value); updateVisuals(); emit('model-ready',{type:c.type});
 };
+const updateVisuals = () => { if(!parts.value.ind) return; parts.value.ind.material.color.setHex(props.data?.status==='ON'?0x67c23a:0x555555); };
 
-const updateModel = () => {
-  if (!statusLed.value || isDisposed.value) return;
-
-  const { indicator } = props.visualConfig.material;
-  let color = indicator.color || 0x666666;
-
-  if (props.status === 'ON' || props.status === 'ACTIVE') {
-    color = indicator.activeColor || 0x67c23a;
-    statusLed.value.material.emissive = new props.three.Color(color);
-    statusLed.value.material.emissiveIntensity = 0.8;
-  } else if (props.status === 'ERROR') {
-    color = props.visualConfig.colors.error || 0xf56c6c;
-    statusLed.value.material.emissive = new props.three.Color(color);
-    statusLed.value.material.emissiveIntensity = 1.0;
-  } else {
-    statusLed.value.material.emissive = new props.three.Color(0x000000);
-    statusLed.value.material.emissiveIntensity = 0;
-  }
-
-  statusLed.value.material.color.setHex(color);
-  emit('model-update', { status: props.status, voltage: props.voltage });
-};
-
-const animate = () => {
-  if (powerModel.value && !isDisposed.value && props.visualConfig.animation?.rotate) {
-    powerModel.value.rotation.y += props.visualConfig.animation.speed;
-  }
-  if (props.visualConfig.animation?.pulse && statusLed.value) {
-    const t = Date.now() * 0.002;
-    statusLed.value.scale.setScalar(1 + Math.sin(t) * 0.2);
-  }
-};
-
-const dispose = () => {
-  if (isDisposed.value) return;
-  isDisposed.value = true;
-
-  if (powerModel.value && props.scene) {
-    props.scene.remove(powerModel.value);
-    powerModel.value.traverse((obj) => {
-      if (obj.geometry) { obj.geometry.dispose(); obj.geometry = null; }
-      if (obj.material) { obj.material.dispose(); obj.material = null; }
-    });
-    powerModel.value = null;
-  }
-
-  statusLed.value = null;
-};
-
-let animationFrame = null;
-const startAnimation = () => {
-  const loop = () => {
-    if (!isDisposed.value) {
-      animate();
-      animationFrame = requestAnimationFrame(loop);
-    }
-  };
-  loop();
-};
-
-onMounted(() => { createModel(); startAnimation(); });
-onUnmounted(() => { if (animationFrame) cancelAnimationFrame(animationFrame); dispose(); });
-
-watch(() => props.visualConfig, (newCfg, oldCfg) => {
-  if (oldCfg && JSON.stringify(newCfg) !== JSON.stringify(oldCfg)) {
-    dispose();
-    powerModel.value = null;
-    isDisposed.value = false;
-    setTimeout(() => createModel(), 50);
-  }
-}, { deep: true });
-
-watch(() => [props.status, props.voltage], () => { if (!isDisposed.value) updateModel(); }, { deep: true });
-
-defineExpose({ updateModel, animate, dispose, isDisposed });
+onMounted(() => createModel());
+watch(() => props.scene, (val) => { if(val && !mesh.value) createModel(); });
+watch(() => props.data, () => { if(mesh.value) { updateVisuals(); emit('model-update', props.data); } });
+onUnmounted(() => { if(mesh.value && props.scene){ props.scene.remove(mesh.value); mesh.value.traverse(o=>{o.geometry?.dispose?.(); if(o.material) Array.isArray(o.material)?o.material.forEach(m=>m.dispose?.()):o.material.dispose?.();}); } mesh.value=null; parts.value={}; });
+defineExpose({ updateVisuals, getMesh:()=>mesh.value });
 </script>
-
-<style scoped>
-.power-base-three { position: relative; display: flex; justify-content: center; align-items: center; background: transparent; }
-</style>
+<style scoped>.power-base-three{width:v-bind(width);height:v-bind(height)}</style>
