@@ -9,9 +9,13 @@ use Illuminate\Support\Str;
  * Class Acl
  *
  * @package App
+ *
+ * Центральный реестр ролей и прав доступа приложения.
+ * Все константы автоматически подхватываются методами permissions()/roles().
  */
 final class Acl
 {
+    // ===== РОЛИ =====
     const ROLE_SUPER_ADMIN = 'superadmin';
     const ROLE_ADMIN = 'admin';
     const ROLE_MANAGER = 'manager';
@@ -19,6 +23,7 @@ final class Acl
     const ROLE_USER = 'user';
     const ROLE_VISITOR = 'visitor';
 
+    // ===== ПРАВА: МЕНЮ =====
     const PERMISSION_VIEW_MENU_ADMINISTRATOR = 'view menu administrator';
     const PERMISSION_VIEW_MENU_PERMISSION = 'view menu permission';
 
@@ -36,6 +41,7 @@ final class Acl
     const PERMISSION_VIEW_MENU_PDF = 'view menu pdf';
     const PERMISSION_VIEW_MENU_I18N = 'view menu i18n';
 
+    // ===== ПРАВА: УПРАВЛЕНИЕ =====
     const PERMISSION_USER_MANAGE = 'manage user';
     const PERMISSION_USER_EDIT_MANAGE = 'manage user edit';
     const PERMISSION_USER_DELETE_MANAGE = 'manage user delete';
@@ -43,19 +49,28 @@ final class Acl
     const PERMISSION_ARTICLE_MANAGE = 'manage article';
     const PERMISSION_PERMISSION_MANAGE = 'manage permission';
 
-    // ===== ДЛЯ SMARTLIGHT =====
+    // ===== ПРАВА: SMARTLIGHT =====
     const PERMISSION_VIEW_SMART_LIGHT = 'view smart light';
     const PERMISSION_MANAGE_SMART_LIGHT = 'manage smart light';
     const PERMISSION_MANAGE_OWN_SMART_LIGHT = 'manage own smart light';
 
-    // ===== ДЛЯ SOCIAL MEDIA LINKS =====
+    // ===== ПРАВА: SOCIAL MEDIA LINKS =====
     const PERMISSION_VIEW_SOCIAL_MEDIA_LINKS = 'view social media links';
     const PERMISSION_MANAGE_SOCIAL_MEDIA_LINKS = 'manage social media links';
     const PERMISSION_MANAGE_OWN_SOCIAL_MEDIA_LINKS = 'manage own social media links';
 
+    // ===== ПРАВА: TRAINING (ТРЕНИРОВКИ) =====
+    const PERMISSION_VIEW_TRAINING = 'view training';
+    const PERMISSION_MANAGE_TRAINING = 'manage training';
+    const PERMISSION_MANAGE_OWN_TRAINING = 'manage own training';
+    const PERMISSION_VIEW_TRAINING_STATS = 'view training stats';
+    const PERMISSION_SHARE_TRAINING = 'share training';
+
     /**
-     * @param array $exclusives Exclude some permissions from the list
-     * @return array
+     * Получить все права доступа (кроме исключённых)
+     *
+     * @param array $exclusives Список прав для исключения из результата
+     * @return array Массив строк с именами прав
      */
     public static function permissions(array $exclusives = []): array
     {
@@ -73,6 +88,11 @@ final class Acl
         }
     }
 
+    /**
+     * Получить права, отвечающие за отображение меню
+     *
+     * @return array Массив строк с именами прав меню
+     */
     public static function menuPermissions(): array
     {
         try {
@@ -89,7 +109,9 @@ final class Acl
     }
 
     /**
-     * @return array
+     * Получить все роли системы
+     *
+     * @return array Массив строк с именами ролей
      */
     public static function roles(): array
     {

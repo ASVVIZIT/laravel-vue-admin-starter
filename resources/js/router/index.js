@@ -15,6 +15,7 @@ import entityRoutes from './modules/entity';
 import servicesRoutes from './modules/services.js';
 import dynamicTableRoutes from './modules/dynamicTable.js';
 import smartLightRoutes from './modules/SmartLight/smart-light.js';
+import trainingRoutes from './modules/Training/training.js';
 import contactManagementRoutes from './modules/ContactManagement/contact-management.js';
 
 // Функции для работы с куками
@@ -144,6 +145,7 @@ export const constantRoutes = [
   },
   ...dynamicTableRoutes,
   ...smartLightRoutes,
+  ...trainingRoutes,
   contactManagementRoutes,
 ];
 

@@ -11,7 +11,7 @@ use Spatie\Permission\PermissionRegistrar;
  * ============================================================================
  * 📁 Путь: database/seeders/DatabaseSeeder.php
  * ✅ Запуск: php artisan migrate:fresh --seed
- * ✅ Порядок: Базовые → Интерфейс → Защита → SmartLight
+ * ✅ Порядок: Базовые → Интерфейс → Защита → SmartLight → Training
  * ============================================================================
  */
 
@@ -37,6 +37,9 @@ class DatabaseSeeder extends Seeder
 
         // === 4. SMARTLIGHT (полный пакет) ===
         $this->call(\Database\Seeders\SmartLight\SmartLightMainSeeder::class);
+
+        // === 5. TRAINING MODULE (тренировки и упражнения) ===
+        $this->call(\Database\Seeders\Training\TrainingModuleSeeder::class);
 
         $this->command->newLine();
         $this->command->info('✅ <bg=green;fg=black> ВСЕ СИДЕРЫ ЗАВЕРШЕНЫ </>');

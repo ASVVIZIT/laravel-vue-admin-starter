@@ -12,47 +12,34 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        // Очищаем кеш
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Получаем guard из конфигурации
         $guard = config('auth.defaults.guard', 'web');
 
-        // Удаляем старые роли и разрешения
         Role::where('guard_name', $guard)->delete();
         Permission::where('guard_name', $guard)->delete();
 
-        // Создаем роли
         foreach (Acl::roles() as $roleName) {
             Role::firstOrCreate(['name' => $roleName, 'guard_name' => $guard]);
         }
 
-        // Создаем разрешения
         foreach (Acl::permissions() as $permissionName) {
             Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => $guard]);
         }
 
-        // Очищаем кеш снова
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        // Назначаем разрешения
         $this->assignPermissions($guard);
     }
 
     private function assignPermissions(string $guard): void
     {
-        // Суперадмин
-        $superAdmin = Role::where('name', Acl::ROLE_SUPER_ADMIN)
-            ->where('guard_name', $guard)
-            ->first();
+        $superAdmin = Role::where('name', Acl::ROLE_SUPER_ADMIN)->where('guard_name', $guard)->first();
         if ($superAdmin) {
-            $superAdmin->syncPermissions(Permission::where('guard_name', $guard)->get());
+            $superAdmin->syncPermissions(Permission::where('guard_name', $guard)->pluck('name'));
         }
 
-        // Админ
-        $admin = Role::where('name', Acl::ROLE_ADMIN)
-            ->where('guard_name', $guard)
-            ->first();
+        $admin = Role::where('name', Acl::ROLE_ADMIN)->where('guard_name', $guard)->first();
         if ($admin) {
             $admin->syncPermissions([
                 Acl::PERMISSION_VIEW_MENU_ADMINISTRATOR,
@@ -62,20 +49,46 @@ class RolesAndPermissionsSeeder extends Seeder
                 Acl::PERMISSION_VIEW_SMART_LIGHT,
                 Acl::PERMISSION_MANAGE_SMART_LIGHT,
                 Acl::PERMISSION_VIEW_SOCIAL_MEDIA_LINKS,
-                Acl::PERMISSION_MANAGE_SOCIAL_MEDIA_LINKS
+                Acl::PERMISSION_MANAGE_SOCIAL_MEDIA_LINKS,
+                Acl::PERMISSION_VIEW_TRAINING,
+                Acl::PERMISSION_MANAGE_TRAINING,
+                Acl::PERMISSION_VIEW_TRAINING_STATS,
+                Acl::PERMISSION_SHARE_TRAINING,
             ]);
         }
 
-        // Менеджер
-        $manager = Role::where('name', Acl::ROLE_MANAGER)
-            ->where('guard_name', $guard)
-            ->first();
+        $manager = Role::where('name', Acl::ROLE_MANAGER)->where('guard_name', $guard)->first();
         if ($manager) {
             $manager->syncPermissions([
                 Acl::PERMISSION_USER_MANAGE,
                 Acl::PERMISSION_MANAGE_OWN_SMART_LIGHT,
-                Acl::PERMISSION_MANAGE_OWN_SOCIAL_MEDIA_LINKS
+                Acl::PERMISSION_MANAGE_OWN_SOCIAL_MEDIA_LINKS,
+                Acl::PERMISSION_VIEW_TRAINING,
+                Acl::PERMISSION_MANAGE_OWN_TRAINING,
             ]);
+        }
+
+        $editor = Role::where('name', Acl::ROLE_EDITOR)->where('guard_name', $guard)->first();
+        if ($editor) {
+            $editor->syncPermissions([
+                Acl::PERMISSION_ARTICLE_MANAGE,
+                Acl::PERMISSION_VIEW_TRAINING,
+                Acl::PERMISSION_MANAGE_OWN_TRAINING,
+            ]);
+        }
+
+        $user = Role::where('name', Acl::ROLE_USER)->where('guard_name', $guard)->first();
+        if ($user) {
+            $user->syncPermissions([
+                Acl::PERMISSION_VIEW_TRAINING,
+                Acl::PERMISSION_MANAGE_OWN_TRAINING,
+                Acl::PERMISSION_VIEW_TRAINING_STATS,
+            ]);
+        }
+
+        $visitor = Role::where('name', Acl::ROLE_VISITOR)->where('guard_name', $guard)->first();
+        if ($visitor) {
+            $visitor->syncPermissions([]);
         }
     }
 }
