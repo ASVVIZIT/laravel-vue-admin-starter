@@ -8,7 +8,6 @@
         </span>
       </div>
     </div>
-
     <div v-if="footer" class="stats-footer">
       <slot name="footer">{{ footer }}</slot>
     </div>
@@ -17,7 +16,7 @@
 
 <script setup>
 import { formatDate, formatVolume, formatDuration, formatDistance, formatStreak } from '@/components/Training/utils/appFormattersUtils.js';
-import LayoutCardWrapper from '@/components/SmartLight/components/layout/wrappers/LayoutCardWrapper.vue';
+import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue';
 
 const props = defineProps({
   title: { type: String, default: 'Статистика' },
@@ -27,8 +26,7 @@ const props = defineProps({
 });
 
 const formatValue = (value, format) => {
-  if (value === null || value === undefined) return '—';
-
+  if (value === null || value === undefined || value === '') return '—';
   switch (format) {
     case 'date': return formatDate(value);
     case 'volume': return formatVolume(value);
@@ -43,34 +41,10 @@ const formatValue = (value, format) => {
 </script>
 
 <style scoped>
-.stats-card {
-  font-size: 12px;
-}
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  padding: 4px 0;
-}
-.stat-item {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.stat-label {
-  font-size: 10px;
-  color: #909399;
-}
-.stat-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #303133;
-}
-.stats-footer {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #ebeef5;
-  font-size: 11px;
-  color: #606266;
-}
+.stats-card { font-size: 12px; height: 100%; }
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 6px 0; }
+.stat-item { display: flex; flex-direction: column; gap: 2px; }
+.stat-label { font-size: 10px; color: #909399; white-space: nowrap; }
+.stat-value { font-size: 16px; font-weight: 700; color: #303133; line-height: 1.2; }
+.stats-footer { margin-top: 8px; padding-top: 8px; border-top: 1px dashed #ebeef5; font-size: 11px; color: #606266; }
 </style>

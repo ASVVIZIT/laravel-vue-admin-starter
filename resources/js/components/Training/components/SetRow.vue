@@ -2,78 +2,60 @@
   <div class="set-row">
     <span class="set-index">#{{ index + 1 }}</span>
 
-    <!-- Bodyweight / Weighted / Other -->
-    <template v-if="['bodyweight', 'weighted', 'other'].includes(exerciseType)">
-      <el-input-number
-          v-model="localSet.reps"
-          :min="0"
-          :max="1000"
-          :placeholder="'Повторы'"
-          size="small"
-          controls-position="right"
-          @change="emitChange"
-      />
-    </template>
+    <!-- Поле повторов -->
+    <el-input-number
+        v-if="isFieldVisible('reps')"
+        v-model="localSet.reps"
+        :min="0" :max="1000"
+        placeholder="Повторы" size="small" controls-position="right"
+        @change="emitChange"
+    />
 
-    <!-- Weighted: поле веса -->
-    <template v-if="exerciseType === 'weighted'">
-      <el-input-number
-          v-model="localSet.weight"
-          :min="0"
-          :max="1000"
-          :step="0.5"
-          placeholder="кг"
-          size="small"
-          controls-position="right"
-          @change="emitChange"
-      >
-        <template #suffix><span class="unit">кг</span></template>
-      </el-input-number>
-    </template>
+    <!-- Поле веса -->
+    <el-input-number
+        v-if="isFieldVisible('weight')"
+        v-model="localSet.weight"
+        :min="0" :max="1000" :step="0.5"
+        placeholder="кг" size="small" controls-position="right"
+        @change="emitChange"
+    >
+      <template #suffix><span class="unit">кг</span></template>
+    </el-input-number>
 
-    <!-- Cardio: длительность + дистанция -->
-    <template v-if="exerciseType === 'cardio'">
-      <el-input-number
-          v-model="localSet.duration"
-          :min="0"
-          :max="86400"
-          placeholder="сек"
-          size="small"
-          controls-position="right"
-          @change="emitChange"
-      >
-        <template #suffix><span class="unit">сек</span></template>
-      </el-input-number>
-      <el-input-number
-          v-model="localSet.distance"
-          :min="0"
-          :max="42195"
-          :step="0.1"
-          placeholder="м"
-          size="small"
-          controls-position="right"
-          @change="emitChange"
-      >
-        <template #suffix><span class="unit">м</span></template>
-      </el-input-number>
-    </template>
+    <!-- Поле длительности -->
+    <el-input-number
+        v-if="isFieldVisible('duration')"
+        v-model="localSet.duration"
+        :min="0" :max="86400"
+        placeholder="сек" size="small" controls-position="right"
+        @change="emitChange"
+    >
+      <template #suffix><span class="unit">сек</span></template>
+    </el-input-number>
 
-    <!-- Заметки к подходу (опционально) -->
+    <!-- Поле дистанции -->
+    <el-input-number
+        v-if="isFieldVisible('distance')"
+        v-model="localSet.distance"
+        :min="0" :max="42195" :step="0.1"
+        placeholder="м" size="small" controls-position="right"
+        @change="emitChange"
+    >
+      <template #suffix><span class="unit">м</span></template>
+    </el-input-number>
+
+    <!-- Заметки к подходу -->
     <el-input
         v-model="localSet.notes"
-        placeholder="Заметки"
-        size="small"
-        maxlength="50"
-        show-word-limit
+        placeholder="Заметки" size="small"
+        maxlength="50" show-word-limit
         @input="emitChange"
     />
 
     <!-- Удалить подход -->
     <el-button
         v-if="removable"
-        type="danger"
-        link
-        size="small"
+        type="danger" link size="small"
         @click="$emit('remove', index)"
         title="Удалить подход"
     >
@@ -96,7 +78,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'remove']);
 
-const { visibleFields } = useExerciseFields(props.exerciseType);
+// Инициализируем композабл для управления видимостью полей
+const { isFieldVisible } = useExerciseFields(props.exerciseType);
 
 const localSet = computed({
   get: () => props.modelValue,
@@ -112,29 +95,17 @@ const emitChange = () => {
 .set-row {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 0;
-  font-size: 12px;
+  gap: 6px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #f0f0f0;
 }
-.set-index {
-  width: 24px;
-  font-weight: 600;
-  color: #606266;
-  text-align: center;
-}
-:deep(.el-input-number),
-:deep(.el-input) {
-  width: 80px;
-}
-:deep(.el-input-number .el-input__suffix) {
-  padding-right: 4px;
-}
-.unit {
-  font-size: 10px;
-  color: #909399;
-}
-:deep(.el-button.is-link) {
-  padding: 0;
-  margin-left: 2px;
-}
+.set-row:last-child { border-bottom: none; }
+.set-index { width: 28px; font-weight: 600; color: #606266; text-align: center; font-size: 11px; }
+
+:deep(.el-input-number) { width: 95px; }
+:deep(.el-input) { width: 130px; }
+.unit { font-size: 10px; color: #909399; padding-right: 4px; }
+
+:deep(.el-button.is-link) { padding: 0; margin-left: 4px; color: #f56c6c; }
+:deep(.el-button.is-link:hover) { color: #f89898; }
 </style>

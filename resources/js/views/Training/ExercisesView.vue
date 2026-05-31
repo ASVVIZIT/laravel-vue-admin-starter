@@ -54,7 +54,7 @@ import { ref, computed, onMounted } from 'vue'
 import { List, Search, InfoFilled } from '@element-plus/icons-vue'
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import { getExerciseTagType, getExerciseIcon } from '@/components/Training/utils/appFormattersUtils.js'
-import LayoutCardWrapper from '@/components/SmartLight/components/layout/wrappers/LayoutCardWrapper.vue'
+import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
 
 const exerciseStore = useExerciseStore()
 const search = ref('')

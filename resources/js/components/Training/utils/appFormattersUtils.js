@@ -117,6 +117,96 @@ export const formatSet = (set, exerciseType = 'bodyweight') => {
 };
 
 /**
+ * ============================================================================
+ * НОВЫЕ ФУНКЦИИ ДЛЯ ТАБЛИЦЫ И ТУЛТИПОВ
+ * ============================================================================
+ */
+
+/**
+ * Компактное форматирование подхода для отображения в таблице (горизонтальный список)
+ * Отличается от formatSet более коротким выводом
+ * @param {Object} set - объект подхода { reps, weight, duration, distance }
+ * @param {string} type - тип упражнения: bodyweight | weighted | cardio | other
+ * @returns {string} компактная строка для ячейки таблицы
+ */
+export const formatSetPreview = (set, type) => {
+    if (!set) return '—';
+
+    if (type === 'weighted') {
+        return `${set.reps || 0}×${set.weight || 0}кг`;
+    }
+
+    if (type === 'cardio') {
+        const parts = [];
+        if (set.duration) {
+            const m = Math.floor(set.duration / 60);
+            const s = set.duration % 60;
+            parts.push(s > 0 ? `${m}м${s}с` : `${m}мин`);
+        }
+        if (set.distance) {
+            parts.push(set.distance >= 1000 ? `${(set.distance / 1000).toFixed(1)}км` : `${set.distance}м`);
+        }
+        return parts.join('/') || '—';
+    }
+
+    // bodyweight, other
+    return `${set.reps || '—'}×`;
+};
+
+/**
+ * Подсчитывает общее количество повторов из массива подходов
+ * @param {Array} sets - массив подходов
+ * @returns {string|number} сумма повторов или '—'
+ */
+export const calculateTotalReps = (sets) => {
+    if (!Array.isArray(sets) || sets.length === 0) return '—';
+    const total = sets.reduce((sum, set) => sum + (Number(set.reps) || 0), 0);
+    return total || '—';
+};
+
+/**
+ * Функция сортировки для Element Plus table column по количеству повторов
+ * @param {Object} a - первая строка таблицы
+ * @param {Object} b - вторая строка таблицы
+ * @returns {number} результат сравнения для сортировки
+ */
+export const sortByReps = (a, b) => {
+    const repA = calculateTotalReps(a.sets);
+    const repB = calculateTotalReps(b.sets);
+    return (repA === '—' ? 0 : repA) - (repB === '—' ? 0 : repB);
+};
+
+/**
+ * Получает список уникальных ID упражнений из массива логов
+ * @param {Array} logs - массив записей тренировок
+ * @returns {Set<string>} Set с уникальными exercise_id
+ */
+export const getUsedExerciseIds = (logs) => {
+    if (!Array.isArray(logs)) return new Set();
+    const ids = new Set();
+    logs.forEach(log => {
+        if (log?.exercise_id) ids.add(String(log.exercise_id));
+    });
+    return ids;
+};
+
+/**
+ * Форматирует количество дополнительных подходов для тултипа
+ * @param {number} count - количество скрытых подходов
+ * @returns {string} форматированная строка "+N"
+ */
+export const formatMoreSets = (count) => {
+    if (!count || count <= 0) return '';
+    return `+${count}`;
+};
+
+/**
+ * ============================================================================
+ * КОНЕЦ НОВЫХ ФУНКЦИЙ
+ * ============================================================================
+ */
+
+/**
  * Форматирование серии тренировок: 7 → "🔥 7 дней"
  */
 export const formatStreak = (days) => {
@@ -169,6 +259,11 @@ export default {
     formatDuration,
     formatDistance,
     formatSet,
+    formatSetPreview,
+    calculateTotalReps,
+    sortByReps,
+    getUsedExerciseIds,
+    formatMoreSets,
     formatStreak,
     formatRating,
     getExerciseIcon,

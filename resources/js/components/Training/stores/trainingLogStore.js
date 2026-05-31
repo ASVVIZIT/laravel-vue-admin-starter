@@ -1,145 +1,57 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { TrainingLogResource } from '@/components/Training/api/core/resource/TrainingLogResource.js';
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import { TrainingLogResource } from '@/components/Training/api/core/resource/TrainingLogResource.js'
 
 export const useTrainingLogStore = defineStore('training-log', () => {
-    const logs = ref([]);
-    const loading = ref(false);
-    const error = ref(null);
-    const stats = ref(null);
-    const summary = ref(null);
+    const logs = ref([]), loading = ref(false), error = ref(null)
+    const stats = ref(null), summary = ref(null)
+    const dateFilter = ref(null), exerciseFilter = ref(null)
+    const dateRange = ref({ from: null, to: null })
+    const pagination = ref({ page: 1, per_page: 50, total: 0, last_page: 1 })
+    let isFetching = false
 
-    // Загружаем из LocalStorage ТОЛЬКО ОДИН РАЗ при создании стора
-    const dateFilter = ref(localStorage.getItem('training-date-filter') || null);
-    const exerciseFilter = ref(localStorage.getItem('training-exercise-filter') ? Number(localStorage.getItem('training-exercise-filter')) : null);
-    const dateRange = ref({
-        from: localStorage.getItem('training-date-from') || null,
-        to: localStorage.getItem('training-date-to') || null
-    });
-    const pagination = ref({
-        page: parseInt(localStorage.getItem('training-page') || '1'),
-        per_page: parseInt(localStorage.getItem('training-per-page') || '50'),
-        total: 0,
-        last_page: 1
-    });
+    const parse = (res) => res?.data && Array.isArray(res.data) ? { list: res.data, meta: res.meta || {} } : { list: [], meta: null }
 
-    const parseResponse = (response) => {
-        if (!response) return { list: [], meta: null };
-        if (Array.isArray(response)) return { list: response, meta: null };
-        if (response.data && Array.isArray(response.data)) return { list: response.data, meta: response.meta || {} };
-        return { list: [], meta: null };
-    };
-
-    const fetchLogsStore = async () => {
-        loading.value = true;
-        error.value = null;
+    const fetch = async () => {
+        if (isFetching) return; isFetching = true; loading.value = true
         try {
-            const resource = new TrainingLogResource();
-            const response = await resource.getListResource({
-                page: pagination.value.page,
-                per_page: pagination.value.per_page,
-                date: dateFilter.value || undefined,
-                exercise_id: exerciseFilter.value || undefined,
-                from: dateRange.value.from || undefined,
-                to: dateRange.value.to || undefined,
-            });
+            const { list, meta } = parse(await new TrainingLogResource().getListResource({
+                page: pagination.value.page, per_page: pagination.value.per_page,
+                date: dateFilter.value || undefined, exercise_id: exerciseFilter.value || undefined,
+                from: dateRange.value.from || undefined, to: dateRange.value.to || undefined
+            }))
+            logs.value = list || []
+            if (meta?.pagination) pagination.value = { page: meta.pagination.current_page, per_page: meta.pagination.per_page, total: meta.pagination.total, last_page: meta.pagination.last_page }
+        } catch (e) { error.value = e.response?.data?.message || 'Ошибка'; logs.value = [] }
+        finally { loading.value = false; isFetching = false }
+    }
 
-            const { list, meta } = parseResponse(response);
-            logs.value = Array.isArray(list) ? list : [];
+    const applyFilters = async (p) => {
+        if (p.date !== undefined) dateFilter.value = p.date
+        if (p.exercise_id !== undefined) exerciseFilter.value = p.exercise_id
+        if (p.from !== undefined) dateRange.value.from = p.from
+        if (p.to !== undefined) dateRange.value.to = p.to
+        localStorage.setItem('training-date-filter', dateFilter.value || '')
+        localStorage.setItem('training-exercise-filter', exerciseFilter.value || '')
+        localStorage.setItem('training-date-range', JSON.stringify(dateRange.value))
+        pagination.value.page = 1; await fetch()
+    }
 
-            if (meta?.pagination) {
-                pagination.value = {
-                    page: meta.pagination.current_page || 1,
-                    per_page: meta.pagination.per_page || 50,
-                    total: meta.pagination.total || 0,
-                    last_page: meta.pagination.last_page || 1,
-                };
-            }
-        } catch (err) {
-            error.value = err.response?.data?.message || 'Ошибка загрузки';
-            logs.value = [];
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    // Явные методы применения фильтров (без watch!)
-    const applyFilters = async (filters) => {
-        if (filters.date !== undefined) dateFilter.value = filters.date;
-        if (filters.exercise_id !== undefined) exerciseFilter.value = filters.exercise_id;
-        if (filters.from !== undefined) dateRange.value.from = filters.from;
-        if (filters.to !== undefined) dateRange.value.to = filters.to;
-
-        localStorage.setItem('training-date-filter', dateFilter.value || '');
-        localStorage.setItem('training-exercise-filter', exerciseFilter.value || '');
-        localStorage.setItem('training-date-from', dateRange.value.from || '');
-        localStorage.setItem('training-date-to', dateRange.value.to || '');
-
-        pagination.value.page = 1;
-        await fetchLogsStore();
-    };
-
-    const setPage = async (page) => {
-        pagination.value.page = page;
-        localStorage.setItem('training-page', page);
-        await fetchLogsStore();
-    };
-
-    const setPerPage = async (perPage) => {
-        pagination.value.per_page = perPage;
-        pagination.value.page = 1;
-        localStorage.setItem('training-per-page', perPage);
-        await fetchLogsStore();
-    };
-
+    const setPage = async (v) => { pagination.value.page = v; localStorage.setItem('training-page', v); await fetch() }
+    const setPerPage = async (v) => { pagination.value.per_page = v; pagination.value.page = 1; localStorage.setItem('training-per-page', v); await fetch() }
     const clearFilters = async () => {
-        dateFilter.value = null;
-        exerciseFilter.value = null;
-        dateRange.value = { from: null, to: null };
-        localStorage.removeItem('training-date-filter');
-        localStorage.removeItem('training-exercise-filter');
-        localStorage.removeItem('training-date-from');
-        localStorage.removeItem('training-date-to');
-        pagination.value.page = 1;
-        await fetchLogsStore();
-    };
+        dateFilter.value = null; exerciseFilter.value = null; dateRange.value = { from: null, to: null }
+        localStorage.removeItem('training-date-filter'); localStorage.removeItem('training-exercise-filter'); localStorage.removeItem('training-date-range')
+        pagination.value.page = 1; await fetch()
+    }
 
-    const createLogStore = async (payload) => {
-        await new TrainingLogResource().createResource(payload);
-        pagination.value.page = 1;
-        await Promise.all([fetchLogsStore(), fetchSummaryStore()]);
-    };
+    const createLog = async (d) => { await new TrainingLogResource().createResource(d); pagination.value.page = 1; await Promise.all([fetch(), fetchSummary()]) }
+    const updateLog = async (id, d) => { await new TrainingLogResource().updateResource(id, d); await fetch() }
+    const deleteLog = async (id) => { await new TrainingLogResource().deleteResource(id); await Promise.all([fetch(), fetchSummary()]) }
+    const fetchStats = async (p='week') => { try { stats.value = (await new TrainingLogResource().getStatsResource({ period: p }))?.data } catch { stats.value = null } }
+    const fetchSummary = async () => { try { summary.value = await new TrainingLogResource().getSummaryResource() } catch { summary.value = null } }
 
-    const updateLogStore = async (id, payload) => {
-        await new TrainingLogResource().updateResource(id, payload);
-        await fetchLogsStore();
-    };
-
-    const deleteLogStore = async (id) => {
-        await new TrainingLogResource().deleteResource(id);
-        await Promise.all([fetchLogsStore(), fetchSummaryStore()]);
-    };
-
-    const fetchStatsStore = async (period = 'week') => {
-        try {
-            const res = await new TrainingLogResource().getStatsResource({ period });
-            stats.value = res?.data || res || null;
-        } catch { stats.value = null; }
-    };
-
-    const fetchSummaryStore = async () => {
-        try {
-            const res = await new TrainingLogResource().getSummaryResource();
-            summary.value = res || null;
-        } catch { summary.value = null; }
-    };
-
-    return {
-        logs, loading, error, dateFilter, exerciseFilter, dateRange, pagination, stats, summary,
-        fetchLogsStore, fetchStatsStore, fetchSummaryStore,
-        applyFilters, setPage, setPerPage, clearFilters,
-        createLogStore, updateLogStore, deleteLogStore
-    };
-});
-
-export default useTrainingLogStore;
+    return { logs, loading, error, dateFilter, exerciseFilter, dateRange, pagination, stats, summary,
+        fetch, applyFilters, setPage, setPerPage, clearFilters, createLog, updateLog, deleteLog, fetchStats, fetchSummary }
+})
+export default useTrainingLogStore

@@ -98,7 +98,7 @@ import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import { useTrainingForm } from '@/components/Training/composables/useTrainingForm.js'
 import { getExerciseTagType } from '@/components/Training/utils/appFormattersUtils.js'
 
-import LayoutCardWrapper from '@/components/SmartLight/components/layout/wrappers/LayoutCardWrapper.vue'
+import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
 import SetRow from './SetRow.vue'
 
 const props = defineProps({

@@ -17,7 +17,7 @@ export default [
         component: () => import('@/layout/Layout.vue'),
         meta: {
             title: 'Тренировки',
-            elSvgIcon: 'Fitness', // или 'Trophy'
+            elSvgIcon: 'Trophy', // 'Fitness' или 'Trophy'
             permissions: ['view_training'],
             order: 5 // порядок в меню
         },

@@ -80,7 +80,7 @@ import { TrendCharts, DataLine, Odometer } from '@element-plus/icons-vue'
 import { useTrainingStore } from '@/components/Training/stores/index.js'
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import StatsCard from '@/components/Training/components/StatsCard.vue'
-import LayoutCardWrapper from '@/components/SmartLight/components/layout/wrappers/LayoutCardWrapper.vue'
+import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
 import { formatDate, formatVolume } from '@/components/Training/utils/appFormattersUtils.js'
 
 const trainingStore = useTrainingStore()
