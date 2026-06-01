@@ -1,39 +1,47 @@
 /**
  * ============================================================================
- * TRAINING FILTER CONFIG — КОНФИГУРАЦИЯ ФИЛЬТРОВ
+ * TRAINING FILTER CONFIG — ДИНАМИЧЕСКАЯ КОНФИГУРАЦИЯ
  * ============================================================================
  */
 
-export const QUICK_DATES = [
-    { id: 'today', label: 'Сегодня', offsetDays: 0 },
-    { id: 'yesterday', label: 'Вчера', offsetDays: -1 },
-    { id: 'tomorrow', label: 'Завтра', offsetDays: 1 }
-]
+import { InfoFilled, CircleCheck, Clock, Calendar } from '@element-plus/icons-vue'
 
-export const QUICK_RANGES = [
-    { id: 'week', label: 'Неделя', type: 'week' },
-    { id: 'month', label: 'Месяц', type: 'month' },
-    { id: 'quarter', label: 'Квартал', type: 'quarter' },
-    { id: 'halfyear', label: 'Полгода', type: 'halfyear' }
-]
+export const FILTER_BLOCKS = {
+    date: {
+        shortcuts: [
+            { text: 'Сегодня', value: () => new Date() },
+            { text: 'Вчера', value: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d } },
+            { text: 'Завтра', value: () => { const d = new Date(); d.setDate(d.getDate() + 1); return d } }
+        ],
+        quickButtons: [
+            { id: 'today', label: 'Сегодня' },
+            { id: 'yesterday', label: 'Вчера' },
+            { id: 'tomorrow', label: 'Завтра' }
+        ]
+    },
+    exercise: {
+        hint: {
+            none: { text: 'Выберите упражнение', icon: InfoFilled },
+            all: { text: 'Доступны все упражнения из базы', icon: InfoFilled },
+            filtered: { text: 'Показаны только выполненные', icon: CircleCheck }
+        }
+    },
+    range: {
+        shortcuts: [
+            { text: 'Неделя', value: () => { const d = new Date(); const s = new Date(d); s.setDate(d.getDate() - (d.getDay() || 7) + 1); return [s, d] } },
+            { text: 'Месяц', value: () => { const d = new Date(); return [new Date(d.getFullYear(), d.getMonth(), 1), d] } }
+        ],
+        quickButtons: [
+            { id: 'week', label: 'Неделя' },
+            { id: 'month', label: 'Месяц' },
+            { id: 'quarter', label: 'Квартал' },
+            { id: 'halfyear', label: 'Полгода' }
+        ],
+        hint: {
+            none: { text: 'Период не выбран', icon: Clock },
+            active: { text: 'Фильтр по периоду активен', icon: Calendar }
+        }
+    }
+}
 
-export const DATE_SHORTCUTS = [
-    { text: 'Сегодня', value: () => new Date() },
-    { text: 'Вчера', value: () => { const d = new Date(); d.setDate(d.getDate() - 1); return d } },
-    { text: 'Завтра', value: () => { const d = new Date(); d.setDate(d.getDate() + 1); return d } }
-]
-
-export const RANGE_SHORTCUTS = [
-    { text: 'Эта неделя', value: () => {
-            const d = new Date(); const day = d.getDay() || 7; const s = new Date(d); s.setDate(d.getDate() - day + 1); return [s, d]
-        }},
-    { text: 'Этот месяц', value: () => { const d = new Date(); return [new Date(d.getFullYear(), d.getMonth(), 1), d] } },
-    { text: 'Квартал', value: () => {
-            const d = new Date(); const q = Math.floor(d.getMonth() / 3); const s = new Date(d.getFullYear(), q * 3, 1); const e = new Date(d.getFullYear(), q * 3 + 3, 0); return [s, e]
-        }},
-    { text: 'Полгода', value: () => {
-            const d = new Date(); const h = d.getMonth() >= 6 ? 6 : 0; return [new Date(d.getFullYear(), h, 1), d]
-        }}
-]
-
-export default { QUICK_DATES, QUICK_RANGES, DATE_SHORTCUTS, RANGE_SHORTCUTS }
+export default { FILTER_BLOCKS }

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Auth;
  * @property \Illuminate\Support\Carbon $date
  * @property string $time
  * @property array $sets
+ * @property float $total_volume  ← НОВОЕ
  * @property bool $is_public
  * @property array|null $shared_with
  * @property string|null $notes
@@ -28,16 +29,35 @@ class TrainingLog extends Model
 
     protected $fillable = [
         'user_id', 'exercise_id', 'date', 'time', 'sets',
+        'total_volume',
         'is_public', 'shared_with', 'notes', 'rating',
     ];
 
     protected $casts = [
         'date' => 'date',
         'sets' => 'array',
+        'total_volume' => 'decimal:2',
         'is_public' => 'boolean',
         'shared_with' => 'array',
         'rating' => 'integer',
     ];
+
+    // 🔥 АВТО-РАСЧЁТ ПРИ СОХРАНЕНИИ
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Пересчитываем total_volume перед сохранением
+        static::saving(function (TrainingLog $log) {
+            if (is_array($log->sets) && count($log->sets) > 0) {
+                $log->total_volume = collect($log->sets)->sum(function ($set) {
+                    return (int)($set['reps'] ?? 0) * (float)($set['weight'] ?? 0);
+                });
+            } else {
+                $log->total_volume = 0;
+            }
+        });
+    }
 
     // Связи
     public function exercise(): BelongsTo
@@ -63,7 +83,6 @@ class TrainingLog extends Model
         return $query->where(function (Builder $q) use ($viewerId) {
             $q->where('user_id', $viewerId)
                 ->orWhere('is_public', true)
-                // ✅ Исправлено: безопасный JSON-поиск без индекса
                 ->orWhereRaw('JSON_CONTAINS(shared_with, ?)', [json_encode($viewerId)]);
         });
     }
@@ -95,11 +114,10 @@ class TrainingLog extends Model
         return array_sum(array_map(fn($s) => (int)($s['reps'] ?? 0), $this->sets));
     }
 
+    // 🔥 ТЕПЕРЬ БЕРЁТ ИЗ КОЛОНКИ (быстро!)
     public function getTotalVolumeAttribute(): float
     {
-        if (!is_array($this->sets)) return 0.0;
-        return array_sum(array_map(fn($s) =>
-            (int)($s['reps'] ?? 0) * (float)($s['weight'] ?? 0), $this->sets));
+        return (float)($this->attributes['total_volume'] ?? 0);
     }
 
     public function getTotalDurationAttribute(): int

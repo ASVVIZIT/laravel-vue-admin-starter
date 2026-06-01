@@ -45,11 +45,31 @@ export const useTrainingLogStore = defineStore('training-log', () => {
         pagination.value.page = 1; await fetch()
     }
 
-    const createLog = async (d) => { await new TrainingLogResource().createResource(d); pagination.value.page = 1; await Promise.all([fetch(), fetchSummary()]) }
-    const updateLog = async (id, d) => { await new TrainingLogResource().updateResource(id, d); await fetch() }
-    const deleteLog = async (id) => { await new TrainingLogResource().deleteResource(id); await Promise.all([fetch(), fetchSummary()]) }
-    const fetchStats = async (p='week') => { try { stats.value = (await new TrainingLogResource().getStatsResource({ period: p }))?.data } catch { stats.value = null } }
-    const fetchSummary = async () => { try { summary.value = await new TrainingLogResource().getSummaryResource() } catch { summary.value = null } }
+    const createLog = async (d) => {
+        await new TrainingLogResource().createResource(d)
+        pagination.value.page = 1
+        await Promise.all([fetch(), fetchStats(), fetchSummary()])
+    }
+
+    const updateLog = async (id, d) => {
+        await new TrainingLogResource().updateResource(id, d)
+        await Promise.all([fetch(), fetchStats(), fetchSummary()])
+    }
+
+    const deleteLog = async (id) => {
+        await new TrainingLogResource().deleteResource(id)
+        await Promise.all([fetch(), fetchStats(), fetchSummary()])
+    }
+
+    const fetchStats = async (p='week') => {
+        try { stats.value = (await new TrainingLogResource().getStatsResource({ period: p }))?.data }
+        catch { stats.value = null }
+    }
+
+    const fetchSummary = async () => {
+        try { summary.value = await new TrainingLogResource().getSummaryResource() }
+        catch { summary.value = null }
+    }
 
     return { logs, loading, error, dateFilter, exerciseFilter, dateRange, pagination, stats, summary,
         fetch, applyFilters, setPage, setPerPage, clearFilters, createLog, updateLog, deleteLog, fetchStats, fetchSummary }

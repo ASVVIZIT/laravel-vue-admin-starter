@@ -8,7 +8,6 @@
 */
 
 import { TrainingBaseResource } from './TrainingBaseResource.js'
-// ✅ Исправленный импорт
 import { logDebugUtils } from '../utils/coreApiLoggerUtils.js'
 
 export class TrainingLogResource extends TrainingBaseResource {
