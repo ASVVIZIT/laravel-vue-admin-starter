@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Auth;
  * @property \Illuminate\Support\Carbon $date
  * @property string $time
  * @property array $sets
- * @property float $total_volume  ← НОВОЕ
+ * @property float $total_volume
  * @property bool $is_public
  * @property array|null $shared_with
  * @property string|null $notes

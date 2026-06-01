@@ -1,14 +1,15 @@
 <template>
   <div class="filter-bar">
-    <!-- 🟦 СТРОКА 1: Основные виджеты + Сброс + Тоггл -->
+    <!-- 🟦 СТРОКА 1: Основные виджеты + Сброс + Тоггл (моб.) -->
     <div class="filter-row-main">
-      <!-- Мастер-тоггл (показываем всегда, но скрываем иконку на больших экранах) -->
+      <!-- Мастер-тоггл: виден ТОЛЬКО на узких экранах (≤900px) -->
       <el-button
           class="master-toggle"
           text
           size="small"
           @click="showExtras = !showExtras"
-          :title="showExtras ? 'Скрыть доп. кнопки' : 'Показать доп. кнопки'"
+          :title="showExtras ? 'Скрыть дополнительные кнопки' : 'Показать дополнительные кнопки'"
+          aria-label="Переключить вид дополнительных кнопок фильтра"
       >
         <el-icon><ArrowDown v-if="!showExtras" /><ArrowUp v-else /></el-icon>
       </el-button>
@@ -73,9 +74,9 @@
       </div>
     </div>
 
-    <!-- 🟨 СТРОКА 2: Быстрые кнопки + Хинт -->
+    <!-- 🟨 СТРОКА 2: Быстрые кнопки + Хинт (сворачивается на мобильных) -->
     <div class="filter-row-extras" v-show="showExtras || !isSmallScreen">
-      <!-- Пустое место под тоггл -->
+      <!-- Пустое место под тоггл (только на мобильных) -->
       <div class="filter-col spacer-col"></div>
 
       <div class="filter-col col-date">
@@ -142,7 +143,7 @@ const allExercises = ref([])
 
 // Адаптивность
 const isSmallScreen = ref(window.innerWidth <= 900)
-const showExtras = ref(true) // 🔥 Изначально открыто
+const showExtras = ref(!isSmallScreen.value) // По умолчанию открыто на десктопе
 
 // Динамические вычисления
 const exerciseOptions = computed(() => {
@@ -180,7 +181,7 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
 const handleResize = () => {
   const small = window.innerWidth <= 900
   isSmallScreen.value = small
-  if (!small) showExtras.value = true
+  if (!small) showExtras.value = true // На десктопе всегда развёрнуто
 }
 
 // Логика действий
@@ -255,9 +256,7 @@ const clearAll = async () => {
 }
 .filter-row-extras { transition: all 0.2s ease; }
 
-/* ============================================================================
-   КОЛОНКИ
-   ============================================================================ */
+/* Распределение ширины колонок */
 .filter-col { flex: 1; min-width: 0; }
 .col-date { flex: 0 0 22%; min-width: 140px; }
 .col-select { flex: 0 0 26%; min-width: 160px; }
@@ -269,9 +268,11 @@ const clearAll = async () => {
   flex-shrink: 0;
 }
 
-/* 🔥 КНОПКА ТОГГЛА: всегда видима */
+/* ============================================================================
+   🔥 КНОПКА ТОГГЛА: СКРЫТА НА ШИРОКИХ ЭКРАНАХ (>900px)
+   ============================================================================ */
 .master-toggle {
-  display: flex !important; /* 🔥 Принудительно показываем */
+  display: none; /* Скрыта по умолчанию (десктоп) */
   flex: 0 0 32px;
   width: 32px;
   height: 28px !important;
@@ -284,16 +285,30 @@ const clearAll = async () => {
   cursor: pointer;
   transition: all 0.2s;
 }
-.master-toggle:hover {
-  color: #409eff;
-  background-color: #ecf5ff;
-  border-color: #c6e2ff;
+
+/* Показываем тоггл ТОЛЬКО на узких экранах */
+@media (max-width: 900px) {
+  .master-toggle {
+    display: flex;
+  }
+  .master-toggle:hover {
+    color: #409eff;
+    background-color: #ecf5ff;
+    border-color: #c6e2ff;
+  }
 }
 
-/* Спейсер (для второй строки) */
+/* Спейсер для второй строки (повторяет ширину тоггла) */
 .spacer-col {
   flex: 0 0 32px;
   min-width: 32px;
+  /* Скрыт на десктопе, показан на мобилке через медиа-запрос ниже */
+  display: none;
+}
+@media (max-width: 900px) {
+  .spacer-col {
+    display: block;
+  }
 }
 
 /* ============================================================================
@@ -336,7 +351,7 @@ const clearAll = async () => {
 .reset-btn-inline:hover { background-color: #fde2e2; border-color: #f5a3a3; color: #f56c6c; }
 
 /* ============================================================================
-   ВТОРАЯ СТРОКА
+   ВТОРАЯ СТРОКА: КНОПКИ И ХИНТ
    ============================================================================ */
 .quick-btns-row { display: flex; gap: 4px; flex-wrap: wrap; width: 100%; }
 .quick-btns-row .el-button {
@@ -353,10 +368,19 @@ const clearAll = async () => {
 /* ============================================================================
    АДАПТИВНОСТЬ
    ============================================================================ */
+@media (max-width: 1200px) {
+  .quick-btns-row .el-button { height: 20px; font-size: 9px; }
+  .hint-container { font-size: 9px; }
+  .reset-btn-inline { font-size: 10px; }
+  .col-date { flex: 0 0 25%; }
+  .col-select { flex: 0 0 28%; }
+}
+
 @media (max-width: 900px) {
   .filter-bar { padding: 6px 8px; }
   .filter-row-main, .filter-row-extras { gap: 8px; }
 
+  /* Пересчёт колонок с учётом появления тоггла */
   .col-date { flex: 0 0 20%; min-width: 110px; }
   .col-select { flex: 0 0 24%; min-width: 130px; }
   .col-range { flex: 1; min-width: 150px; }

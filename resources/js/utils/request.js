@@ -1,75 +1,291 @@
-import '@/bootstrap';
-import Cookies from 'js-cookie';
-import { ElMessage } from 'element-plus';
-import { isLogged, getToken, setToken, getLoginType } from '@/utils/auth';
+/**
+ * ============================================================================
+ * CENTRAL REQUEST — ЕДИНАЯ ТОЧКА ДОСТУПА К API
+ * ============================================================================
+ * 📁 Путь: @/utils/request.js
+ * 🎯 Назначение: Глобальный HTTP-клиент с поддержкой мета-режимов
+ * ✅ Совместимость: 100% обратная совместимость (режим BEFORE по умолчанию)
+ * 🔄 Миграция: Постепенное внедрение через флаги __metaMode
+ * ============================================================================
+ */
+
+import '@/bootstrap'
+import Cookies from 'js-cookie'
+import { ElMessage } from 'element-plus'
+import { isLogged, getToken, setToken, getLoginType } from '@/utils/auth'
+
+// ============================================================================
+// 🎛️ КОНФИГУРАЦИЯ РЕЖИМОВ
+// ============================================================================
+
+/**
+ * Режимы работы HTTP-клиента
+ * @enum {number}
+ */
+export const RequestMetaMode = {
+    /** Только данные (response.data) — дефолт, 100% совместимость */
+    BEFORE: 0,
+
+    /** Данные + метаданные ({ data, status, headers }) — для новых модулей */
+    AFTER: 1,
+
+    /** Авто-переключение по URL-паттернам — умная миграция */
+    HYBRID: 2
+}
+
+/**
+ * Глобальный режим (можно менять в runtime: window.__REQUEST_META_MODE = 1)
+ * @type {RequestMetaMode}
+ */
+const GLOBAL_META_MODE = window.__REQUEST_META_MODE ?? RequestMetaMode.BEFORE
+
+/**
+ * URL-паттерны для HYBRID-режима
+ * Модули в этом списке автоматически получат мета-данные
+ * @type {string[]}
+ */
+const HYBRID_PATTERNS = [
+    '/training'
+    // Пример: '/smartlight', '/dynamic-table' — добавляй по мере миграции
+]
+
+// ============================================================================
+// 🌐 СОЗДАНИЕ AXIOS-ИНСТАНСА
+// ============================================================================
 
 const service = window.axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     timeout: 30000,
-    withCredentials: true,
-});
+    withCredentials: true
+})
+
+// ============================================================================
+// 📤 REQUEST INTERCEPTOR
+// ============================================================================
 
 service.interceptors.request.use(
+    /**
+     * Обработка исходящего запроса
+     * @param {import('axios').InternalAxiosRequestConfig} config
+     * @returns {import('axios').InternalAxiosRequestConfig}
+     */
     config => {
-        const token = getToken();
-        const loginType = getLoginType();
-        const csrfToken = Cookies.get('XSRF-TOKEN');
+        const token = getToken()
+        const loginType = getLoginType()
+        const csrfToken = Cookies.get('XSRF-TOKEN')
 
-        console.log(`[Request] ${config.method.toUpperCase()} ${config.url} [${loginType}]`);
+        // 🔹 Отладочное логирование (только в дев-режиме)
+        if (import.meta.env.DEV && config.__debug) {
+            const mode = resolveMetaMode(config)
+            console.log(`[Request] ${config.method?.toUpperCase()} ${config.url} [mode:${mode}]`)
+        }
 
+        // 🔹 Авторизация
         if (token && isLogged()) {
-            config.headers['Authorization'] = `Bearer ${token}`;
+            config.headers['Authorization'] = `Bearer ${token}`
         }
 
+        // 🔹 CSRF-защита
         if (csrfToken) {
-            config.headers['X-XSRF-TOKEN'] = csrfToken;
+            config.headers['X-XSRF-TOKEN'] = csrfToken
         }
 
-        if (loginType === 'admin' && !config.url.startsWith('/admin')) {
-            config.url = `/admin${config.url}`;
-            console.log(`[Request] Rewriting URL to: ${config.url}`);
+        // 🔹 Авто-префикс для админ-панели
+        if (loginType === 'admin' && !config.url?.startsWith('/admin')) {
+            config.url = `/admin${config.url}`
         }
 
-        return config;
+        return config
     },
+
+    /**
+     * Обработка ошибки запроса
+     * @param {Error} error
+     * @returns {Promise<never>}
+     */
     error => {
-        console.error('[AXIOS] Request error:', error);
-        return Promise.reject(error);
+        console.error('[AXIOS] Request error:', error)
+        return Promise.reject(error)
     }
-);
+)
+
+// ============================================================================
+// 📥 RESPONSE INTERCEPTOR — СЕРДЦЕ ПЕРЕКЛЮЧАТЕЛЯ
+// ============================================================================
 
 service.interceptors.response.use(
+    /**
+     * Обработка успешного ответа
+     * @param {import('axios').AxiosResponse} response
+     * @returns {Promise<any>}
+     */
     response => {
-        const newToken = response.headers['authorization'] || response.headers['Authorization'];
-
-/*        if (newToken) {
-            const tokenValue = newToken.startsWith('Bearer ') ? newToken.slice(7) : newToken;
-            setToken(tokenValue);
-            response.data = { ...response.data, token: tokenValue };
-        }*/
-
-        const authToken = response.data?.token || response.headers['authorization'];
+        // 🔹 Авто-обновление токена (если бэкенд вернул новый)
+        const authToken = response.data?.token || response.headers?.['authorization']
         if (authToken) {
-            const tokenValue = authToken.replace('Bearer ', '');
-            setToken(tokenValue);
+            const tokenValue = authToken.replace('Bearer ', '')
+            setToken(tokenValue)
         }
 
-        return response.data;
+        // 🔹 Определяем режим для этого запроса
+        const mode = resolveMetaMode(response.config)
+
+        // ────────────────────────────────────────────────────────────────
+        // РЕЖИМ 0: BEFORE (Только данные) — 100% обратная совместимость
+        // ────────────────────────────────────────────────────────────────
+        if (mode === RequestMetaMode.BEFORE) {
+            return response.data
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        // РЕЖИМ 1: AFTER (Данные + метаданные) — для новых модулей
+        // ────────────────────────────────────────────────────────────────
+        if (mode === RequestMetaMode.AFTER) {
+            return {
+                data: response.data,
+                status: response.status,
+                statusText: response.statusText,
+                headers: response.headers,
+                config: {
+                    url: response.config.url,
+                    method: response.config.method,
+                    params: response.config.params
+                }
+            }
+        }
+
+        // ────────────────────────────────────────────────────────────────
+        // РЕЖИМ 2: HYBRID (Авто) — фолбэк на BEFORE
+        // ────────────────────────────────────────────────────────────────
+        return response.data
     },
+
+    /**
+     * Обработка ошибки ответа — ЕДИНАЯ для всех режимов
+     * @param {import('axios').AxiosError} error
+     * @returns {Promise<never>}
+     */
     error => {
+        // 🔹 401: Редирект на вход
         if (error.response?.status === 401) {
-            const loginType = getLoginType();
-            window.location.href = loginType === 'admin' ? '/admin/login' : '/login';
+            const loginType = getLoginType()
+            window.location.href = loginType === 'admin' ? '/admin/login' : '/login'
+            return Promise.reject(error)
         }
 
-        const message = error.response?.data?.message ||
+        // 🔹 Формирование сообщения об ошибке
+        const message =
+            error.response?.data?.message ||
             error.response?.data?.error ||
             error.message ||
-            'Network error';
+            'Network error'
 
-        ElMessage.error(message);
-        return Promise.reject(error);
+        // 🔹 Тихие ошибки (для фоновых запросов, чтобы не спамить пользователя)
+        const isSilent = error.config?.__silentErrors && [404, 422].includes(error.response?.status)
+
+        if (!isSilent) {
+            ElMessage.error(message)
+        }
+
+        return Promise.reject(error)
     }
-);
+)
 
-export default service;
+// ============================================================================
+// 🧠 ЛОГИКА РАЗРЕШЕНИЯ РЕЖИМА
+// ============================================================================
+
+/**
+ * Определяет активный режим для запроса
+ * Приоритет: явный флаг в конфиге → HYBRID по URL → глобальный режим
+ *
+ * @param {import('axios').InternalAxiosRequestConfig} config
+ * @returns {RequestMetaMode}
+ */
+function resolveMetaMode(config) {
+    // 1️⃣ Приоритет: явный флаг в конфиге запроса
+    if (config.__metaMode !== undefined) {
+        return config.__metaMode
+    }
+
+    // 2️⃣ HYBRID-режим: авто-определение по паттернам URL
+    if (GLOBAL_META_MODE === RequestMetaMode.HYBRID) {
+        const url = config.url || ''
+        if (HYBRID_PATTERNS.some(pattern => url.includes(pattern))) {
+            return RequestMetaMode.AFTER
+        }
+        return RequestMetaMode.BEFORE
+    }
+
+    // 3️⃣ Глобальный режим (дефолт: BEFORE)
+    return GLOBAL_META_MODE
+}
+
+// ============================================================================
+// 🎛️ ПУБЛИЧНЫЙ API ДЛЯ УПРАВЛЕНИЯ РЕЖИМАМИ
+// ============================================================================
+
+/**
+ * Установить глобальный режим для всех запросов
+ * @param {RequestMetaMode} mode
+ * @example
+ * setGlobalMetaMode(RequestMetaMode.AFTER) // Включить мета-режим
+ * setGlobalMetaMode(1) // То же самое (числовой вариант)
+ */
+export const setGlobalMetaMode = mode => {
+    window.__REQUEST_META_MODE = mode
+    const modeName = { 0: 'BEFORE', 1: 'AFTER', 2: 'HYBRID' }[mode] || 'UNKNOWN'
+    console.log(`[request.js] ✅ Global mode: ${modeName}`)
+}
+
+/**
+ * Получить текущий глобальный режим
+ * @returns {RequestMetaMode}
+ */
+export const getGlobalMetaMode = () =>
+    window.__REQUEST_META_MODE ?? RequestMetaMode.BEFORE
+
+/**
+ * Создать конфиг запроса с включённым мета-режимом
+ * @param {Object} config - Базовый конфиг запроса
+ * @param {RequestMetaMode} [mode=RequestMetaMode.AFTER] - Желаемый режим
+ * @returns {Object} Конфиг с флагом __metaMode
+ * @example
+ * request(createMetaRequest({ url: '/users' }, RequestMetaMode.AFTER))
+ */
+export const createMetaRequest = (config, mode = RequestMetaMode.AFTER) => ({
+    ...config,
+    __metaMode: mode
+})
+
+/**
+ * Проверить, включён ли мета-режим для данного конфига
+ * @param {Object} [config={}] - Конфиг запроса
+ * @returns {boolean}
+ */
+export const isMetaModeEnabled = (config = {}) =>
+    resolveMetaMode(config) !== RequestMetaMode.BEFORE
+
+/**
+ * Отладочная утилита: вывести все активные режимы в консоль
+ * @example
+ * debugRequestModes()
+ */
+export const debugRequestModes = () => {
+    console.group('🔍 Request Modes Debug')
+    console.log('Global mode:', getGlobalMetaMode())
+    console.log('HYBRID patterns:', HYBRID_PATTERNS)
+    console.log(
+        'Active modules (by URL):',
+        HYBRID_PATTERNS.map(
+            p => `${p}: ${isMetaModeEnabled({ url: p }) ? 'AFTER' : 'BEFORE'}`
+        )
+    )
+    console.groupEnd()
+}
+
+// ============================================================================
+// 📦 ЭКСПОРТ ПО УМОЛЧАНИЮ
+// ============================================================================
+
+export default service
