@@ -95,93 +95,21 @@ const getTypeIcon = (type) => getExerciseIcon(type)
 const getTagType = (type) => getExerciseTagType(type)
 
 const selectExercise = (ex) => {
-  // Можно добавить логику: открыть форму с выбранным упражнением
   console.log('Selected exercise:', ex)
 }
 </script>
 
 <style scoped>
-.training-exercises-view {
-  padding: 12px;
-  font-size: 12px;
-}
-
-.view-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0 16px;
-  border-bottom: 1px solid #ebeef5;
-  margin-bottom: 16px;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.page-title .el-icon {
-  color: #409eff;
-  font-size: 18px;
-}
-
-.search-input {
-  width: 200px;
-}
-
-.exercise-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 4px 0;
-}
-
-.exercise-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 6px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.exercise-item:hover {
-  background: #f5f7fa;
-}
-
-.exercise-name {
-  font-size: 12px;
-  color: #303133;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-  color: #909399;
-  gap: 8px;
-}
-
-.empty-state .el-icon {
-  font-size: 32px;
-}
-
-@media (max-width: 768px) {
-  .view-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .search-input {
-    width: 100%;
-  }
-}
+.training-exercises-view { padding: 12px; font-size: 12px; }
+.view-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 16px; border-bottom: 1px solid #ebeef5; margin-bottom: 16px; }
+.page-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; font-weight: 600; color: #303133; }
+.page-title .el-icon { color: #409eff; font-size: 18px; }
+.search-input { width: 200px; }
+.exercise-list { display: flex; flex-direction: column; gap: 6px; padding: 4px 0; }
+.exercise-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 8px; border-radius: 4px; cursor: pointer; transition: background 0.15s; }
+.exercise-item:hover { background: #f5f7fa; }
+.exercise-name { font-size: 12px; color: #303133; }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; color: #909399; gap: 8px; }
+.empty-state .el-icon { font-size: 32px; }
+@media (max-width: 768px) { .view-header { flex-direction: column; align-items: flex-start; gap: 8px; } .search-input { width: 100%; } }
 </style>

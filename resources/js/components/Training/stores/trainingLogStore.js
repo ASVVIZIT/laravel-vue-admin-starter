@@ -1,77 +1,235 @@
+/**
+ * ============================================================================
+ * TRAINING LOG STORE — Управление журналом тренировок
+ * ============================================================================
+ * 📁 Путь: @/components/Training/stores/trainingLogStore.js
+ * ✅ Ответственность:
+ *    - Хранение списка записей, фильтров, пагинации, статистики.
+ *    - Выполнение CRUD-операций (create, read, update, delete).
+ *    - Применение фильтров и обновление связанных данных.
+ *
+ * 🔧 Используемые методы (для поиска по коду):
+ *    - applyFilters(params)     — загрузка записей с фильтрами
+ *    - clearFilters()           — сброс фильтров
+ *    - createLog(data)          — создание новой записи
+ *    - updateLog(id, data)      — обновление существующей записи
+ *    - deleteLog(id)            — удаление записи
+ *    - fetchStats()             — загрузка статистики
+ *    - fetchSummary()           — загрузка сводки для шапки
+ *    - setPage(page)            — смена страницы пагинации
+ *    - setPerPage(size)         — смена размера страницы
+ *
+ * 📦 Состояние (state):
+ *    - logs: []                 — массив записей
+ *    - loading: false           — флаг загрузки
+ *    - error: null              — ошибка последнего запроса
+ *    - dateFilter: null         — фильтр по одной дате
+ *    - exerciseFilter: null     — фильтр по упражнению
+ *    - dateRange: {from, to}    — фильтр по диапазону дат
+ *    - pagination: {...}        — объект пагинации
+ *    - stats: null              — статистика за период
+ *    - summary: null            — сводка для шапки дашборда
+ *
+ * ⚠️ ВАЖНО:
+ *    - persist УБРАН намеренно — фильтры не должны сохраняться между сессиями.
+ *    - Все методы возвращают только `data` из ответа (контракт с Resource).
+ *    - `applyFilters` автоматически обновляет статистику фоном.
+ */
+
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
 import { TrainingLogResource } from '@/components/Training/api/core/resource/TrainingLogResource.js'
 
-export const useTrainingLogStore = defineStore('training-log', () => {
-    const logs = ref([]), loading = ref(false), error = ref(null)
-    const stats = ref(null), summary = ref(null)
-    const dateFilter = ref(null), exerciseFilter = ref(null)
-    const dateRange = ref({ from: null, to: null })
-    const pagination = ref({ page: 1, per_page: 50, total: 0, last_page: 1 })
-    let isFetching = false
+export const useTrainingLogStore = defineStore('trainingLog', {
+    // 🔥 persist убран намеренно — фильтры не должны сохраняться между сессиями
+    state: () => ({
+        logs: [],
+        loading: false,
+        error: null,
+        dateFilter: null,
+        exerciseFilter: null,
+        dateRange: { from: null, to: null },
+        pagination: {
+            page: 1,
+            per_page: 50,
+            total: 0,
+            last_page: 1
+        },
+        stats: null,
+        summary: null
+    }),
 
-    const parse = (res) => res?.data && Array.isArray(res.data) ? { list: res.data, meta: res.meta || {} } : { list: [], meta: null }
+    getters: {
+        /**
+         * Есть ли загруженные записи
+         * @returns {boolean}
+         */
+        hasLogs: (state) => state.logs?.length > 0,
 
-    const fetch = async () => {
-        if (isFetching) return; isFetching = true; loading.value = true
-        try {
-            const { list, meta } = parse(await new TrainingLogResource().getListResource({
-                page: pagination.value.page, per_page: pagination.value.per_page,
-                date: dateFilter.value || undefined, exercise_id: exerciseFilter.value || undefined,
-                from: dateRange.value.from || undefined, to: dateRange.value.to || undefined
-            }))
-            logs.value = list || []
-            if (meta?.pagination) pagination.value = { page: meta.pagination.current_page, per_page: meta.pagination.per_page, total: meta.pagination.total, last_page: meta.pagination.last_page }
-        } catch (e) { error.value = e.response?.data?.message || 'Ошибка'; logs.value = [] }
-        finally { loading.value = false; isFetching = false }
+        /**
+         * Пустое состояние (не загружено и не ошибка)
+         * @returns {boolean}
+         */
+        isEmpty: (state) => !state.loading && state.logs?.length === 0
+    },
+
+    actions: {
+        /**
+         * 🔥 ГЛАВНЫЙ МЕТОД: Применение фильтров и загрузка записей
+         * @param {Object} params - { date, exercise_id, from, to, page, per_page }
+         * @returns {Promise<void>}
+         */
+        async applyFilters(params = {}) {
+            console.log('[Store] applyFilters START', params)
+            this.loading = true
+            this.error = null
+
+            try {
+                // 1. Обновляем состояние фильтров (только переданные ключи)
+                if ('date' in params) this.dateFilter = params.date
+                if ('exercise_id' in params) this.exerciseFilter = params.exercise_id
+                if ('from' in params) this.dateRange.from = params.from
+                if ('to' in params) this.dateRange.to = params.to
+                if ('page' in params) this.pagination.page = params.page
+                if ('per_page' in params) this.pagination.per_page = params.per_page
+
+                // 2. Формируем чистый запрос (без null/undefined)
+                const queryParams = {
+                    page: this.pagination.page,
+                    per_page: this.pagination.per_page
+                }
+                if (this.dateFilter) queryParams.date = this.dateFilter
+                if (this.exerciseFilter) queryParams.exercise_id = this.exerciseFilter
+                if (this.dateRange?.from) queryParams.from = this.dateRange.from
+                if (this.dateRange?.to) queryParams.to = this.dateRange.to
+
+                console.log('[Store] Request payload:', queryParams)
+
+                // 3. Выполняем запрос
+                const response = await new TrainingLogResource().getListResource(queryParams)
+
+                // 4. Обновляем данные (response уже содержит только data, см. TrainingBaseResource)
+                this.logs = response.data || []
+                this.pagination = {
+                    ...this.pagination,
+                    ...(response.meta?.pagination || {})
+                }
+                console.log('[Store] SUCCESS. Logs count:', this.logs.length)
+
+                // 5. Обновляем статистику фоном (не блокируем UI)
+                this.fetchStats().catch(() => {})
+                this.fetchSummary().catch(() => {})
+
+            } catch (error) {
+                console.error('[Store] FAILED:', error)
+                this.error = error.response?.data?.message || 'Ошибка сети'
+                this.logs = []
+            } finally {
+                this.loading = false
+                console.log('[Store] applyFilters END. Loading:', this.loading)
+            }
+        },
+
+        /**
+         * 🔹 Сброс всех фильтров и загрузка всех записей
+         * @returns {Promise<void>}
+         */
+        async clearFilters() {
+            console.log('[Store] clearFilters TRIGGERED')
+            this.dateFilter = null
+            this.exerciseFilter = null
+            this.dateRange = { from: null, to: null }
+            this.pagination.page = 1
+            await this.applyFilters({})
+        },
+
+        /**
+         * 🔹 Смена страницы пагинации
+         * @param {number} page - номер страницы
+         */
+        setPage(page) {
+            this.pagination.page = page
+            this.applyFilters({})
+        },
+
+        /**
+         * 🔹 Смена размера страницы пагинации
+         * @param {number} size - количество записей на странице
+         */
+        setPerPage(size) {
+            this.pagination.per_page = size
+            this.pagination.page = 1
+            this.applyFilters({})
+        },
+
+        /**
+         * 🔹 Создание новой записи
+         * @param {Object} data - данные формы (exercise_id, date, time, sets, ...)
+         * @returns {Promise<Object>} - ответ сервера
+         */
+        async createLog(data) {
+            const response = await new TrainingLogResource().createResource(data)
+            // После создания обновляем список с текущими фильтрами
+            await this.applyFilters({})
+            return response
+        },
+
+        /**
+         * 🔹 Обновление существующей записи
+         * @param {number|string} id - ID записи
+         * @param {Object} data - новые данные
+         * @returns {Promise<Object>} - ответ сервера
+         */
+        async updateLog(id, data) {
+            const response = await new TrainingLogResource().updateResource(id, data)
+            // После обновления обновляем список с текущими фильтрами
+            await this.applyFilters({})
+            return response
+        },
+
+        /**
+         * 🔹 Удаление записи
+         * @param {number|string} id - ID записи
+         * @returns {Promise<void>}
+         */
+        async deleteLog(id) {
+            await new TrainingLogResource().deleteResource(id)
+            // После удаления обновляем список с текущими фильтрами
+            await this.applyFilters({})
+        },
+
+        /**
+         * 🔹 Загрузка статистики за период (с учётом фильтров)
+         * @returns {Promise<void>}
+         */
+        async fetchStats() {
+            try {
+                const params = {}
+                if (this.exerciseFilter) params.exercise_id = this.exerciseFilter
+                if (this.dateRange?.from) params.from = this.dateRange.from
+                if (this.dateRange?.to) params.to = this.dateRange.to
+
+                const response = await new TrainingLogResource().getStatsResource(params)
+                // response уже содержит только data
+                this.stats = response
+            } catch (error) {
+                console.error('[Store] fetchStats error:', error)
+            }
+        },
+
+        /**
+         * 🔹 Загрузка сводки для шапки дашборда (всегда полная, без фильтров)
+         * @returns {Promise<void>}
+         */
+        async fetchSummary() {
+            try {
+                const response = await new TrainingLogResource().getSummaryResource()
+                // response уже содержит только data
+                this.summary = response
+            } catch (error) {
+                console.error('[Store] fetchSummary error:', error)
+            }
+        }
     }
-
-    const applyFilters = async (p) => {
-        if (p.date !== undefined) dateFilter.value = p.date
-        if (p.exercise_id !== undefined) exerciseFilter.value = p.exercise_id
-        if (p.from !== undefined) dateRange.value.from = p.from
-        if (p.to !== undefined) dateRange.value.to = p.to
-        localStorage.setItem('training-date-filter', dateFilter.value || '')
-        localStorage.setItem('training-exercise-filter', exerciseFilter.value || '')
-        localStorage.setItem('training-date-range', JSON.stringify(dateRange.value))
-        pagination.value.page = 1; await fetch()
-    }
-
-    const setPage = async (v) => { pagination.value.page = v; localStorage.setItem('training-page', v); await fetch() }
-    const setPerPage = async (v) => { pagination.value.per_page = v; pagination.value.page = 1; localStorage.setItem('training-per-page', v); await fetch() }
-    const clearFilters = async () => {
-        dateFilter.value = null; exerciseFilter.value = null; dateRange.value = { from: null, to: null }
-        localStorage.removeItem('training-date-filter'); localStorage.removeItem('training-exercise-filter'); localStorage.removeItem('training-date-range')
-        pagination.value.page = 1; await fetch()
-    }
-
-    const createLog = async (d) => {
-        await new TrainingLogResource().createResource(d)
-        pagination.value.page = 1
-        await Promise.all([fetch(), fetchStats(), fetchSummary()])
-    }
-
-    const updateLog = async (id, d) => {
-        await new TrainingLogResource().updateResource(id, d)
-        await Promise.all([fetch(), fetchStats(), fetchSummary()])
-    }
-
-    const deleteLog = async (id) => {
-        await new TrainingLogResource().deleteResource(id)
-        await Promise.all([fetch(), fetchStats(), fetchSummary()])
-    }
-
-    const fetchStats = async (p='week') => {
-        try { stats.value = (await new TrainingLogResource().getStatsResource({ period: p }))?.data }
-        catch { stats.value = null }
-    }
-
-    const fetchSummary = async () => {
-        try { summary.value = await new TrainingLogResource().getSummaryResource() }
-        catch { summary.value = null }
-    }
-
-    return { logs, loading, error, dateFilter, exerciseFilter, dateRange, pagination, stats, summary,
-        fetch, applyFilters, setPage, setPerPage, clearFilters, createLog, updateLog, deleteLog, fetchStats, fetchSummary }
 })
+
 export default useTrainingLogStore

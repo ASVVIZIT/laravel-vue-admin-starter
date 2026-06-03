@@ -372,10 +372,40 @@ Route::namespace('Api\\Training')
                 Route::get('/summary', [TrainingLogController::class, 'summary'])->name('summary');
             });
 
-            // ===== SHARING API — Просмотр чужих тренировок =====
-            // Публичные или шаренные мне записи другого пользователя.
-            // GET /api/training/users/{username}/shared?date=2024-01-01
+// ===== SHARING API — Просмотр чужих тренировок + Поиск пользователей =====
             Route::prefix('users')->name('users.')->group(function () {
+
+                // 🔍 Поиск пользователей (для шеринга)
+                Route::get('/search', function (Request $request) {
+                    $search = $request->get('search', '');
+                    if (strlen($search) < 2) {
+                        return response()->json(['success' => true, 'data' => []]);
+                    }
+                    $users = \App\Models\User::query()
+                        ->where(function ($q) use ($search) {
+                            $q->where('name', 'LIKE', "%{$search}%")
+                                ->orWhere('username', 'LIKE', "%{$search}%");
+                        })
+                        ->where('id', '!=', auth()->id())
+                        ->limit(10)
+                        ->get(['id', 'name', 'username']);
+                    return response()->json(['success' => true, 'data' => $users]);
+                })->name('search');
+
+                // 👥 Получение пользователей по ID (опционально, для подгрузки имён)
+                Route::get('/by-ids', function (Request $request) {
+                    $ids = explode(',', $request->get('ids', ''));
+                    $ids = array_filter(array_map('intval', $ids));
+                    if (empty($ids)) {
+                        return response()->json(['success' => true, 'data' => []]);
+                    }
+                    $users = \App\Models\User::query()
+                        ->whereIn('id', $ids)
+                        ->get(['id', 'name', 'username']);
+                    return response()->json(['success' => true, 'data' => $users]);
+                })->name('by-ids');
+
+                // 👁 Просмотр чужих тренировок (ПУБЛИЧНЫХ или РАСШАРЕННЫХ)
                 Route::get('/{username}/shared', [TrainingLogController::class, 'shared'])
                     ->name('shared')
                     ->where('username', '[A-Za-z0-9_]+');

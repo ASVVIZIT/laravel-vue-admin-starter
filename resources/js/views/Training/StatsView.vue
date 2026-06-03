@@ -77,124 +77,51 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { TrendCharts, DataLine, Odometer } from '@element-plus/icons-vue'
-import { useTrainingStore } from '@/components/Training/stores/index.js'
+import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import StatsCard from '@/components/Training/components/StatsCard.vue'
 import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
 import { formatDate, formatVolume } from '@/components/Training/utils/appFormattersUtils.js'
 
-const trainingStore = useTrainingStore()
+const logStore = useTrainingLogStore()
 const exerciseStore = useExerciseStore()
 
 const period = ref('week')
 const exerciseFilter = ref(null)
 
-const statsData = computed(() => trainingStore.stats?.data || {})
+const statsData = computed(() => logStore.stats?.data || {})
 const statsPeriod = computed(() => ({
-  from: formatDate(trainingStore.stats?.from),
-  to: formatDate(trainingStore.stats?.to)
+  from: formatDate(logStore.stats?.from),
+  to: formatDate(logStore.stats?.to)
 }))
 
 const exercises = computed(() => exerciseStore.exercises)
 
 onMounted(async () => {
   await Promise.all([
-    exerciseStore.initExercisesStore(),
-    trainingStore.initLogsStore()
+    exerciseStore.fetchExercisesStore(),
+    logStore.fetchSummary()
   ])
   await fetchStats()
 })
 
 const fetchStats = async () => {
-  await trainingStore.fetchStatsStore(period.value, exerciseFilter.value)
+  await logStore.fetchStats()
 }
 </script>
 
 <style scoped>
-.training-stats-view {
-  padding: 12px;
-  font-size: 12px;
-}
-
-.view-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0 16px;
-  border-bottom: 1px solid #ebeef5;
-  margin-bottom: 16px;
-}
-
-.page-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.page-title .el-icon {
-  color: #409eff;
-  font-size: 18px;
-}
-
-.header-controls {
-  display: flex;
-  gap: 8px;
-}
-
-.header-controls .el-select {
-  width: 140px;
-}
-
-.stats-cards {
-  margin-bottom: 16px;
-}
-
-.chart-card {
-  margin-top: 8px;
-}
-
-.chart-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 0;
-  color: #909399;
-  gap: 12px;
-  text-align: center;
-}
-
-.chart-placeholder .el-icon {
-  font-size: 48px;
-  color: #c0c4cc;
-}
-
-.chart-placeholder p {
-  margin: 0;
-  font-size: 13px;
-}
-
-.chart-placeholder .hint {
-  font-size: 11px;
-  color: #606266;
-}
-
-@media (max-width: 768px) {
-  .view-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .header-controls {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-  .header-controls .el-select {
-    width: calc(50% - 4px);
-  }
-}
+.training-stats-view { padding: 12px; font-size: 12px; }
+.view-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 16px; border-bottom: 1px solid #ebeef5; margin-bottom: 16px; }
+.page-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; font-weight: 600; color: #303133; }
+.page-title .el-icon { color: #409eff; font-size: 18px; }
+.header-controls { display: flex; gap: 8px; }
+.header-controls .el-select { width: 140px; }
+.stats-cards { margin-bottom: 16px; }
+.chart-card { margin-top: 8px; }
+.chart-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; color: #909399; gap: 12px; text-align: center; }
+.chart-placeholder .el-icon { font-size: 48px; color: #c0c4cc; }
+.chart-placeholder p { margin: 0; font-size: 13px; }
+.chart-placeholder .hint { font-size: 11px; color: #606266; }
+@media (max-width: 768px) { .view-header { flex-direction: column; align-items: flex-start; gap: 8px; } .header-controls { width: 100%; flex-wrap: wrap; } .header-controls .el-select { width: calc(50% - 4px); } }
 </style>

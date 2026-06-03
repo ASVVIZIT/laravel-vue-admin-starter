@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\Training;
 
 use App\Http\Controllers\Controller;
 use App\Models\Training\TrainingLog;
+use App\Models\Training\Exercise;
+use App\Models\User;
 use App\Models\Acl;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
@@ -51,9 +53,8 @@ class TrainingLogController extends Controller
     }
 
     /**
-     * 🔥 STATS: Исправленный расчёт статистики
+     * 🔥 STATS: Расчёт статистики за период
      */
-
     public function stats(Request $request): JsonResponse
     {
         if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING_STATS)) {
@@ -65,16 +66,15 @@ class TrainingLogController extends Controller
         $exerciseId = $request->get('exercise_id');
         $dateRange = $this->getDateRange($period);
 
-        // 🔥 БЫСТРЫЙ SQL-ЗАПРОС (использует колонку total_volume)
         $baseQuery = TrainingLog::mine($userId)->whereBetween('date', [$dateRange['from'], $dateRange['to']]);
         if ($exerciseId) $baseQuery->forExercise($exerciseId);
 
         $stats = $baseQuery->selectRaw('
-        COUNT(*) as total_sessions,
-        COUNT(DISTINCT date) as active_days,
-        COALESCE(SUM(total_volume), 0) as total_volume,
-        COALESCE(SUM(JSON_LENGTH(sets)), 0) as total_sets
-    ')->first();
+            COUNT(*) as total_sessions,
+            COUNT(DISTINCT date) as active_days,
+            COALESCE(SUM(total_volume), 0) as total_volume,
+            COALESCE(SUM(JSON_LENGTH(sets)), 0) as total_sets
+        ')->first();
 
         // Для total_reps всё ещё нужен PHP (нет отдельной колонки)
         $totalReps = $baseQuery->get(['sets'])->sum(function ($log) {
@@ -96,7 +96,7 @@ class TrainingLogController extends Controller
     }
 
     /**
-     * 🔥 SUMMARY: Исправленная сводка для шапки
+     * 🔥 SUMMARY: Сводка для шапки дашборда
      */
     public function summary(Request $request): JsonResponse
     {
@@ -108,14 +108,9 @@ class TrainingLogController extends Controller
         $today = now()->format('Y-m-d');
         $weekStart = now()->startOfWeek()->format('Y-m-d');
 
-        // 🔥 БЫСТРЫЙ SQL
         $todayStats = TrainingLog::mine($userId)->forDate($today)
-            ->selectRaw('
-            COUNT(*) as sessions, 
-            COALESCE(SUM(JSON_LENGTH(sets)), 0) as total_sets
-        ')->first();
+            ->selectRaw('COUNT(*) as sessions, COALESCE(SUM(JSON_LENGTH(sets)), 0) as total_sets')->first();
 
-        // Для reps всё ещё PHP
         $todayReps = TrainingLog::mine($userId)->forDate($today)->get(['sets'])
             ->sum(fn($log) => collect($log->sets)->sum(fn($s) => (int)($s['reps'] ?? 0)));
 
@@ -136,6 +131,49 @@ class TrainingLogController extends Controller
                 'active_days' => (int)$weekStats->active_days,
             ],
             'streak' => $this->calculateStreak($userId),
+        ]);
+    }
+
+    /**
+     * 🔥 SHARED: Просмотр чужих тренировок (НОВЫЙ МЕТОД)
+     * GET /api/training/users/{username}/shared
+     */
+    public function shared(Request $request, string $username): JsonResponse
+    {
+        if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING)) {
+            return response()->json(['success' => false, 'message' => 'Доступ запрещён'], 403);
+        }
+
+        $user = User::where('username', $username)->firstOrFail();
+
+        $query = TrainingLog::with('exercise:id,name,type,default_unit')
+            ->where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->where('is_public', true)
+                    ->orWhereJsonContains('shared_with', Auth::id());
+            })
+            ->latest('date')
+            ->latest('time');
+
+        // Фильтры (опционально)
+        if ($request->filled('date')) $query->forDate($request->date);
+        if ($request->filled('from') && $request->filled('to')) $query->forDateRange($request->from, $request->to);
+        if ($request->filled('exercise_id')) $query->forExercise($request->exercise_id);
+
+        $perPage = $request->integer('per_page', 50);
+        $logs = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs->items(),
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $logs->currentPage(),
+                    'per_page' => $logs->perPage(),
+                    'total' => $logs->total(),
+                    'last_page' => $logs->lastPage(),
+                ]
+            ]
         ]);
     }
 

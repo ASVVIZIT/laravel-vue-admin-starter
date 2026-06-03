@@ -63,14 +63,38 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
 
     const getPlainPayload = () => {
         const raw = toRaw(form.value);
+
         return {
             exercise_id: raw.exercise_id,
             date: raw.date,
             time: raw.time,
-            sets: JSON.parse(JSON.stringify(raw.sets)),
+
+            // 🔥 ФИЛЬТРАЦИЯ ПОДХОДОВ: сохраняем только заполненные поля + notes
+            sets: raw.sets.map(set => {
+                const cleaned = {};
+
+                // Сохраняем числовые поля, только если они заполнены
+                if (set.reps !== null && set.reps !== undefined && set.reps !== '') cleaned.reps = parseInt(set.reps);
+                if (set.weight !== null && set.weight !== undefined && set.weight !== '') cleaned.weight = parseFloat(set.weight);
+                if (set.duration !== null && set.duration !== undefined && set.duration !== '') cleaned.duration = parseInt(set.duration);
+                if (set.distance !== null && set.distance !== undefined && set.distance !== '') cleaned.distance = parseFloat(set.distance);
+
+                // 🔥 notes сохраняем всегда, если есть текст
+                if (set.notes && typeof set.notes === 'string' && set.notes.trim()) {
+                    cleaned.notes = set.notes.trim();
+                }
+
+                return cleaned;
+            }),
+
             is_public: !!raw.is_public,
-            shared_with: Array.isArray(raw.shared_with) ? raw.shared_with.map(id => parseInt(id)).filter(id => id > 0) : [],
-            notes: raw.notes || '',
+
+            // 🔥 shared_with: чистим массив от пустых значений
+            shared_with: Array.isArray(raw.shared_with)
+                ? raw.shared_with.map(id => parseInt(id)).filter(id => id > 0)
+                : [],
+
+            notes: raw.notes?.trim() || null,
             rating: raw.rating || null
         };
     };

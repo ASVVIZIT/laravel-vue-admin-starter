@@ -2,7 +2,7 @@
   <LayoutCardWrapper title="История тренировок" :icon="List" bordered shadow class="log-table-wrapper">
     <el-table
         :data="logStore.logs"
-        height="calc(100vh - 360px)"
+        height="calc(100vh - 400px)"
         style="width: 100%"
         size="small"
         stripe

@@ -14,7 +14,7 @@ export class TrainingUserResource extends TrainingBaseResource {
      * Конструктор
      * @param {string} endpoint - Базовый эндпоинт (по умолчанию /api/users)
      */
-    constructor(endpoint = '/api/users') {
+    constructor(endpoint = '/users') {
         super(endpoint)
     }
 
