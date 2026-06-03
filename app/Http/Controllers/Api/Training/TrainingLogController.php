@@ -17,6 +17,7 @@ class TrainingLogController extends Controller
 {
     /**
      * GET /api/training/logs
+     * Поддержка вкладок через флаги: shared_with_me, shared_by_me
      */
     public function index(Request $request): JsonResponse
     {
@@ -25,10 +26,28 @@ class TrainingLogController extends Controller
         }
 
         $userId = Auth::id();
-        $query = TrainingLog::with('exercise:id,name,type,default_unit')
-            ->mine($userId)
-            ->latest('date')
-            ->latest('time');
+
+        if ($request->boolean('shared_with_me')) {
+            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->visibleTo($userId)
+                ->where('user_id', '!=', $userId)
+                ->latest('date')
+                ->latest('time');
+        } elseif ($request->boolean('shared_by_me')) {
+            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->where('user_id', $userId)
+                ->where(function ($q) use ($userId) {
+                    $q->where('is_public', true)
+                        ->orWhereJsonContains('shared_with', $userId);
+                })
+                ->latest('date')
+                ->latest('time');
+        } else {
+            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->mine($userId)
+                ->latest('date')
+                ->latest('time');
+        }
 
         if ($request->filled('date')) $query->forDate($request->date);
         if ($request->filled('exercise_id')) $query->forExercise($request->exercise_id);
@@ -52,9 +71,6 @@ class TrainingLogController extends Controller
         ]);
     }
 
-    /**
-     * 🔥 STATS: Расчёт статистики за период
-     */
     public function stats(Request $request): JsonResponse
     {
         if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING_STATS)) {
@@ -76,7 +92,6 @@ class TrainingLogController extends Controller
             COALESCE(SUM(JSON_LENGTH(sets)), 0) as total_sets
         ')->first();
 
-        // Для total_reps всё ещё нужен PHP (нет отдельной колонки)
         $totalReps = $baseQuery->get(['sets'])->sum(function ($log) {
             return collect($log->sets)->sum(fn($s) => (int)($s['reps'] ?? 0));
         });
@@ -95,9 +110,6 @@ class TrainingLogController extends Controller
         ]);
     }
 
-    /**
-     * 🔥 SUMMARY: Сводка для шапки дашборда
-     */
     public function summary(Request $request): JsonResponse
     {
         if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING)) {
@@ -135,19 +147,19 @@ class TrainingLogController extends Controller
     }
 
     /**
-     * 🔥 SHARED: Просмотр чужих тренировок (НОВЫЙ МЕТОД)
-     * GET /api/training/users/{username}/shared
+     * GET /api/training/users/{user}/shared
+     * Принимает ID пользователя (не username!)
      */
-    public function shared(Request $request, string $username): JsonResponse
+    public function shared(Request $request, int $user): JsonResponse
     {
         if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING)) {
             return response()->json(['success' => false, 'message' => 'Доступ запрещён'], 403);
         }
 
-        $user = User::where('username', $username)->firstOrFail();
+        $owner = User::findOrFail($user);
 
-        $query = TrainingLog::with('exercise:id,name,type,default_unit')
-            ->where('user_id', $user->id)
+        $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+            ->where('user_id', $owner->id)
             ->where(function ($q) {
                 $q->where('is_public', true)
                     ->orWhereJsonContains('shared_with', Auth::id());
@@ -155,7 +167,6 @@ class TrainingLogController extends Controller
             ->latest('date')
             ->latest('time');
 
-        // Фильтры (опционально)
         if ($request->filled('date')) $query->forDate($request->date);
         if ($request->filled('from') && $request->filled('to')) $query->forDateRange($request->from, $request->to);
         if ($request->filled('exercise_id')) $query->forExercise($request->exercise_id);
@@ -177,9 +188,6 @@ class TrainingLogController extends Controller
         ]);
     }
 
-    /**
-     * POST /api/training/logs - Создание записи
-     */
     public function store(Request $request): JsonResponse
     {
         $this->checkCreatePermission();
@@ -194,9 +202,6 @@ class TrainingLogController extends Controller
         return response()->json(['success' => true, 'message' => 'Запись создана', 'data' => $log], 201);
     }
 
-    /**
-     * PUT /api/training/logs/{log} - Обновление
-     */
     public function update(Request $request, TrainingLog $log): JsonResponse
     {
         $this->authorizeUpdate($log);
@@ -210,19 +215,12 @@ class TrainingLogController extends Controller
         return response()->json(['success' => true, 'message' => 'Запись обновлена', 'data' => $log]);
     }
 
-    /**
-     * DELETE /api/training/logs/{log} - Удаление
-     */
     public function destroy(TrainingLog $log): JsonResponse
     {
         $this->authorizeUpdate($log);
         $log->delete();
         return response()->json(['success' => true, 'message' => 'Запись удалена']);
     }
-
-    // ========================================================================
-    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
-    // ========================================================================
 
     private function checkCreatePermission(): void
     {
@@ -247,13 +245,19 @@ class TrainingLogController extends Controller
             'exercise_id' => "{$req}|exists:exercises,id",
             'date' => "{$req}|date",
             'time' => "{$req}|date_format:H:i",
-            'sets' => "{$req}|array|min:1",
-            'sets.*.reps' => 'nullable|integer|min:0',
-            'sets.*.weight' => 'nullable|numeric|min:0',
-            'sets.*.duration' => 'nullable|integer|min:0',
-            'sets.*.distance' => 'nullable|numeric|min:0',
+            'sets' => ["{$req}", 'array', 'min:1'],
+            'sets.*' => Rule::forEach(function () {
+                return [
+                    'reps' => 'nullable|integer|min:0|max:1000',
+                    'weight' => 'nullable|numeric|min:0|max:1000',
+                    'duration' => 'nullable|integer|min:0|max:86400',
+                    'distance' => 'nullable|numeric|min:0|max:42195',
+                    'notes' => 'nullable|string|max:1000',
+                ];
+            }),
             'is_public' => 'nullable|boolean',
             'shared_with' => 'nullable|array|max:10',
+            'shared_with.*' => 'integer|exists:users,id',
             'notes' => 'nullable|string|max:1000',
             'rating' => 'nullable|integer|min:1|max:5',
         ];

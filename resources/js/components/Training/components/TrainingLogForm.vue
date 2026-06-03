@@ -1,8 +1,6 @@
 <template>
   <LayoutCardWrapper title="Новая тренировка" :icon="EditPen" bordered shadow class="training-form">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="small" @submit.prevent="handleSubmit">
-
-      <!-- Упражнение -->
       <el-form-item label="Упражнение" prop="exercise_id">
         <el-select v-model="form.exercise_id" placeholder="Выберите упражнение" filterable @change="onExerciseChange">
           <el-option v-for="ex in exerciseStore.exercises" :key="ex.id" :label="ex.name" :value="ex.id">
@@ -12,7 +10,6 @@
         </el-select>
       </el-form-item>
 
-      <!-- Дата и время -->
       <el-row :gutter="8">
         <el-col :span="12">
           <el-form-item label="Дата" prop="date">
@@ -26,7 +23,6 @@
         </el-col>
       </el-row>
 
-      <!-- Подходы -->
       <el-form-item label="Подходы" prop="sets">
         <div class="sets-container">
           <SetRow v-for="(set, idx) in form.sets" :key="`set-${idx}`" v-model="form.sets[idx]" :index="idx" :exercise-type="selectedExercise?.type" :removable="form.sets.length > 1" @remove="removeSet(idx)" />
@@ -36,7 +32,6 @@
         </div>
       </el-form-item>
 
-      <!-- Публичность и шеринг -->
       <el-row :gutter="8">
         <el-col :span="12">
           <el-form-item>
@@ -57,13 +52,17 @@
                 :loading="userLoading"
                 size="small"
             >
-              <el-option v-for="user in userOptions" :key="user.id" :label="user.name" :value="user.id" />
+              <el-option
+                  v-for="user in userOptions"
+                  :key="user.id"
+                  :label="user.name"
+                  :value="user.id"
+              />
             </el-select>
           </el-form-item>
         </el-col>
       </el-row>
 
-      <!-- Заметки и оценка -->
       <el-row :gutter="8">
         <el-col :span="16">
           <el-form-item label="Заметки">
@@ -77,7 +76,6 @@
         </el-col>
       </el-row>
 
-      <!-- Кнопки -->
       <el-form-item>
         <el-button type="primary" @click="handleSubmit" :loading="loading">{{ isEdit ? 'Обновить' : 'Сохранить' }}</el-button>
         <el-button @click="handleReset">Сбросить</el-button>
@@ -96,6 +94,7 @@ import { useTrainingLogStore } from '@/components/Training/stores/trainingLogSto
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import { useTrainingForm } from '@/components/Training/composables/useTrainingForm.js'
 import { getExerciseTagType } from '@/components/Training/utils/appFormattersUtils.js'
+import { TrainingUserResource } from '@/components/Training/api/core/resource/TrainingUserResource.js'
 
 import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
 import SetRow from './SetRow.vue'
@@ -117,7 +116,6 @@ const isEdit = computed(() => !!props.logId)
 const userOptions = ref([])
 const userLoading = ref(false)
 
-// ===== Форма =====
 const { form, selectedExercise, rules, addSet, removeSet, resetForm, loadFormData, validateForm, getPlainPayload } =
     useTrainingForm(props.initialData, exerciseStore.exercises)
 
@@ -127,6 +125,33 @@ onMounted(async () => {
 })
 
 const disableFutureDates = (date) => date > new Date()
+
+const onExerciseChange = () => {}
+
+const searchUsers = async (query) => {
+  if (!query || query.trim().length < 2) {
+    userOptions.value = []
+    return
+  }
+
+  userLoading.value = true
+  try {
+    const resource = new TrainingUserResource()
+    const users = await resource.searchUsers(query, { per_page: 10 })
+
+    // ✅ Правильный маппинг для el-select
+    userOptions.value = (users || []).map(u => ({
+      id: u.id,
+      name: u.name || u.email || `Пользователь #${u.id}`,
+      email: u.email
+    }))
+  } catch (e) {
+    console.error('[TrainingLogForm] searchUsers error:', e)
+    userOptions.value = []
+  } finally {
+    userLoading.value = false
+  }
+}
 
 const handleSubmit = async () => {
   try {

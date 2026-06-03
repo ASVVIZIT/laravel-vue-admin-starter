@@ -54,13 +54,14 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getAvatarAttribute($value)
     {
-        // Если аватарка указана и существует
         if (!empty($value) && Storage::disk('public')->exists($value)) {
             return $value;
         }
 
-        // Иначе — определяем дефолтную аватарку по полу
-        $defaultAvatar = self::SEX_MAP[$this->sex] === 'Male'
+        $sex = $this->sex ?? 0;
+        $sexLabel = self::SEX_MAP[$sex] ?? 'Male';
+
+        $defaultAvatar = $sexLabel === 'Male'
             ? config('content.default_avatar_male')
             : config('content.default_avatar_female');
 
@@ -69,7 +70,11 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function getSexFormatAttribute()
     {
-        return self::SEX_MAP[$this->sex];
+        $sex = $this->sex;
+        if ($sex === null || $sex === '') {
+            return 'Не указан';
+        }
+        return self::SEX_MAP[$sex] ?? 'Не указан';
     }
 
     public function getAgeAttribute()

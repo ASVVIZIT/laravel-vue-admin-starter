@@ -3,7 +3,7 @@
     <div class="view-header">
       <h2 class="page-title">
         <el-icon><Share /></el-icon>
-        Тренировки пользователя <strong>{{ username }}</strong>
+        Тренировки пользователя #{{ userId }}
       </h2>
       <el-button size="small" @click="handleBack">
         <el-icon><ArrowLeft /></el-icon> Назад
@@ -24,12 +24,13 @@
     <div v-else-if="!logs.length" class="empty-state">
       <el-icon><InfoFilled /></el-icon>
       <p>Нет публичных записей</p>
-      <span class="hint">Пользователь ещё не поделился тренировками</span>
+      <span class="hint">Пользователь ещё не делился тренировками</span>
     </div>
 
     <TrainingLogTable
         v-else
         :logs="logs"
+        :current-user-id="currentUserId"
         :readonly="true"
         hide-actions
     />
@@ -37,24 +38,30 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Share, ArrowLeft, Loading, WarningFilled, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
+import { TrainingLogResource } from '@/components/Training/api/core/resource/TrainingLogResource.js'
 import TrainingLogTable from '@/components/Training/components/TrainingLogTable.vue'
 
 const route = useRoute()
 const router = useRouter()
-const logStore = useTrainingLogStore()
 
-const username = ref(route.params.username || '')
+const userId = ref(route.params.user || null)
 const loading = ref(false)
 const error = ref(null)
 const logs = ref([])
 
+const currentUserId = computed(() => {
+  if (typeof window !== 'undefined' && window.__CURRENT_USER_ID) {
+    return window.__CURRENT_USER_ID
+  }
+  return 1
+})
+
 onMounted(() => {
-  if (username.value) {
+  if (userId.value) {
     fetchShared()
   } else {
     error.value = 'Пользователь не указан'
@@ -62,13 +69,12 @@ onMounted(() => {
 })
 
 const fetchShared = async () => {
-  if (!username.value) return
+  if (!userId.value) return
   loading.value = true
   error.value = null
   try {
-    const { TrainingLogResource } = await import('@/components/Training/api/core/resource/TrainingLogResource.js')
-    const response = await new TrainingLogResource().getBase(`/users/${username.value}/shared`)
-    logs.value = response.data || []
+    const response = await new TrainingLogResource().getBase(`/users/${userId.value}/shared`)
+    logs.value = response?.data || response || []
   } catch (e) {
     console.error('[SharedView] Error:', e)
     error.value = e.message || 'Не удалось загрузить данные'
@@ -88,7 +94,6 @@ const handleBack = () => {
 .view-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 16px; border-bottom: 1px solid #ebeef5; margin-bottom: 16px; }
 .page-title { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 16px; font-weight: 600; color: #303133; }
 .page-title .el-icon { color: #409eff; font-size: 18px; }
-.page-title strong { color: #409eff; }
 .loading-state, .error-state, .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 0; color: #909399; gap: 12px; text-align: center; }
 .error-state { color: #f56c6c; }
 .error-state .el-button { margin-top: 8px; }

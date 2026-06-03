@@ -29,7 +29,7 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
     );
 
     const exerciseType = computed(() => selectedExercise.value?.type || 'bodyweight');
-    const rules = computed(() => getFormRules(exerciseType.value, window.__CURRENT_USER_ID__ || null));
+    const rules = computed(() => getFormRules(exerciseType.value, window.__CURRENT_USER_ID || null));
 
     const { defaultSet, sanitizeSet } = useExerciseFields(exerciseType.value);
 
@@ -63,39 +63,29 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
 
     const getPlainPayload = () => {
         const raw = toRaw(form.value);
+        const exerciseId = raw.exercise_id ? parseInt(raw.exercise_id, 10) : null;
 
         return {
-            exercise_id: raw.exercise_id,
+            exercise_id: exerciseId,
             date: raw.date,
             time: raw.time,
-
-            // 🔥 ФИЛЬТРАЦИЯ ПОДХОДОВ: сохраняем только заполненные поля + notes
-            sets: raw.sets.map(set => {
-                const cleaned = {};
-
-                // Сохраняем числовые поля, только если они заполнены
-                if (set.reps !== null && set.reps !== undefined && set.reps !== '') cleaned.reps = parseInt(set.reps);
-                if (set.weight !== null && set.weight !== undefined && set.weight !== '') cleaned.weight = parseFloat(set.weight);
-                if (set.duration !== null && set.duration !== undefined && set.duration !== '') cleaned.duration = parseInt(set.duration);
-                if (set.distance !== null && set.distance !== undefined && set.distance !== '') cleaned.distance = parseFloat(set.distance);
-
-                // 🔥 notes сохраняем всегда, если есть текст
-                if (set.notes && typeof set.notes === 'string' && set.notes.trim()) {
-                    cleaned.notes = set.notes.trim();
-                }
-
-                return cleaned;
-            }),
-
+            sets: raw.sets
+                .map(set => {
+                    const cleaned = {};
+                    if (set.reps !== null && set.reps !== undefined && set.reps !== '') cleaned.reps = parseInt(set.reps, 10);
+                    if (set.weight !== null && set.weight !== undefined && set.weight !== '') cleaned.weight = parseFloat(set.weight);
+                    if (set.duration !== null && set.duration !== undefined && set.duration !== '') cleaned.duration = parseInt(set.duration, 10);
+                    if (set.distance !== null && set.distance !== undefined && set.distance !== '') cleaned.distance = parseFloat(set.distance);
+                    if (set.notes && String(set.notes).trim()) cleaned.notes = String(set.notes).trim();
+                    return cleaned;
+                })
+                .filter(s => Object.keys(s).length > 0),
             is_public: !!raw.is_public,
-
-            // 🔥 shared_with: чистим массив от пустых значений
             shared_with: Array.isArray(raw.shared_with)
-                ? raw.shared_with.map(id => parseInt(id)).filter(id => id > 0)
+                ? raw.shared_with.map(id => parseInt(id, 10)).filter(id => id > 0)
                 : [],
-
-            notes: raw.notes?.trim() || null,
-            rating: raw.rating || null
+            notes: raw.notes ? String(raw.notes).trim() : null,
+            rating: raw.rating ? parseInt(raw.rating, 10) : null
         };
     };
 

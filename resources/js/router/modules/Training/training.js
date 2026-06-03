@@ -68,7 +68,7 @@ export default [
                 }
             },
             {
-                path: 'shared/:username',
+                path: 'shared/:user',
                 name: 'TrainingShared',
                 component: () => import('@/views/Training/SharedView.vue'),
                 meta: {

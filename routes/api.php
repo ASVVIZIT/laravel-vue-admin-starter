@@ -321,61 +321,42 @@ Route::get('/orders', function () {
 // ===================================================
 // 8. МОДУЛЬ: TRAINING (Тренировки и упражнения)
 // ===================================================
-// Архитектура: единый namespace + префикс + name-prefix + слои доступа
-// Аналогично модулю SmartLight
 Route::namespace('Api\\Training')
     ->prefix('training')
     ->name('training.')
     ->group(function () {
 
-        // ===== ПУБЛИЧНЫЕ МАРШРУТЫ (справочники, без авторизации) =====
-        // GET /api/training/exercises
-        // Возвращает список активных упражнений для формы добавления тренировки.
-        // Не требует auth, т.к. справочник общий для всех.
+        // ===== ПУБЛИЧНЫЕ МАРШРУТЫ (справочники) =====
         Route::get('/exercises', [ExerciseController::class, 'index'])->name('exercises.index');
 
-        // ===== USER AUTH (для фронтенда, по Sanctum) =====
-        // Все маршруты внутри этой группы требуют действительного Bearer токена.
+        // ===== ЗАЩИЩЁННЫЕ МАРШРУТЫ (auth:sanctum) =====
         Route::middleware('auth:sanctum')->group(function () {
 
-            // ===== CORE API — ЖУРНАЛ ТРЕНИРОВОК (логи) =====
-            // Основной CRUD: список, создание, обновление, удаление.
+            // ===== CORE API — ЖУРНАЛ ТРЕНИРОВОК =====
             Route::prefix('logs')->name('logs.')->group(function () {
-                // Список с фильтрами: GET /api/training/logs?date=2024-01-01&exercise_id=5
                 Route::get('/', [TrainingLogController::class, 'index'])->name('index');
-
-                // Создание: POST /api/training/logs
                 Route::post('/', [TrainingLogController::class, 'store'])->name('store');
-
-                // Обновление: PUT /api/training/logs/{log}
                 Route::put('/{log}', [TrainingLogController::class, 'update'])->name('update');
-
-                // Удаление (мягкое): DELETE /api/training/logs/{log}
                 Route::delete('/{log}', [TrainingLogController::class, 'destroy'])->name('destroy');
             });
 
-            // ===== ACTIONS API — Дополнительные действия с логами =====
-            // Восстановление / полное удаление (работают с soft deletes).
+            // ===== ACTIONS API (soft deletes) =====
             Route::prefix('logs/{log}')->name('logs.')->group(function () {
-                // Восстановление: POST /api/training/logs/{log}/restore
                 Route::post('/restore', [TrainingLogController::class, 'restore'])->name('restore');
-
-                // Полное удаление: DELETE /api/training/logs/{log}/force
                 Route::delete('/force', [TrainingLogController::class, 'forceDelete'])->name('force');
             });
 
-            // ===== STATS API — Статистика и аналитика =====
-            // GET /api/training/stats?period=week&exercise_id=5
-            // Возвращает агрегированные данные: сумма подходов, повторений, тоннажа.
+            // ===== STATS API =====
             Route::prefix('stats')->name('stats.')->group(function () {
                 Route::get('/', [TrainingLogController::class, 'stats'])->name('index');
                 Route::get('/summary', [TrainingLogController::class, 'summary'])->name('summary');
             });
 
-// ===== SHARING API — Просмотр чужих тренировок + Поиск пользователей =====
+            // ===== SHARING API =====
             Route::prefix('users')->name('users.')->group(function () {
 
                 // 🔍 Поиск пользователей (для шеринга)
+                // ищем только по name и email
                 Route::get('/search', function (Request $request) {
                     $search = $request->get('search', '');
                     if (strlen($search) < 2) {
@@ -384,15 +365,15 @@ Route::namespace('Api\\Training')
                     $users = \App\Models\User::query()
                         ->where(function ($q) use ($search) {
                             $q->where('name', 'LIKE', "%{$search}%")
-                                ->orWhere('username', 'LIKE', "%{$search}%");
+                                ->orWhere('email', 'LIKE', "%{$search}%");
                         })
                         ->where('id', '!=', auth()->id())
                         ->limit(10)
-                        ->get(['id', 'name', 'username']);
+                        ->get(['id', 'name', 'email']);
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('search');
 
-                // 👥 Получение пользователей по ID (опционально, для подгрузки имён)
+                // 👥 Получение пользователей по ID
                 Route::get('/by-ids', function (Request $request) {
                     $ids = explode(',', $request->get('ids', ''));
                     $ids = array_filter(array_map('intval', $ids));
@@ -401,27 +382,18 @@ Route::namespace('Api\\Training')
                     }
                     $users = \App\Models\User::query()
                         ->whereIn('id', $ids)
-                        ->get(['id', 'name', 'username']);
+                        ->get(['id', 'name', 'email']);
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('by-ids');
 
-                // 👁 Просмотр чужих тренировок (ПУБЛИЧНЫХ или РАСШАРЕННЫХ)
-                Route::get('/{username}/shared', [TrainingLogController::class, 'shared'])
+                // 👁 Просмотр чужих тренировок
+                // используем ID пользователя
+                Route::get('/{user}/shared', [TrainingLogController::class, 'shared'])
                     ->name('shared')
-                    ->where('username', '[A-Za-z0-9_]+');
+                    ->where('user', '[0-9]+');
             });
-
-            // ===== EXERCISES (защищённые действия, если понадобятся) =====
-            // Например: создание упражнения (только админ), редактирование.
-            // Пока оставлено на будущее.
-            // Route::prefix('exercises')->name('exercises.')->middleware('permission:training.manage')->group(function () {
-            //     Route::post('/', [ExerciseController::class, 'store'])->name('store');
-            //     Route::put('/{exercise}', [ExerciseController::class, 'update'])->name('update');
-            // });
-
-        }); // ← конец auth:sanctum
-
-}); // ← конец namespace/training/name-prefix
+        });
+    });
 
 // ===================================================
 // 3. Отладочные и сервисные маршруты
