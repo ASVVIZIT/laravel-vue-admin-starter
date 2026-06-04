@@ -3,17 +3,20 @@
     <TrainingDashboardHeader
         :summary="summary"
         :stats="stats"
-        :loading="logStore.loading"
+        :loading="logStore.currentLoading"
         :show-form="showForm"
         @toggle-form="showForm = !showForm"
-        @refresh="refreshCurrentTab"
+        @refresh="logStore.refreshCurrentTab()"
     />
 
     <div class="tabs-wrapper">
-      <el-tabs v-model="activeTab" type="card" @tab-click="handleTabClick">
-        <el-tab-pane label="Мои тренировки" name="mine" />
-        <el-tab-pane label="Доступные мне" name="shared-with-me" />
-        <el-tab-pane label="Я поделился" name="shared-by-me" />
+      <el-tabs v-model="activeTab" type="card">
+        <el-tab-pane
+            v-for="(config, key) in tabConfig"
+            :key="key"
+            :label="config.label"
+            :name="key"
+        />
       </el-tabs>
     </div>
 
@@ -22,11 +25,11 @@
     </div>
 
     <main class="dashboard-main">
-      <div v-if="logStore.loading" class="state-container">
+      <div v-if="logStore.currentLoading" class="state-container">
         <el-skeleton :rows="8" animated />
       </div>
 
-      <el-empty v-else-if="!logs.length" :description="emptyDescription" class="state-container">
+      <el-empty v-else-if="!logStore.hasLogs" :description="emptyDescription" class="state-container">
         <el-button v-if="activeTab === 'mine'" type="primary" @click="showForm = true">
           <el-icon><Plus /></el-icon> Добавить запись
         </el-button>
@@ -38,27 +41,15 @@
       <template v-else>
         <div class="table-wrapper">
           <TrainingLogTable
-              :logs="logs"
-              :loading="logStore.loading"
+              :logs="logStore.currentLogs"
+              :loading="logStore.currentLoading"
               :active-tab="activeTab"
               :current-user-id="currentUserId"
+              :pagination="logStore.currentPagination"
               @edit="handleEdit"
               @delete="handleDelete"
-              @page-change="handlePageChange"
-              @per-page-change="handlePerPageChange"
-          />
-        </div>
-        <div class="pagination-wrapper" v-if="pagination.total > pagination.per_page">
-          <el-pagination
-              v-model:current-page="pagination.page"
-              :page-size="pagination.per_page"
-              :total="pagination.total"
-              :page-sizes="[20, 50, 100]"
-              layout="total, sizes, prev, pager, next"
-              size="small"
-              background
-              @current-change="handlePageChange"
-              class="pagination"
+              @page-change="logStore.setPage"
+              @per-page-change="logStore.setPerPage"
           />
         </div>
       </template>
@@ -86,7 +77,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 
-import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
+import { useTrainingLogStore, TAB_CONFIG } from '@/components/Training/stores/trainingLogStore.js'
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import TrainingDashboardHeader from '@/components/Training/components/TrainingDashboardHeader.vue'
 import TrainingFilterBar from '@/components/Training/components/TrainingFilterBar.vue'
@@ -100,6 +91,7 @@ const showForm = ref(false)
 const currentLogId = ref(null)
 const currentLogData = ref(null)
 const activeTab = ref('mine')
+const tabConfig = TAB_CONFIG // Для v-for в template
 
 const currentUserId = computed(() => {
   if (typeof window !== 'undefined' && window.__CURRENT_USER_ID) {
@@ -109,53 +101,12 @@ const currentUserId = computed(() => {
 })
 
 const isEdit = computed(() => !!currentLogId.value)
-const logs = computed(() => logStore.logs || [])
-const pagination = computed(() => logStore.pagination)
 const stats = computed(() => logStore.stats || {})
 const summary = computed(() => logStore.summary || {})
 
-const emptyDescription = computed(() => {
-  switch (activeTab.value) {
-    case 'shared-with-me':
-      return 'Вам ещё не расшарили ни одной тренировки'
-    case 'shared-by-me':
-      return 'Вы ещё не поделились ни одной записью'
-    default:
-      return 'Записей не найдено'
-  }
-})
+const emptyDescription = computed(() => logStore.config?.emptyText || 'Записей не найдено')
 
-const loadTabData = async () => {
-  switch (activeTab.value) {
-    case 'shared-with-me':
-      await logStore.fetchSharedWithMe({})
-      break
-    case 'shared-by-me':
-      await logStore.fetchSharedByMe({})
-      break
-    default:
-      await logStore.fetchMyLogs({})
-  }
-}
-
-const refreshCurrentTab = () => loadTabData()
-
-const handleTabClick = () => {
-  logStore.pagination.page = 1
-  loadTabData()
-}
-
-const handlePageChange = (page) => {
-  logStore.pagination.page = page
-  loadTabData()
-}
-
-const handlePerPageChange = (size) => {
-  logStore.pagination.per_page = size
-  logStore.pagination.page = 1
-  loadTabData()
-}
-
+// ===== Обработчики =====
 const handleEdit = (log) => {
   currentLogId.value = log.id
   currentLogData.value = { ...log }
@@ -173,89 +124,39 @@ const handleDelete = async (id) => {
 const handleSaved = () => {
   showForm.value = false
   ElMessage.success('Сохранено')
-  refreshCurrentTab()
+  logStore.refreshCurrentTab()
 }
 
 const handleDeleted = () => {
   showForm.value = false
   ElMessage.success('Удалено')
-  refreshCurrentTab()
+  logStore.refreshCurrentTab()
 }
 
-watch(activeTab, () => {
-  logStore.pagination.page = 1
-  loadTabData()
+// ===== Переключение вкладок =====
+watch(activeTab, (newTab) => {
+  logStore.setActiveTab(newTab)
+  logStore.refreshCurrentTab()
 })
 
 onMounted(async () => {
-  await loadTabData()
+  logStore.setActiveTab(activeTab.value)
+  await logStore.refreshCurrentTab()
   exerciseStore.fetchExercisesStore().catch(err => console.warn('Exercises fetch skipped:', err))
 })
 </script>
 
 <style scoped>
-.training-dashboard {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: #f5f7fa;
-}
-.tabs-wrapper {
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
-  flex-shrink: 0;
-  padding: 0 16px;
-}
-:deep(.el-tabs__nav) {
-  border: none !important;
-}
-:deep(.el-tabs__item) {
-  font-size: 12px;
-  padding: 0 16px !important;
-}
-.filter-wrapper {
-  background: #fff;
-  border-bottom: 1px solid #ebeef5;
-  flex-shrink: 0;
-}
-.dashboard-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 16px;
-  gap: 16px;
-}
-.state-container {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  background: #fff;
-  border-radius: 8px;
-}
-.table-wrapper {
-  flex: 1;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  overflow: auto;
-}
-.pagination-wrapper {
-  display: flex;
-  justify-content: flex-end;
-  padding: 12px 0;
-}
-:deep(.el-pagination__sizes) {
-  min-width: 115px !important;
-}
-:deep(.el-select-dropdown) {
-  z-index: 2100 !important;
-}
-:deep(.el-table) {
-  font-size: 12px;
-}
-:deep(.el-table .cell) {
-  padding: 4px 8px;
-}
+.training-dashboard { display: flex; flex-direction: column; height: 100%; background: #f5f7fa; }
+.tabs-wrapper { background: #fff; border-bottom: 1px solid #ebeef5; flex-shrink: 0; padding: 0 16px; }
+:deep(.el-tabs__nav) { border: none !important; }
+:deep(.el-tabs__item) { font-size: 12px; padding: 0 16px !important; }
+.filter-wrapper { background: #fff; border-bottom: 1px solid #ebeef5; flex-shrink: 0; }
+.dashboard-main { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding: 16px; gap: 16px; }
+.state-container { display: flex; align-items: center; justify-content: center; min-height: 400px; background: #fff; border-radius: 8px; }
+.table-wrapper { flex: 1; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: auto; }
+:deep(.el-pagination__sizes) { min-width: 115px !important; }
+:deep(.el-select-dropdown) { z-index: 2100 !important; }
+:deep(.el-table) { font-size: 12px; }
+:deep(.el-table .cell) { padding: 4px 8px; }
 </style>
