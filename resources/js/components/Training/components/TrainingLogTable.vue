@@ -2,7 +2,7 @@
   <LayoutCardWrapper title="История тренировок" :icon="List" bordered shadow class="log-table-wrapper">
     <el-table
         :data="logs"
-        height="calc(100vh - 400px)"
+        height="calc(100vh - 460px)"
         style="width: 100%"
         size="small"
         stripe
@@ -11,12 +11,12 @@
         empty-text="Записей не найдено"
     >
       <!-- Дата -->
-      <el-table-column prop="date" label="Дата" width="110" sortable>
+      <el-table-column prop="date" label="Дата" width="120" sortable>
         <template #default="{ row }">{{ formatDate(row.date) }}</template>
       </el-table-column>
 
       <!-- Время -->
-      <el-table-column prop="time" label="Время" width="70">
+      <el-table-column prop="time" label="Время" width="75">
         <template #default="{ row }">{{ formatTime(row.time) }}</template>
       </el-table-column>
 

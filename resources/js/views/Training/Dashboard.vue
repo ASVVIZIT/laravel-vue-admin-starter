@@ -6,11 +6,11 @@
         :loading="logStore.loading"
         :show-form="showForm"
         @toggle-form="showForm = !showForm"
-        @refresh="refreshData"
+        @refresh="refreshCurrentTab"
     />
 
     <div class="tabs-wrapper">
-      <el-tabs v-model="activeTab" type="card" @tab-click="onTabChange">
+      <el-tabs v-model="activeTab" type="card" @tab-click="handleTabClick">
         <el-tab-pane label="Мои тренировки" name="mine" />
         <el-tab-pane label="Доступные мне" name="shared-with-me" />
         <el-tab-pane label="Я поделился" name="shared-by-me" />
@@ -30,7 +30,7 @@
         <el-button v-if="activeTab === 'mine'" type="primary" @click="showForm = true">
           <el-icon><Plus /></el-icon> Добавить запись
         </el-button>
-        <el-button v-else type="info" @click="logStore.setActiveTab('mine')">
+        <el-button v-else type="info" @click="activeTab = 'mine'">
           Перейти к моим записям
         </el-button>
       </el-empty>
@@ -82,7 +82,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 
@@ -99,17 +99,13 @@ const exerciseStore = useExerciseStore()
 const showForm = ref(false)
 const currentLogId = ref(null)
 const currentLogData = ref(null)
+const activeTab = ref('mine')
 
 const currentUserId = computed(() => {
   if (typeof window !== 'undefined' && window.__CURRENT_USER_ID) {
     return window.__CURRENT_USER_ID
   }
   return 1
-})
-
-const activeTab = computed({
-  get: () => logStore.activeTab,
-  set: (val) => logStore.setActiveTab(val)
 })
 
 const isEdit = computed(() => !!currentLogId.value)
@@ -129,12 +125,35 @@ const emptyDescription = computed(() => {
   }
 })
 
-const refreshData = () => logStore.refreshCurrentTab({})
-const handlePageChange = (page) => logStore.setPage(page)
-const handlePerPageChange = (size) => logStore.setPerPage(size)
+const loadTabData = async () => {
+  switch (activeTab.value) {
+    case 'shared-with-me':
+      await logStore.fetchSharedWithMe({})
+      break
+    case 'shared-by-me':
+      await logStore.fetchSharedByMe({})
+      break
+    default:
+      await logStore.fetchMyLogs({})
+  }
+}
 
-const onTabChange = () => {
-  refreshData()
+const refreshCurrentTab = () => loadTabData()
+
+const handleTabClick = () => {
+  logStore.pagination.page = 1
+  loadTabData()
+}
+
+const handlePageChange = (page) => {
+  logStore.pagination.page = page
+  loadTabData()
+}
+
+const handlePerPageChange = (size) => {
+  logStore.pagination.per_page = size
+  logStore.pagination.page = 1
+  loadTabData()
 }
 
 const handleEdit = (log) => {
@@ -154,22 +173,22 @@ const handleDelete = async (id) => {
 const handleSaved = () => {
   showForm.value = false
   ElMessage.success('Сохранено')
-  refreshData()
+  refreshCurrentTab()
 }
 
 const handleDeleted = () => {
   showForm.value = false
   ElMessage.success('Удалено')
-  refreshData()
+  refreshCurrentTab()
 }
 
+watch(activeTab, () => {
+  logStore.pagination.page = 1
+  loadTabData()
+})
+
 onMounted(async () => {
-  try {
-    await logStore.refreshCurrentTab({})
-  } catch (err) {
-    console.error('Initial logs fetch failed:', err)
-    logStore.loading = false
-  }
+  await loadTabData()
   exerciseStore.fetchExercisesStore().catch(err => console.warn('Exercises fetch skipped:', err))
 })
 </script>

@@ -2,50 +2,6 @@
 
 namespace Database\Seeders\Training;
 
-/**
- * Сидер для наполнения модуля тренировок реалистичными данными (10 пользователей).
- *
- * 🔗 ОБНОВЛЕНО: Добавлена генерация расшаренных и публичных записей для тестирования вкладок.
- *
- * ЯДРО ЛОГИКИ: "Взвешенная вариативность" (Weighted Probability)
- * - Вместо жёсткого списка упражнений используется система весов нагрузок.
- * - Пример: User #1 (Воркаут) — 45% bodyweight, 35% weighted, 10% cardio, 10% other.
- * - Гарантирует кросс-тренинг: даже узкий специалист периодически меняет активность.
- *
- * 🎛 КОНФИГУРАЦИЯ (менять только константы вверху файла):
- * 1. SYSTEM_USER_IDS / REAL_USER_START_ID — защита продакшена от случайной генерации.
- * 2. START_DATE / END_DATE — период генерации истории (~1.5 года).
- * 3. LOGS_PER_*_USER — целевое количество записей на пользователя.
- * 4. BATCH_SIZE — размер пакета массовой вставки (500-2000 для скорости).
- * 5. SHARING_CONFIG — настройки генерации расшаренных записей.
- * 6. PROGRAMS — профили нагрузок с весами типов, частотой, паттерном прогрессии и днями отдыха.
- * 7. USER_PROGRAM_MAP — привязка ID пользователей к программам.
- *
- * ⚙️ АЛГОРИТМ ГЕНЕРАЦИИ:
- * 1. Проход по дням в диапазоне START_DATE → END_DATE.
- * 2. Пропуск дней отдыха, заданных в профиле программы.
- * 3. Вероятностное решение о тренировке в рабочий день (зависит от frequency).
- * 4. Выбор ТИПА нагрузки через getWeightedExerciseType() на основе весов программы.
- * 5. Выбор случайного упражнения этого типа из базы.
- * 6. Генерация записи через фабрику: подходы → прогрессия → мета-данные.
- * 7. 🔗 ДОБАВЛЕНО: Случайное решение о публичности/шеринге.
- * 8. Пакетная вставка через insertBatch() при достижении BATCH_SIZE.
- *
- * 🔧 ТЕХНИЧЕСКИЕ НЮАНСЫ:
- * - insertBatch() вручную кодирует JSON-поля (sets, shared_with) перед вставкой.
- *   Laravel::insert() игнорирует $casts модели, что вызывает ошибку "Array to string".
- * - withProgression() в фабрике пересобирает массив, обходя ограничение Eloquent на ссылки.
- *
- * 📈 МАСШТАБИРОВАНИЕ:
- * - Для 300k+ записей: увеличьте BATCH_SIZE до 1000-2000.
- * - Добавьте DB::disableQueryLog() в начало run() для ускорения.
- *
- * ✅ ПРОВЕРКА:
- *   // Количество записей: TrainingLog::where('user_id', 1)->count();
- *   // Прогрессия весов: TrainingLog::where('user_id', 1)->orderBy('date')->pluck('sets');
- *   // Расшаренные записи: TrainingLog::whereJsonContains('shared_with', 2)->count();
- */
-
 use Illuminate\Database\Seeder;
 use App\Models\Training\Exercise;
 use App\Models\Training\TrainingLog;
@@ -65,39 +21,37 @@ class TrainingModuleSeeder extends Seeder
     private const LOGS_PER_LIGHT_USER = 80;
     private const BATCH_SIZE = 500;
 
-    // 🔗 КОНФИГУРАЦИЯ ШЕРИНГА
     private const SHARING_CONFIG = [
-        'public_chance' => 10,      // % шанс, что запись будет публичной
-        'shared_chance' => 15,      // % шанс, что запись будет расшарена (если не публичная)
-        'min_recipients' => 1,      // Мин. количество получателей при шеринге
-        'max_recipients' => 3,      // Макс. количество получателей при шеринге
-        'exclude_self' => true,     // Исключать владельца из списка получателей
+        'public_chance' => 10,
+        'shared_chance' => 15,
+        'min_recipients' => 1,
+        'max_recipients' => 3,
     ];
 
     private const PROGRAMS = [
         'street_calisthenics' => [
-            'name' => 'Уличный воркаут (Отжимания/Подтягивания/Штанга)',
+            'name' => 'Уличный воркаут',
             'frequency' => 5,
             'weights' => ['bodyweight' => 45, 'weighted' => 35, 'cardio' => 10, 'other' => 10],
             'intensity_pattern' => 'linear',
             'rest_days' => [0, 3],
         ],
         'powerlifter' => [
-            'name' => 'Пауэрлифтинг (Тяжёлая база)',
+            'name' => 'Пауэрлифтинг',
             'frequency' => 4,
             'weights' => ['weighted' => 80, 'bodyweight' => 5, 'cardio' => 5, 'other' => 10],
             'intensity_pattern' => 'plateau',
             'rest_days' => [0, 2, 4, 6],
         ],
         'marathon_runner' => [
-            'name' => 'Марафонец (Бег и выносливость)',
+            'name' => 'Марафонец',
             'frequency' => 6,
             'weights' => ['cardio' => 75, 'bodyweight' => 15, 'other' => 10, 'weighted' => 0],
             'intensity_pattern' => 'linear',
             'rest_days' => [6],
         ],
         'crossfit_general' => [
-            'name' => 'Кроссфит (Смешанный функционал)',
+            'name' => 'Кроссфит',
             'frequency' => 5,
             'weights' => ['weighted' => 30, 'bodyweight' => 30, 'cardio' => 25, 'other' => 15],
             'intensity_pattern' => 'random',
@@ -111,35 +65,35 @@ class TrainingModuleSeeder extends Seeder
             'rest_days' => [2, 5],
         ],
         'triathlon_prep' => [
-            'name' => 'Триатлон (Плавание/Вело/Бег)',
+            'name' => 'Триатлон',
             'frequency' => 6,
             'weights' => ['cardio' => 70, 'weighted' => 15, 'bodyweight' => 10, 'other' => 5],
             'intensity_pattern' => 'plateau',
             'rest_days' => [6],
         ],
         'functional_athlete' => [
-            'name' => 'Функциональный атлет (Гиря/Канат/Прыжки)',
+            'name' => 'Функциональный атлет',
             'frequency' => 4,
             'weights' => ['bodyweight' => 40, 'cardio' => 30, 'weighted' => 20, 'other' => 10],
             'intensity_pattern' => 'random',
             'rest_days' => [2, 4, 6],
         ],
         'senior_light' => [
-            'name' => 'ЛФК и Лёгкая активность',
+            'name' => 'ЛФК',
             'frequency' => 3,
             'weights' => ['other' => 50, 'bodyweight' => 25, 'cardio' => 20, 'weighted' => 5],
             'intensity_pattern' => 'linear',
             'rest_days' => [1, 2, 3, 4, 5],
         ],
         'hiit_sprinter' => [
-            'name' => 'ВИИТ и Спринты',
+            'name' => 'ВИИТ',
             'frequency' => 4,
             'weights' => ['cardio' => 50, 'bodyweight' => 30, 'weighted' => 15, 'other' => 5],
             'intensity_pattern' => 'exponential',
             'rest_days' => [1, 3, 5],
         ],
         'balanced_beginner' => [
-            'name' => 'Начинающий (Равномерная нагрузка)',
+            'name' => 'Начинающий',
             'frequency' => 3,
             'weights' => ['weighted' => 25, 'bodyweight' => 25, 'cardio' => 25, 'other' => 25],
             'intensity_pattern' => 'linear',
@@ -162,26 +116,18 @@ class TrainingModuleSeeder extends Seeder
 
     public function run(): void
     {
-        $maxSystemId = max(self::SYSTEM_USER_IDS);
-        if ($maxSystemId >= self::REAL_USER_START_ID) {
-            $this->command->error("❌ КОНФИГУРАЦИЯ: SYSTEM_USER_IDS (max {$maxSystemId}) конфликтует с REAL_USER_START_ID (" . self::REAL_USER_START_ID . ")");
-            return;
-        }
-
         $this->command->info('🏋️ Starting Training Module Seeder...');
 
         $this->seedExercises();
 
         $availableUsers = User::whereIn('id', self::SYSTEM_USER_IDS)->pluck('id');
         if ($availableUsers->isEmpty()) {
-            $this->command->error('❌ Нет системных пользователей (ID 1-10). Запусти UserSeeder сначала.');
+            $this->command->error('❌ Нет системных пользователей (ID 1-10).');
             return;
         }
 
         $totalGenerated = 0;
         $startTime = microtime(true);
-
-        // Статистика шеринга
         $publicCount = 0;
         $sharedCount = 0;
 
@@ -205,7 +151,7 @@ class TrainingModuleSeeder extends Seeder
 
         $duration = round(microtime(true) - $startTime, 2);
         $this->command->info("🎉 Done! Generated {$totalGenerated} logs in {$duration}s");
-        $this->command->info("🔗 Sharing stats: {$publicCount} public, {$sharedCount} shared");
+        $this->command->info("🔗 Sharing: {$publicCount} public, {$sharedCount} shared");
     }
 
     private function seedExercises(): void
@@ -251,8 +197,8 @@ class TrainingModuleSeeder extends Seeder
         string $startDate,
         string $endDate,
         int $targetCount,
-        &$publicCount,
-        &$sharedCount
+        int &$publicCount,
+        int &$sharedCount
     ): int {
         $program = self::PROGRAMS[$programKey] ?? self::PROGRAMS['balanced_beginner'];
         $start = Carbon::parse($startDate);
@@ -266,7 +212,6 @@ class TrainingModuleSeeder extends Seeder
         $batch = [];
         $weekOffset = 0;
 
-        // Кэш пользователей для шеринга
         $allUserIds = User::whereIn('id', self::SYSTEM_USER_IDS)->pluck('id')->toArray();
 
         for ($day = 0; $day <= $totalDays; $day++) {
@@ -288,12 +233,10 @@ class TrainingModuleSeeder extends Seeder
 
             $intensity = $this->calculateIntensity($weekOffset, $program['intensity_pattern']);
 
-            // 🔗 ГЕНЕРАЦИЯ ШЕРИНГА
             $isPublic = fake()->boolean(self::SHARING_CONFIG['public_chance']);
             $sharedWith = null;
 
             if (!$isPublic && fake()->boolean(self::SHARING_CONFIG['shared_chance'])) {
-                // Выбираем случайных получателей (исключая владельца)
                 $potentialRecipients = array_filter($allUserIds, fn($id) => $id !== $userId);
                 $recipientCount = fake()->numberBetween(
                     self::SHARING_CONFIG['min_recipients'],
@@ -351,19 +294,12 @@ class TrainingModuleSeeder extends Seeder
         return $generated;
     }
 
-    /**
-     * Массовая вставка с ручным кодированием JSON-полей и форматированием даты.
-     * Laravel::insert() не применяет $casts и не форматирует Carbon-даты автоматически.
-     */
     private function insertBatch(array $batch): void
     {
         $encoded = array_map(function ($row) {
-            // 1. Гарантируем формат даты Y-m-d (убираем время и таймзону)
             if (isset($row['date'])) {
                 $row['date'] = date('Y-m-d', strtotime($row['date']));
             }
-
-            // 2. Кодируем JSON-поля
             if (isset($row['sets']) && is_array($row['sets'])) {
                 $row['sets'] = json_encode($row['sets']);
             }
@@ -436,20 +372,20 @@ class TrainingModuleSeeder extends Seeder
     private function generateProgramNote(string $programKey, string $type, bool $isPublic, ?array $sharedWith): string
     {
         $baseNotes = [
-            'weighted' => ['Железо шло сегодня хорошо', 'Добавил 2.5кг', 'Техника хромает', 'База решает'],
-            'cardio' => ['Хороший пульс держал', 'Дыхалка', 'Интервалы', 'Кадрос высокий'],
-            'bodyweight' => ['Калистеника', 'Свой вес - мой тренажер', 'Мышцы горят', 'Отжимания и подтягивания'],
-            'other' => ['Растяжка после тренировки', 'Йога для спины', 'Мобильность суставов', 'Заминка'],
+            'weighted' => ['Железо шло сегодня хорошо 💪', 'Добавил 2.5кг ⬆️', 'Техника хромает 🔧', 'База решает 🏋️'],
+            'cardio' => ['Хороший пульс держал ❤️', 'Дыхалка 💨', 'Интервалы ⏱️', 'Кадрос высокий 📈'],
+            'bodyweight' => ['Калистеника 🤸', 'Свой вес - мой тренажер 💯', 'Мышцы горят 🔥', 'Отжимания и подтягивания 💪'],
+            'other' => ['Растяжка после тренировки 🧘', 'Йога для спины 🧘♀️', 'Мобильность суставов 🦴', 'Заминка 🏁'],
         ];
 
-        $typeNotes = $baseNotes[$type] ?? ['Тренировка'];
+        $typeNotes = $baseNotes[$type] ?? ['Тренировка 🏃'];
         $note = $typeNotes[array_rand($typeNotes)];
 
-        // Добавляем пометку о шеринге в заметку (для наглядности в тестах)
+        // 🔥 С ЭМОДЗИ ДЛЯ ТЕСТА!
         if ($isPublic) {
-            $note .= ' 🌍';
+            $note .= ' 🌍';  // Глобус для публичных
         } elseif ($sharedWith) {
-            $note .= ' 🔐';
+            $note .= ' 🔐';  // Замок для расшаренных
         }
 
         return $note;

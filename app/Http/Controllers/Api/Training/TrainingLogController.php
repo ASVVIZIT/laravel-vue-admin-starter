@@ -17,7 +17,7 @@ class TrainingLogController extends Controller
 {
     /**
      * GET /api/training/logs
-     * Поддержка вкладок через флаги: shared_with_me, shared_by_me
+     * Поддержка вкладок: mine / shared_with_me / shared_by_me
      */
     public function index(Request $request): JsonResponse
     {
@@ -27,21 +27,29 @@ class TrainingLogController extends Controller
 
         $userId = Auth::id();
 
+        // 🔥 ВКЛАДКА: ДОСТУПНЫЕ МНЕ (чужие публичные + расшаренные мне)
         if ($request->boolean('shared_with_me')) {
             $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
-                ->visibleTo($userId)
                 ->where('user_id', '!=', $userId)
-                ->latest('date')
-                ->latest('time');
-        } elseif ($request->boolean('shared_by_me')) {
-            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
-                ->where('user_id', $userId)
                 ->where(function ($q) use ($userId) {
                     $q->where('is_public', true)
-                        ->orWhereJsonContains('shared_with', $userId);
+                        ->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]);
                 })
                 ->latest('date')
                 ->latest('time');
+
+            // 🔥 ВКЛАДКА: Я ПОДЕЛИЛСЯ (мои публичные + где shared_with не пустой)
+        } elseif ($request->boolean('shared_by_me')) {
+            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->where('user_id', $userId)
+                ->where(function ($q) {
+                    $q->where('is_public', true)
+                        ->orWhereRaw('JSON_LENGTH(shared_with) > 0');
+                })
+                ->latest('date')
+                ->latest('time');
+
+            // 🔥 ВКЛАДКА: МОИ ТРЕНИРОВКИ
         } else {
             $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
                 ->mine($userId)
@@ -49,6 +57,7 @@ class TrainingLogController extends Controller
                 ->latest('time');
         }
 
+        // Фильтры (работают для всех вкладок)
         if ($request->filled('date')) $query->forDate($request->date);
         if ($request->filled('exercise_id')) $query->forExercise($request->exercise_id);
         if ($request->filled('from') && $request->filled('to')) $query->forDateRange($request->from, $request->to);
@@ -148,7 +157,7 @@ class TrainingLogController extends Controller
 
     /**
      * GET /api/training/users/{user}/shared
-     * Принимает ID пользователя (не username!)
+     * Принимает ID пользователя
      */
     public function shared(Request $request, int $user): JsonResponse
     {
