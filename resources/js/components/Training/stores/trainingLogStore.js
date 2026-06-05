@@ -28,7 +28,7 @@ const createTabState = () => ({
     isGrouped: false
 })
 
-const FILTERS_STORAGE_KEY = 'training_filters_mine'
+const FILTERS_STORAGE_KEY = 'training_filters_all_tabs'
 
 export const useTrainingLogStore = defineStore('trainingLog', {
     state: () => ({
@@ -39,10 +39,12 @@ export const useTrainingLogStore = defineStore('trainingLog', {
         },
         activeTab: 'mine',
 
-        // Фильтры (применяются ТОЛЬКО к вкладке 'mine' на бэкенде)
-        dateFilter: null,
-        exerciseFilter: null,
-        dateRange: { from: null, to: null },
+        // 🔥 Фильтры разделены по вкладкам
+        filters: {
+            'mine': { date: null, exercise_id: null, from: null, to: null },
+            'shared-with-me': { date: null, exercise_id: null, from: null, to: null },
+            'shared-by-me': { date: null, exercise_id: null, from: null, to: null }
+        },
 
         stats: null,
         summary: null
@@ -56,6 +58,9 @@ export const useTrainingLogStore = defineStore('trainingLog', {
         currentPagination: (state) => state.tabsData[state.activeTab]?.pagination || createTabState().pagination,
         isGrouped: (state) => state.tabsData[state.activeTab]?.isGrouped || false,
 
+        // 🔥 Геттер для фильтров текущей активной вкладки
+        currentFilters: (state) => state.filters[state.activeTab],
+
         hasLogs: (state) => state.tabsData[state.activeTab]?.logs?.length > 0,
         isEmpty: (state) => {
             const tab = state.tabsData[state.activeTab]
@@ -65,17 +70,9 @@ export const useTrainingLogStore = defineStore('trainingLog', {
     },
 
     actions: {
-        // ====================================================================
-        // LOCALSTORAGE: сохранение/загрузка фильтров
-        // ====================================================================
         saveFiltersToStorage() {
             try {
-                const filters = {
-                    dateFilter: this.dateFilter,
-                    exerciseFilter: this.exerciseFilter,
-                    dateRange: this.dateRange
-                }
-                localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(filters))
+                localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify(this.filters))
             } catch (e) {
                 console.warn('[Store] Failed to save filters:', e)
             }
@@ -85,40 +82,38 @@ export const useTrainingLogStore = defineStore('trainingLog', {
             try {
                 const saved = localStorage.getItem(FILTERS_STORAGE_KEY)
                 if (saved) {
-                    const filters = JSON.parse(saved)
-                    this.dateFilter = filters.dateFilter || null
-                    this.exerciseFilter = filters.exerciseFilter || null
-                    this.dateRange = filters.dateRange || { from: null, to: null }
-                    console.log('[Store] ✅ Filters restored:', filters)
+                    const parsed = JSON.parse(saved)
+                    // Безопасное слияние для защиты от изменений структуры
+                    this.filters = {
+                        'mine': { ...this.filters['mine'], ...(parsed['mine'] || {}) },
+                        'shared-with-me': { ...this.filters['shared-with-me'], ...(parsed['shared-with-me'] || {}) },
+                        'shared-by-me': { ...this.filters['shared-by-me'], ...(parsed['shared-by-me'] || {}) }
+                    }
+                    console.log('[Store] ✅ Filters restored:', this.filters)
                 }
             } catch (e) {
                 console.warn('[Store] Failed to load filters:', e)
             }
         },
 
-        // ====================================================================
-        // ПРИМЕНИТЬ ФИЛЬТРЫ — единая точка входа для TrainingFilterBar
-        // ====================================================================
         async applyFilters(params = {}) {
-            // 🔥 ВСЕГДА обновляем state фильтров (независимо от вкладки)
-            // Это нужно, чтобы крестик работал на любой вкладке
-            if ('date' in params) this.dateFilter = params.date ?? null
-            if ('exercise_id' in params) this.exerciseFilter = params.exercise_id ?? null
-            if ('from' in params) this.dateRange.from = params.from ?? null
-            if ('to' in params) this.dateRange.to = params.to ?? null
+            const tab = this.activeTab
 
-            // Пагинация текущей вкладки
-            const tab = this.tabsData[this.activeTab]
-            if ('page' in params) tab.pagination.page = params.page
-            if ('per_page' in params) tab.pagination.per_page = params.per_page
+            // 🔥 Обновляем фильтры ТОЛЬКО для текущей вкладки
+            if ('date' in params) this.filters[tab].date = params.date ?? null
+            if ('exercise_id' in params) this.filters[tab].exercise_id = params.exercise_id ?? null
+            if ('from' in params) this.filters[tab].from = params.from ?? null
+            if ('to' in params) this.filters[tab].to = params.to ?? null
+
+            // Пагинация
+            const currentTabData = this.tabsData[tab]
+            if ('page' in params) currentTabData.pagination.page = params.page
+            if ('per_page' in params) currentTabData.pagination.per_page = params.per_page
 
             this.saveFiltersToStorage()
             await this.refreshCurrentTab()
         },
 
-        // ====================================================================
-        // УМНАЯ ЗАГРУЗКА — автовыбор режима (frontend/server)
-        // ====================================================================
         async refreshCurrentTab() {
             const settingsStore = useTrainingSettingsStore()
             await settingsStore.fetchSettingsStore(this.activeTab)
@@ -126,17 +121,12 @@ export const useTrainingLogStore = defineStore('trainingLog', {
             const isServerGrouping = settingsStore.isServerGroupingActiveStore(this.activeTab)
 
             if (isServerGrouping) {
-                console.log(`[Store] 🖥 Server grouping for tab: ${this.activeTab}`)
                 await this.fetchGroupedTab()
             } else {
-                console.log(`[Store] 📱 Frontend mode for tab: ${this.activeTab}`)
                 await this.fetchTab(this.activeTab)
             }
         },
 
-        // ====================================================================
-        // СЕРВЕРНАЯ ГРУППИРОВКА
-        // ====================================================================
         async fetchGroupedTab() {
             const tabKey = this.activeTab
             const tab = this.tabsData[tabKey]
@@ -154,30 +144,27 @@ export const useTrainingLogStore = defineStore('trainingLog', {
                     per_page: settingsStore.serverSettings.grouping_per_page || 10
                 }
 
-                const response = await new TrainingLogResource().getGroupedLogsResource(queryParams)
+                // 🔥 Применяем фильтры текущей вкладки
+                const f = this.filters[tabKey]
+                if (f.date) queryParams.date = f.date
+                if (f.exercise_id) queryParams.exercise_id = f.exercise_id
+                if (f.from) queryParams.from = f.from
+                if (f.to) queryParams.to = f.to
 
+                const response = await new TrainingLogResource().getGroupedLogsResource(queryParams)
                 tab.logs = response.data || []
-                tab.pagination = {
-                    ...tab.pagination,
-                    ...(response.meta?.pagination || {})
-                }
+                tab.pagination = { ...tab.pagination, ...(response.meta?.pagination || {}) }
             } catch (error) {
-                tab.error = error.response?.data?.message || 'Ошибка загрузки сгруппированных данных'
+                tab.error = error.response?.data?.message || 'Ошибка загрузки'
                 tab.logs = []
             } finally {
                 tab.loading = false
             }
         },
 
-        // ====================================================================
-        // ОБЫЧНАЯ ЗАГРУЗКА (фронтенд-режим)
-        // ====================================================================
         async fetchTab(tabKey) {
             const config = TAB_CONFIG[tabKey]
-            if (!config) {
-                console.error(`[Store] Unknown tab: ${tabKey}`)
-                return
-            }
+            if (!config) return
 
             const tab = this.tabsData[tabKey]
             tab.loading = true
@@ -194,20 +181,19 @@ export const useTrainingLogStore = defineStore('trainingLog', {
                     queryParams[config.apiFlag] = 1
                 }
 
-                // 🔥 Фильтры применяются ТОЛЬКО к вкладке 'mine'
-                if (tabKey === 'mine') {
-                    if (this.dateFilter) queryParams.date = this.dateFilter
-                    if (this.exerciseFilter) queryParams.exercise_id = this.exerciseFilter
-                    if (this.dateRange?.from) queryParams.from = this.dateRange.from
-                    if (this.dateRange?.to) queryParams.to = this.dateRange.to
-                }
+                // 🔥 Применяем фильтры к ЛЮБОЙ вкладке (не только mine)
+                const f = this.filters[tabKey]
+                if (f.date) queryParams.date = f.date
+                if (f.exercise_id) queryParams.exercise_id = f.exercise_id
+                if (f.from) queryParams.from = f.from
+                if (f.to) queryParams.to = f.to
 
                 const response = await new TrainingLogResource().getListResource(queryParams)
 
                 tab.logs = response.data || []
                 tab.pagination = { ...tab.pagination, ...(response.meta?.pagination || {}) }
 
-                // Статистика только для 'mine'
+                // Статистика пока только для 'mine'
                 if (tabKey === 'mine') {
                     this.fetchStats().catch(() => {})
                     this.fetchSummary().catch(() => {})
@@ -220,9 +206,6 @@ export const useTrainingLogStore = defineStore('trainingLog', {
             }
         },
 
-        // ====================================================================
-        // УПРАВЛЕНИЕ ВКЛАДКАМИ И ПАГИНАЦИЕЙ
-        // ====================================================================
         setActiveTab(tabKey) {
             if (!TAB_CONFIG[tabKey]) return
             this.activeTab = tabKey
@@ -244,27 +227,23 @@ export const useTrainingLogStore = defineStore('trainingLog', {
         },
 
         async clearFilters() {
-            this.dateFilter = null
-            this.exerciseFilter = null
-            this.dateRange = { from: null, to: null }
-            this.tabsData['mine'].pagination.page = 1
+            const tab = this.activeTab
+            // 🔥 Очищаем фильтры ТОЛЬКО для текущей вкладки
+            this.filters[tab] = { date: null, exercise_id: null, from: null, to: null }
+            this.tabsData[tab].pagination.page = 1
+
             this.saveFiltersToStorage()
             await this.refreshCurrentTab()
         },
 
-        // ====================================================================
-        // CRUD
-        // ====================================================================
         async createLog(data) {
-            const response = await new TrainingLogResource().createResource(data)
+            await new TrainingLogResource().createResource(data)
             await this.refreshCurrentTab()
-            return response
         },
 
         async updateLog(id, data) {
-            const response = await new TrainingLogResource().updateResource(id, data)
+            await new TrainingLogResource().updateResource(id, data)
             await this.refreshCurrentTab()
-            return response
         },
 
         async deleteLog(id) {
@@ -272,27 +251,21 @@ export const useTrainingLogStore = defineStore('trainingLog', {
             await this.refreshCurrentTab()
         },
 
-        // ====================================================================
-        // СТАТИСТИКА
-        // ====================================================================
         async fetchStats() {
             try {
+                const f = this.filters['mine']
                 const params = {}
-                if (this.exerciseFilter) params.exercise_id = this.exerciseFilter
-                if (this.dateRange?.from) params.from = this.dateRange.from
-                if (this.dateRange?.to) params.to = this.dateRange.to
+                if (f.exercise_id) params.exercise_id = f.exercise_id
+                if (f.from) params.from = f.from
+                if (f.to) params.to = f.to
                 this.stats = await new TrainingLogResource().getStatsResource(params)
-            } catch (error) {
-                console.error('[Store] fetchStats:', error)
-            }
+            } catch (error) { console.error('[Store] fetchStats:', error) }
         },
 
         async fetchSummary() {
             try {
                 this.summary = await new TrainingLogResource().getSummaryResource()
-            } catch (error) {
-                console.error('[Store] fetchSummary:', error)
-            }
+            } catch (error) { console.error('[Store] fetchSummary:', error) }
         }
     }
 })
