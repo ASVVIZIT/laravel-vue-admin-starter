@@ -14,7 +14,7 @@
         :class="{ 'compact-table': compact, 'grouped-table': isGrouped }"
     >
       <!-- 🔥 КОЛОНКА ГРУППЫ -->
-      <el-table-column v-if="isGrouped" label="Пользователь / Группа" min-width="170" class-name="group-column">
+      <el-table-column v-if="isGrouped" label="Пользователь / Группа" min-width="170" class-name="group-column" sortable>
         <template #default="{ row }">
           <span v-if="row.children" class="group-label">
             <el-icon :size="14"><User /></el-icon>
@@ -94,7 +94,7 @@
       </el-table-column>
 
       <!-- Оценка -->
-      <el-table-column v-if="isColumnVisible('rating')" prop="rating" label="Оценка" width="80" align="center">
+      <el-table-column v-if="isColumnVisible('rating')" prop="rating" label="Оценка" width="80" align="center" sortable>
         <template #default="{ row }">
           <span v-if="row.rating" class="rating-stars">{{ formatRating(row.rating) }}</span>
           <span v-else class="text-muted">—</span>
