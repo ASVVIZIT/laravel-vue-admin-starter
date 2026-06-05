@@ -5,11 +5,11 @@
         :stats="stats"
         :loading="logStore.currentLoading"
         :show-form="showForm"
-        :show-settings="settingsStore.isGroupingToggleVisibleStore"
+        :show-settings="true"
         :show-debug="true"
         :debug-visible="debugStore.isVisible"
-        @toggle-form="showForm = !showForm"
-        @toggle-settings="showSettings = !showSettings"
+        @toggle-form="toggleForm"
+        @toggle-settings="toggleSettings"
         @toggle-debug="debugStore.toggleVisibility()"
         @refresh="handleRefresh"
     />
@@ -23,7 +23,7 @@
         <el-tag :type="currentGroupingInfo.mode === 'server' ? 'warning' : 'info'" size="small" effect="plain">
           {{ currentGroupingInfo.mode === 'server' ? '🖥' : '📱' }}
         </el-tag>
-        <el-button v-if="settingsStore.isGroupingToggleVisibleStore" size="small" text @click="toggleGroupingMode" class="toggle-btn">
+        <el-button v-if="settingsStore.isGroupingToggleVisibleStore" size="small" text @click="toggleGroupingMode" class="toggle-btn" title="Переключить режим">
           <el-icon><Switch /></el-icon>
         </el-button>
       </div>
@@ -39,7 +39,7 @@
       </div>
 
       <el-empty v-else-if="!logStore.hasLogs" :description="emptyDescription" class="state-container">
-        <el-button v-if="activeTab === 'mine'" type="primary" @click="showForm = true">
+        <el-button v-if="activeTab === 'mine'" type="primary" @click="toggleForm">
           <el-icon><Plus /></el-icon> Добавить запись
         </el-button>
         <el-button v-else type="info" @click="activeTab = 'mine'">Перейти к моим записям</el-button>
@@ -66,12 +66,17 @@
     </main>
 
     <el-dialog v-model="showForm" :title="isEdit ? 'Редактирование' : 'Новая запись'" width="900px" destroy-on-close>
-      <TrainingLogForm :log-id="currentLogId" :initial-data="currentLogData" @saved="handleSaved" @deleted="handleDeleted" @cancelled="showForm = false" />
+      <TrainingLogForm
+          :log-id="currentLogId"
+          :initial-data="currentLogData"
+          @saved="handleSaved"
+          @deleted="handleDeleted"
+          @cancelled="showForm = false"
+      />
     </el-dialog>
 
     <TrainingSettingsModal v-model="showSettings" />
 
-    <!-- 🔥 Панель отладки -->
     <DebugPanel />
   </div>
 </template>
@@ -85,7 +90,7 @@ import { useTrainingLogStore, TAB_CONFIG } from '@/components/Training/stores/tr
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
 import { useTrainingDebugStore } from '@/components/Training/stores/trainingDebugStore.js'
-import { logDebugAction } from '@/components/Training/utils/appDebugUtils.js'
+import { useDebug } from '@/components/Training/composables/useDebug.js'
 
 import TrainingDashboardHeader from '@/components/Training/components/TrainingDashboardHeader.vue'
 import TrainingFilterBar from '@/components/Training/components/TrainingFilterBar.vue'
@@ -93,6 +98,8 @@ import TrainingLogTable from '@/components/Training/components/TrainingLogTable.
 import TrainingLogForm from '@/components/Training/components/TrainingLogForm.vue'
 import TrainingSettingsModal from '@/components/Training/components/settings/modals/TrainingSettingsModal.vue'
 import DebugPanel from '@/components/Training/components/layout/panels/DebugPanel.vue'
+
+const debug = useDebug('Dashboard')
 
 const logStore = useTrainingLogStore()
 const exerciseStore = useExerciseStore()
@@ -105,10 +112,17 @@ const currentLogId = ref(null)
 const currentLogData = ref(null)
 const activeTab = ref('mine')
 const tabConfig = TAB_CONFIG
-const forcedGroupingMode = ref(null)
+
+// 🔥 УБРАН локальный forcedGroupingMode — теперь он в logStore
 
 const currentUserId = computed(() => {
-  if (typeof window !== 'undefined' && window.__CURRENT_USER_ID) return window.__CURRENT_USER_ID
+  if (typeof window !== 'undefined' && window.__CURRENT_USER_ID) {
+    return window.__CURRENT_USER_ID
+  }
+  if (!currentUserId._warned) {
+    debug.error('Глобальная переменная window.__CURRENT_USER_ID не найдена. Используется фолбэк id=1.')
+    currentUserId._warned = true
+  }
   return 1
 })
 
@@ -119,100 +133,196 @@ const frontendSettings = computed(() => settingsStore.frontendSettings)
 
 const currentColumnsConfig = computed(() => settingsStore.getColumnsForTabStore(activeTab.value))
 
+// 🔥 ИСПРАВЛЕНО: currentGroupingInfo теперь учитывает forced из стора
 const currentGroupingInfo = computed(() => {
-  const autoMode = settingsStore.getGroupingModeForTabStore(activeTab.value)
-  if (forcedGroupingMode.value) {
-    return { ...autoMode, mode: forcedGroupingMode.value, reason: `Принудительно: ${forcedGroupingMode.value}` }
+  const forced = logStore.currentForcedMode
+  if (forced) {
+    return {
+      mode: forced,
+      reason: `Принудительно пользователем`,
+      isForced: true
+    }
   }
-  return autoMode
+  // Авто-режим из настроек
+  const autoMode = settingsStore.getGroupingModeForTabStore(activeTab.value)
+  return { ...autoMode, isForced: false }
 })
 
 const emptyDescription = computed(() => logStore.config?.emptyText || 'Записей не найдено')
 
 // ===== Обработчики =====
+
+const toggleForm = () => {
+  const newState = !showForm.value
+  showForm.value = newState
+  if (newState && !isEdit.value) {
+    currentLogId.value = null
+    currentLogData.value = null
+  }
+  debug.action(`Форма записи ${newState ? 'открыта' : 'закрыта'}`, {
+    isEdit: isEdit.value,
+    logId: currentLogId.value
+  })
+}
+
+const toggleSettings = () => {
+  showSettings.value = !showSettings.value
+  debug.action(`Модальное окно настроек ${showSettings.value ? 'открыто' : 'закрыто'}`)
+}
+
 const handleEdit = (log) => {
+  debug.action('Открыто редактирование записи', {
+    logId: log.id,
+    exercise: log.exercise?.name || 'Неизвестно',
+    date: log.date
+  })
   currentLogId.value = log.id
   currentLogData.value = { ...log }
   showForm.value = true
-  logDebugAction('Dashboard', 'Edit log clicked', { id: log.id })
 }
 
 const handleDelete = async (id) => {
   try {
-    await ElMessageBox.confirm('Удалить?', 'Подтверждение', { type: 'warning' })
+    await ElMessageBox.confirm('Удалить эту запись?', 'Подтверждение', { type: 'warning' })
     await logStore.deleteLog(id)
+    debug.action('Запись успешно удалена', { logId: id })
     ElMessage.success('Удалено')
-    logDebugAction('Dashboard', 'Log deleted', { id })
-  } catch {}
+  } catch (err) {
+    debug.action('Удаление отменено', { logId: id, error: err?.message })
+  }
 }
 
 const handleSaved = () => {
+  const wasEdit = isEdit.value
+  const logId = currentLogId.value
+
   showForm.value = false
   ElMessage.success('Сохранено')
+
+  debug.action('Запись сохранена', {
+    logId,
+    isEdit: wasEdit,
+    changedFields: currentLogData.value ? Object.keys(currentLogData.value) : []
+  })
+
   logStore.refreshCurrentTab()
-  logDebugAction('Dashboard', 'Log saved')
 }
 
 const handleDeleted = () => {
+  const logId = currentLogId.value
   showForm.value = false
   ElMessage.success('Удалено')
+  debug.action('Запись удалена из формы', { logId })
   logStore.refreshCurrentTab()
 }
 
 const handleRefresh = () => {
-  settingsStore.fetchSettingsStore(activeTab.value)
+  debug.api('Ручное обновление данных', { tab: activeTab.value })
   logStore.refreshCurrentTab()
-  logDebugAction('Dashboard', 'Manual refresh', { tab: activeTab.value })
 }
 
+// 🔥 ИСПРАВЛЕНО: toggleGroupingMode теперь работает через store
 const toggleGroupingMode = () => {
   const currentMode = currentGroupingInfo.value.mode
-  forcedGroupingMode.value = currentMode === 'server' ? 'frontend' : 'server'
-  ElMessage.success({ message: `Режим: ${forcedGroupingMode.value === 'server' ? '🖥 Серверная' : '📱 Локальная'}`, duration: 1500 })
+  const newMode = currentMode === 'server' ? 'frontend' : 'server'
+
+  // 🔥 Устанавливаем принудительный режим в store для текущей вкладки
+  logStore.setForcedGroupingMode(activeTab.value, newMode)
+
+  debug.action('Принудительное переключение режима группировки', {
+    tab: activeTab.value,
+    oldMode: currentMode,
+    newMode
+  })
+
+  ElMessage.success({
+    message: `Режим: ${newMode === 'server' ? '🖥 Серверная' : '📱 Локальная'}`,
+    duration: 1500
+  })
+
+  // 🔥 Теперь refreshCurrentTab увидит forcedGroupingMode и использует его
   logStore.refreshCurrentTab()
-  logDebugAction('Dashboard', 'Grouping mode toggled', { newMode: forcedGroupingMode.value })
 }
 
-// ===== Переключение вкладок =====
-watch(activeTab, async (newTab) => {
+// ===== Watchers =====
+
+watch(activeTab, async (newTab, oldTab) => {
+  debug.action('Смена активной вкладки', {
+    from: oldTab,
+    to: newTab,
+    previousForcedMode: logStore.forcedGroupingMode[oldTab]
+  })
+
   logStore.setActiveTab(newTab)
-  forcedGroupingMode.value = null
-  await settingsStore.fetchSettingsStore(newTab)
-  await logStore.refreshCurrentTab()
-  logDebugAction('Dashboard', 'Tab switched', { tab: newTab })
+
+  // 🔥 НЕ сбрасываем forcedGroupingMode — он сохраняется для каждой вкладки отдельно
+  // Если хочешь сбрасывать при переключении — раскомментируй:
+  // logStore.setForcedGroupingMode(newTab, null)
+
+  try {
+    await logStore.refreshCurrentTab()
+    debug.store('Данные вкладки загружены', {
+      tab: newTab,
+      logsLoaded: logStore.currentLogs.length,
+      isGrouped: logStore.isGrouped,
+      forcedMode: logStore.currentForcedMode
+    })
+  } catch (err) {
+    debug.error(`Ошибка загрузки вкладки "${newTab}"`, err)
+  }
 })
 
-// ===== Горячая клавиша Ctrl + Shift + D =====
+// ===== Горячие клавиши =====
+
 const handleKeyDown = (e) => {
   if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd' || e.key === 'В')) {
     e.preventDefault()
     debugStore.toggleVisibility()
-    logDebugAction('Dashboard', 'Debug panel toggled via hotkey', { visible: debugStore.isVisible })
+    debug.action(`Панель отладки ${debugStore.isVisible ? 'открыта' : 'закрыта'} (Ctrl+Shift+D)`)
   }
 }
 
 // ===== Инициализация =====
+
 onMounted(async () => {
+  debug.action('Dashboard начал инициализацию', { defaultTab: activeTab.value })
+
   try {
     await settingsStore.fetchSettingsStore('mine')
     const defaultTab = frontendSettings.value.default_tab
-    if (defaultTab && tabConfig[defaultTab]) activeTab.value = defaultTab
+    if (defaultTab && tabConfig[defaultTab]) {
+      activeTab.value = defaultTab
+      debug.action('Применена вкладка по умолчанию', { tab: defaultTab })
+    }
   } catch (err) {
-    console.warn('[Dashboard] Settings load failed:', err)
+    debug.error('Ошибка загрузки настроек', err)
   }
 
   logStore.setActiveTab(activeTab.value)
   logStore.loadFiltersFromStorage()
-  await logStore.refreshCurrentTab()
-  exerciseStore.fetchExercisesStore().catch(err => console.warn('Exercises fetch skipped:', err))
 
-  // Регистрируем горячую клавишу
+  try {
+    await logStore.refreshCurrentTab()
+    debug.store('Первичная загрузка логов завершена', {
+      tab: activeTab.value,
+      logsLoaded: logStore.currentLogs.length,
+      isGrouped: logStore.isGrouped
+    })
+  } catch (err) {
+    debug.error('Ошибка первичной загрузки логов', err)
+  }
+
+  exerciseStore.fetchExercisesStore()
+      .then(() => debug.store('Справочник упражнений загружен', { count: exerciseStore.exercises?.length || 0 }))
+      .catch(err => debug.error('Ошибка загрузки упражнений', err))
+
   window.addEventListener('keydown', handleKeyDown)
-  logDebugAction('Dashboard', 'Mounted', { activeTab: activeTab.value })
+  debug.action('Dashboard полностью смонтирован')
 })
 
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
+  debug.action('Dashboard размонтирован')
 })
 </script>
 
