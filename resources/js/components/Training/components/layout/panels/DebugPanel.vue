@@ -21,8 +21,8 @@
         <DebugLogs />
       </el-tab-pane>
 
-      <!-- Вкладка: Состояние -->
-      <el-tab-pane label="Состояние" name="state" class="debug-tab-pane">
+      <!-- Вкладка: Настройки и Контекст -->
+      <el-tab-pane label="⚙️ Настройки" name="state" class="debug-tab-pane">
         <DebugState />
       </el-tab-pane>
 
@@ -69,21 +69,59 @@ const settingsStore = useTrainingSettingsStore()
 
 const activeTab = ref('logs')
 
-const copyState = () => {
-  const state = {
+const copyState = async () => {
+  const stateToCopy = {
     activeTab: logStore.activeTab,
     currentFilters: logStore.currentFilters,
     currentPagination: logStore.currentPagination,
     isGrouped: logStore.isGrouped,
     logsCount: logStore.currentLogs.length,
-    settings: {
-      groupingMode: settingsStore.getGroupingModeForTabStore(logStore.activeTab),
-      columns: settingsStore.getColumnsForTabStore(logStore.activeTab)
+    groupingReason: settingsStore.getGroupingModeForTabStore(logStore.activeTab)?.reason || 'Неизвестно',
+    serverSettings: {
+      threshold: settingsStore.serverSettings.grouping_auto_threshold,
+      minGroupsCheck: settingsStore.serverSettings.enable_min_groups_check,
+      minGroups: settingsStore.serverSettings.grouping_min_groups,
+      groupBy: settingsStore.serverSettings.grouping_by
     }
   }
-  navigator.clipboard.writeText(JSON.stringify(state, null, 2)).then(() => {
-    ElMessage.success('Скопировано в буфер')
-  })
+
+  const textToCopy = JSON.stringify(stateToCopy, null, 2)
+
+  // 🔥 Универсальное копирование: работает на HTTP, HTTPS, localhost
+  let success = false
+
+  // Способ 1: Современный API (только HTTPS/localhost)
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(textToCopy)
+      success = true
+    } catch (e) {
+      console.warn('[Debug] Clipboard API недоступен, используем fallback')
+    }
+  }
+
+  // Способ 2: Fallback через textarea (работает ВЕЗДЕ)
+  if (!success) {
+    try {
+      const textarea = document.createElement('textarea')
+      textarea.value = textToCopy
+      textarea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      success = document.execCommand('copy')
+      document.body.removeChild(textarea)
+    } catch (e) {
+      console.error('[Debug] Fallback copy failed:', e)
+    }
+  }
+
+  // 🔥 Сообщение ВСЕГДА появляется
+  if (success) {
+    ElMessage.success('✅ Контекст скопирован')
+  } else {
+    ElMessage.error('❌ Не удалось скопировать')
+  }
 }
 </script>
 

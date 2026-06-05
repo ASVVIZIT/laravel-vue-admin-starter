@@ -122,6 +122,7 @@ const copyToClipboard = (data) => {
 .logs-wrapper {
   flex: 1;
   display: flex;
+  max-height: calc(100vh - 440px);
   flex-direction: column;
   min-height: 0;
   position: relative;

@@ -11,14 +11,14 @@ use Illuminate\Support\Carbon;
 
 class TrainingModuleSeeder extends Seeder
 {
-    private const SYSTEM_USER_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    private const SYSTEM_USER_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
     private const START_DATE = '2024-12-01';
     private const END_DATE = '2026-06-05';
 
-    private const LOGS_PER_INTENSIVE_USER = 700;
-    private const LOGS_PER_MEDIUM_USER = 550;
-    private const LOGS_PER_LIGHT_USER = 300;
-    private const BATCH_SIZE = 500;
+    private const LOGS_PER_INTENSIVE_USER = 2000;  // Было 700
+    private const LOGS_PER_MEDIUM_USER = 1500;     // Было 550
+    private const LOGS_PER_LIGHT_USER = 800;       // Было 300
+    private const BATCH_SIZE = 1000;               // Было 500 (ускорит вставку)
 
     private const SHARING_CONFIG = [
         'public_chance' => 10,
@@ -44,6 +44,9 @@ class TrainingModuleSeeder extends Seeder
         1 => 'street_calisthenics', 2 => 'powerlifter', 3 => 'marathon_runner',
         4 => 'crossfit_general', 5 => 'yoga_mobility', 6 => 'triathlon_prep',
         7 => 'functional_athlete', 8 => 'senior_light', 9 => 'hiit_sprinter', 10 => 'balanced_beginner',
+        11 => 'street_calisthenics', 12 => 'powerlifter', 13 => 'marathon_runner',
+        14 => 'crossfit_general', 15 => 'yoga_mobility', 16 => 'triathlon_prep',
+        17 => 'functional_athlete', 18 => 'senior_light', 19 => 'hiit_sprinter', 20 => 'balanced_beginner',
     ];
 
     public function run(): void
