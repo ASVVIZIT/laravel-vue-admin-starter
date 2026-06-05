@@ -52,6 +52,7 @@ use App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController;
 
 use App\Http\Controllers\Api\Training\ExerciseController;
 use App\Http\Controllers\Api\Training\TrainingLogController;
+use App\Http\Controllers\Api\Training\TrainingSettingsController;
 
 // Импорты фасадов для отладочных маршрутов
 use Illuminate\Support\Facades\DB;
@@ -321,6 +322,9 @@ Route::get('/orders', function () {
 // ===================================================
 // 8. МОДУЛЬ: TRAINING (Тренировки и упражнения)
 // ===================================================
+// ===================================================
+// 8. МОДУЛЬ: TRAINING (Тренировки и упражнения)
+// ===================================================
 Route::namespace('Api\\Training')
     ->prefix('training')
     ->name('training.')
@@ -340,6 +344,9 @@ Route::namespace('Api\\Training')
                 Route::delete('/{log}', [TrainingLogController::class, 'destroy'])->name('destroy');
             });
 
+            // ===== СЕРВЕРНАЯ ГРУППИРОВКА =====
+            Route::get('/logs/grouped', [TrainingLogController::class, 'grouped'])->name('logs.grouped');
+
             // ===== ACTIONS API (soft deletes) =====
             Route::prefix('logs/{log}')->name('logs.')->group(function () {
                 Route::post('/restore', [TrainingLogController::class, 'restore'])->name('restore');
@@ -352,11 +359,15 @@ Route::namespace('Api\\Training')
                 Route::get('/summary', [TrainingLogController::class, 'summary'])->name('summary');
             });
 
+            // ===== SETTINGS API =====
+            Route::prefix('settings')->name('settings.')->group(function () {
+                Route::get('/', [TrainingSettingsController::class, 'index'])->name('index');
+                Route::put('/', [TrainingSettingsController::class, 'update'])->name('update');
+            });
+
             // ===== SHARING API =====
             Route::prefix('users')->name('users.')->group(function () {
 
-                // 🔍 Поиск пользователей (для шеринга)
-                // ищем только по name и email
                 Route::get('/search', function (Request $request) {
                     $search = $request->get('search', '');
                     if (strlen($search) < 2) {
@@ -373,7 +384,6 @@ Route::namespace('Api\\Training')
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('search');
 
-                // 👥 Получение пользователей по ID
                 Route::get('/by-ids', function (Request $request) {
                     $ids = explode(',', $request->get('ids', ''));
                     $ids = array_filter(array_map('intval', $ids));
@@ -386,8 +396,6 @@ Route::namespace('Api\\Training')
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('by-ids');
 
-                // 👁 Просмотр чужих тренировок
-                // используем ID пользователя
                 Route::get('/{user}/shared', [TrainingLogController::class, 'shared'])
                     ->name('shared')
                     ->where('user', '[0-9]+');

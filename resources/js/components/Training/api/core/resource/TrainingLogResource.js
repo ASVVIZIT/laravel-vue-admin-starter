@@ -1,14 +1,14 @@
 /**
  * ============================================================================
- * TRAINING LOG RESOURCE — ЖУРНАЛ, СТАТИСТИКА, ШЕРИНГ
+ * TRAINING LOG RESOURCE — ЖУРНАЛ, СТАТИСТИКА, ШЕРИНГ, ГРУППИРОВКА
  * ============================================================================
  * 📁 Путь: @/components/Training/api/core/resource/TrainingLogResource.js
- * ✅ Эндпоинты: logs/*, stats/*, users/*shared
+ * ✅ Эндпоинты: logs/*, stats/*, users/*shared, logs/grouped
  * ============================================================================
-*/
+ */
 
 import { TrainingBaseResource } from './TrainingBaseResource.js'
-import { logDebugUtils } from '../utils/coreApiLoggerUtils.js'
+import { logDebugUtils, logErrorUtils } from '../utils/coreApiLoggerUtils.js'
 
 export class TrainingLogResource extends TrainingBaseResource {
     constructor() {
@@ -59,9 +59,29 @@ export class TrainingLogResource extends TrainingBaseResource {
     }
 
     // ===== SHARING =====
-    async getSharedResource(username, params = {}) {
-        logDebugUtils('TrainingLogResource', 'getSharedResource', { username, params })
-        return this.getBase(`/users/${username}/shared`, params)
+    async getSharedResource(userId, params = {}) {
+        logDebugUtils('TrainingLogResource', 'getSharedResource', { userId, params })
+        return this.getBase(`/users/${userId}/shared`, params)
+    }
+
+    // ===== 🔥 СЕРВЕРНАЯ ГРУППИРОВКА =====
+    /**
+     * Получить сгруппированные записи (серверная группировка)
+     * @param {Object} params - Параметры:
+     *   - tab: 'mine' | 'shared-with-me' | 'shared-by-me'
+     *   - group_by: 'user' | 'exercise' | 'date'
+     *   - page, per_page (пагинация по группам)
+     * @returns {Promise<Object>} { success, data: [...groups], meta: { pagination, grouping } }
+     */
+    async getGroupedLogsResource(params = {}) {
+        logDebugUtils('TrainingLogResource', 'getGroupedLogsResource', params)
+        try {
+            const response = await this.getBase('/logs/grouped', params)
+            return response
+        } catch (error) {
+            logErrorUtils('TrainingLogResource', 'getGroupedLogsResource error', error)
+            throw error
+        }
     }
 }
 

@@ -5,10 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-    /**
-     * Запуск миграций.
-     * Создаёт все таблицы модуля Training с нуля (idempotent-безопасно).
-     */
     public function up(): void
     {
         // Таблица справочника упражнений
@@ -55,14 +51,24 @@ return new class extends Migration {
                 $table->index('total_volume');
             });
         }
+
+        // Глобальные настройки модуля Training
+        if (!Schema::hasTable('training_settings')) {
+            Schema::create('training_settings', function (Blueprint $table) {
+                $table->id();
+                $table->string('key')->unique();
+                $table->text('value');
+                $table->timestamps();
+            });
+        }
     }
 
-    /**
-     * Откат миграций.
-     */
     public function down(): void
     {
+        Schema::disableForeignKeyConstraints();
+        Schema::dropIfExists('training_settings');
         Schema::dropIfExists('training_logs');
         Schema::dropIfExists('exercises');
+        Schema::enableForeignKeyConstraints();
     }
 };

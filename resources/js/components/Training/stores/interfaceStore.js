@@ -10,7 +10,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { logDebugUtils } from '@/components/Training/utils/appLoggerUtils.js';
+import { logDebugUtils } from '@components/Training/utils/appLoggerUtils.js';
 
 export const useInterfaceStore = defineStore('training-interface', () => {
     // === STATE ===

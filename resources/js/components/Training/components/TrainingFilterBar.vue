@@ -25,6 +25,7 @@
             size="small"
             clearable
             :shortcuts="config.date.shortcuts"
+            :disabled="!isMineTab"
             @change="onDateChange"
             @clear="onDateClear"
             class="w-100"
@@ -39,6 +40,7 @@
             size="small"
             clearable
             filterable
+            :disabled="!isMineTab"
             popper-class="training-filter-select-popper"
             @change="onExerciseChange"
             @clear="onExerciseClear"
@@ -65,6 +67,7 @@
             end-placeholder="Конец"
             range-separator="—"
             size="small"
+            :disabled="!isMineTab"
             :shortcuts="config.range.shortcuts"
             @change="onRangeChange"
             @clear="onRangeClear"
@@ -74,7 +77,7 @@
 
       <!-- 🔹 Сброс -->
       <div class="filter-col col-reset">
-        <el-button type="danger" plain size="small" @click="clearAll" class="reset-btn">
+        <el-button type="danger" plain size="small" @click="clearAll" class="reset-btn" :disabled="!isMineTab">
           <el-icon><RefreshRight /></el-icon>
           <span>Сброс</span>
         </el-button>
@@ -94,6 +97,7 @@
               :type="activeQuickDate === btn.id ? 'primary' : 'default'"
               plain
               size="small"
+              :disabled="!isMineTab"
               class="btn-quick"
               @click="handleQuickDate(btn.id)"
           >
@@ -119,6 +123,7 @@
               :type="activeQuickRange === btn.id ? 'primary' : 'default'"
               plain
               size="small"
+              :disabled="!isMineTab"
               class="btn-quick"
               @click="handleQuickRange(btn.id)"
           >
@@ -149,64 +154,55 @@ const config = FILTER_BLOCKS
 const localDate = ref(null)
 const localExerciseId = ref(null)
 const localRange = ref([])
-const activeQuickDate = ref(null)      // 'today' | 'yesterday' | 'tomorrow' | null
-const activeQuickRange = ref(null)     // 'week' | 'month' | 'quarter' | 'halfyear' | null
+const activeQuickDate = ref(null)
+const activeQuickRange = ref(null)
 
 const isSmallScreen = ref(window.innerWidth <= 900)
 const showExtras = ref(!isSmallScreen.value)
 
+// 🔥 Проверяем, находимся ли мы на вкладке "Мои тренировки"
+const isMineTab = computed(() => logStore.activeTab === 'mine')
+
 // ============================================================================
-// 🔹 SNAPSHOT: Кеш доступных упражнений для текущей даты (Вариант 2)
+// 🔹 SNAPSHOT: Кеш доступных упражнений для текущей даты
 // ============================================================================
-// Проблема: если фильтровать список по logStore.logs, то при выборе упражнения
-// список схлопнется до одного элемента. Решение: кешируем "снимок" списка
-// в момент изменения даты, и не трогаем его при выборе конкретного упражнения.
 const exercisesSnapshot = ref([])
 
-// Watch: обновляем снимок ТОЛЬКО когда меняется фильтр по дате или приходят новые логи
-// Если пользователь уже выбрал упражнение (exerciseFilter) — НЕ трогаем снимок,
-// чтобы список не прыгал и можно было выбрать другой тип.
+// ✅ ИСПРАВЛЕНО: logStore.logs → logStore.currentLogs
 watch(
-    () => [logStore.dateFilter, logStore.dateRange?.from, logStore.dateRange?.to, logStore.logs],
+    () => [logStore.dateFilter, logStore.dateRange?.from, logStore.dateRange?.to, logStore.currentLogs],
     () => {
       const hasDateFilter = logStore.dateFilter || logStore.dateRange?.from
       const hasExerciseFilter = logStore.exerciseFilter
 
-      // Если нет фильтра по дате → очищаем снимок (будем показывать все упражнения)
       if (!hasDateFilter) {
         exercisesSnapshot.value = []
         return
       }
 
-      // Если фильтр по упражнению АКТИВЕН → не обновляем снимок, сохраняем стабильность
       if (hasExerciseFilter) return
 
-      // Иначе → пересчитываем снимок на основе текущих логов за выбранный период
-      const usedIds = new Set((logStore.logs || []).map(l => l.exercise_id))
+      // ✅ ИСПРАВЛЕНО: logStore.logs → logStore.currentLogs
+      const usedIds = new Set((logStore.currentLogs || []).map(l => l.exercise_id))
       exercisesSnapshot.value = exerciseStore.exercises.filter(ex => usedIds.has(ex.id))
     },
-    { immediate: true } // Запустить сразу при монтировании
+    { immediate: true }
 )
 
 // ============================================================================
 // 🔹 COMPUTED: Финальный список для <el-select>
 // ============================================================================
 const exerciseOptions = computed(() => {
-  // 1. Если справочник пуст — ничего не показываем
   if (!exerciseStore.exercises?.length) return []
 
-  // 2. Если НЕТ фильтра по дате — показываем ВСЕ упражнения из базы
   if (!logStore.dateFilter && !logStore.dateRange?.from) {
     return exerciseStore.exercises
   }
 
-  // 3. Если есть фильтр по дате — используем СНЯТОК (кешированный список)
   const baseList = exercisesSnapshot.value.length > 0
       ? exercisesSnapshot.value
       : exerciseStore.exercises
 
-  // 4. Гарантируем, что выбранное упражнение всегда есть в списке
-  // (даже если его нет на текущей странице пагинации)
   if (localExerciseId.value) {
     const selected = exerciseStore.exercises.find(ex => ex.id === localExerciseId.value)
     if (selected && !baseList.find(ex => ex.id === selected.id)) {
@@ -221,6 +217,7 @@ const exerciseOptions = computed(() => {
 // 🔹 HINT: Динамическая подсказка
 // ============================================================================
 const exerciseHint = computed(() => {
+  if (!isMineTab.value) return { icon: 'InfoFilled', text: 'Фильтры работают только для "Мои тренировки"' }
   if (!localExerciseId.value) return config.exercise.hint.none
   if (!logStore.dateFilter && !logStore.dateRange?.from) return config.exercise.hint.all
   return config.exercise.hint.filtered
@@ -230,11 +227,29 @@ const exerciseHint = computed(() => {
 // 🔹 SYNC: Стор → Локальные значения + Визуальные состояния
 // ============================================================================
 
+// ✅ НОВОЕ: Синхронизация при смене вкладки
+watch(() => logStore.activeTab, (newTab) => {
+  if (newTab !== 'mine') {
+    // Сбрасываем локальное состояние фильтров визуально
+    localDate.value = null
+    localExerciseId.value = null
+    localRange.value = []
+    activeQuickDate.value = null
+    activeQuickRange.value = null
+  } else {
+    // Восстанавливаем из store
+    localDate.value = logStore.dateFilter
+    localExerciseId.value = logStore.exerciseFilter
+    if (logStore.dateRange?.from && logStore.dateRange?.to) {
+      localRange.value = [logStore.dateRange.from, logStore.dateRange.to]
+    }
+  }
+})
+
 // Синхронизация одиночной даты
 watch(() => logStore.dateFilter, (newVal) => {
   if (newVal !== localDate.value) {
     localDate.value = newVal
-    // Если дата пришла извне (не через быструю кнопку) — сбрасываем визуальный выбор
     if (!activeQuickDate.value || !isDateMatchingQuickButton(newVal, activeQuickDate.value)) {
       activeQuickDate.value = null
     }
@@ -291,7 +306,7 @@ const isRangeMatchingQuickButton = (from, to, buttonId) => {
 }
 
 // ============================================================================
-// 🔹 APPLY: Применение фильтров (чистые параметры, без null)
+// 🔹 APPLY: Применение фильтров
 // ============================================================================
 const applyFilters = (params) => {
   const cleanParams = {}
@@ -422,7 +437,6 @@ const handleResize = () => {
 }
 
 onMounted(async () => {
-  // 🔥 Загружаем упражнения (с правильным именем метода!)
   if (!exerciseStore.exercisesLoaded) await exerciseStore.fetchExercisesStore()
 
   // Первичная синхронизация: стор → локальные значения
@@ -496,6 +510,13 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
   border-color: #fbc4c4; color: #f56c6c; background-color: #fef0f0;
 }
 .reset-btn:hover { background-color: #fde2e2; border-color: #f5a3a3; color: #f56c6c; }
+
+/* 🔹 Disabled состояние */
+:deep(.is-disabled .el-input__wrapper),
+:deep(.is-disabled .el-range-editor.el-input__wrapper) {
+  background-color: #f5f7fa !important;
+  cursor: not-allowed;
+}
 
 /* 🔹 Быстрые кнопки и хинты */
 .quick-btns-row { display: flex; gap: 4px; flex-wrap: wrap; width: 100%; }

@@ -26,36 +26,7 @@ class TrainingLogController extends Controller
         }
 
         $userId = Auth::id();
-
-        // 🔥 ВКЛАДКА: ДОСТУПНЫЕ МНЕ (чужие публичные + расшаренные мне)
-        if ($request->boolean('shared_with_me')) {
-            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
-                ->where('user_id', '!=', $userId)
-                ->where(function ($q) use ($userId) {
-                    $q->where('is_public', true)
-                        ->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]);
-                })
-                ->latest('date')
-                ->latest('time');
-
-            // 🔥 ВКЛАДКА: Я ПОДЕЛИЛСЯ (мои публичные + где shared_with не пустой)
-        } elseif ($request->boolean('shared_by_me')) {
-            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
-                ->where('user_id', $userId)
-                ->where(function ($q) {
-                    $q->where('is_public', true)
-                        ->orWhereRaw('JSON_LENGTH(shared_with) > 0');
-                })
-                ->latest('date')
-                ->latest('time');
-
-            // 🔥 ВКЛАДКА: МОИ ТРЕНИРОВКИ
-        } else {
-            $query = TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
-                ->mine($userId)
-                ->latest('date')
-                ->latest('time');
-        }
+        $query = $this->buildTabQuery($userId, $request);
 
         // Фильтры (работают для всех вкладок)
         if ($request->filled('date')) $query->forDate($request->date);
@@ -77,6 +48,92 @@ class TrainingLogController extends Controller
                     'last_page' => $logs->lastPage(),
                 ]
             ] : ['count' => count($logs)]
+        ]);
+    }
+
+    /**
+     * GET /api/training/logs/grouped
+     * 🔥 СЕРВЕРНАЯ ГРУППИРОВКА записей
+     *
+     * Параметры:
+     * - tab: mine | shared-with-me | shared-by-me
+     * - group_by: user | exercise | date
+     * - page, per_page (пагинация по группам, а не по записям)
+     */
+    public function grouped(Request $request): JsonResponse
+    {
+        if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING)) {
+            return response()->json(['success' => false, 'message' => 'Доступ запрещён'], 403);
+        }
+
+        $userId = Auth::id();
+        $tab = $request->get('tab', 'mine');
+        $groupBy = $request->get('group_by', 'user');
+        $perPage = $request->integer('per_page', 10);
+        $page = $request->integer('page', 1);
+
+        // Базовый запрос по вкладке
+        $query = $this->buildTabQuery($userId, $request, $tab);
+
+        // Загружаем все записи (без пагинации — группировка на сервере)
+        $logs = $query->with('exercise:id,name,type,default_unit', 'user:id,name,email')
+            ->orderBy('date', 'desc')
+            ->orderBy('time', 'desc')
+            ->get();
+
+        // Группируем по выбранному полю
+        $groups = $logs->groupBy(function ($log) use ($groupBy) {
+            return match ($groupBy) {
+                'user' => "user_{$log->user_id}",
+                'exercise' => "exercise_{$log->exercise_id}",
+                'date' => $log->date instanceof Carbon
+                    ? $log->date->format('Y-m')
+                    : \Carbon\Carbon::parse($log->date)->format('Y-m'),
+                default => "user_{$log->user_id}",
+            };
+        });
+
+        // Формируем структуру групп
+        $groupedData = $groups->map(function ($items, $key) use ($groupBy) {
+            $first = $items->first();
+            $label = match ($groupBy) {
+                'user' => $first->user?->name ?? "Пользователь #{$first->user_id}",
+                'exercise' => $first->exercise?->name ?? "Упражнение #{$first->exercise_id}",
+                'date' => $first->date instanceof Carbon
+                    ? $first->date->format('F Y')
+                    : \Carbon\Carbon::parse($first->date)->format('F Y'),
+                default => $key,
+            };
+
+            return [
+                'group_key' => $key,
+                'group_label' => $label,
+                'count' => $items->count(),
+                'children' => $items->values(),
+            ];
+        })->values();
+
+        // Ручная пагинация по группам
+        $totalGroups = $groupedData->count();
+        $lastPage = max(1, (int) ceil($totalGroups / $perPage));
+        $paginatedGroups = $groupedData->slice(($page - 1) * $perPage, $perPage)->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $paginatedGroups,
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $page,
+                    'per_page' => $perPage,
+                    'total' => $totalGroups,
+                    'last_page' => $lastPage,
+                ],
+                'grouping' => [
+                    'mode' => 'server',
+                    'group_by' => $groupBy,
+                    'total_logs' => $logs->count(),
+                ]
+            ]
         ]);
     }
 
@@ -157,7 +214,7 @@ class TrainingLogController extends Controller
 
     /**
      * GET /api/training/users/{user}/shared
-     * Принимает ID пользователя
+     * Просмотр чужих тренировок по ID пользователя
      */
     public function shared(Request $request, int $user): JsonResponse
     {
@@ -231,6 +288,89 @@ class TrainingLogController extends Controller
         return response()->json(['success' => true, 'message' => 'Запись удалена']);
     }
 
+    /**
+     * POST /api/training/logs/{log}/restore
+     * 🔥 Восстановление удалённой записи (soft delete)
+     */
+    public function restore(TrainingLog $log): JsonResponse
+    {
+        $this->authorizeUpdate($log);
+
+        if (!$log->trashed()) {
+            return response()->json(['success' => false, 'message' => 'Запись не удалена'], 400);
+        }
+
+        $log->restore();
+        return response()->json(['success' => true, 'message' => 'Запись восстановлена', 'data' => $log]);
+    }
+
+    /**
+     * DELETE /api/training/logs/{log}/force
+     * 🔥 Полное (безвозвратное) удаление записи
+     */
+    public function forceDelete(TrainingLog $log): JsonResponse
+    {
+        // Полное удаление требует полных прав (manage_training)
+        if (!Auth::user()->can(Acl::PERMISSION_MANAGE_TRAINING)) {
+            abort(403, 'Недостаточно прав для полного удаления');
+        }
+
+        $log->forceDelete();
+        return response()->json(['success' => true, 'message' => 'Запись удалена безвозвратно']);
+    }
+
+    // ========================================================================
+    // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+    // ========================================================================
+
+    /**
+     * 🔥 Построение базового запроса для вкладки
+     * Используется в index() и grouped() — единая логика для всех методов
+     *
+     * @param int $userId ID текущего пользователя
+     * @param Request $request HTTP-запрос
+     * @param string|null $tabOverride Явное указание вкладки (для grouped)
+     */
+    private function buildTabQuery(int $userId, Request $request, ?string $tabOverride = null)
+    {
+        $tab = $tabOverride ?? $this->resolveTab($request);
+
+        return match ($tab) {
+            'shared-with-me' => TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->where('user_id', '!=', $userId)
+                ->where(function ($q) use ($userId) {
+                    $q->where('is_public', true)
+                        ->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]);
+                })
+                ->latest('date')
+                ->latest('time'),
+
+            'shared-by-me' => TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->where('user_id', $userId)
+                ->where(function ($q) {
+                    $q->where('is_public', true)
+                        ->orWhereRaw('JSON_LENGTH(shared_with) > 0');
+                })
+                ->latest('date')
+                ->latest('time'),
+
+            default => TrainingLog::with('exercise:id,name,type,default_unit', 'user:id,name,email')
+                ->mine($userId)
+                ->latest('date')
+                ->latest('time'),
+        };
+    }
+
+    /**
+     * Определение вкладки по параметрам запроса
+     */
+    private function resolveTab(Request $request): string
+    {
+        if ($request->boolean('shared_with_me')) return 'shared-with-me';
+        if ($request->boolean('shared_by_me')) return 'shared-by-me';
+        return 'mine';
+    }
+
     private function checkCreatePermission(): void
     {
         if (!Auth::user()->can(Acl::PERMISSION_MANAGE_TRAINING) &&
@@ -295,7 +435,8 @@ class TrainingLogController extends Controller
     private function calculateStreak(int $userId): int
     {
         $dates = TrainingLog::mine($userId)->orderByDesc('date')->pluck('date')
-            ->map(fn($d) => $d->format('Y-m-d'))->unique()->values();
+            ->map(fn($d) => $d instanceof Carbon ? $d->format('Y-m-d') : Carbon::parse($d)->format('Y-m-d'))
+            ->unique()->values();
 
         if ($dates->isEmpty()) return 0;
 

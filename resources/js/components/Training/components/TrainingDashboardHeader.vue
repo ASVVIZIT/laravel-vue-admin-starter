@@ -1,10 +1,15 @@
 <template>
   <header class="training-dashboard-header">
-    <!-- 🔹 СТРОКА 1: Заголовок + Кнопки (жёстко зафиксированы) -->
-    <div class="header-top">
-      <div class="header-title">
-        <span class="title-icon">🏆</span>
-        <span class="title-text">Мои тренировки</span>
+    <!-- 🔹 ЕДИНАЯ СТРОКА: Заголовок + Статистика + Кнопки -->
+    <div class="header-row">
+      <div class="header-left">
+        <div class="header-title">
+          <span class="title-icon">🏆</span>
+          <span class="title-text">Мои тренировки</span>
+        </div>
+        <div class="header-stats">
+          <TrainingStatsBar :summary="summary" :stats="stats" />
+        </div>
       </div>
 
       <div class="header-actions">
@@ -28,132 +33,108 @@
         >
           <el-icon><Refresh /></el-icon>
         </el-button>
-      </div>
-    </div>
 
-    <!-- 🔹 СТРОКА 2: Статистика (независимый блок, не влияет на кнопки) -->
-    <div class="header-bottom">
-      <TrainingStatsBar :summary="summary" :stats="stats" />
+        <el-button
+            v-if="showSettings"
+            size="small"
+            @click="$emit('toggle-settings')"
+            circle
+            class="btn-settings"
+            title="Настройки модуля"
+        >
+          <el-icon><Setting /></el-icon>
+        </el-button>
+      </div>
     </div>
   </header>
 </template>
 
 <script setup>
-import { EditPen, Refresh } from '@element-plus/icons-vue'
+import { EditPen, Refresh, Setting } from '@element-plus/icons-vue'
 import TrainingStatsBar from './TrainingStatsBar.vue'
 
-/**
- * Props
- */
 const props = defineProps({
   summary: { type: Object, required: true },
   stats: { type: Object, required: true },
   loading: { type: Boolean, default: false },
-  showForm: { type: Boolean, default: false }
+  showForm: { type: Boolean, default: false },
+  showSettings: { type: Boolean, default: true }
 })
 
-/**
- * Emits
- */
-const emit = defineEmits(['toggle-form', 'refresh'])
+const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings'])
 </script>
 
 <style scoped>
-/* ============================================================================
-   ШАПКА ДАШБОРДА: ДВУХУРОВНЕВАЯ, БЕЗ "МАГНИТНОГО" ЭФФЕКТА
-   ============================================================================ */
 .training-dashboard-header {
   background: #ffffff;
   border-bottom: 1px solid #ebeef5;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 4px 12px;
   width: 100%;
   box-sizing: border-box;
 }
 
-/*  Верхняя строка: Заголовок слева, Кнопки справа */
-.header-top {
+.header-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: nowrap; /* 🔑 Запрещаем перенос */
+  gap: 8px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
   gap: 12px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 600;
   color: #303133;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.title-icon { font-size: 18px; }
+.title-icon { font-size: 16px; }
 .title-text { line-height: 1; }
 
-/* 🔹 Кнопки: зафиксированы справа, не сжимаются */
+.header-stats {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0; /* 🔑 Кнопки никогда не уменьшаются */
-  margin-left: auto; /* Гарантируем прижатие вправо */
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .btn-add {
-  height: 28px;
-  padding: 0 12px;
-  font-size: 12px;
-  border-radius: 6px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11px;
+  border-radius: 4px;
 }
 
-.btn-refresh {
-  width: 28px;
-  height: 28px;
+.btn-refresh,
+.btn-settings {
+  width: 26px;
+  height: 26px;
   padding: 0;
 }
 
-.btn-label { margin-left: 5px; }
+.btn-label { margin-left: 4px; }
 
-/* 🔹 Нижняя строка: Статистика */
-.header-bottom {
-  width: 100%;
-  overflow: hidden; /* Статистика скроллится внутри себя */
-}
-
-/* ============================================================================
-   АДАПТИВНОСТЬ
-   ============================================================================ */
 @media (max-width: 768px) {
-  .training-dashboard-header {
-    padding: 8px 12px;
-    gap: 8px;
-  }
-
-  .header-top {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .header-title { font-size: 14px; }
-  .title-icon { font-size: 16px; }
-
-  .header-actions {
-    width: 100%;
-    justify-content: flex-end; /* Кнопки уходят в правый край */
-  }
-
-  .btn-label { display: none; } /* На мобильном только иконки */
-  .btn-add { padding: 0 8px; }
-}
-
-@media (max-width: 480px) {
-  .training-dashboard-header { padding: 6px 8px; }
-  .header-title { font-size: 13px; }
+  .training-dashboard-header { padding: 3px 8px; }
+  .header-title { font-size: 12px; }
+  .btn-label { display: none; }
+  .btn-add { padding: 0 6px; }
 }
 </style>
