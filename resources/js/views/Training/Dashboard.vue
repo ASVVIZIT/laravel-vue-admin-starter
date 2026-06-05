@@ -6,8 +6,11 @@
         :loading="logStore.currentLoading"
         :show-form="showForm"
         :show-settings="settingsStore.isGroupingToggleVisibleStore"
+        :show-debug="true"
+        :debug-visible="debugStore.isVisible"
         @toggle-form="showForm = !showForm"
         @toggle-settings="showSettings = !showSettings"
+        @toggle-debug="debugStore.toggleVisibility()"
         @refresh="handleRefresh"
     />
 
@@ -67,27 +70,34 @@
     </el-dialog>
 
     <TrainingSettingsModal v-model="showSettings" />
+
+    <!-- 🔥 Панель отладки -->
+    <DebugPanel />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Switch } from '@element-plus/icons-vue'
 
 import { useTrainingLogStore, TAB_CONFIG } from '@/components/Training/stores/trainingLogStore.js'
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
 import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
+import { useTrainingDebugStore } from '@/components/Training/stores/trainingDebugStore.js'
+import { logDebugAction } from '@/components/Training/utils/appDebugUtils.js'
 
 import TrainingDashboardHeader from '@/components/Training/components/TrainingDashboardHeader.vue'
 import TrainingFilterBar from '@/components/Training/components/TrainingFilterBar.vue'
 import TrainingLogTable from '@/components/Training/components/TrainingLogTable.vue'
 import TrainingLogForm from '@/components/Training/components/TrainingLogForm.vue'
 import TrainingSettingsModal from '@/components/Training/components/settings/modals/TrainingSettingsModal.vue'
+import DebugPanel from '@/components/Training/components/layout/panels/DebugPanel.vue'
 
 const logStore = useTrainingLogStore()
 const exerciseStore = useExerciseStore()
 const settingsStore = useTrainingSettingsStore()
+const debugStore = useTrainingDebugStore()
 
 const showForm = ref(false)
 const showSettings = ref(false)
@@ -107,7 +117,6 @@ const stats = computed(() => logStore.stats || {})
 const summary = computed(() => logStore.summary || {})
 const frontendSettings = computed(() => settingsStore.frontendSettings)
 
-// 🔥 Конфигурация колонок для текущей вкладки
 const currentColumnsConfig = computed(() => settingsStore.getColumnsForTabStore(activeTab.value))
 
 const currentGroupingInfo = computed(() => {
@@ -120,10 +129,12 @@ const currentGroupingInfo = computed(() => {
 
 const emptyDescription = computed(() => logStore.config?.emptyText || 'Записей не найдено')
 
+// ===== Обработчики =====
 const handleEdit = (log) => {
   currentLogId.value = log.id
   currentLogData.value = { ...log }
   showForm.value = true
+  logDebugAction('Dashboard', 'Edit log clicked', { id: log.id })
 }
 
 const handleDelete = async (id) => {
@@ -131,6 +142,7 @@ const handleDelete = async (id) => {
     await ElMessageBox.confirm('Удалить?', 'Подтверждение', { type: 'warning' })
     await logStore.deleteLog(id)
     ElMessage.success('Удалено')
+    logDebugAction('Dashboard', 'Log deleted', { id })
   } catch {}
 }
 
@@ -138,6 +150,7 @@ const handleSaved = () => {
   showForm.value = false
   ElMessage.success('Сохранено')
   logStore.refreshCurrentTab()
+  logDebugAction('Dashboard', 'Log saved')
 }
 
 const handleDeleted = () => {
@@ -149,6 +162,7 @@ const handleDeleted = () => {
 const handleRefresh = () => {
   settingsStore.fetchSettingsStore(activeTab.value)
   logStore.refreshCurrentTab()
+  logDebugAction('Dashboard', 'Manual refresh', { tab: activeTab.value })
 }
 
 const toggleGroupingMode = () => {
@@ -156,15 +170,28 @@ const toggleGroupingMode = () => {
   forcedGroupingMode.value = currentMode === 'server' ? 'frontend' : 'server'
   ElMessage.success({ message: `Режим: ${forcedGroupingMode.value === 'server' ? '🖥 Серверная' : '📱 Локальная'}`, duration: 1500 })
   logStore.refreshCurrentTab()
+  logDebugAction('Dashboard', 'Grouping mode toggled', { newMode: forcedGroupingMode.value })
 }
 
+// ===== Переключение вкладок =====
 watch(activeTab, async (newTab) => {
   logStore.setActiveTab(newTab)
   forcedGroupingMode.value = null
   await settingsStore.fetchSettingsStore(newTab)
   await logStore.refreshCurrentTab()
+  logDebugAction('Dashboard', 'Tab switched', { tab: newTab })
 })
 
+// ===== Горячая клавиша Ctrl + Shift + D =====
+const handleKeyDown = (e) => {
+  if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd' || e.key === 'В')) {
+    e.preventDefault()
+    debugStore.toggleVisibility()
+    logDebugAction('Dashboard', 'Debug panel toggled via hotkey', { visible: debugStore.isVisible })
+  }
+}
+
+// ===== Инициализация =====
 onMounted(async () => {
   try {
     await settingsStore.fetchSettingsStore('mine')
@@ -175,12 +202,17 @@ onMounted(async () => {
   }
 
   logStore.setActiveTab(activeTab.value)
-
-  // 🔥 Восстанавливаем фильтры из localStorage перед первой загрузкой
   logStore.loadFiltersFromStorage()
-
   await logStore.refreshCurrentTab()
   exerciseStore.fetchExercisesStore().catch(err => console.warn('Exercises fetch skipped:', err))
+
+  // Регистрируем горячую клавишу
+  window.addEventListener('keydown', handleKeyDown)
+  logDebugAction('Dashboard', 'Mounted', { activeTab: activeTab.value })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
 })
 </script>
 

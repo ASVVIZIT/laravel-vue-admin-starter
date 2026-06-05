@@ -44,6 +44,18 @@
         >
           <el-icon><Setting /></el-icon>
         </el-button>
+
+        <!-- 🔥 Кнопка отладки -->
+        <el-button
+            v-if="showDebug"
+            size="small"
+            @click="$emit('toggle-debug')"
+            circle
+            :class="['btn-debug', { 'is-active': debugVisible }]"
+            title="Панель отладки (Ctrl+Shift+D)"
+        >
+          🐞
+        </el-button>
       </div>
     </div>
   </header>
@@ -58,10 +70,12 @@ const props = defineProps({
   stats: { type: Object, required: true },
   loading: { type: Boolean, default: false },
   showForm: { type: Boolean, default: false },
-  showSettings: { type: Boolean, default: true }
+  showSettings: { type: Boolean, default: true },
+  showDebug: { type: Boolean, default: true },
+  debugVisible: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings'])
+const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-debug'])
 </script>
 
 <style scoped>
@@ -130,6 +144,28 @@ const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings'])
 }
 
 .btn-label { margin-left: 4px; }
+
+.btn-debug {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 14px;
+  background: #2d2d2d;
+  border-color: #3e3e3e;
+  color: #9cdcfe;
+}
+
+.btn-debug:hover {
+  background: #3e3e3e;
+  border-color: #4ec9b0;
+  color: #4ec9b0;
+}
+
+.btn-debug.is-active {
+  background: #4ec9b0;
+  border-color: #4ec9b0;
+  color: #1e1e1e;
+}
 
 @media (max-width: 768px) {
   .training-dashboard-header { padding: 3px 8px; }
