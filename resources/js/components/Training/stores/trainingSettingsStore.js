@@ -12,7 +12,10 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         grouping_per_page: 10,
         logs_per_page: 50,
         enable_stats: true,
-        enable_sharing: true
+        enable_sharing: true,
+        // 🔥 Новые настройки умной группировки
+        enable_min_groups_check: true,
+        grouping_min_groups: 3
     });
 
     const frontendSettings = ref({
@@ -55,26 +58,15 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
                 if (result.data.server) {
                     serverSettings.value = { ...serverSettings.value, ...result.data.server };
                 }
-
                 if (result.data.frontend) {
-                    // 🔥 Извлекаем колонки из общего объекта frontend
-                    const {
-                        'columns.mine': colMine,
-                        'columns.shared-with-me': colSharedWithMe,
-                        'columns.shared-by-me': colSharedByMe,
-                        ...commonFrontend
-                    } = result.data.frontend;
-
+                    const { 'columns.mine': _1, 'columns.shared-with-me': _2, 'columns.shared-by-me': _3, ...commonFrontend } = result.data.frontend;
                     frontendSettings.value = { ...frontendSettings.value, ...commonFrontend };
-
-                    // Бэкенд уже распарсил JSON через getTyped(), это готовые объекты
-                    if (colMine) columnsConfig.value['mine'] = colMine;
-                    if (colSharedWithMe) columnsConfig.value['shared-with-me'] = colSharedWithMe;
-                    if (colSharedByMe) columnsConfig.value['shared-by-me'] = colSharedByMe;
                 }
-
                 if (result.data.grouping) {
                     groupingModes.value[tab] = result.data.grouping;
+                }
+                if (result.data.columns) {
+                    columnsConfig.value = { ...columnsConfig.value, ...result.data.columns };
                 }
             }
             return result;
@@ -118,7 +110,9 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
                     grouping_per_page: 10,
                     logs_per_page: 50,
                     enable_stats: true,
-                    enable_sharing: true
+                    enable_sharing: true,
+                    enable_min_groups_check: true,
+                    grouping_min_groups: 3
                 },
                 frontend: {
                     default_tab: 'mine',

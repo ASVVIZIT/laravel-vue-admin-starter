@@ -289,12 +289,8 @@ class TrainingModuleSeeder extends Seeder
         return $note;
     }
 
-    /**
-     * ⚙️ Инициализация глобальных настроек модуля
-     */
     private function seedSettings(): void
     {
-        // 🖥 СЕРВЕРНЫЕ НАСТРОЙКИ
         $serverSettings = [
             'server.grouping_mode' => 'auto',
             'server.grouping_auto_threshold' => '500',
@@ -303,9 +299,11 @@ class TrainingModuleSeeder extends Seeder
             'server.logs_per_page' => '50',
             'server.enable_stats' => 'true',
             'server.enable_sharing' => 'true',
+            // 🔥 НОВЫЕ НАСТРОЙКИ УМНОЙ ГРУППИРОВКИ
+            'server.enable_min_groups_check' => 'true',
+            'server.grouping_min_groups' => '3',
         ];
 
-        // 🎨 ФРОНТЕНД-НАСТРОЙКИ (общие)
         $frontendSettings = [
             'frontend.default_tab' => 'mine',
             'frontend.show_grouping_toggle' => 'true',
@@ -313,20 +311,10 @@ class TrainingModuleSeeder extends Seeder
             'frontend.compact_view' => 'false',
         ];
 
-        // 🔥 НАСТРОЙКИ КОЛОНОК ПО ВКЛАДКАМ (JSON)
         $columnsSettings = [
-            'frontend.columns.mine' => json_encode([
-                'date' => true, 'time' => true, 'exercise' => true, 'sharing' => true,
-                'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => true,
-            ]),
-            'frontend.columns.shared-with-me' => json_encode([
-                'date' => true, 'time' => true, 'exercise' => true, 'sharing' => true,
-                'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => false,
-            ]),
-            'frontend.columns.shared-by-me' => json_encode([
-                'date' => true, 'time' => true, 'exercise' => true, 'sharing' => true,
-                'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => true,
-            ]),
+            'frontend.columns.mine' => json_encode(['date' => true, 'time' => true, 'exercise' => true, 'sharing' => true, 'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => true]),
+            'frontend.columns.shared-with-me' => json_encode(['date' => true, 'time' => true, 'exercise' => true, 'sharing' => true, 'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => false]),
+            'frontend.columns.shared-by-me' => json_encode(['date' => true, 'time' => true, 'exercise' => true, 'sharing' => true, 'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => true]),
         ];
 
         $allSettings = array_merge($serverSettings, $frontendSettings, $columnsSettings);
@@ -335,6 +323,6 @@ class TrainingModuleSeeder extends Seeder
             TrainingSetting::updateOrCreate(['key' => $key], ['value' => $value]);
         }
 
-        $this->command->info('✅ Settings seeded: ' . count($allSettings) . ' (server: ' . count($serverSettings) . ', frontend: ' . count($frontendSettings) . ', columns: ' . count($columnsSettings) . ')');
+        $this->command->info('✅ Settings seeded: ' . count($allSettings));
     }
 }

@@ -47,9 +47,12 @@ class TrainingSettingsController extends Controller
             'server.grouping_by' => 'sometimes|in:user,exercise,date',
             'server.grouping_per_page' => 'sometimes|integer|min:5|max:50',
             'server.logs_per_page' => 'sometimes|integer|min:10|max:200',
-
             'server.enable_stats' => 'sometimes|boolean',
             'server.enable_sharing' => 'sometimes|boolean',
+
+            // 🔥 НОВЫЕ ПРАВИЛА ВАЛИДАЦИИ
+            'server.enable_min_groups_check' => 'sometimes|boolean',
+            'server.grouping_min_groups' => 'sometimes|integer|min:1|max:100',
 
             'frontend.default_tab' => 'sometimes|in:mine,shared-with-me,shared-by-me',
             'frontend.show_grouping_toggle' => 'sometimes|boolean',
@@ -70,11 +73,7 @@ class TrainingSettingsController extends Controller
                 if (!is_array($values)) continue;
 
                 foreach ($values as $key => $value) {
-                    // 🔥 ИСПРАВЛЕНИЕ: Если группа 'columns', добавляем префикс 'frontend.'
-                    // чтобы ключи совпадали с сидером и логикой чтения (frontend.columns.mine)
-                    $prefix = ($group === 'columns') ? 'frontend.columns.' : "{$group}.";
-                    $fullKey = $prefix . $key;
-
+                    $fullKey = "{$group}.{$key}";
                     $normalizedValue = $this->normalizeValue($value);
                     $this->settings->set($fullKey, $normalizedValue);
                 }
@@ -92,50 +91,17 @@ class TrainingSettingsController extends Controller
         ]);
     }
 
-    /**
-     * 🔥 УМНАЯ НОРМАЛИЗАЦИЯ: конвертирует любое значение в строку для БД
-     *
-     * Правила:
-     * - array → JSON-строка
-     * - bool → 'true' / 'false'
-     * - int/float → строковое число
-     * - строка-булево ('true','false','1','0') → 'true' / 'false'
-     * - любая другая строка → как есть (например, 'auto', 'user', 'mine')
-     */
     private function normalizeValue($value)
     {
-        // 1. Массивы → JSON
-        if (is_array($value)) {
-            return json_encode($value);
-        }
-
-        // 2. Булевы → 'true' / 'false'
-        if (is_bool($value)) {
-            return $value ? 'true' : 'false';
-        }
-
-        // 3. Числа → строка
-        if (is_int($value) || is_float($value)) {
-            return (string)$value;
-        }
-
-        // 4. Строки: проверяем, не булево ли это представление
+        if (is_array($value)) return json_encode($value);
+        if (is_bool($value)) return $value ? 'true' : 'false';
+        if (is_int($value) || is_float($value)) return (string)$value;
         if (is_string($value)) {
             $lower = strtolower(trim($value));
-
-            // Это булево представление?
-            if (in_array($lower, ['true', '1'], true)) {
-                return 'true';
-            }
-            if (in_array($lower, ['false', '0', ''], true)) {
-                return 'false';
-            }
-
-            // Это обычная строка ('auto', 'user', 'mine' и т.д.) → оставляем как есть
+            if (in_array($lower, ['true', '1'], true)) return 'true';
+            if (in_array($lower, ['false', '0', ''], true)) return 'false';
             return $value;
         }
-
-        // 5. Всё остальное → в строку
         return (string)$value;
     }
 }
