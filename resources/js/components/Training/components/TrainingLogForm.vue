@@ -108,6 +108,7 @@ const isEdit = computed(() => !!props.logId)
 const userOptions = ref([])
 const userLoading = ref(false)
 
+// 🔥 exerciseType теперь из composable (реактивный!)
 const { form, selectedExercise, rules, addSet, removeSet, resetForm, loadFormData, validateForm, getPlainPayload, exerciseType } =
     useTrainingForm(props.initialData, exerciseStore.exercises)
 
@@ -122,6 +123,8 @@ const handleSubmit = async () => {
     await validateForm(formRef.value)
     loading.value = true
     const payload = getPlainPayload()
+
+    console.log('🔍 Payload для отправки:', payload)
 
     if (isEdit.value) {
       await logStore.updateLog(props.logId, payload)

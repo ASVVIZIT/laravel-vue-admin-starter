@@ -31,7 +31,6 @@
 <script setup>
 import { computed } from 'vue';
 import { Delete } from '@element-plus/icons-vue';
-import { useExerciseFields } from '../composables/useExerciseFields.js';
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -42,7 +41,18 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'remove']);
 
-const { isFieldVisible } = useExerciseFields(props.exerciseType);
+// 🔥 РЕАКТИВНАЯ проверка видимости полей
+const visibleFields = computed(() => {
+  const config = {
+    bodyweight: ['reps'],
+    weighted: ['reps', 'weight'],
+    cardio: ['duration', 'distance'],
+    other: ['duration']
+  };
+  return config[props.exerciseType] || config.bodyweight;
+});
+
+const isFieldVisible = (field) => visibleFields.value.includes(field);
 
 const localSet = computed({
   get: () => props.modelValue,
