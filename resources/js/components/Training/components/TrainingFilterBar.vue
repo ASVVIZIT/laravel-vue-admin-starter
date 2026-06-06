@@ -22,7 +22,7 @@
             size="small"
             clearable
             :shortcuts="config.date.shortcuts"
-            @change="onDateChange"
+            @update:model-value="onDateChange"
             @clear="onDateClear"
             class="w-100"
         />
@@ -36,7 +36,7 @@
             clearable
             filterable
             popper-class="training-filter-select-popper"
-            @change="onExerciseChange"
+            @update:model-value="onExerciseChange"
             @clear="onExerciseClear"
             class="w-100"
         >
@@ -61,7 +61,7 @@
             range-separator="—"
             size="small"
             :shortcuts="config.range.shortcuts"
-            @change="onRangeChange"
+            @update:model-value="onRangeChange"
             @clear="onRangeClear"
             class="w-100"
         />
@@ -123,7 +123,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { RefreshRight, ArrowDown, ArrowUp, InfoFilled } from '@element-plus/icons-vue'
 import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
 import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
@@ -133,6 +133,7 @@ const logStore = useTrainingLogStore()
 const exerciseStore = useExerciseStore()
 const config = FILTER_BLOCKS
 
+// 🔥 Локальное состояние
 const localDate = ref(null)
 const localExerciseId = ref(null)
 const localRange = ref([])
@@ -144,7 +145,10 @@ const showExtras = ref(!isSmallScreen.value)
 
 const exercisesSnapshot = ref([])
 
-// 🔥 Следим за фильтрами ТЕКУЩЕЙ вкладки и логами
+// 🔥 КРИТИЧНО: Флаг для предотвращения двойных запросов
+let isUpdatingFromStore = false
+
+// Watch: обновляем снимок упражнений при изменении фильтров
 watch(
     () => [logStore.currentFilters.date, logStore.currentFilters.from, logStore.currentFilters.to, logStore.currentLogs, logStore.activeTab],
     () => {
@@ -191,8 +195,9 @@ const exerciseHint = computed(() => {
   return config.exercise.hint.filtered
 })
 
-// 🔥 Синхронизация: Стор -> Локальные значения
+// 🔥 КРИТИЧНО: Синхронизация Store → Local (только когда изменение извне)
 watch(() => logStore.currentFilters.date, (newVal) => {
+  if (isUpdatingFromStore) return
   if (newVal !== localDate.value) {
     localDate.value = newVal
     if (!activeQuickDate.value || !isDateMatchingQuickButton(newVal, activeQuickDate.value)) {
@@ -202,6 +207,7 @@ watch(() => logStore.currentFilters.date, (newVal) => {
 })
 
 watch(() => [logStore.currentFilters.from, logStore.currentFilters.to], ([newFrom, newTo]) => {
+  if (isUpdatingFromStore) return
   const current = localRange.value || []
   if (newFrom !== current[0] || newTo !== current[1]) {
     localRange.value = (newFrom && newTo) ? [newFrom, newTo] : []
@@ -212,9 +218,24 @@ watch(() => [logStore.currentFilters.from, logStore.currentFilters.to], ([newFro
 })
 
 watch(() => logStore.currentFilters.exercise_id, (newVal) => {
+  if (isUpdatingFromStore) return
   if (newVal !== localExerciseId.value) {
     localExerciseId.value = newVal
   }
+})
+
+// 🔥 КРИТИЧНО: Сброс локального состояния при смене вкладки
+watch(() => logStore.activeTab, () => {
+  isUpdatingFromStore = true
+  const f = logStore.currentFilters
+  localDate.value = f.date
+  localExerciseId.value = f.exercise_id
+  localRange.value = (f.from && f.to) ? [f.from, f.to] : []
+  activeQuickDate.value = null
+  activeQuickRange.value = null
+  nextTick(() => {
+    isUpdatingFromStore = false
+  })
 })
 
 const isDateMatchingQuickButton = (date, buttonId) => {
@@ -243,48 +264,90 @@ const isRangeMatchingQuickButton = (from, to, buttonId) => {
   return false
 }
 
+// 🔥 КРИТИЧНО: Единая функция применения фильтров
 const applyFilters = (params) => {
+  isUpdatingFromStore = true
+
   const cleanParams = {}
   if ('page' in params && params.page !== undefined) cleanParams.page = params.page
   if ('per_page' in params && params.per_page !== undefined) cleanParams.per_page = params.per_page
-  if ('date' in params && params.date) cleanParams.date = params.date
-  if ('exercise_id' in params && params.exercise_id) cleanParams.exercise_id = params.exercise_id
-  if ('from' in params && params.from) cleanParams.from = params.from
-  if ('to' in params && params.to) cleanParams.to = params.to
+  if ('date' in params) cleanParams.date = params.date || null
+  if ('exercise_id' in params) cleanParams.exercise_id = params.exercise_id || null
+  if ('from' in params) cleanParams.from = params.from || null
+  if ('to' in params) cleanParams.to = params.to || null
+
   logStore.applyFilters(cleanParams)
+
+  nextTick(() => {
+    isUpdatingFromStore = false
+  })
 }
 
+// 🔥 ИСПРАВЛЕНО: Обработчики событий
 const onDateChange = (val) => {
-  activeQuickDate.value = null; localRange.value = []; activeQuickRange.value = null; showExtras.value = true
+  if (isUpdatingFromStore) return
+  activeQuickDate.value = null
+  localRange.value = []
+  activeQuickRange.value = null
+  showExtras.value = true
   applyFilters({ date: val, from: null, to: null, page: 1 })
 }
+
 const onDateClear = () => {
-  activeQuickDate.value = null; localDate.value = null; showExtras.value = false
+  if (isUpdatingFromStore) return
+  activeQuickDate.value = null
+  localDate.value = null
+  showExtras.value = false
   applyFilters({ date: null, from: null, to: null, page: 1 })
 }
+
 const onRangeChange = (val) => {
-  activeQuickRange.value = null; localDate.value = null; activeQuickDate.value = null; showExtras.value = true
+  if (isUpdatingFromStore) return
+  activeQuickRange.value = null
+  localDate.value = null
+  activeQuickDate.value = null
+  showExtras.value = true
   applyFilters({ date: null, from: val?.[0] || null, to: val?.[1] || null, page: 1 })
 }
+
 const onRangeClear = () => {
-  activeQuickRange.value = null; localRange.value = []; showExtras.value = false
+  if (isUpdatingFromStore) return
+  activeQuickRange.value = null
+  localRange.value = []
+  showExtras.value = false
   applyFilters({ date: null, from: null, to: null, page: 1 })
 }
-const onExerciseChange = (val) => { applyFilters({ exercise_id: val === 'all' ? null : val, page: 1 }) }
-const onExerciseClear = () => { localExerciseId.value = null; applyFilters({ exercise_id: null, page: 1 }) }
+
+const onExerciseChange = (val) => {
+  if (isUpdatingFromStore) return
+  applyFilters({ exercise_id: val === 'all' ? null : val, page: 1 })
+}
+
+const onExerciseClear = () => {
+  if (isUpdatingFromStore) return
+  localExerciseId.value = null
+  applyFilters({ exercise_id: null, page: 1 })
+}
 
 const handleQuickDate = (type) => {
-  localRange.value = []; activeQuickRange.value = null; activeQuickDate.value = type
+  if (isUpdatingFromStore) return
+  localRange.value = []
+  activeQuickRange.value = null
+  activeQuickDate.value = type
   const d = new Date(); d.setHours(0,0,0,0)
   if (type === 'yesterday') d.setDate(d.getDate() - 1)
   if (type === 'tomorrow') d.setDate(d.getDate() + 1)
   const dateStr = d.toISOString().split('T')[0]
-  localDate.value = dateStr; showExtras.value = true
+  localDate.value = dateStr
+  showExtras.value = true
   applyFilters({ date: dateStr, from: null, to: null, page: 1 })
 }
 
 const handleQuickRange = (type) => {
-  localDate.value = null; activeQuickDate.value = null; activeQuickRange.value = type
+  if (isUpdatingFromStore) return
+  localDate.value = null
+  activeQuickDate.value = null
+  activeQuickRange.value = type
   const now = new Date(); now.setHours(0,0,0,0); let start = new Date(now)
   switch (type) {
     case 'week': start.setDate(now.getDate() - ((now.getDay() || 7) - 1)); break;
@@ -294,13 +357,19 @@ const handleQuickRange = (type) => {
   }
   start.setHours(0,0,0,0)
   const fmt = d => d.toISOString().split('T')[0]
-  localRange.value = [fmt(start), fmt(now)]; showExtras.value = true
+  localRange.value = [fmt(start), fmt(now)]
+  showExtras.value = true
   applyFilters({ date: null, from: fmt(start), to: fmt(now), page: 1 })
 }
 
 const clearAll = () => {
-  localDate.value = null; localExerciseId.value = null; localRange.value = []
-  activeQuickDate.value = null; activeQuickRange.value = null; showExtras.value = false
+  if (isUpdatingFromStore) return
+  localDate.value = null
+  localExerciseId.value = null
+  localRange.value = []
+  activeQuickDate.value = null
+  activeQuickRange.value = null
+  showExtras.value = false
   logStore.clearFilters()
 }
 
@@ -313,7 +382,8 @@ const handleResize = () => {
 onMounted(async () => {
   if (!exerciseStore.exercisesLoaded) await exerciseStore.fetchExercisesStore()
 
-  // 🔥 Синхронизация при старте из currentFilters
+  // 🔥 Синхронизация при старте
+  isUpdatingFromStore = true
   const f = logStore.currentFilters
   localDate.value = f.date
   localExerciseId.value = f.exercise_id
@@ -326,6 +396,9 @@ onMounted(async () => {
     if (isRangeMatchingQuickButton(f.from, f.to, 'week')) activeQuickRange.value = 'week'
     else if (isRangeMatchingQuickButton(f.from, f.to, 'month')) activeQuickRange.value = 'month'
   }
+  nextTick(() => {
+    isUpdatingFromStore = false
+  })
 
   window.addEventListener('resize', handleResize)
 })
@@ -334,6 +407,7 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
 </script>
 
 <style scoped>
+/* Стили остаются без изменений */
 .filter-bar { padding: 8px 12px; background: #fff; border-bottom: 1px solid #ebeef5; box-sizing: border-box; }
 .w-100 { width: 100%; }
 .filter-row-main, .filter-row-extras { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 6px; width: 100%; flex-wrap: nowrap; }

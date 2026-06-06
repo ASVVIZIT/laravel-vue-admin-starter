@@ -14,7 +14,7 @@
         :class="{ 'compact-table': compact, 'grouped-table': isGrouped }"
     >
       <!-- 🔥 КОЛОНКА ГРУППЫ -->
-      <el-table-column v-if="isGrouped" label="Пользователь / Группа" min-width="170" class-name="group-column" sortable>
+      <el-table-column v-if="isGrouped" label="Пользователь / Группа" min-width="170" class-name="group-column" fixed="left" sortable>
         <template #default="{ row }">
           <span v-if="row.children" class="group-label">
             <el-icon :size="14"><User /></el-icon>

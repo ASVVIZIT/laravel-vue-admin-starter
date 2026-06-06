@@ -1,6 +1,5 @@
 <template>
   <header class="training-dashboard-header">
-    <!-- 🔹 ЕДИНАЯ СТРОКА: Заголовок + Статистика + Кнопки -->
     <div class="header-row">
       <div class="header-left">
         <div class="header-title">
@@ -13,6 +12,12 @@
       </div>
 
       <div class="header-actions">
+        <!-- 🔥 Индикатор загрузки (слева от кнопки Добавить) -->
+        <div v-if="loading" class="loading-indicator">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span class="loading-text">Загрузка</span>
+        </div>
+
         <el-button
             type="primary"
             size="small"
@@ -23,16 +28,14 @@
           <span class="btn-label">{{ showForm ? 'Скрыть' : 'Добавить' }}</span>
         </el-button>
 
-        <el-button
-            size="small"
-            @click="$emit('refresh')"
+        <!-- 🔥 Умная кнопка обновления -->
+        <RefreshButton
             :loading="loading"
-            circle
-            class="btn-refresh"
-            title="Обновить данные"
-        >
-          <el-icon><Refresh /></el-icon>
-        </el-button>
+            :disabled="false"
+            idle-tooltip="Обновить данные"
+            loading-tooltip="Загрузка данных..."
+            @refresh="$emit('refresh')"
+        />
 
         <el-button
             v-if="showSettings"
@@ -45,7 +48,6 @@
           <el-icon><Setting /></el-icon>
         </el-button>
 
-        <!-- 🔥 Кнопка отладки -->
         <el-button
             v-if="showDebug"
             size="small"
@@ -62,8 +64,9 @@
 </template>
 
 <script setup>
-import { EditPen, Refresh, Setting } from '@element-plus/icons-vue'
+import { EditPen, Setting, Loading } from '@element-plus/icons-vue'
 import TrainingStatsBar from './TrainingStatsBar.vue'
+import RefreshButton from '@/components/Training/components/common/RefreshButton.vue'
 
 const props = defineProps({
   summary: { type: Object, required: true },
@@ -129,6 +132,39 @@ const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-d
   flex-shrink: 0;
 }
 
+/* 🔥 Индикатор загрузки */
+.loading-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(64, 158, 255, 0.1);
+  border: 1px solid rgba(64, 158, 255, 0.3);
+  border-radius: 4px;
+  font-size: 11px;
+  color: #409eff;
+  animation: fadeIn 0.3s ease;
+}
+
+.loading-indicator .el-icon {
+  font-size: 12px;
+}
+
+.loading-text {
+  white-space: nowrap;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .btn-add {
   height: 26px;
   padding: 0 10px;
@@ -136,7 +172,6 @@ const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-d
   border-radius: 4px;
 }
 
-.btn-refresh,
 .btn-settings {
   width: 26px;
   height: 26px;
@@ -172,5 +207,7 @@ const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-d
   .header-title { font-size: 12px; }
   .btn-label { display: none; }
   .btn-add { padding: 0 6px; }
+  .loading-text { display: none; }
+  .loading-indicator { padding: 4px 6px; }
 }
 </style>

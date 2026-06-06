@@ -96,6 +96,7 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
         });
     };
 
+    // 🔥 ВОТ ЭТО РАБОТАЛО! Watch на exerciseType автоматически адаптирует подходы
     watch(() => exerciseType.value, (newType, oldType) => {
         if (newType !== oldType) {
             const { defaultSet: newDefaults, sanitizeSet: newSanitize } = useExerciseFields(newType);

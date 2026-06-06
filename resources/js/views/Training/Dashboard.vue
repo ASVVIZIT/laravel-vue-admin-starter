@@ -127,11 +127,35 @@ const handleEdit = (log) => {
   currentLogId.value = log.id; currentLogData.value = { ...log }; showForm.value = true
 }
 
-const handleDelete = async (id) => {
+const handleDelete = async () => {
+  // 🔥 Формируем информативный контекст
+  const exerciseName = selectedExercise.value?.name || props.initialData?.exercise?.name || 'запись'
+  const date = form.date || props.initialData?.date || 'неизвестная дата'
+  const message = `Удалить "${exerciseName}" от ${date}?`
+
   try {
-    await ElMessageBox.confirm('Удалить эту запись?', 'Подтверждение', { type: 'warning' })
-    await logStore.deleteLog(id); debug.action('Запись успешно удалена', { logId: id }); ElMessage.success('Удалено')
-  } catch (err) { debug.action('Удаление отменено', { logId: id, error: err?.message }) }
+    await ElMessageBox.confirm(message, 'Подтверждение удаления', {
+      type: 'warning',
+      confirmButtonText: 'Да, удалить',
+      cancelButtonText: 'Отмена'
+    })
+
+    await logStore.deleteLog(props.logId)
+
+    // 🔥 Передаём контекст удалённой записи родителю
+    emit('deleted', {
+      logId: props.logId,
+      exercise: exerciseName,
+      date: date,
+      userId: props.initialData?.user_id,
+      source: 'TrainingLogForm'
+    })
+  } catch (err) {
+    // Пользователь отменил — ничего не делаем
+    if (err !== 'cancel') {
+      console.warn('[TrainingLogForm] Delete cancelled or error:', err)
+    }
+  }
 }
 
 const handleSaved = () => {
@@ -140,9 +164,39 @@ const handleSaved = () => {
   logStore.refreshCurrentTab()
 }
 
-const handleDeleted = () => {
-  const logId = currentLogId.value; showForm.value = false; ElMessage.success('Удалено')
-  debug.action('Запись удалена из формы', { logId }); logStore.refreshCurrentTab()
+const handleDeleted = (deletedContext = {}) => {
+  // 🔥 Используем контекст из формы, либо fallback на currentLogData
+  const context = deletedContext.logId ? deletedContext : {
+    logId: currentLogId.value,
+    exercise: currentLogData.value?.exercise?.name || 'запись',
+    date: currentLogData.value?.date || 'неизвестная дата',
+    userId: currentLogData.value?.user_id,
+    source: 'TrainingLogForm'
+  }
+
+  // 🔥 Очищаем состояние формы
+  currentLogId.value = null
+  currentLogData.value = null
+  showForm.value = false
+
+  // 🔥 Информативное уведомление
+  ElMessage.success({
+    message: `Запись "${context.exercise}" удалена`,
+    duration: 2500
+  })
+
+  // 🔥 Богатое логирование
+  debug.action('Запись удалена из формы редактирования', {
+    logId: context.logId,
+    exercise: context.exercise,
+    date: context.date,
+    userId: context.userId,
+    source: context.source,
+    isEdit: true
+  })
+
+  // Обновляем таблицу
+  logStore.refreshCurrentTab()
 }
 
 const handleRefresh = () => { debug.api('Ручное обновление данных', { tab: activeTab.value }); logStore.refreshCurrentTab() }

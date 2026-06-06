@@ -1,8 +1,8 @@
 <template>
-  <LayoutCardWrapper title="Новая тренировка" :icon="EditPen" bordered shadow class="training-form">
+  <LayoutCardWrapper :title="isEdit ? 'Редактирование записи' : 'Новая тренировка'" :icon="EditPen" bordered shadow class="training-form">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" size="small" @submit.prevent="handleSubmit">
       <el-form-item label="Упражнение" prop="exercise_id">
-        <el-select v-model="form.exercise_id" placeholder="Выберите упражнение" filterable @change="onExerciseChange">
+        <el-select v-model="form.exercise_id" placeholder="Выберите упражнение" filterable>
           <el-option v-for="ex in exerciseStore.exercises" :key="ex.id" :label="ex.name" :value="ex.id">
             <span>{{ ex.name }}</span>
             <el-tag size="small" :type="getExerciseTagType(ex.type)" class="ml-2">{{ ex.type }}</el-tag>
@@ -25,7 +25,15 @@
 
       <el-form-item label="Подходы" prop="sets">
         <div class="sets-container">
-          <SetRow v-for="(set, idx) in form.sets" :key="`set-${idx}`" v-model="form.sets[idx]" :index="idx" :exercise-type="selectedExercise?.type" :removable="form.sets.length > 1" @remove="removeSet(idx)" />
+          <SetRow
+              v-for="(set, idx) in form.sets"
+              :key="`set-${idx}`"
+              v-model="form.sets[idx]"
+              :index="idx"
+              :exercise-type="exerciseType"
+              :removable="form.sets.length > 1"
+              @remove="removeSet(idx)"
+          />
           <el-button type="primary" link size="small" @click="addSet">
             <el-icon><Plus /></el-icon> Добавить подход
           </el-button>
@@ -40,24 +48,9 @@
         </el-col>
         <el-col :span="12">
           <el-form-item label="Поделиться с">
-            <el-select
-                v-model="form.shared_with"
-                multiple
-                filterable
-                remote
-                reserve-keyword
-                clearable
-                placeholder="Введите имя для поиска"
-                :remote-method="searchUsers"
-                :loading="userLoading"
-                size="small"
-            >
-              <el-option
-                  v-for="user in userOptions"
-                  :key="user.id"
-                  :label="user.name"
-                  :value="user.id"
-              />
+            <el-select v-model="form.shared_with" multiple filterable remote reserve-keyword clearable
+                       placeholder="Введите имя для поиска" :remote-method="searchUsers" :loading="userLoading" size="small">
+              <el-option v-for="user in userOptions" :key="user.id" :label="user.name" :value="user.id" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -76,9 +69,9 @@
         </el-col>
       </el-row>
 
-      <el-form-item>
+      <el-form-item class="form-actions">
         <el-button type="primary" @click="handleSubmit" :loading="loading">{{ isEdit ? 'Обновить' : 'Сохранить' }}</el-button>
-        <el-button @click="handleReset">Сбросить</el-button>
+        <el-button @click="handleCancel">Отмена</el-button>
         <el-button v-if="isEdit" type="danger" @click="handleDelete">Удалить</el-button>
       </el-form-item>
     </el-form>
@@ -112,46 +105,17 @@ const exerciseStore = useExerciseStore()
 const formRef = ref(null)
 const loading = ref(false)
 const isEdit = computed(() => !!props.logId)
-
 const userOptions = ref([])
 const userLoading = ref(false)
 
-const { form, selectedExercise, rules, addSet, removeSet, resetForm, loadFormData, validateForm, getPlainPayload } =
+const { form, selectedExercise, rules, addSet, removeSet, resetForm, loadFormData, validateForm, getPlainPayload, exerciseType } =
     useTrainingForm(props.initialData, exerciseStore.exercises)
 
 onMounted(async () => {
   if (!exerciseStore.exercisesLoaded) await exerciseStore.fetchExercisesStore()
-  if (props.logId && props.initialData) loadFormData(props.initialData)
 })
 
 const disableFutureDates = (date) => date > new Date()
-
-const onExerciseChange = () => {}
-
-const searchUsers = async (query) => {
-  if (!query || query.trim().length < 2) {
-    userOptions.value = []
-    return
-  }
-
-  userLoading.value = true
-  try {
-    const resource = new TrainingUserResource()
-    const users = await resource.searchUsers(query, { per_page: 10 })
-
-    // ✅ Правильный маппинг для el-select
-    userOptions.value = (users || []).map(u => ({
-      id: u.id,
-      name: u.name || u.email || `Пользователь #${u.id}`,
-      email: u.email
-    }))
-  } catch (e) {
-    console.error('[TrainingLogForm] searchUsers error:', e)
-    userOptions.value = []
-  } finally {
-    userLoading.value = false
-  }
-}
 
 const handleSubmit = async () => {
   try {
@@ -176,26 +140,40 @@ const handleSubmit = async () => {
   }
 }
 
-const handleReset = () => {
-  if (isEdit.value && props.initialData) loadFormData(props.initialData)
-  else resetForm()
+const searchUsers = async (query) => {
+  if (!query || query.trim().length < 2) { userOptions.value = []; return }
+  userLoading.value = true
+  try {
+    const users = await new TrainingUserResource().searchUsers(query, { per_page: 10 })
+    userOptions.value = (users || []).map(u => ({ id: u.id, name: u.name || u.email || `Пользователь #${u.id}`, email: u.email }))
+  } catch (e) {
+    console.error('[TrainingLogForm] searchUsers error:', e)
+    userOptions.value = []
+  } finally { userLoading.value = false }
 }
 
+const handleCancel = () => emit('cancelled')
+
 const handleDelete = async () => {
+  const exerciseName = selectedExercise.value?.name || 'запись'
+  const date = form.date || 'неизвестная дата'
   try {
-    await ElMessageBox.confirm('Удалить запись?', 'Подтверждение', { type: 'warning' })
+    await ElMessageBox.confirm(`Удалить "${exerciseName}" от ${date}?`, 'Подтверждение', { type: 'warning' })
     await logStore.deleteLog(props.logId)
-    emit('deleted')
+    emit('deleted', { logId: props.logId, exercise: exerciseName, date })
   } catch {}
 }
 </script>
 
 <style scoped>
 .training-form { font-size: 12px; }
-:deep(.el-form-item__label) { font-size: 11px; font-weight: 500; }
+:deep(.el-form-item) { margin-bottom: 12px; }
+:deep(.el-form-item__label) { font-size: 11px; font-weight: 500; padding-bottom: 4px; }
 :deep(.el-select), :deep(.el-date-editor), :deep(.el-time-picker) { width: 100%; }
 .sets-container { display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
 .ml-2 { margin-left: 8px; }
 :deep(.el-rate) { font-size: 14px; }
 :deep(.el-textarea__inner) { font-size: 12px; }
+.form-actions { margin-top: 16px; padding-top: 12px; border-top: 1px solid #ebeef5; }
+.form-actions :deep(.el-button) { font-size: 12px; padding: 8px 16px; }
 </style>
