@@ -1,8 +1,6 @@
 <template>
   <div class="set-row" :class="{ 'set-frozen': frozen }">
     <span class="set-index">#{{ index + 1 }}</span>
-
-    <!-- 🔥 Метка замороженной строки -->
     <span v-if="frozen" class="frozen-badge">🔒</span>
 
     <el-input-number v-if="isFieldVisible('reps')"
@@ -50,7 +48,7 @@ const props = defineProps({
   index: { type: Number, required: true },
   exerciseType: { type: String, default: 'bodyweight' },
   removable: { type: Boolean, default: true },
-  frozen: { type: Boolean, default: false }  // 🔥 Новый prop
+  frozen: { type: Boolean, default: false }
 });
 
 const emit = defineEmits(['update:modelValue', 'remove']);
@@ -73,7 +71,7 @@ const localSet = computed({
 });
 
 const emitChange = () => {
-  if (props.frozen) return;  // 🔥 Защита от изменений
+  if (props.frozen) return;
   emit('update:modelValue', { ...localSet.value });
 };
 </script>
@@ -90,13 +88,11 @@ const emitChange = () => {
 .set-row:last-child { border-bottom: none; }
 .set-index { width: 28px; font-weight: 600; color: #606266; text-align: center; font-size: 11px; }
 
-/* 🔥 СТИЛИ ЗАМОРОЖЕННОЙ СТРОКИ */
 .set-frozen {
   opacity: 0.5;
   background: #f5f7fa;
   border-radius: 4px;
   padding: 8px 6px;
-  position: relative;
 }
 
 .set-frozen :deep(.el-input-number),
@@ -104,10 +100,7 @@ const emitChange = () => {
   cursor: not-allowed;
 }
 
-.frozen-badge {
-  font-size: 12px;
-  margin-right: 2px;
-}
+.frozen-badge { font-size: 12px; margin-right: 2px; }
 
 :deep(.el-input-number) { width: 95px; }
 :deep(.el-input) { width: 130px; }
