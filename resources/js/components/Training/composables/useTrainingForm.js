@@ -1,4 +1,4 @@
-import { ref, computed, watch, toRaw } from 'vue';
+import { ref, computed, toRaw } from 'vue';
 import { useExerciseFields } from './useExerciseFields.js';
 import { getFormRules } from '../utils/appValidatorsUtils.js';
 
@@ -20,7 +20,6 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
         return exercisesList || [];
     });
 
-    // 🔥 Поддержка и числовых, и строковых ключей
     const exercisesMap = computed(() =>
         list.value.reduce((acc, ex) => {
             acc[ex.id] = ex;
@@ -38,10 +37,8 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
     const exerciseType = computed(() => selectedExercise.value?.type || 'bodyweight');
     const rules = computed(() => getFormRules(exerciseType.value, window.__CURRENT_USER_ID || null));
 
-    // 🔥 РЕАКТИВНЫЕ поля для текущего типа
     const exerciseFields = computed(() => useExerciseFields(exerciseType.value));
     const defaultSet = computed(() => exerciseFields.value.defaultSet);
-    const sanitizeSet = computed(() => exerciseFields.value.sanitizeSet);
 
     const addSet = () => {
         form.value.sets.push({ ...defaultSet.value });
@@ -70,9 +67,7 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
         form.value.date = data.date || form.value.date;
         form.value.time = data.time || form.value.time;
 
-        // 🔥 Используем реактивный defaultSet для правильного типа
         const currentDefaultSet = defaultSet.value;
-
         form.value.sets = data.sets?.length
             ? data.sets.map(s => ({ ...currentDefaultSet, ...s }))
             : [{ ...currentDefaultSet }];
@@ -126,14 +121,6 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
             );
         });
     };
-
-    // 🔥 Адаптация подходов при смене типа
-    watch(() => exerciseType.value, (newType, oldType) => {
-        if (newType !== oldType && oldType !== undefined) {
-            const { sanitizeSet: newSanitize } = useExerciseFields(newType);
-            form.value.sets = form.value.sets.map(set => newSanitize(set));
-        }
-    });
 
     if (initialData) loadFormData(initialData);
 

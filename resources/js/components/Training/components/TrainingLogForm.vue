@@ -24,14 +24,48 @@
       </el-row>
 
       <el-form-item label="Подходы" prop="sets">
+        <!-- 🔥 АЛЕРТ ПОЯВЛЯЕТСЯ ТОЛЬКО КОГДА canUndo = true -->
+        <div v-if="canUndo" class="undo-alert">
+          <div class="undo-alert-content">
+            <span class="undo-text">
+              ⚠ Старые подходы заморожены.
+              <span v-if="undoTimeLeft > 0" class="undo-timer">({{ undoTimeLeft }}с)</span>
+            </span>
+            <div class="undo-actions">
+              <el-button link size="small" @click="undoTypeChange" :class="['undo-btn', { 'undo-btn-expired': undoExpired }]">
+                ↶ Вернуть
+              </el-button>
+              <el-button v-if="originalData" link type="info" size="small" @click="resetToOriginal">
+                🔄 К исходным
+              </el-button>
+            </div>
+          </div>
+        </div>
+
         <div class="sets-container">
+          <!-- 🔥 ЗАМОРОЖЕННЫЕ СТРОКИ (видны только если есть frozenSets) -->
+          <div v-if="frozenSets.length > 0" class="frozen-section">
+            <div class="frozen-label">🔒 Предыдущие подходы (тип: {{ TYPE_LABELS[frozenType] || frozenType }})</div>
+            <SetRow
+                v-for="(set, idx) in frozenSets"
+                :key="`frozen-${idx}`"
+                :model-value="set"
+                :index="idx"
+                :exercise-type="frozenType"
+                :removable="false"
+                :frozen="true"
+            />
+          </div>
+
+          <!-- 🔥 АКТИВНЫЕ СТРОКИ (текущий тип) -->
           <SetRow
               v-for="(set, idx) in form.sets"
-              :key="`set-${idx}`"
+              :key="`active-${idx}`"
               v-model="form.sets[idx]"
               :index="idx"
               :exercise-type="exerciseType"
               :removable="form.sets.length > 1"
+              :frozen="false"
               @remove="removeSet(idx)"
           />
           <el-button type="primary" link size="small" @click="addSet">
@@ -79,7 +113,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { EditPen, Plus } from '@element-plus/icons-vue'
 
@@ -108,63 +142,180 @@ const isEdit = computed(() => !!props.logId)
 const userOptions = ref([])
 const userLoading = ref(false)
 
-// 🔥 exerciseType теперь из composable (реактивный!)
 const { form, selectedExercise, rules, addSet, removeSet, resetForm, loadFormData, validateForm, getPlainPayload, exerciseType } =
     useTrainingForm(props.initialData, exerciseStore.exercises)
+
+const TYPE_LABELS = {
+  bodyweight: ' Свой вес',
+  weighted: '️ С отягощением',
+  cardio: '❤️ Кардио',
+  other: ' Другое'
+}
+
+// ============================================================================
+// 🔥 СОСТОЯНИЕ ЗАМОРОЗКИ
+// ============================================================================
+const frozenSets = ref([])
+const frozenType = ref(null)
+const frozenExerciseId = ref(null)
+const canUndo = ref(false)
+const undoExpired = ref(false)
+const undoTimeLeft = ref(20)
+let undoCountdownTimer = null
+const isProcessingChange = ref(false)
+const originalData = ref(null)
+
+// ============================================================================
+// 🔥 ТАЙМЕР И ОТКАТ
+// ============================================================================
+const clearUndoState = () => {
+  canUndo.value = false
+  undoExpired.value = false
+  undoTimeLeft.value = 20
+  frozenSets.value = []
+  frozenType.value = null
+  frozenExerciseId.value = null
+  if (undoCountdownTimer) { clearInterval(undoCountdownTimer); undoCountdownTimer = null }
+}
+
+const startUndoTimer = () => {
+  if (undoCountdownTimer) clearInterval(undoCountdownTimer)
+  canUndo.value = true
+  undoExpired.value = false
+  undoTimeLeft.value = 20
+  undoCountdownTimer = setInterval(() => {
+    undoTimeLeft.value--
+    if (undoTimeLeft.value <= 0) { clearInterval(undoCountdownTimer); undoCountdownTimer = null; undoExpired.value = true }
+  }, 1000)
+}
+
+const undoTypeChange = () => {
+  if (frozenSets.value.length === 0 || !frozenExerciseId.value) return
+  isProcessingChange.value = true
+  form.exercise_id = frozenExerciseId.value
+  form.sets = JSON.parse(JSON.stringify(frozenSets.value))
+  clearUndoState()
+  isProcessingChange.value = false
+  ElMessage.success('Предыдущий тип и подходы восстановлены')
+}
+
+const resetToOriginal = () => {
+  if (!originalData.value) return
+  loadFormData(originalData.value)
+  clearUndoState()
+  ElMessage.info('Восстановлены исходные данные')
+}
+
+// ============================================================================
+// 🔥 ПРЯМОЙ WATCH БЕЗ КОНФЛИКТОВ
+// ============================================================================
+watch(() => form.exercise_id, (newId, oldId) => {
+  if (isProcessingChange.value || newId === oldId || !newId || !oldId) return
+
+  const oldEx = exerciseStore.exercises.find(e => String(e.id) === String(oldId))
+  const newEx = exerciseStore.exercises.find(e => String(e.id) === String(newId))
+  const oldType = oldEx?.type
+  const newType = newEx?.type
+
+  if (!oldType || !newType || oldType === newType) return
+
+  const hadData = form.sets.some(s => s.reps || s.weight || s.duration || s.distance || s.notes)
+
+  if (hadData) {
+    // 1. Замораживаем текущие
+    frozenSets.value = JSON.parse(JSON.stringify(form.sets))
+    frozenType.value = oldType
+    frozenExerciseId.value = oldId
+    startUndoTimer()
+
+    // 2. Создаём ОДНУ пустую строку нового типа
+    form.sets = [{ reps: null, weight: null, duration: null, distance: null, notes: '' }]
+  } else {
+    // Пустая форма → просто меняем тип
+    form.sets = [{ reps: null, weight: null, duration: null, distance: null, notes: '' }]
+  }
+})
+
+// ============================================================================
+// ИНИЦИАЛИЗАЦИЯ
+// ============================================================================
+watch(() => [props.logId, props.initialData], ([newLogId, newInitialData]) => {
+  clearUndoState()
+  if (newLogId && newInitialData) {
+    loadFormData(newInitialData)
+    originalData.value = JSON.parse(JSON.stringify(newInitialData))
+  } else {
+    resetForm()
+    originalData.value = null
+  }
+}, { immediate: true })
 
 onMounted(async () => {
   if (!exerciseStore.exercisesLoaded) await exerciseStore.fetchExercisesStore()
 })
+onUnmounted(() => clearUndoState())
 
 const disableFutureDates = (date) => date > new Date()
 
+// ============================================================================
+// СОХРАНЕНИЕ
+// ============================================================================
 const handleSubmit = async () => {
   try {
     await validateForm(formRef.value)
+    if (frozenSets.value.length > 0) {
+      try {
+        await ElMessageBox.confirm(
+            `Сохранить с типом "${TYPE_LABELS[exerciseType.value] || exerciseType.value}"?\n\n⚠️ ${frozenSets.value.length} замороженных подходов будут утеряны.`,
+            'Подтверждение', { type: 'warning', confirmButtonText: 'Да, сохранить', cancelButtonText: 'Отмена' }
+        )
+      } catch { return }
+    }
+
     loading.value = true
     const payload = getPlainPayload()
-
-    console.log('🔍 Payload для отправки:', payload)
-
     if (isEdit.value) {
       await logStore.updateLog(props.logId, payload)
+      originalData.value = JSON.parse(JSON.stringify({ ...props.initialData, ...payload, id: props.logId }))
+      clearUndoState()
       ElMessage.success('Запись обновлена')
     } else {
       await logStore.createLog(payload)
       ElMessage.success('Запись создана')
       resetForm()
+      originalData.value = null
     }
     emit('saved')
   } catch (errors) {
-    if (typeof errors === 'object') Object.values(errors).forEach(msg => ElMessage.error(msg[0]))
-    else ElMessage.error(errors?.message || 'Ошибка')
-  } finally {
-    loading.value = false
-  }
+    const msgs = errors && typeof errors === 'object' ? Object.values(errors).flat() : [errors?.message || 'Ошибка']
+    msgs.forEach(m => ElMessage.error(m))
+  } finally { loading.value = false }
 }
 
+// ============================================================================
+// ОСТАЛЬНОЕ
+// ============================================================================
 const searchUsers = async (query) => {
   if (!query || query.trim().length < 2) { userOptions.value = []; return }
   userLoading.value = true
   try {
     const users = await new TrainingUserResource().searchUsers(query, { per_page: 10 })
     userOptions.value = (users || []).map(u => ({ id: u.id, name: u.name || u.email || `Пользователь #${u.id}`, email: u.email }))
-  } catch (e) {
-    console.error('[TrainingLogForm] searchUsers error:', e)
-    userOptions.value = []
-  } finally { userLoading.value = false }
+  } catch (e) { userOptions.value = []; ElMessage.error('Ошибка поиска') }
+  finally { userLoading.value = false }
 }
 
-const handleCancel = () => emit('cancelled')
+const handleCancel = () => { clearUndoState(); emit('cancelled') }
 
 const handleDelete = async () => {
-  const exerciseName = selectedExercise.value?.name || 'запись'
-  const date = form.date || 'неизвестная дата'
+  const name = selectedExercise.value?.name || props.initialData?.exercise?.name || 'запись'
+  const date = form.date || props.initialData?.date || 'неизвестная дата'
   try {
-    await ElMessageBox.confirm(`Удалить "${exerciseName}" от ${date}?`, 'Подтверждение', { type: 'warning' })
+    await ElMessageBox.confirm(`Удалить "${name}" от ${date}?`, 'Подтверждение', { type: 'warning' })
     await logStore.deleteLog(props.logId)
-    emit('deleted', { logId: props.logId, exercise: exerciseName, date })
-  } catch {}
+    clearUndoState()
+    emit('deleted', { logId: props.logId, exercise: name, date, userId: props.initialData?.user_id, source: 'TrainingLogForm' })
+  } catch (err) { if (err !== 'cancel' && !err?.toString?.().includes('cancel')) ElMessage.error('Не удалось удалить') }
 }
 </script>
 
@@ -179,4 +330,19 @@ const handleDelete = async () => {
 :deep(.el-textarea__inner) { font-size: 12px; }
 .form-actions { margin-top: 16px; padding-top: 12px; border-top: 1px solid #ebeef5; }
 .form-actions :deep(.el-button) { font-size: 12px; padding: 8px 16px; }
+
+.undo-alert { margin-bottom: 10px; padding: 8px 12px; background: #fdf6ec; border: 1px solid #faecd8; border-radius: 6px; font-size: 11px; animation: slideDown 0.3s ease; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.undo-alert-content { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.undo-text { color: #606266; font-weight: 500; }
+.undo-timer { color: #e6a23c; font-weight: 600; margin-left: 4px; }
+.undo-actions { display: flex; gap: 8px; align-items: center; }
+.undo-btn { color: #e6a23c !important; font-weight: 600; }
+.undo-btn:hover { color: #d48806 !important; }
+.undo-btn-expired { color: #909399 !important; opacity: 0.7; }
+.undo-btn-expired:hover { color: #606266 !important; opacity: 1; }
+
+.frozen-section { margin-bottom: 12px; padding: 8px; background: #f5f7fa; border: 1px dashed #dcdfe6; border-radius: 6px; }
+.frozen-label { font-size: 10px; color: #909399; margin-bottom: 6px; padding-bottom: 4px; border-bottom: 1px solid #e4e7ed; font-weight: 500; }
+@media (max-width: 768px) { .undo-alert-content { flex-direction: column; align-items: flex-start; } }
 </style>
