@@ -405,7 +405,7 @@ class TrainingLogController extends Controller
                 ];
             }),
             'is_public' => 'nullable|boolean',
-            'shared_with' => 'nullable|array|max:10',
+            'shared_with' => 'nullable|array|max:100',
             'shared_with.*' => 'integer|exists:users,id',
             'notes' => 'nullable|string|max:1000',
             'rating' => 'nullable|integer|min:1|max:5',

@@ -10,7 +10,7 @@ export class TrainingUserResource extends TrainingBaseResource {
 
         const params = {
             search: query.trim(),
-            per_page: 10,
+            per_page: 100,
             ...options
         }
 

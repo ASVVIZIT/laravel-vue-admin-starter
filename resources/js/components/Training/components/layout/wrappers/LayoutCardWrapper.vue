@@ -1,6 +1,6 @@
 <template>
   <div class="layout-card-wrapper" :class="wrapperClass">
-    <div v-if="title || $slots.header" class="card-header">
+    <div v-if="showTitle && (title || $slots.header)" class="card-header">
       <slot name="header">
         <h3 class="card-title">
           <el-icon v-if="icon">
@@ -29,7 +29,8 @@ const props = defineProps({
   title: { type: String, default: '' },
   icon: { type: Object, default: null },
   bordered: { type: Boolean, default: true },
-  shadow: { type: Boolean, default: false }
+  shadow: { type: Boolean, default: false },
+  showTitle: { type: Boolean, default: true }
 });
 
 const wrapperClass = computed(() => ({
@@ -60,6 +61,7 @@ const wrapperClass = computed(() => ({
   padding: 10px 12px;
   background: #f5f7fa;
   border-bottom: 1px solid #ebeef5;
+  flex-shrink: 0;
 }
 
 .card-title {
@@ -79,11 +81,14 @@ const wrapperClass = computed(() => ({
 
 .card-content {
   padding: 12px;
+  flex: 1;
+  overflow: hidden;
 }
 
 .card-footer {
   padding: 10px 12px;
   border-top: 1px solid #ebeef5;
   background: #fafafa;
+  flex-shrink: 0;
 }
 </style>

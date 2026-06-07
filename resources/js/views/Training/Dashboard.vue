@@ -41,14 +41,22 @@
               :logs="logStore.currentLogs" :loading="logStore.currentLoading" :active-tab="activeTab"
               :current-user-id="currentUserId" :pagination="logStore.currentPagination" :compact="frontendSettings.compact_view"
               :is-grouped="logStore.isGrouped" :columns-config="currentColumnsConfig"
-              @edit="handleEdit" @delete="handleDelete" @page-change="logStore.setPage" @per-page-change="logStore.setPerPage"
+              @edit="handleEdit" @delete="handleTableDelete" @page-change="logStore.setPage" @per-page-change="logStore.setPerPage"
           />
         </div>
       </template>
     </main>
 
     <el-dialog v-model="showForm" :title="isEdit ? 'Редактирование' : 'Новая запись'" width="900px" destroy-on-close>
-      <TrainingLogForm :log-id="currentLogId" :initial-data="currentLogData" @saved="handleSaved" @deleted="handleDeleted" @cancelled="showForm = false" />
+      <!-- 🔑 :key гарантирует полный пересозд компонента при смене режима -->
+      <TrainingLogForm
+          :key="currentLogId ?? 'new'"
+          :log-id="currentLogId"
+          :initial-data="currentLogData"
+          @saved="handleSaved"
+          @deleted="handleDeleted"
+          @cancelled="showForm = false"
+      />
     </el-dialog>
 
     <TrainingSettingsModal v-model="showSettings" />
@@ -99,7 +107,6 @@ const summary = computed(() => logStore.summary || {})
 const frontendSettings = computed(() => settingsStore.frontendSettings)
 const currentColumnsConfig = computed(() => settingsStore.getColumnsForTabStore(activeTab.value))
 
-// 🔥 ОБНОВЛЕННОЕ ВЫЧИСЛЯЕМОЕ СВОЙСТВО С DISPLAY REASON
 const currentGroupingInfo = computed(() => {
   const forced = logStore.currentForcedMode
   if (forced) return { mode: forced, displayReason: `Принудительно пользователем`, isForced: true }
@@ -114,88 +121,46 @@ const currentGroupingInfo = computed(() => {
 
 const emptyDescription = computed(() => logStore.config?.emptyText || 'Записей не найдено')
 
+/* 🔥 ИСПРАВЛЕНО: всегда открывает ЧИСТУЮ форму */
 const toggleForm = () => {
-  const newState = !showForm.value; showForm.value = newState
-  if (newState && !isEdit.value) { currentLogId.value = null; currentLogData.value = null }
-  debug.action(`Форма записи ${newState ? 'открыта' : 'закрыта'}`, { isEdit: isEdit.value, logId: currentLogId.value })
+  if (showForm.value) return showForm.value = false
+  currentLogId.value = null
+  currentLogData.value = null
+  showForm.value = true
 }
 
 const toggleSettings = () => { showSettings.value = !showSettings.value; debug.action(`Модальное окно настроек ${showSettings.value ? 'открыто' : 'закрыто'}`) }
 
 const handleEdit = (log) => {
   debug.action('Открыто редактирование записи', { logId: log.id, exercise: log.exercise?.name || 'Неизвестно', date: log.date })
-  currentLogId.value = log.id; currentLogData.value = { ...log }; showForm.value = true
+  currentLogId.value = log.id
+  currentLogData.value = { ...log }
+  showForm.value = true
 }
 
-const handleDelete = async () => {
-  // 🔥 Формируем информативный контекст
-  const exerciseName = selectedExercise.value?.name || props.initialData?.exercise?.name || 'запись'
-  const date = form.date || props.initialData?.date || 'неизвестная дата'
-  const message = `Удалить "${exerciseName}" от ${date}?`
-
+/* Удаление из таблицы */
+const handleTableDelete = async (logId) => {
   try {
-    await ElMessageBox.confirm(message, 'Подтверждение удаления', {
-      type: 'warning',
-      confirmButtonText: 'Да, удалить',
-      cancelButtonText: 'Отмена'
-    })
-
-    await logStore.deleteLog(props.logId)
-
-    // 🔥 Передаём контекст удалённой записи родителю
-    emit('deleted', {
-      logId: props.logId,
-      exercise: exerciseName,
-      date: date,
-      userId: props.initialData?.user_id,
-      source: 'TrainingLogForm'
-    })
-  } catch (err) {
-    // Пользователь отменил — ничего не делаем
-    if (err !== 'cancel') {
-      console.warn('[TrainingLogForm] Delete cancelled or error:', err)
-    }
-  }
+    await ElMessageBox.confirm('Удалить запись?', 'Подтверждение', { type: 'warning' })
+    await logStore.deleteLog(logId)
+    ElMessage.success('Запись удалена')
+    logStore.refreshCurrentTab()
+  } catch (e) { if (e !== 'cancel') debug.error('Ошибка удаления', e) }
 }
 
 const handleSaved = () => {
-  const wasEdit = isEdit.value; const logId = currentLogId.value; showForm.value = false; ElMessage.success('Сохранено')
-  debug.action('Запись сохранена', { logId, isEdit: wasEdit, changedFields: currentLogData.value ? Object.keys(currentLogData.value) : [] })
+  showForm.value = false
+  currentLogId.value = null
+  currentLogData.value = null
+  ElMessage.success('Сохранено')
   logStore.refreshCurrentTab()
 }
 
-const handleDeleted = (deletedContext = {}) => {
-  // 🔥 Используем контекст из формы, либо fallback на currentLogData
-  const context = deletedContext.logId ? deletedContext : {
-    logId: currentLogId.value,
-    exercise: currentLogData.value?.exercise?.name || 'запись',
-    date: currentLogData.value?.date || 'неизвестная дата',
-    userId: currentLogData.value?.user_id,
-    source: 'TrainingLogForm'
-  }
-
-  // 🔥 Очищаем состояние формы
+const handleDeleted = () => {
+  showForm.value = false
   currentLogId.value = null
   currentLogData.value = null
-  showForm.value = false
-
-  // 🔥 Информативное уведомление
-  ElMessage.success({
-    message: `Запись "${context.exercise}" удалена`,
-    duration: 2500
-  })
-
-  // 🔥 Богатое логирование
-  debug.action('Запись удалена из формы редактирования', {
-    logId: context.logId,
-    exercise: context.exercise,
-    date: context.date,
-    userId: context.userId,
-    source: context.source,
-    isEdit: true
-  })
-
-  // Обновляем таблицу
+  ElMessage.success('Запись удалена')
   logStore.refreshCurrentTab()
 }
 
@@ -246,7 +211,6 @@ onUnmounted(() => { window.removeEventListener('keydown', handleKeyDown); debug.
 </script>
 
 <style scoped>
-/* Стили остаются точно такими же, как в твоем текущем файле */
 .training-dashboard { display: flex; flex-direction: column; height: 100%; background: #f5f7fa; }
 .tabs-row { display: flex; align-items: center; background: #fff; border-bottom: 1px solid #ebeef5; padding: 0 12px; gap: 8px; flex-shrink: 0; }
 .compact-tabs { flex: 1; min-width: 0; }

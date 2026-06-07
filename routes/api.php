@@ -318,10 +318,6 @@ Route::get('/orders', function () {
     return responseSuccess(['items' => $data]);
 });
 
-
-// ===================================================
-// 8. МОДУЛЬ: TRAINING (Тренировки и упражнения)
-// ===================================================
 // ===================================================
 // 8. МОДУЛЬ: TRAINING (Тренировки и упражнения)
 // ===================================================
@@ -379,7 +375,7 @@ Route::namespace('Api\\Training')
                                 ->orWhere('email', 'LIKE', "%{$search}%");
                         })
                         ->where('id', '!=', auth()->id())
-                        ->limit(10)
+                        ->limit(100)
                         ->get(['id', 'name', 'email']);
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('search');
