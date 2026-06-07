@@ -10,7 +10,8 @@ export class TrainingUserResource extends TrainingBaseResource {
 
         const params = {
             search: query.trim(),
-            per_page: 100,
+            // 🔥 per_page НЕ задаём жёстко — бэкенд сам применит лимит из TrainingSettingsController::LIMITS
+            // Если нужно переопределить — передаём через options: searchUsers(query, { per_page: 50 })
             ...options
         }
 

@@ -36,6 +36,17 @@
       >
         ▲ Свернуть
       </el-tag>
+
+      <!-- 🔥 Индикатор достижения лимита -->
+      <el-tag
+          v-if="isLimitReached"
+          size="small"
+          type="warning"
+          effect="plain"
+          class="limit-tag"
+      >
+        ⚠ Лимит: {{ selectedUsers.length }}/{{ settingsStore.limits.max_shared_with }}
+      </el-tag>
     </div>
 
     <!-- Обёртка для кастомного placeholder -->
@@ -46,7 +57,7 @@
           class="custom-placeholder"
           @click="focusSelect"
       >
-        {{ placeholder }}
+        {{ isLimitReached ? 'Достигнут лимит пользователей' : placeholder }}
       </div>
 
       <!-- Поле поиска -->
@@ -60,8 +71,9 @@
           placeholder=""
           :remote-method="handleSearch"
           :loading="loading"
+          :disabled="isLimitReached"
           class="user-search-select"
-          :class="{ 'is-expanded': showAllUsers }"
+          :class="{ 'is-expanded': showAllUsers, 'is-limit-reached': isLimitReached }"
           reserve-keyword
           default-first-option
           :popper-class="'user-sharing-popper'"
@@ -71,7 +83,7 @@
             :key="user.id"
             :label="user.name || user.email"
             :value="user.id"
-            :disabled="isUserSelected(user.id)"
+            :disabled="isUserSelected(user.id) || isLimitReached"
             :class="{ 'already-selected': isUserSelected(user.id) }"
         >
           <div class="user-option" :class="{ 'is-disabled': isUserSelected(user.id) }">
@@ -88,8 +100,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted } from 'vue'
 import { TrainingUserResource } from '@/components/Training/api/core/resource/TrainingUserResource.js'
+import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
@@ -100,6 +113,8 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 const userResource = new TrainingUserResource()
+const settingsStore = useTrainingSettingsStore()
+
 const selectRef = ref(null)
 const loading = ref(false)
 const showAllUsers = ref(false)
@@ -107,12 +122,36 @@ const searchResults = ref([])
 const loadedUsers = ref([])
 const searchQuery = ref('')
 
+// 🔥 Гарантируем что настройки загружены
+onMounted(async () => {
+  if (!settingsStore.limits || settingsStore.limits.max_shared_with === 0) {
+    await settingsStore.fetchSettingsStore()
+  }
+})
+
+// 🔥 Динамические лимиты из стора
+const maxSharedWith = computed(() => settingsStore.limits?.max_shared_with || 0)
+const searchMinLength = computed(() => settingsStore.limits?.search_min_length || 2)
+
+// 🔥 Флаг достижения лимита
+const isLimitReached = computed(() => {
+  const limit = maxSharedWith.value
+  if (limit <= 0) return false // Лимит ещё не загружен — не блокируем
+  return (props.modelValue?.length || 0) >= limit
+})
+
 const localValue = computed({
   get: () => props.modelValue || [],
   set: (val) => {
     const prevValue = localValue.value || []
-    const newValue = val || []
+    let newValue = val || []
     const addedIds = newValue.filter(id => !prevValue.includes(id))
+
+    // 🔥 Если достигнут лимит — обрезаем лишнее
+    const limit = maxSharedWith.value
+    if (limit > 0 && newValue.length > limit) {
+      newValue = newValue.slice(0, limit)
+    }
 
     emit('update:modelValue', newValue)
 
@@ -165,14 +204,22 @@ watch(() => props.modelValue, async (ids) => {
 
 const handleSearch = async (query) => {
   searchQuery.value = query || ''
-  if (!query || query.trim().length < 2) {
+  // 🔥 Динамическая минимальная длина из настроек
+  if (!query || query.trim().length < searchMinLength.value) {
+    searchResults.value = []
+    return
+  }
+
+  // 🔥 Если лимит достигнут — поиск не нужен
+  if (isLimitReached.value) {
     searchResults.value = []
     return
   }
 
   try {
     loading.value = true
-    const users = await userResource.searchUsers(query, { per_page: 100 })
+    // 🔥 Лимит НЕ задаём — бэкенд сам применит из TrainingSettingsController::LIMITS.search_results_limit
+    const users = await userResource.searchUsers(query)
     searchResults.value = users || []
   } catch (e) {
     console.error('Error searching users:', e)
@@ -250,6 +297,11 @@ const focusSelect = () => {
   font-size: 12px;
 }
 
+/* 🔥 Индикатор лимита */
+.limit-tag {
+  animation: fadeIn 0.2s ease-in;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: scale(0.9); }
   to { opacity: 1; transform: scale(1); }
@@ -293,6 +345,12 @@ const focusSelect = () => {
 
 .user-search-select.is-expanded {
   margin-top: 2px;
+}
+
+/* 🔥 Стиль при достижении лимита */
+.user-search-select.is-limit-reached :deep(.el-input__wrapper) {
+  background-color: #f5f7fa !important;
+  cursor: not-allowed !important;
 }
 
 .user-option {

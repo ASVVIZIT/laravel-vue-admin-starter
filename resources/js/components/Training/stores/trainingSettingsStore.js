@@ -13,7 +13,6 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         logs_per_page: 50,
         enable_stats: true,
         enable_sharing: true,
-        // 🔥 Новые настройки умной группировки
         enable_min_groups_check: true,
         grouping_min_groups: 3
     });
@@ -23,6 +22,15 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         show_grouping_toggle: true,
         filters_collapsed_mobile: true,
         compact_view: false
+    });
+
+    // ⚠️ Дефолты = безопасные минимумы, перезапишутся из бэкенда при fetchSettingsStore()
+    const limits = ref({
+        max_shared_with: 0,      // До загрузки = 0 (заблокирует шаринг)
+        search_results_limit: 0, // До загрузки = 0 (заблокирует поиск)
+        max_sets: 0,             // До загрузки = 0 (заблокирует подходы)
+        max_notes_length: 0,     // До загрузки = 0 (заблокирует заметки)
+        search_min_length: 2     // Это единственное безопасное значение
     });
 
     const columnsConfig = ref({
@@ -67,6 +75,9 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
                 }
                 if (result.data.columns) {
                     columnsConfig.value = { ...columnsConfig.value, ...result.data.columns };
+                }
+                if (result.data.limits) {
+                    limits.value = { ...limits.value, ...result.data.limits };
                 }
             }
             return result;
@@ -120,6 +131,13 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
                     filters_collapsed_mobile: true,
                     compact_view: false
                 },
+                limits: {
+                    max_shared_with: 0,
+                    search_results_limit: 0,
+                    max_sets: 0,
+                    max_notes_length: 0,
+                    search_min_length: 2
+                },
                 columns: {
                     'mine': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true },
                     'shared-with-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: false },
@@ -143,7 +161,7 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
     };
 
     return {
-        serverSettings, frontendSettings, columnsConfig, groupingModes, loading, error, validationErrors,
+        serverSettings, frontendSettings, limits, columnsConfig, groupingModes, loading, error, validationErrors,
         isGroupingToggleVisibleStore, getGroupingModeForTabStore, isServerGroupingActiveStore, getColumnsForTabStore,
         fetchSettingsStore, updateSettingsStore, resetSettingsStore
     };

@@ -390,6 +390,9 @@ class TrainingLogController extends Controller
     private function validationRules(bool $isUpdate = false): array
     {
         $req = $isUpdate ? 'sometimes' : 'required';
+        // 🔥 Динамический лимит из единой точки правды
+        $maxSharedWith = TrainingSettingsController::getLimit('max_shared_with');
+
         return [
             'exercise_id' => "{$req}|exists:exercises,id",
             'date' => "{$req}|date",
@@ -405,7 +408,7 @@ class TrainingLogController extends Controller
                 ];
             }),
             'is_public' => 'nullable|boolean',
-            'shared_with' => 'nullable|array|max:100',
+            'shared_with' => "nullable|array|max:{$maxSharedWith}", // 🔥 Динамический лимит
             'shared_with.*' => 'integer|exists:users,id',
             'notes' => 'nullable|string|max:1000',
             'rating' => 'nullable|integer|min:1|max:5',

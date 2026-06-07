@@ -26,7 +26,6 @@
           <div class="form-tip">При превышении переключается на серверную группировку</div>
         </el-form-item>
 
-        <!-- 🔥 НОВЫЙ БЛОК -->
         <el-form-item v-if="formData.server.grouping_mode === 'auto'" class="compact-item">
           <template #label><span>Минимум групп для группировки</span></template>
           <el-checkbox v-model="formData.server.enable_min_groups_check" style="margin-bottom: 6px; font-size: 11px;">
@@ -62,6 +61,61 @@
 
         <el-form-item label="Разрешить шеринг" class="compact-item">
           <el-switch v-model="formData.server.enable_sharing" :active-value="true" :inactive-value="false" />
+        </el-form-item>
+
+        <!-- 🔥 НОВЫЙ БЛОК: ЛИМИТЫ МОДУЛЯ -->
+        <el-divider content-position="left" class="compact-divider">
+          <el-icon><Lock /></el-icon> Лимиты модуля
+        </el-divider>
+
+        <el-form-item label="Макс. пользователей в шаринге" class="compact-item">
+          <el-input-number
+              v-model="formData.limits.max_shared_with"
+              :min="1" :max="500" :step="10"
+              controls-position="right"
+              class="full-width compact-input"
+          />
+          <div class="form-tip">Сколько пользователей можно добавить в "Поделиться с" одной записи</div>
+        </el-form-item>
+
+        <el-form-item label="Макс. результатов поиска" class="compact-item">
+          <el-input-number
+              v-model="formData.limits.search_results_limit"
+              :min="10" :max="500" :step="10"
+              controls-position="right"
+              class="full-width compact-input"
+          />
+          <div class="form-tip">Сколько пользователей показывать в результатах поиска</div>
+        </el-form-item>
+
+        <el-form-item label="Макс. подходов в записи" class="compact-item">
+          <el-input-number
+              v-model="formData.limits.max_sets"
+              :min="1" :max="200" :step="5"
+              controls-position="right"
+              class="full-width compact-input"
+          />
+          <div class="form-tip">Ограничение на количество подходов в одной тренировке</div>
+        </el-form-item>
+
+        <el-form-item label="Макс. длина заметки" class="compact-item">
+          <el-input-number
+              v-model="formData.limits.max_notes_length"
+              :min="50" :max="5000" :step="100"
+              controls-position="right"
+              class="full-width compact-input"
+          />
+          <div class="form-tip">Максимальное количество символов в заметке</div>
+        </el-form-item>
+
+        <el-form-item label="Мин. длина поискового запроса" class="compact-item">
+          <el-input-number
+              v-model="formData.limits.search_min_length"
+              :min="1" :max="10" :step="1"
+              controls-position="right"
+              class="full-width compact-input"
+          />
+          <div class="form-tip">Минимум символов для начала поиска пользователей</div>
         </el-form-item>
 
         <el-divider content-position="left" class="compact-divider">
@@ -106,7 +160,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue';
-import { Loading, Setting, Monitor, Grid } from '@element-plus/icons-vue';
+import { Loading, Setting, Monitor, Grid, Lock } from '@element-plus/icons-vue';
 import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js';
 
 const props = defineProps({ initialSettings: { type: Object, default: null } });
@@ -123,7 +177,15 @@ const columnLabels = { date: '📅 Дата', time: '🕐 Время', exercise:
 const getDefaultFormData = () => ({
   server: {
     grouping_mode: 'auto', grouping_auto_threshold: 500, grouping_by: 'user', grouping_per_page: 10, logs_per_page: 50,
-    enable_stats: true, enable_sharing: true, enable_min_groups_check: true, grouping_min_groups: 3 // 🔥 ДОБАВЛЕНО
+    enable_stats: true, enable_sharing: true, enable_min_groups_check: true, grouping_min_groups: 3
+  },
+  // 🔥 НОВОЕ: лимиты модуля (дефолты = безопасные минимумы)
+  limits: {
+    max_shared_with: 0,
+    search_results_limit: 0,
+    max_sets: 0,
+    max_notes_length: 0,
+    search_min_length: 2
   },
   frontend: { default_tab: 'mine', show_grouping_toggle: true, filters_collapsed_mobile: true, compact_view: false },
   columns: {
@@ -137,11 +199,30 @@ const formData = ref(getDefaultFormData());
 
 const loadSettings = () => {
   formData.value = getDefaultFormData();
-  Object.keys(formData.value.server).forEach(key => { if (key in settingsStore.serverSettings) formData.value.server[key] = settingsStore.serverSettings[key]; });
-  Object.keys(formData.value.frontend).forEach(key => { if (key in settingsStore.frontendSettings) formData.value.frontend[key] = settingsStore.frontendSettings[key]; });
+
+  // Загружаем server settings
+  Object.keys(formData.value.server).forEach(key => {
+    if (key in settingsStore.serverSettings) formData.value.server[key] = settingsStore.serverSettings[key];
+  });
+
+  // 🔥 Загружаем limits из стора
+  if (settingsStore.limits) {
+    Object.keys(formData.value.limits).forEach(key => {
+      if (key in settingsStore.limits) formData.value.limits[key] = settingsStore.limits[key];
+    });
+  }
+
+  // Загружаем frontend settings
+  Object.keys(formData.value.frontend).forEach(key => {
+    if (key in settingsStore.frontendSettings) formData.value.frontend[key] = settingsStore.frontendSettings[key];
+  });
+
+  // Загружаем columns config
   ['mine', 'shared-with-me', 'shared-by-me'].forEach(tab => {
     if (settingsStore.columnsConfig[tab]) {
-      Object.keys(formData.value.columns[tab]).forEach(key => { if (key in settingsStore.columnsConfig[tab]) formData.value.columns[tab][key] = settingsStore.columnsConfig[tab][key]; });
+      Object.keys(formData.value.columns[tab]).forEach(key => {
+        if (key in settingsStore.columnsConfig[tab]) formData.value.columns[tab][key] = settingsStore.columnsConfig[tab][key];
+      });
     }
   });
 };
@@ -151,7 +232,13 @@ const saveSettings = async () => {
   try { await formRef.value.validate(); } catch { return false; }
   loading.value = true;
   try {
-    const result = await settingsStore.updateSettingsStore({ server: formData.value.server, frontend: formData.value.frontend, columns: formData.value.columns });
+    // 🔥 Отправляем limits вместе с остальными настройками
+    const result = await settingsStore.updateSettingsStore({
+      server: formData.value.server,
+      limits: formData.value.limits, // 🔥 НОВОЕ
+      frontend: formData.value.frontend,
+      columns: formData.value.columns
+    });
     if (result?.success) { emit('saved', formData.value); return true; }
     else { emit('cancelled', result); return false; }
   } catch (error) { emit('cancelled', error); return false; } finally { loading.value = false; }
@@ -159,8 +246,13 @@ const saveSettings = async () => {
 
 const resetSettings = async () => {
   loading.value = true;
-  try { await settingsStore.resetSettingsStore(); loadSettings(); emit('saved', formData.value); }
-  catch (error) { emit('cancelled', error); } finally { loading.value = false; }
+  try {
+    await settingsStore.resetSettingsStore();
+    loadSettings();
+    emit('saved', formData.value);
+  }
+  catch (error) { emit('cancelled', error); }
+  finally { loading.value = false; }
 };
 
 watch(() => formData.value, (val) => emit('update:settings', val), { deep: true });
@@ -169,7 +261,6 @@ defineExpose({ saveSettings, resetSettings, formData });
 </script>
 
 <style scoped>
-/* Стили остаются точно такими же, как в твоем текущем файле */
 .training-settings-form { padding: 2px; }
 .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; color: #909399; gap: 4px; font-size: 10px; }
 .loading-state .el-icon { font-size: 20px; }

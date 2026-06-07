@@ -366,16 +366,23 @@ Route::namespace('Api\\Training')
 
                 Route::get('/search', function (Request $request) {
                     $search = $request->get('search', '');
-                    if (strlen($search) < 2) {
+                    // 🔥 Динамический лимит минимальной длины поиска
+                    $minLength = \App\Http\Controllers\Api\Training\TrainingSettingsController::getLimit('search_min_length');
+
+                    if (strlen($search) < $minLength) {
                         return response()->json(['success' => true, 'data' => []]);
                     }
+
+                    // 🔥 Динамический лимит результатов поиска
+                    $searchLimit = \App\Http\Controllers\Api\Training\TrainingSettingsController::getLimit('search_results_limit');
+
                     $users = \App\Models\User::query()
                         ->where(function ($q) use ($search) {
                             $q->where('name', 'LIKE', "%{$search}%")
                                 ->orWhere('email', 'LIKE', "%{$search}%");
                         })
                         ->where('id', '!=', auth()->id())
-                        ->limit(100)
+                        ->limit($searchLimit) // 🔥 Было жёсткое 100
                         ->get(['id', 'name', 'email']);
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('search');
@@ -386,6 +393,11 @@ Route::namespace('Api\\Training')
                     if (empty($ids)) {
                         return response()->json(['success' => true, 'data' => []]);
                     }
+
+                    // 🔥 Ограничиваем количество запрашиваемых ID для безопасности
+                    $maxIds = \App\Http\Controllers\Api\Training\TrainingSettingsController::getLimit('max_shared_with');
+                    $ids = array_slice($ids, 0, $maxIds);
+
                     $users = \App\Models\User::query()
                         ->whereIn('id', $ids)
                         ->get(['id', 'name', 'email']);
