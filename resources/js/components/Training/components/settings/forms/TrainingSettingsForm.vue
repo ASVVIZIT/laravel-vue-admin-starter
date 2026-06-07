@@ -5,287 +5,257 @@
       <span>Загрузка настроек...</span>
     </div>
 
-    <div v-else class="form-scroll-wrapper">
-      <el-form :model="formData" label-position="top" size="small" class="compact-form" ref="formRef">
+    <div v-else class="form-container">
+      <div class="meta-panel">
+        <el-button type="text" size="small" @click="showMetaSettings = !showMetaSettings" class="meta-toggle">
+          <el-icon><Setting /></el-icon>
+          Настроить отображение формы
+        </el-button>
 
-        <el-divider content-position="left" class="compact-divider">
-          <el-icon><Setting /></el-icon> Серверные настройки
-        </el-divider>
+        <el-collapse-transition>
+          <div v-if="showMetaSettings" class="meta-settings">
+            <el-form size="small" label-position="top">
+              <el-row :gutter="12">
+                <el-col :span="8">
+                  <el-form-item label="Расположение табов">
+                    <el-select v-model="metaForm.layout" size="small">
+                      <el-option label="↔ Горизонтально" value="horizontal" />
+                      <el-option label="↕ Вертикально" value="vertical" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="16">
+                  <el-form-item label="Видимые табы">
+                    <div class="tabs-order-list">
+                      <div
+                          v-for="tab in allTabs"
+                          :key="tab.key"
+                          class="tab-order-item"
+                          :class="{ 'disabled': !metaForm.visible_tabs.includes(tab.key) }"
+                          @click="toggleTab(tab.key)"
+                      >
+                        <el-icon v-if="metaForm.visible_tabs.includes(tab.key)"><Check /></el-icon>
+                        <el-icon v-else><Close /></el-icon>
+                        <span>{{ tab.label }}</span>
+                      </div>
+                    </div>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+            </el-form>
+          </div>
+        </el-collapse-transition>
+      </div>
 
-        <el-form-item label="Режим группировки" class="compact-item">
-          <el-select v-model="formData.server.grouping_mode" class="full-width compact-select" size="small">
-            <el-option label="🔄 Авто (по порогу)" value="auto" />
-            <el-option label="📱 Фронтенд" value="frontend" />
-            <el-option label="🖥 Сервер" value="server" />
-          </el-select>
-          <div class="form-tip">Как группировать записи при большом количестве</div>
-        </el-form-item>
+      <el-tabs
+          v-if="metaForm.layout === 'horizontal'"
+          v-model="activeTab"
+          type="border-card"
+          class="settings-tabs"
+      >
+        <el-tab-pane v-for="tab in visibleTabs" :key="tab.key" :label="tab.label" :name="tab.key">
+          <component :is="tab.component" v-model="formData[tab.dataKey]" ref="panels" />
+        </el-tab-pane>
+      </el-tabs>
 
-        <el-form-item v-if="formData.server.grouping_mode === 'auto'" label="Порог авто-переключения (записей)" class="compact-item">
-          <el-input-number v-model="formData.server.grouping_auto_threshold" :min="50" :max="10000" :step="100" controls-position="right" class="full-width compact-input" />
-          <div class="form-tip">При превышении переключается на серверную группировку</div>
-        </el-form-item>
-
-        <el-form-item v-if="formData.server.grouping_mode === 'auto'" class="compact-item">
-          <template #label><span>Минимум групп для группировки</span></template>
-          <el-checkbox v-model="formData.server.enable_min_groups_check" style="margin-bottom: 6px; font-size: 11px;">
-            Включить проверку осмысленности
-          </el-checkbox>
-          <el-input-number
-              v-if="formData.server.enable_min_groups_check"
-              v-model="formData.server.grouping_min_groups"
-              :min="1" :max="100" :step="1" controls-position="right" class="full-width compact-input"
-          />
-          <div class="form-tip">Группировка сработает, только если получится ≥ этого числа групп. Если меньше, покажется обычный список.</div>
-        </el-form-item>
-
-        <el-form-item label="Группировать по (серверный режим)" class="compact-item">
-          <el-select v-model="formData.server.grouping_by" class="full-width compact-select" size="small">
-            <el-option label="По пользователю" value="user" />
-            <el-option label="По упражнению" value="exercise" />
-            <el-option label="По месяцу" value="date" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Групп на странице" class="compact-item">
-          <el-input-number v-model="formData.server.grouping_per_page" :min="5" :max="50" :step="5" controls-position="right" class="full-width compact-input" />
-        </el-form-item>
-
-        <el-form-item label="Записей на странице" class="compact-item">
-          <el-input-number v-model="formData.server.logs_per_page" :min="10" :max="200" :step="10" controls-position="right" class="full-width compact-input" />
-        </el-form-item>
-
-        <el-form-item label="Показывать статистику" class="compact-item">
-          <el-switch v-model="formData.server.enable_stats" :active-value="true" :inactive-value="false" />
-        </el-form-item>
-
-        <el-form-item label="Разрешить шеринг" class="compact-item">
-          <el-switch v-model="formData.server.enable_sharing" :active-value="true" :inactive-value="false" />
-        </el-form-item>
-
-        <!-- 🔥 НОВЫЙ БЛОК: ЛИМИТЫ МОДУЛЯ -->
-        <el-divider content-position="left" class="compact-divider">
-          <el-icon><Lock /></el-icon> Лимиты модуля
-        </el-divider>
-
-        <el-form-item label="Макс. пользователей в шаринге" class="compact-item">
-          <el-input-number
-              v-model="formData.limits.max_shared_with"
-              :min="1" :max="500" :step="10"
-              controls-position="right"
-              class="full-width compact-input"
-          />
-          <div class="form-tip">Сколько пользователей можно добавить в "Поделиться с" одной записи</div>
-        </el-form-item>
-
-        <el-form-item label="Макс. результатов поиска" class="compact-item">
-          <el-input-number
-              v-model="formData.limits.search_results_limit"
-              :min="10" :max="500" :step="10"
-              controls-position="right"
-              class="full-width compact-input"
-          />
-          <div class="form-tip">Сколько пользователей показывать в результатах поиска</div>
-        </el-form-item>
-
-        <el-form-item label="Макс. подходов в записи" class="compact-item">
-          <el-input-number
-              v-model="formData.limits.max_sets"
-              :min="1" :max="200" :step="5"
-              controls-position="right"
-              class="full-width compact-input"
-          />
-          <div class="form-tip">Ограничение на количество подходов в одной тренировке</div>
-        </el-form-item>
-
-        <el-form-item label="Макс. длина заметки" class="compact-item">
-          <el-input-number
-              v-model="formData.limits.max_notes_length"
-              :min="50" :max="5000" :step="100"
-              controls-position="right"
-              class="full-width compact-input"
-          />
-          <div class="form-tip">Максимальное количество символов в заметке</div>
-        </el-form-item>
-
-        <el-form-item label="Мин. длина поискового запроса" class="compact-item">
-          <el-input-number
-              v-model="formData.limits.search_min_length"
-              :min="1" :max="10" :step="1"
-              controls-position="right"
-              class="full-width compact-input"
-          />
-          <div class="form-tip">Минимум символов для начала поиска пользователей</div>
-        </el-form-item>
-
-        <el-divider content-position="left" class="compact-divider">
-          <el-icon><Monitor /></el-icon> Интерфейс
-        </el-divider>
-
-        <el-form-item label="Вкладка по умолчанию" class="compact-item">
-          <el-select v-model="formData.frontend.default_tab" class="full-width compact-select" size="small">
-            <el-option label="Мои тренировки" value="mine" />
-            <el-option label="Доступные мне" value="shared-with-me" />
-            <el-option label="Я поделился" value="shared-by-me" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="Показывать кнопку переключения группировки" class="compact-item">
-          <el-switch v-model="formData.frontend.show_grouping_toggle" :active-value="true" :inactive-value="false" />
-        </el-form-item>
-
-        <el-form-item label="Сворачивать фильтры на мобильном" class="compact-item">
-          <el-switch v-model="formData.frontend.filters_collapsed_mobile" :active-value="true" :inactive-value="false" />
-        </el-form-item>
-
-        <el-form-item label="Компактный вид таблицы" class="compact-item">
-          <el-switch v-model="formData.frontend.compact_view" :active-value="true" :inactive-value="false" />
-        </el-form-item>
-
-        <el-divider content-position="left" class="compact-divider">
-          <el-icon><Grid /></el-icon> Колонки таблицы
-        </el-divider>
-
-        <el-tabs v-model="columnsTab" type="border-card" class="columns-tabs">
-          <el-tab-pane v-for="tabKey in ['mine', 'shared-with-me', 'shared-by-me']" :key="tabKey" :label="tabLabels[tabKey]" :name="tabKey">
-            <div class="columns-grid">
-              <el-checkbox v-for="(label, key) in columnLabels" :key="key" v-model="formData.columns[tabKey][key]" :label="label" class="column-checkbox" />
-            </div>
-          </el-tab-pane>
-        </el-tabs>
-      </el-form>
+      <el-tabs
+          v-else
+          v-model="activeTab"
+          tab-position="left"
+          class="settings-tabs vertical-tabs"
+      >
+        <el-tab-pane v-for="tab in visibleTabs" :key="tab.key" :label="tab.label" :name="tab.key">
+          <component :is="tab.component" v-model="formData[tab.dataKey]" ref="panels" />
+        </el-tab-pane>
+      </el-tabs>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
-import { Loading, Setting, Monitor, Grid, Lock } from '@element-plus/icons-vue';
-import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js';
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { Loading, Setting, Check, Close } from '@element-plus/icons-vue'
+import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
+import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
+import { deepClone, deepMerge } from '@/components/Training/utils/appSettingsHelpersUtils.js'
 
-const props = defineProps({ initialSettings: { type: Object, default: null } });
-const emit = defineEmits(['saved', 'cancelled', 'update:settings']);
+import TrainingSettingsInterface from './panels/TrainingSettingsInterface.vue'
+import TrainingSettingsSearch from './panels/TrainingSettingsSearch.vue'
+import TrainingSettingsDisplay from './panels/TrainingSettingsDisplay.vue'
+import TrainingSettingsGrouping from './panels/TrainingSettingsGrouping.vue'
 
-const settingsStore = useTrainingSettingsStore();
-const formRef = ref(null);
-const loading = ref(false);
-const columnsTab = ref('mine');
+const props = defineProps({ initialSettings: { type: Object, default: null } })
+const emit = defineEmits(['saved', 'cancelled', 'update:settings'])
 
-const tabLabels = { 'mine': 'Мои тренировки', 'shared-with-me': 'Доступные мне', 'shared-by-me': 'Я поделился' };
-const columnLabels = { date: '📅 Дата', time: '🕐 Время', exercise: '💪 Упражнение', sharing: '🔗 Шеринг', sets: '📊 Подходы', reps: '🔢 Повторы', volume: '📈 Объём', rating: '⭐ Оценка', actions: '⚙️ Действия' };
+const settingsStore = useTrainingSettingsStore()
+const loading = ref(false)
+const showMetaSettings = ref(false)
+const panels = ref([])
 
-const getDefaultFormData = () => ({
-  server: {
-    grouping_mode: 'auto', grouping_auto_threshold: 500, grouping_by: 'user', grouping_per_page: 10, logs_per_page: 50,
-    enable_stats: true, enable_sharing: true, enable_min_groups_check: true, grouping_min_groups: 3
-  },
-  // 🔥 НОВОЕ: лимиты модуля (дефолты = безопасные минимумы)
-  limits: {
-    max_shared_with: 0,
-    search_results_limit: 0,
-    max_sets: 0,
-    max_notes_length: 0,
-    search_min_length: 2
-  },
-  frontend: { default_tab: 'mine', show_grouping_toggle: true, filters_collapsed_mobile: true, compact_view: false },
-  columns: {
-    'mine': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true },
-    'shared-with-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: false },
-    'shared-by-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true }
-  }
-});
+const allTabs = [
+  { key: 'interface', label: '⚙️ Интерфейс', component: TrainingSettingsInterface, dataKey: 'interface' },
+  { key: 'search', label: '🔍 Поиск', component: TrainingSettingsSearch, dataKey: 'search' },
+  { key: 'display', label: '📊 Отображение', component: TrainingSettingsDisplay, dataKey: 'display' },
+  { key: 'grouping', label: '🗂 Группировки', component: TrainingSettingsGrouping, dataKey: 'grouping' },
+]
 
-const formData = ref(getDefaultFormData());
+const metaForm = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.meta))
+const activeTab = ref('interface')
+
+const visibleTabs = computed(() => {
+  return metaForm.value.tabs_order
+      .filter(key => metaForm.value.visible_tabs.includes(key))
+      .map(key => allTabs.find(t => t.key === key))
+      .filter(Boolean)
+})
+
+const toggleTab = (key) => {
+  const idx = metaForm.value.visible_tabs.indexOf(key)
+  if (idx === -1) metaForm.value.visible_tabs.push(key)
+  else metaForm.value.visible_tabs.splice(idx, 1)
+}
+
+const formData = ref(deepClone(SETTINGS_DEFAULTS_CONFIG))
 
 const loadSettings = () => {
-  formData.value = getDefaultFormData();
+  if (!settingsStore.serverSettings && !settingsStore.frontendSettings) return
 
-  // Загружаем server settings
-  Object.keys(formData.value.server).forEach(key => {
-    if (key in settingsStore.serverSettings) formData.value.server[key] = settingsStore.serverSettings[key];
-  });
+  const normalizeBoolean = (val) => typeof val === 'string' ? val === 'true' : Boolean(val)
 
-  // 🔥 Загружаем limits из стора
-  if (settingsStore.limits) {
-    Object.keys(formData.value.limits).forEach(key => {
-      if (key in settingsStore.limits) formData.value.limits[key] = settingsStore.limits[key];
-    });
+  if (settingsStore.frontendSettings) {
+    formData.value.interface.frontend = deepMerge(formData.value.interface.frontend, settingsStore.frontendSettings)
+  }
+  if (settingsStore.columnsConfig) {
+    Object.keys(SETTINGS_DEFAULTS_CONFIG.interface.columns).forEach(tab => {
+      formData.value.interface.columns[tab] = deepMerge(
+          SETTINGS_DEFAULTS_CONFIG.interface.columns[tab],
+          settingsStore.columnsConfig[tab] || {}
+      )
+    })
   }
 
-  // Загружаем frontend settings
-  Object.keys(formData.value.frontend).forEach(key => {
-    if (key in settingsStore.frontendSettings) formData.value.frontend[key] = settingsStore.frontendSettings[key];
-  });
+  if (settingsStore.limits) {
+    formData.value.search.limits = deepMerge(formData.value.search.limits, settingsStore.limits)
+  }
 
-  // Загружаем columns config
-  ['mine', 'shared-with-me', 'shared-by-me'].forEach(tab => {
-    if (settingsStore.columnsConfig[tab]) {
-      Object.keys(formData.value.columns[tab]).forEach(key => {
-        if (key in settingsStore.columnsConfig[tab]) formData.value.columns[tab][key] = settingsStore.columnsConfig[tab][key];
-      });
+  if (settingsStore.serverSettings) {
+    formData.value.display.server = {
+      ...formData.value.display.server,
+      logs_per_page: settingsStore.serverSettings.logs_per_page ?? SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
+      grouping_per_page: settingsStore.serverSettings.grouping_per_page ?? SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
+      enable_stats: normalizeBoolean(settingsStore.serverSettings.enable_stats),
+      enable_sharing: normalizeBoolean(settingsStore.serverSettings.enable_sharing),
     }
-  });
-};
+  }
+  if (settingsStore.limits) {
+    formData.value.display.limits = deepMerge(formData.value.display.limits, settingsStore.limits)
+  }
+
+  if (settingsStore.serverSettings) {
+    formData.value.grouping.server = {
+      ...formData.value.grouping.server,
+      grouping_mode: settingsStore.serverSettings.grouping_mode ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
+      grouping_auto_threshold: settingsStore.serverSettings.grouping_auto_threshold ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
+      enable_min_groups_check: normalizeBoolean(settingsStore.serverSettings.enable_min_groups_check),
+      grouping_min_groups: settingsStore.serverSettings.grouping_min_groups ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_min_groups,
+      grouping_by: settingsStore.serverSettings.grouping_by ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_by,
+    }
+  }
+
+  if (settingsStore.serverSettings?.form_meta) {
+    metaForm.value = deepMerge(metaForm.value, settingsStore.serverSettings.form_meta)
+  }
+}
+
+const collectDataFromPanels = () => {
+  const panelData = deepClone(SETTINGS_DEFAULTS_CONFIG)
+  panels.value.forEach(panel => {
+    if (!panel?.localData) return
+    if (panel.localData.frontend !== undefined) panelData.interface = deepClone(panel.localData)
+    else if (panel.localData.limits?.search_min_length !== undefined) panelData.search = deepClone(panel.localData)
+    else if (panel.localData.server?.logs_per_page !== undefined) panelData.display = deepClone(panel.localData)
+    else if (panel.localData.server?.grouping_mode !== undefined) panelData.grouping = deepClone(panel.localData)
+  })
+  return panelData
+}
 
 const saveSettings = async () => {
-  if (!formRef.value) return false;
-  try { await formRef.value.validate(); } catch { return false; }
-  loading.value = true;
+  loading.value = true
   try {
-    // 🔥 Отправляем limits вместе с остальными настройками
-    const result = await settingsStore.updateSettingsStore({
-      server: formData.value.server,
-      limits: formData.value.limits, // 🔥 НОВОЕ
-      frontend: formData.value.frontend,
-      columns: formData.value.columns
-    });
-    if (result?.success) { emit('saved', formData.value); return true; }
-    else { emit('cancelled', result); return false; }
-  } catch (error) { emit('cancelled', error); return false; } finally { loading.value = false; }
-};
+    const panelData = collectDataFromPanels()
+    const payload = {
+      server: { ...panelData.display.server, ...panelData.grouping.server, form_meta: metaForm.value },
+      limits: { ...panelData.search.limits, ...panelData.display.limits },
+      frontend: panelData.interface.frontend,
+      columns: panelData.interface.columns,
+    }
+    const result = await settingsStore.updateSettingsStore(payload)
+    if (result?.success) { emit('saved', panelData); return true }
+    emit('cancelled', result)
+    return false
+  } catch (error) {
+    emit('cancelled', error)
+    return false
+  } finally {
+    loading.value = false
+  }
+}
 
 const resetSettings = async () => {
-  loading.value = true;
+  loading.value = true
   try {
-    await settingsStore.resetSettingsStore();
-    loadSettings();
-    emit('saved', formData.value);
+    await settingsStore.resetSettingsStore()
+    await nextTick()
+    await new Promise(resolve => setTimeout(resolve, 100))
+    formData.value = deepClone(SETTINGS_DEFAULTS_CONFIG)
+    await nextTick()
+    panels.value.forEach(panel => { if (panel?.resetToDefaults) panel.resetToDefaults() })
+    emit('saved', formData.value)
+  } catch (error) {
+    emit('cancelled', error)
+  } finally {
+    loading.value = false
   }
-  catch (error) { emit('cancelled', error); }
-  finally { loading.value = false; }
-};
+}
 
-watch(() => formData.value, (val) => emit('update:settings', val), { deep: true });
-onMounted(() => loadSettings());
-defineExpose({ saveSettings, resetSettings, formData });
+let metaDebounceTimer = null
+let isMetaUpdating = false
+
+watch(() => metaForm.value, (val) => {
+  if (isMetaUpdating) return
+  clearTimeout(metaDebounceTimer)
+  metaDebounceTimer = setTimeout(() => {
+    isMetaUpdating = true
+    try {
+      emit('update:settings', { meta: val, data: formData.value })
+    } finally {
+      nextTick(() => { isMetaUpdating = false })
+    }
+  }, 400)
+}, { deep: true })
+
+onMounted(() => loadSettings())
+defineExpose({ saveSettings, resetSettings, formData, metaForm })
 </script>
 
 <style scoped>
 .training-settings-form { padding: 2px; }
-.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 12px; color: #909399; gap: 4px; font-size: 10px; }
-.loading-state .el-icon { font-size: 20px; }
-.form-scroll-wrapper { max-height: 480px; overflow-y: auto; padding-right: 6px; padding-bottom: 8px; }
-.form-scroll-wrapper::-webkit-scrollbar { width: 4px; }
-.form-scroll-wrapper::-webkit-scrollbar-track { background: transparent; }
-.form-scroll-wrapper::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 2px; }
-:deep(.compact-divider) { margin: 6px 0 4px; }
-:deep(.compact-divider .el-divider__text) { font-size: 10px; font-weight: 600; color: #303133; padding: 0 4px; background: #fff; }
-:deep(.compact-item) { margin-bottom: 6px; }
-:deep(.compact-item .el-form-item__label) { font-size: 9px; font-weight: 600; color: #606266; margin-bottom: 2px; line-height: 1.2; padding: 0; }
-:deep(.compact-input), :deep(.compact-select) { width: 100%; --el-input-height: 26px; --el-input-font-size: 10px; }
-:deep(.compact-input .el-input__wrapper), :deep(.compact-select .el-select__wrapper) { padding: 1px 8px; box-shadow: 0 0 0 1px #dcdfe6 inset; border-radius: 4px; }
-:deep(.compact-input .el-input__inner), :deep(.compact-select .el-select__input) { font-size: 10px; height: 24px; line-height: 24px; padding: 0; }
-:deep(.compact-input.el-input-number.is-controls-right .el-input-number__decrease), :deep(.compact-input.el-input-number.is-controls-right .el-input-number__increase) { width: 20px; height: 13px; line-height: 13px; font-size: 9px; border-left: 1px solid #dcdfe6; }
-:deep(.compact-input.el-input-number.is-controls-right .el-input-number__increase) { border-top: 1px solid #dcdfe6; border-bottom: none; }
-:deep(.compact-input.el-input-number.is-controls-right .el-input__wrapper) { padding-right: 26px; }
-:deep(.compact-select .el-select-dropdown) { font-size: 10px; padding: 4px 0; }
-:deep(.compact-select .el-select-dropdown__item) { font-size: 10px; padding: 6px 12px; }
-.form-tip { font-size: 8px; color: #909399; margin-top: 2px; line-height: 1.2; padding-left: 2px; }
-:deep(.el-form-item.is-error .el-input__wrapper), :deep(.el-form-item.is-error .el-select__wrapper) { box-shadow: 0 0 0 1px #f56c6c inset; }
-.columns-tabs { margin-top: 8px; }
-.columns-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 8px 0; }
-.column-checkbox { font-size: 11px; }
-:deep(.columns-tabs .el-tabs__content) { padding: 8px 12px; }
-:deep(.columns-tabs .el-tabs__item) { font-size: 11px; padding: 0 10px; }
-.full-width { width: 100%; }
+.loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; color: #909399; gap: 8px; font-size: 12px; }
+.loading-state .el-icon { font-size: 24px; }
+.form-container { max-height: 410px; overflow-y: auto; padding-right: 6px; padding-bottom: 8px; }
+.form-container::-webkit-scrollbar { width: 4px; }
+.form-container::-webkit-scrollbar-track { background: transparent; }
+.form-container::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 2px; }
+.meta-panel { margin-bottom: 12px; padding: 8px 12px; background: #f8f9fa; border: 1px dashed #dcdfe6; border-radius: 4px; }
+.meta-toggle { font-size: 11px; color: #606266; display: flex; align-items: center; gap: 4px; }
+.meta-settings { margin-top: 8px; padding-top: 8px; border-top: 1px solid #ebeef5; }
+.tabs-order-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tab-order-item { display: flex; align-items: center; gap: 4px; padding: 4px 8px; border: 1px solid #dcdfe6; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all 0.2s; user-select: none; }
+.tab-order-item:hover { border-color: #409eff; background: #ecf5ff; }
+.tab-order-item.disabled { opacity: 0.5; background: #f5f7fa; }
+.tab-order-item .el-icon { font-size: 12px; }
+.settings-tabs :deep(.el-tabs__content) { padding: 12px; overflow: visible; }
+.settings-tabs :deep(.el-tabs__item) { font-size: 12px; }
+.vertical-tabs :deep(.el-tabs__header) { margin-right: 12px; }
+.vertical-tabs :deep(.el-tabs__item) { text-align: left; padding: 0 16px; }
 </style>

@@ -14,46 +14,24 @@
 
 import { TrainingSettingsApi } from '@/components/Training/api/core/TrainingSettingsApi.js'
 import { logDebugUtils, logErrorUtils } from '@/components/Training/api/core/utils/coreApiLoggerUtils.js'
+import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
+import { deepClone } from '@/components/Training/utils/appSettingsHelpersUtils.js'
 
 // Ключи localStorage
 const CACHE_KEYS = {
     FRONTEND_SETTINGS: 'training_frontend_settings',
     COLUMNS_CONFIG: 'training_columns_config',
-    LAST_GROUPING_MODE: 'training_last_grouping_mode'
+    LAST_GROUPING_MODE: 'training_last_grouping_mode',
+    LIMITS: 'training_limits',
+    FORM_META: 'training_form_meta'
 }
 
-// Значения по умолчанию
-const DEFAULT_SERVER_SETTINGS = {
-    grouping_mode: 'auto',
-    grouping_auto_threshold: 500,
-    grouping_by: 'user',
-    grouping_per_page: 10,
-    logs_per_page: 50,
-    enable_stats: true,
-    enable_sharing: true
-}
-
-const DEFAULT_FRONTEND_SETTINGS = {
-    default_tab: 'mine',
-    show_grouping_toggle: true,
-    filters_collapsed_mobile: true,
-    compact_view: false
-}
-
-const DEFAULT_COLUMNS_CONFIG = {
-    'mine': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true },
-    'shared-with-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: false },
-    'shared-by-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true }
-}
+const CACHE_TTL_MS = 5 * 60 * 1000
 
 export class TrainingSettingsService {
     constructor() {
         this.api = TrainingSettingsApi
     }
-
-    // ========================================================================
-    // ПОЛУЧЕНИЕ НАСТРОЕК
-    // ========================================================================
 
     async getSettingsService(tab = 'mine') {
         logDebugUtils('TrainingSettingsService', 'getSettingsService', { tab })
@@ -61,15 +39,11 @@ export class TrainingSettingsService {
             const result = await this.api.getSettingsApi(tab)
 
             if (result.success && result.data) {
-                if (result.data.frontend) {
-                    this._cacheFrontendSettings(result.data.frontend)
-                }
-                if (result.data.columns) {
-                    this._cacheColumnsConfig(result.data.columns)
-                }
-                if (result.data.grouping) {
-                    this._cacheGroupingMode(tab, result.data.grouping)
-                }
+                if (result.data.frontend) this._cacheFrontendSettings(result.data.frontend)
+                if (result.data.columns) this._cacheColumnsConfig(result.data.columns)
+                if (result.data.grouping) this._cacheGroupingMode(tab, result.data.grouping)
+                if (result.data.limits) this._cacheLimits(result.data.limits)
+                if (result.data.server?.form_meta) this._cacheFormMeta(result.data.server.form_meta)
             }
 
             return result
@@ -95,7 +69,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: result.message || 'Используются настройки по умолчанию',
-                data: { ...DEFAULT_SERVER_SETTINGS },
+                data: deepClone({ ...SETTINGS_DEFAULTS_CONFIG.display.server, ...SETTINGS_DEFAULTS_CONFIG.grouping.server }),
                 isFallback: true
             }
         } catch (error) {
@@ -103,7 +77,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: 'Не удалось загрузить серверные настройки',
-                data: { ...DEFAULT_SERVER_SETTINGS },
+                data: deepClone({ ...SETTINGS_DEFAULTS_CONFIG.display.server, ...SETTINGS_DEFAULTS_CONFIG.grouping.server }),
                 isFallback: true
             }
         }
@@ -117,27 +91,18 @@ export class TrainingSettingsService {
             if (result.success && result.data) {
                 const normalized = this._normalizeFrontendSettings(result.data)
                 this._cacheFrontendSettings(normalized)
-                return {
-                    success: true,
-                    message: result.message,
-                    data: normalized
-                }
+                return { success: true, message: result.message, data: normalized }
             }
 
             const cached = this._getCachedFrontendSettings()
             if (cached) {
-                return {
-                    success: false,
-                    message: 'Используются кэшированные настройки',
-                    data: cached,
-                    isCached: true
-                }
+                return { success: false, message: 'Используются кэшированные настройки', data: cached, isCached: true }
             }
 
             return {
                 success: false,
                 message: 'Используются настройки по умолчанию',
-                data: { ...DEFAULT_FRONTEND_SETTINGS },
+                data: deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
                 isFallback: true
             }
         } catch (error) {
@@ -146,7 +111,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: 'Не удалось загрузить фронтенд-настройки',
-                data: cached || { ...DEFAULT_FRONTEND_SETTINGS },
+                data: cached || deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
                 isCached: !!cached,
                 isFallback: !cached
             }
@@ -165,12 +130,7 @@ export class TrainingSettingsService {
 
             const cached = this._getCachedGroupingMode(tab)
             if (cached) {
-                return {
-                    success: false,
-                    message: 'Используется кэшированный режим',
-                    data: cached,
-                    isCached: true
-                }
+                return { success: false, message: 'Используется кэшированный режим', data: cached, isCached: true }
             }
 
             return {
@@ -190,32 +150,22 @@ export class TrainingSettingsService {
         }
     }
 
-    // ========================================================================
-    // ОБНОВЛЕНИЕ НАСТРОЕК
-    // ========================================================================
-
     async updateSettingsService(settings) {
         logDebugUtils('TrainingSettingsService', 'updateSettingsService', { settings })
 
         const validation = this._validateSettings(settings)
         if (!validation.valid) {
-            return {
-                success: false,
-                message: 'Ошибка валидации',
-                errors: validation.errors
-            }
+            return { success: false, message: 'Ошибка валидации', errors: validation.errors }
         }
 
         try {
             const result = await this.api.updateSettingsApi(settings)
 
             if (result.success) {
-                if (settings.frontend) {
-                    this._cacheFrontendSettings(this._normalizeFrontendSettings(settings.frontend))
-                }
-                if (settings.columns) {
-                    this._cacheColumnsConfig(settings.columns)
-                }
+                if (settings.frontend) this._cacheFrontendSettings(this._normalizeFrontendSettings(settings.frontend))
+                if (settings.columns) this._cacheColumnsConfig(settings.columns)
+                if (settings.limits) this._cacheLimits(this._normalizeLimits(settings.limits))
+                if (settings.server?.form_meta) this._cacheFormMeta(settings.server.form_meta)
             }
 
             return result
@@ -235,55 +185,53 @@ export class TrainingSettingsService {
         }
     }
 
-    // ========================================================================
-    // СБРОС КЭША
-    // ========================================================================
-
     resetCacheService() {
         logDebugUtils('TrainingSettingsService', 'resetCacheService')
         try {
-            Object.values(CACHE_KEYS).forEach(key => {
-                localStorage.removeItem(key)
-            })
-            return {
-                success: true,
-                message: 'Кэш сброшен'
-            }
+            Object.values(CACHE_KEYS).forEach(key => localStorage.removeItem(key))
+            return { success: true, message: 'Кэш сброшен' }
         } catch (error) {
             logErrorUtils('TrainingSettingsService', 'resetCacheService error', error)
-            return {
-                success: false,
-                message: 'Не удалось сбросить кэш'
-            }
+            return { success: false, message: 'Не удалось сбросить кэш' }
         }
     }
 
-    // ========================================================================
-    // ПРИВАТНЫЕ МЕТОДЫ: НОРМАЛИЗАЦИЯ
-    // ========================================================================
-
     _normalizeServerSettings(raw) {
-        if (!raw) return { ...DEFAULT_SERVER_SETTINGS }
+        if (!raw) return deepClone({ ...SETTINGS_DEFAULTS_CONFIG.display.server, ...SETTINGS_DEFAULTS_CONFIG.grouping.server })
 
         return {
-            grouping_mode: raw.grouping_mode || DEFAULT_SERVER_SETTINGS.grouping_mode,
-            grouping_auto_threshold: parseInt(raw.grouping_auto_threshold, 10) || DEFAULT_SERVER_SETTINGS.grouping_auto_threshold,
-            grouping_by: raw.grouping_by || DEFAULT_SERVER_SETTINGS.grouping_by,
-            grouping_per_page: parseInt(raw.grouping_per_page, 10) || DEFAULT_SERVER_SETTINGS.grouping_per_page,
-            logs_per_page: parseInt(raw.logs_per_page, 10) || DEFAULT_SERVER_SETTINGS.logs_per_page,
-            enable_stats: this._parseBoolean(raw.enable_stats, DEFAULT_SERVER_SETTINGS.enable_stats),
-            enable_sharing: this._parseBoolean(raw.enable_sharing, DEFAULT_SERVER_SETTINGS.enable_sharing)
+            grouping_mode: raw.grouping_mode || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
+            grouping_auto_threshold: parseInt(raw.grouping_auto_threshold, 10) || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
+            grouping_by: raw.grouping_by || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_by,
+            grouping_per_page: parseInt(raw.grouping_per_page, 10) || SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
+            logs_per_page: parseInt(raw.logs_per_page, 10) || SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
+            enable_stats: this._parseBoolean(raw.enable_stats, SETTINGS_DEFAULTS_CONFIG.display.server.enable_stats),
+            enable_sharing: this._parseBoolean(raw.enable_sharing, SETTINGS_DEFAULTS_CONFIG.display.server.enable_sharing),
+            enable_min_groups_check: this._parseBoolean(raw.enable_min_groups_check, SETTINGS_DEFAULTS_CONFIG.grouping.server.enable_min_groups_check),
+            grouping_min_groups: parseInt(raw.grouping_min_groups, 10) || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_min_groups,
         }
     }
 
     _normalizeFrontendSettings(raw) {
-        if (!raw) return { ...DEFAULT_FRONTEND_SETTINGS }
+        if (!raw) return deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend)
 
         return {
-            default_tab: raw.default_tab || DEFAULT_FRONTEND_SETTINGS.default_tab,
-            show_grouping_toggle: this._parseBoolean(raw.show_grouping_toggle, DEFAULT_FRONTEND_SETTINGS.show_grouping_toggle),
-            filters_collapsed_mobile: this._parseBoolean(raw.filters_collapsed_mobile, DEFAULT_FRONTEND_SETTINGS.filters_collapsed_mobile),
-            compact_view: this._parseBoolean(raw.compact_view, DEFAULT_FRONTEND_SETTINGS.compact_view)
+            default_tab: raw.default_tab || SETTINGS_DEFAULTS_CONFIG.interface.frontend.default_tab,
+            show_grouping_toggle: this._parseBoolean(raw.show_grouping_toggle, SETTINGS_DEFAULTS_CONFIG.interface.frontend.show_grouping_toggle),
+            filters_collapsed_mobile: this._parseBoolean(raw.filters_collapsed_mobile, SETTINGS_DEFAULTS_CONFIG.interface.frontend.filters_collapsed_mobile),
+            compact_view: this._parseBoolean(raw.compact_view, SETTINGS_DEFAULTS_CONFIG.interface.frontend.compact_view)
+        }
+    }
+
+    _normalizeLimits(raw) {
+        if (!raw) return deepClone({ ...SETTINGS_DEFAULTS_CONFIG.search.limits, ...SETTINGS_DEFAULTS_CONFIG.display.limits })
+
+        return {
+            search_min_length: parseInt(raw.search_min_length, 10) || SETTINGS_DEFAULTS_CONFIG.search.limits.search_min_length,
+            search_results_limit: parseInt(raw.search_results_limit, 10) || SETTINGS_DEFAULTS_CONFIG.search.limits.search_results_limit,
+            max_shared_with: parseInt(raw.max_shared_with, 10) || SETTINGS_DEFAULTS_CONFIG.display.limits.max_shared_with,
+            max_sets: parseInt(raw.max_sets, 10) || SETTINGS_DEFAULTS_CONFIG.display.limits.max_sets,
+            max_notes_length: parseInt(raw.max_notes_length, 10) || SETTINGS_DEFAULTS_CONFIG.display.limits.max_notes_length,
         }
     }
 
@@ -296,10 +244,6 @@ export class TrainingSettingsService {
         return defaultValue
     }
 
-    // ========================================================================
-    // ПРИВАТНЫЕ МЕТОДЫ: ВАЛИДАЦИЯ
-    // ========================================================================
-
     _validateSettings(settings) {
         const errors = {}
 
@@ -307,49 +251,57 @@ export class TrainingSettingsService {
             const s = settings.server
             if (s.grouping_auto_threshold !== undefined) {
                 const val = parseInt(s.grouping_auto_threshold, 10)
-                if (isNaN(val) || val < 50 || val > 10000) {
-                    errors['server.grouping_auto_threshold'] = ['Порог должен быть от 50 до 10000']
-                }
+                if (isNaN(val) || val < 50 || val > 10000) errors['server.grouping_auto_threshold'] = ['Порог должен быть от 50 до 10000']
             }
             if (s.grouping_per_page !== undefined) {
                 const val = parseInt(s.grouping_per_page, 10)
-                if (isNaN(val) || val < 5 || val > 50) {
-                    errors['server.grouping_per_page'] = ['Значение должно быть от 5 до 50']
-                }
+                if (isNaN(val) || val < 5 || val > 50) errors['server.grouping_per_page'] = ['Значение должно быть от 5 до 50']
             }
             if (s.logs_per_page !== undefined) {
                 const val = parseInt(s.logs_per_page, 10)
-                if (isNaN(val) || val < 10 || val > 200) {
-                    errors['server.logs_per_page'] = ['Значение должно быть от 10 до 200']
-                }
+                if (isNaN(val) || val < 10 || val > 200) errors['server.logs_per_page'] = ['Значение должно быть от 10 до 200']
             }
         }
 
-        return {
-            valid: Object.keys(errors).length === 0,
-            errors
+        if (settings.limits) {
+            const l = settings.limits
+            if (l.search_min_length !== undefined) {
+                const val = parseInt(l.search_min_length, 10)
+                if (isNaN(val) || val < 1 || val > 10) errors['limits.search_min_length'] = ['Длина должна быть от 1 до 10']
+            }
+            if (l.search_results_limit !== undefined) {
+                const val = parseInt(l.search_results_limit, 10)
+                if (isNaN(val) || val < 10 || val > 500) errors['limits.search_results_limit'] = ['Лимит должен быть от 10 до 500']
+            }
+            if (l.max_shared_with !== undefined) {
+                const val = parseInt(l.max_shared_with, 10)
+                if (isNaN(val) || val < 1 || val > 500) errors['limits.max_shared_with'] = ['Лимит должен быть от 1 до 500']
+            }
+            if (l.max_sets !== undefined) {
+                const val = parseInt(l.max_sets, 10)
+                if (isNaN(val) || val < 1 || val > 200) errors['limits.max_sets'] = ['Лимит должен быть от 1 до 200']
+            }
+            if (l.max_notes_length !== undefined) {
+                const val = parseInt(l.max_notes_length, 10)
+                if (isNaN(val) || val < 50 || val > 5000) errors['limits.max_notes_length'] = ['Длина должна быть от 50 до 5000']
+            }
         }
+
+        return { valid: Object.keys(errors).length === 0, errors }
     }
 
     _normalizeValidationErrors(rawErrors) {
         const normalized = {}
         for (const [key, messages] of Object.entries(rawErrors)) {
-            const cleanKey = key.replace(/^(server|frontend|columns)\./, '')
+            const cleanKey = key.replace(/^(server|frontend|columns|limits)\./, '')
             normalized[cleanKey] = Array.isArray(messages) ? messages : [messages]
         }
         return normalized
     }
 
-    // ========================================================================
-    // ПРИВАТНЫЕ МЕТОДЫ: КЭШИРОВАНИЕ
-    // ========================================================================
-
     _cacheFrontendSettings(settings) {
-        try {
-            localStorage.setItem(CACHE_KEYS.FRONTEND_SETTINGS, JSON.stringify(settings))
-        } catch (e) {
-            logErrorUtils('TrainingSettingsService', 'Cache frontend settings failed', e)
-        }
+        try { localStorage.setItem(CACHE_KEYS.FRONTEND_SETTINGS, JSON.stringify(settings)) }
+        catch (e) { logErrorUtils('TrainingSettingsService', 'Cache frontend settings failed', e) }
     }
 
     _getCachedFrontendSettings() {
@@ -365,11 +317,8 @@ export class TrainingSettingsService {
     }
 
     _cacheColumnsConfig(config) {
-        try {
-            localStorage.setItem(CACHE_KEYS.COLUMNS_CONFIG, JSON.stringify(config))
-        } catch (e) {
-            logErrorUtils('TrainingSettingsService', 'Cache columns config failed', e)
-        }
+        try { localStorage.setItem(CACHE_KEYS.COLUMNS_CONFIG, JSON.stringify(config)) }
+        catch (e) { logErrorUtils('TrainingSettingsService', 'Cache columns config failed', e) }
     }
 
     _getCachedColumnsConfig() {
@@ -377,9 +326,7 @@ export class TrainingSettingsService {
             const saved = localStorage.getItem(CACHE_KEYS.COLUMNS_CONFIG)
             if (!saved) return null
             return JSON.parse(saved)
-        } catch (e) {
-            return null
-        }
+        } catch (e) { return null }
     }
 
     _cacheGroupingMode(tab, grouping) {
@@ -387,9 +334,7 @@ export class TrainingSettingsService {
             const cached = this._getAllCachedGroupingModes()
             cached[tab] = { ...grouping, cachedAt: Date.now() }
             localStorage.setItem(CACHE_KEYS.LAST_GROUPING_MODE, JSON.stringify(cached))
-        } catch (e) {
-            logErrorUtils('TrainingSettingsService', 'Cache grouping mode failed', e)
-        }
+        } catch (e) { logErrorUtils('TrainingSettingsService', 'Cache grouping mode failed', e) }
     }
 
     _getCachedGroupingMode(tab) {
@@ -397,25 +342,51 @@ export class TrainingSettingsService {
             const cached = this._getAllCachedGroupingModes()
             const entry = cached[tab]
             if (!entry) return null
-            if (Date.now() - entry.cachedAt > 5 * 60 * 1000) return null
+            if (Date.now() - entry.cachedAt > CACHE_TTL_MS) return null
             return entry
-        } catch (e) {
-            return null
-        }
+        } catch (e) { return null }
     }
 
     _getAllCachedGroupingModes() {
         try {
             const saved = localStorage.getItem(CACHE_KEYS.LAST_GROUPING_MODE)
             return saved ? JSON.parse(saved) : {}
+        } catch (e) { return {} }
+    }
+
+    _cacheLimits(limits) {
+        try { localStorage.setItem(CACHE_KEYS.LIMITS, JSON.stringify(limits)) }
+        catch (e) { logErrorUtils('TrainingSettingsService', 'Cache limits failed', e) }
+    }
+
+    _getCachedLimits() {
+        try {
+            const saved = localStorage.getItem(CACHE_KEYS.LIMITS)
+            if (!saved) return null
+            return this._normalizeLimits(JSON.parse(saved))
         } catch (e) {
-            return {}
+            logErrorUtils('TrainingSettingsService', 'Read cached limits failed', e)
+            localStorage.removeItem(CACHE_KEYS.LIMITS)
+            return null
         }
     }
 
-    // ========================================================================
-    // ПРИВАТНЫЕ МЕТОДЫ: ОБРАБОТКА ОШИБОК
-    // ========================================================================
+    _cacheFormMeta(meta) {
+        try { localStorage.setItem(CACHE_KEYS.FORM_META, JSON.stringify(meta)) }
+        catch (e) { logErrorUtils('TrainingSettingsService', 'Cache form meta failed', e) }
+    }
+
+    _getCachedFormMeta() {
+        try {
+            const saved = localStorage.getItem(CACHE_KEYS.FORM_META)
+            if (!saved) return null
+            return JSON.parse(saved)
+        } catch (e) {
+            logErrorUtils('TrainingSettingsService', 'Read cached form meta failed', e)
+            localStorage.removeItem(CACHE_KEYS.FORM_META)
+            return null
+        }
+    }
 
     _handleError(message, error) {
         return {
