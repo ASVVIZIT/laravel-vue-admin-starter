@@ -21,11 +21,11 @@ export const useExerciseFields = (exerciseType = 'bodyweight') => {
             defaults: { reps: null, weight: null, duration: null, distance: null, notes: '' }
         },
         cardio: {
-            fields: ['duration', 'distance'],
-            labels: { reps: 'Повторы', weight: 'Вес', duration: 'Время', distance: 'Дистанция', notes: 'Заметка' },
-            placeholders: { reps: 'Повторений', weight: 'Вес', duration: 'сек', distance: 'м', notes: 'Заметка' },
+            fields: ['reps', 'duration', 'distance'],
+            labels: { reps: 'Круги/Подходы', weight: 'Вес', duration: 'Время', distance: 'Дистанция', notes: 'Заметка' },
+            placeholders: { reps: 'Круги', weight: 'Вес', duration: 'сек', distance: 'м', notes: 'Заметка' },
             units: { reps: '', weight: 'кг', duration: 'сек', distance: 'м', notes: '' },
-            defaults: { reps: null, weight: null, duration: null, distance: null, notes: '' }
+            defaults: { reps: 1, weight: null, duration: null, distance: null, notes: '' }
         },
         other: {
             fields: ['reps', 'duration'],

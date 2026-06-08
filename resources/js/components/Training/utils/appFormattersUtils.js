@@ -123,38 +123,60 @@ export const formatSet = (set, exerciseType = 'bodyweight') => {
  */
 
 /**
- * Компактное форматирование подхода для отображения в таблице (горизонтальный список)
- * Отличается от formatSet более коротким выводом
+ * Компактное форматирование подхода для отображения в таблице
+ * Умная логика:
+ * - reps=1 + duration → "16м40с" (без "1×")
+ * - reps>1 + duration → "3×16м40с"
+ * - duration + distance → "1ч/20км" (слеш-разделитель)
+ * - только reps → "15"
+ * - reps + weight → "10×50кг"
+ *
  * @param {Object} set - объект подхода { reps, weight, duration, distance }
  * @param {string} type - тип упражнения: bodyweight | weighted | cardio | other
- * @returns {string} компактная строка для ячейки таблицы
+ * @returns {string} компактная строка
  */
 export const formatSetPreview = (set, type) => {
     if (!set) return '—';
 
-    // 🔥 1. Кардио: длительность и/или дистанция
-    if (type === 'cardio') {
-        const parts = [];
-        if (set.duration) {
-            const m = Math.floor(set.duration / 60);
-            const s = set.duration % 60;
-            parts.push(s > 0 ? `${m}м${s}с` : `${m}мин`);
+    const reps = set.reps || 0;
+    const weight = set.weight || 0;
+    const duration = set.duration || 0;
+    const distance = set.distance || 0;
+
+    // Хелпер: форматирует секунды в "16м40с" или "30мин"
+    const fmtDuration = (sec) => {
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        return s > 0 ? `${m}м${s}с` : `${m}мин`;
+    };
+
+    // 🔥 1. ЕСТЬ duration (йога, растяжка, планка, кардио, велосипед)
+    if (duration > 0) {
+        // Собираем duration + distance с разделителем "/"
+        const durationParts = [fmtDuration(duration)];
+        if (distance > 0) {
+            durationParts.push(distance >= 1000 ? `${(distance / 1000).toFixed(1)}км` : `${distance}м`);
         }
-        if (set.distance) {
-            parts.push(set.distance >= 1000 ? `${(set.distance / 1000).toFixed(1)}км` : `${set.distance}м`);
-        }
-        return parts.join('/') || '—';
+        const durationStr = durationParts.join('/');
+
+        // Если reps > 1 — добавляем "N×" перед duration
+        return reps > 1 ? `${reps}×${durationStr}` : durationStr;
     }
 
-    // 🔥 2. Свободный вес с отягощением: "10×50кг" (БЕЗ пробелов!)
-    if (type === 'weighted' && set.weight && set.weight > 0) {
-        return `${set.reps || 0}×${set.weight}кг`;
+    // 🔥 2. Только дистанция (бег без времени)
+    if (distance > 0) {
+        const distStr = distance >= 1000 ? `${(distance / 1000).toFixed(1)}км` : `${distance}м`;
+        return reps > 1 ? `${reps}×${distStr}` : distStr;
     }
 
-    // 🔥 3. Bodyweight / other — ТОЛЬКО повторения, без "×"
-    // Отжимания: "15", Приседания: "20", Подтягивания: "12"
-    if (set.reps) {
-        return `${set.reps}`;
+    // 🔥 3. Weighted с весом
+    if (type === 'weighted' && weight > 0) {
+        return `${reps || 0}×${weight}кг`;
+    }
+
+    // 🔥 4. Только повторения (отжимания, приседания, подтягивания)
+    if (reps > 0) {
+        return `${reps}`;
     }
 
     return '—';

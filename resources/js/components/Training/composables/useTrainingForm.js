@@ -41,8 +41,19 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
     const defaultSet = computed(() => exerciseFields.value.defaultSet);
 
     const addSet = () => {
-        form.value.sets.push({ ...defaultSet.value });
-    };
+        const currentType = selectedExercise.value?.type || 'bodyweight'
+
+        // 🔥 Умные дефолты: только то, что СЕМАНТИЧЕСКИ правильно
+        const newSet = {
+            reps: currentType === 'cardio' ? 1 : null,  // 1 для кардио (1 подход), null для силовых (сам введёт)
+            weight: null,  // сам введёт
+            duration: null,
+            distance: null,
+            notes: ''
+        }
+
+        form.value.sets.push(newSet)
+    }
 
     const removeSet = (index) => {
         if (form.value.sets.length > 1) form.value.sets.splice(index, 1);

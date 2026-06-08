@@ -153,9 +153,14 @@ const currentConfig = computed(() => useExerciseFields(currentExerciseType.value
 const isEdit = computed(() => !!props.logId)
 
 const isSetComplete = (s, type) => {
+  // ДЛЯ КАРДИО: проверяем duration ИЛИ distance (reps не важен)
+  if (type === 'cardio') {
+    return !!(s.duration || s.distance)
+  }
+  // Для остальных: reps обязателен
   if (!s.reps) return false
+  // Для weighted обязателен вес
   if (type === 'weighted' && !s.weight) return false
-  if (type === 'cardio' && !s.duration) return false
   return true
 }
 

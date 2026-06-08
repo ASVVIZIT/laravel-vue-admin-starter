@@ -103,7 +103,7 @@ defineExpose({ focusField })
 </script>
 
 <style scoped>
-/* 🔒 ЖЁСТКАЯ ФИКСАЦИЯ РАЗМЕРОВ: МИНИМАЛИЗМ */
+/*  Жёсткая фиксация размеров: минимализм */
 .set-row {
   display: flex;
   align-items: center;
@@ -139,7 +139,7 @@ defineExpose({ focusField })
 .field-wrapper { position: relative; display: block; min-height: 0; flex-shrink: 0; }
 .field-notes { flex: 1 1 auto; min-width: 0; max-width: 100%; }
 
-/*  ХИНТ: виден, не меняет высоту строки, белый фон + тень */
+/* ХИНТ: виден, не меняет высоту строки, белый фон + тень */
 .field-hint {
   position: absolute;
   top: 100%;
@@ -161,13 +161,14 @@ defineExpose({ focusField })
   padding: 1px 2px;
 }
 
-/* Инпуты */
+/* Инпуты: базовые размеры */
 .set-row :deep(.el-input-number),
 .set-row :deep(.el-input) {
   height: 20px !important;
   line-height: 20px !important;
   box-sizing: border-box !important;
 }
+
 .set-row :deep(.el-input__wrapper),
 .set-row :deep(.el-input-number__wrapper) {
   height: 20px !important;
@@ -176,33 +177,57 @@ defineExpose({ focusField })
   box-shadow: 0 0 0 1px #dcdfe6 inset !important;
   border-radius: 2px !important;
 }
+
+/* 🔥 ТВОЕ РЕШЕНИЕ + СТРАХОВКА ОТ ОБРЕЗАНИЯ */
 .set-row :deep(input) {
   font-size: 11px !important;
   text-align: left !important;
-  padding-left: 6px !important;
-  padding-right: 16px !important;
+  padding-left: 1px !important;
+  padding-right: 1px !important;
+
+  /* 🛡️ Добавлено для безопасности 1px: */
+  box-sizing: border-box !important;
+  -webkit-font-smoothing: antialiased; /* Делает шрифт четче на малых размерах */
+  text-rendering: optimizeLegibility;  /* Улучшает рендеринг цифр, предотвращая "слипание" */
 }
 
 /* Ширины */
 .field-wrapper:nth-child(2) :deep(.el-input-number) { width: 80px; min-width: 80px; }
 .field-wrapper:nth-child(n+3) :deep(.el-input-number) { width: 90px; min-width: 90px; }
 
-/* Счётчик */
-.field-notes :deep(.el-input__count) { position: absolute; bottom: 1px; right: 3px; font-size: 7px; line-height: 1; padding: 0; color: #b4bccc; }
+/* Счётчик символов в заметках */
+.field-notes :deep(.el-input__count) {
+  position: absolute; bottom: 1px; right: 3px;
+  font-size: 7px; line-height: 1; padding: 0; color: #b4bccc;
+}
 .field-notes :deep(.el-input__wrapper) { padding-right: 24px !important; }
 
 /* Стрелки: строго 9px */
-.set-row :deep(.el-input-number.is-controls-right.el-input-number--small) { --el-input-number-controls-height: 9px; }
+.set-row :deep(.el-input-number.is-controls-right.el-input-number--small) {
+  --el-input-number-controls-height: 9px;
+}
 .set-row :deep(.el-input-number.is-controls-right.el-input-number--small .el-input-number__increase),
 .set-row :deep(.el-input-number.is-controls-right.el-input-number--small .el-input-number__decrease) {
-  height: 9px !important; line-height: 9px !important; font-size: 8px !important; padding: 0 !important;
-  margin: 0 !important; width: auto !important; min-width: 14px; display: flex; align-items: center; justify-content: center;
-  border-radius: 0 !important; border: 1px solid #dcdfe6 !important; background: #f5f7fa !important;
+  height: 9px !important;
+  line-height: 9px !important;
+  font-size: 8px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: auto !important;
+  min-width: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0 !important;
+  border: 1px solid #dcdfe6 !important;
+  background: #f5f7fa !important;
 }
 
 /* Ошибки */
 .field-error :deep(.el-input__wrapper),
-.field-error :deep(.el-input-number__wrapper) { box-shadow: 0 0 0 1px #f56c6c inset !important; }
+.field-error :deep(.el-input-number__wrapper) {
+  box-shadow: 0 0 0 1px #f56c6c inset !important;
+}
 
 /* Единицы и кнопка */
 .unit { font-size: 8px; color: #909399; user-select: none; margin-right: 14px; line-height: 1; }

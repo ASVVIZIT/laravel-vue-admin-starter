@@ -88,7 +88,7 @@
       <!-- Объём -->
       <el-table-column v-if="isColumnVisible('volume')" label="Объём" width="100">
         <template #default="{ row }">
-          <span v-if="row.total_volume !== undefined">{{ formatVolume(row.total_volume) }}</span>
+          <span v-if="row.total_volume !== undefined && row.total_volume > 0">{{ formatVolume(row.total_volume) }}</span>
           <span v-else class="text-muted">—</span>
         </template>
       </el-table-column>
