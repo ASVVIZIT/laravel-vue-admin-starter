@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Services\Training;
 
 use App\Models\Training\TrainingSetting;
@@ -13,68 +12,63 @@ class TrainingSettingsService
     private const CACHE_TTL = 3600;
     private const TABS = ['mine', 'shared-with-me', 'shared-by-me'];
 
+    // 🔥 ЕДИНСТВЕННОЕ МЕСТО ДЛЯ КОНСТАНТ
     private const DEFAULT_COLUMNS = [
         'mine' => ['date' => true, 'time' => true, 'exercise' => true, 'sharing' => true, 'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => true],
         'shared-with-me' => ['date' => true, 'time' => true, 'exercise' => true, 'sharing' => true, 'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => false],
         'shared-by-me' => ['date' => true, 'time' => true, 'exercise' => true, 'sharing' => true, 'sets' => true, 'reps' => true, 'volume' => true, 'rating' => true, 'actions' => true],
     ];
 
-    private function getAllSettings(): array
-    {
-        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function () {
-            return TrainingSetting::pluck('value', 'key')->toArray();
-        });
+    private const DEFAULT_LIMITS = [
+        'max_shared_with'      => 100,
+        'search_results_limit' => 100,
+        'max_sets'             => 50,
+        'max_notes_length'     => 1000,
+        'search_min_length'    => 2,
+    ];
+
+    private function getAllSettings(): array {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, fn() => TrainingSetting::pluck('value', 'key')->toArray());
     }
 
-    public function getAllGrouped(): array
-    {
+    public function getAllGrouped(): array {
         $all = $this->getAllSettings();
         return [
-            'server' => $this->filterByPrefix($all, 'server.'),
-            'frontend' => $this->filterByPrefix($all, 'frontend.'),
+            'server'   => $this->filterByPrefixNested($all, 'server.'),
+            'frontend' => $this->filterByPrefixNested($all, 'frontend.'),
         ];
     }
 
-    public function get(string $key, $default = null)
-    {
-        $all = $this->getAllSettings();
-        return isset($all[$key]) ? $all[$key] : $default;
+    public function get(string $key, $default = null) {
+        return $this->getAllSettings()[$key] ?? $default;
     }
 
-    public function getTyped(string $key, $default = null)
-    {
+    public function getTyped(string $key, $default = null) {
         $value = $this->get($key);
         if ($value === null) return $default;
-
-        $lowerValue = strtolower((string)$value);
-        if (in_array($lowerValue, ['true', 'false', '1', '0'], true)) {
-            return filter_var($value, FILTER_VALIDATE_BOOLEAN);
-        }
-        if (is_numeric($value)) {
-            return strpos((string)$value, '.') !== false ? (float)$value : (int)$value;
-        }
+        $lower = strtolower((string)$value);
+        if (in_array($lower, ['true', 'false', '1', '0'], true)) return filter_var($value, FILTER_VALIDATE_BOOLEAN);
+        if (is_numeric($value)) return strpos((string)$value, '.') !== false ? (float)$value : (int)$value;
         if (is_string($value)) {
             $decoded = json_decode($value, true);
-            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                return $decoded;
-            }
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) return $decoded;
         }
         return $value;
     }
 
-    public function set(string $key, $value): void
-    {
-        $dbValue = $value;
-        if (is_bool($value)) $dbValue = $value ? 'true' : 'false';
-        elseif (is_array($value)) $dbValue = json_encode($value);
-        elseif (is_numeric($value)) $dbValue = (string)$value;
-
-        TrainingSetting::updateOrCreate(['key' => $key], ['value' => $dbValue]);
+    public function setMany(array $settings): void {
+        DB::transaction(function () use ($settings) {
+            foreach ($settings as $key => $value) {
+                $dbValue = is_bool($value) ? ($value ? 'true' : 'false')
+                    : (is_array($value) ? json_encode($value) : (string)$value);
+                TrainingSetting::updateOrCreate(['key' => $key], ['value' => $dbValue]);
+            }
+        });
         Cache::forget(self::CACHE_KEY);
     }
 
-    public function getColumnsConfig(): array
-    {
+    // 🔥 Ключ frontend.columns.{$tab} (консистентность префиксов)
+    public function getColumnsConfig(): array {
         $config = [];
         foreach (self::TABS as $tab) {
             $key = "frontend.columns.{$tab}";
@@ -84,125 +78,83 @@ class TrainingSettingsService
         return $config;
     }
 
-    public function resolveGroupingMode(int $userId, string $tab): array
-    {
+    public function getLimits(): array {
+        $limits = self::DEFAULT_LIMITS;
+        foreach ($limits as $key => $default) {
+            $stored = $this->getTyped("limits.{$key}");
+            if ($stored !== null && is_numeric($stored)) $limits[$key] = (int) $stored;
+        }
+        return $limits;
+    }
+
+    public function getLimit(string $key): int {
+        return $this->getLimits()[$key] ?? 0;
+    }
+
+    public function resolveGroupingMode(int $userId, string $tab): array {
         $mode = $this->getTyped('server.grouping_mode', 'auto');
         $threshold = $this->getTyped('server.grouping_auto_threshold', 500);
         $groupBy = $this->getTyped('server.grouping_by', 'user');
-
         $enableMinCheck = $this->getTyped('server.enable_min_groups_check', true);
         $minGroups = $this->getTyped('server.grouping_min_groups', 3);
 
-        if ($mode !== 'auto') {
-            return ['mode' => $mode, 'server_by' => $groupBy, 'reason' => "Ручной режим: {$mode}"];
-        }
+        if ($mode !== 'auto') return ['mode' => $mode, 'server_by' => $groupBy, 'reason' => "Ручной режим: {$mode}"];
 
-        $totalCount = $this->countLogsForTab($userId, $tab);
-
-        if ($totalCount < $threshold) {
-            return [
-                'mode' => 'frontend',
-                'count' => $totalCount,
-                'threshold' => $threshold,
-                'reason' => "Мало записей: {$totalCount} < {$threshold}"
-            ];
-        }
+        $count = $this->countLogsForTab($userId, $tab);
+        if ($count < $threshold) return ['mode' => 'frontend', 'count' => $count, 'threshold' => $threshold, 'reason' => "Мало записей: {$count} < {$threshold}"];
 
         if ($enableMinCheck) {
-            $uniqueGroups = $this->countUniqueGroupsForTab($userId, $tab, $groupBy);
-
-            if ($uniqueGroups < $minGroups) {
-                return [
-                    'mode' => 'frontend',
-                    'count' => $totalCount,
-                    'unique_groups' => $uniqueGroups,
-                    'min_groups' => $minGroups,
-                    'reason' => "Мало уникальных групп: {$uniqueGroups} < {$minGroups}"
-                ];
-            }
-
-            return [
-                'mode' => 'server',
-                'server_by' => $groupBy,
-                'count' => $totalCount,
-                'unique_groups' => $uniqueGroups,
-                'min_groups' => $minGroups,
-                'reason' => "Достаточно групп: {$uniqueGroups} >= {$minGroups}"
-            ];
+            $unique = $this->countUniqueGroupsForTab($userId, $tab, $groupBy);
+            if ($unique < $minGroups) return ['mode' => 'frontend', 'count' => $count, 'unique_groups' => $unique, 'min_groups' => $minGroups, 'reason' => "Мало групп: {$unique} < {$minGroups}"];
+            return ['mode' => 'server', 'server_by' => $groupBy, 'count' => $count, 'unique_groups' => $unique, 'min_groups' => $minGroups, 'reason' => "Достаточно групп: {$unique} >= {$minGroups}"];
         }
-
-        return [
-            'mode' => 'server',
-            'server_by' => $groupBy,
-            'count' => $totalCount,
-            'reason' => "Авто по порогу записей: {$totalCount} >= {$threshold}"
-        ];
+        return ['mode' => 'server', 'server_by' => $groupBy, 'count' => $count, 'reason' => "Авто по порогу: {$count} >= {$threshold}"];
     }
 
-    private function countUniqueGroupsForTab(int $userId, string $tab, string $groupBy): int
-    {
-        $query = TrainingLog::query();
-
-        if ($tab === 'mine') {
-            $query->where('user_id', $userId);
-        } elseif ($tab === 'shared-with-me') {
-            $query->where('user_id', '!=', $userId)
-                ->where(function ($q) use ($userId) {
-                    $q->where('is_public', true)
-                        ->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]);
-                });
-        } elseif ($tab === 'shared-by-me') {
-            $query->where('user_id', $userId)
-                ->where(function ($q) {
-                    $q->where('is_public', true)
-                        ->orWhereRaw('JSON_LENGTH(shared_with) > 0');
-                });
-        }
-
-        if ($groupBy === 'user') {
-            $column = 'user_id';
-        } elseif ($groupBy === 'exercise') {
-            $column = 'exercise_id';
-        } else {
-            $column = DB::raw("DATE_FORMAT(date, '%Y-%m')");
-        }
-
-        return $query->distinct()->count($column);
-    }
-
-    private function countLogsForTab(int $userId, string $tab): int
-    {
-        if ($tab === 'shared-with-me') {
-            return TrainingLog::where('user_id', '!=', $userId)
-                ->where(function ($q) use ($userId) {
-                    $q->where('is_public', true)
-                        ->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]);
-                })->count();
-        }
-        if ($tab === 'shared-by-me') {
-            return TrainingLog::where('user_id', $userId)
-                ->where(function ($q) {
-                    $q->where('is_public', true)
-                        ->orWhereRaw('JSON_LENGTH(shared_with) > 0');
-                })->count();
-        }
-        return TrainingLog::where('user_id', $userId)->count();
-    }
-
-    private function filterByPrefix(array $settings, string $prefix): array
-    {
+    private function filterByPrefixNested(array $settings, string $prefix): array {
+        $flat = $this->filterByPrefix($settings, $prefix);
         $result = [];
-        $prefixLen = strlen($prefix);
-        foreach ($settings as $key => $value) {
-            if (strpos($key, $prefix) === 0) {
-                $result[substr($key, $prefixLen)] = $this->getTyped($key);
-            }
+        foreach ($flat as $key => $value) {
+            $parts = explode('.', $key);
+            if (count($parts) === 1) $result[$parts[0]] = $value;
+            else $this->setNestedValue($result, $parts, $value);
         }
         return $result;
     }
 
-    public function clearCache(): void
-    {
-        Cache::forget(self::CACHE_KEY);
+    private function setNestedValue(array &$array, array $keys, $value): void {
+        $current = &$array;
+        foreach ($keys as $i => $key) {
+            if ($i === count($keys) - 1) $current[$key] = $value;
+            else {
+                if (!isset($current[$key]) || !is_array($current[$key])) $current[$key] = [];
+                $current = &$current[$key];
+            }
+        }
+    }
+
+    private function countUniqueGroupsForTab(int $userId, string $tab, string $groupBy): int {
+        $query = TrainingLog::query();
+        if ($tab === 'mine') $query->where('user_id', $userId);
+        elseif ($tab === 'shared-with-me') $query->where('user_id', '!=', $userId)->where(fn($q) => $q->where('is_public', true)->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]));
+        elseif ($tab === 'shared-by-me') $query->where('user_id', $userId)->where(fn($q) => $q->where('is_public', true)->orWhereRaw('JSON_LENGTH(shared_with) > 0'));
+
+        $column = $groupBy === 'user' ? 'user_id' : ($groupBy === 'exercise' ? 'exercise_id' : DB::raw("DATE_FORMAT(date, '%Y-%m')"));
+        return $query->distinct()->count($column);
+    }
+
+    private function countLogsForTab(int $userId, string $tab): int {
+        if ($tab === 'shared-with-me') return TrainingLog::where('user_id', '!=', $userId)->where(fn($q) => $q->where('is_public', true)->orWhereRaw('JSON_CONTAINS(shared_with, CAST(? AS JSON))', [json_encode($userId)]))->count();
+        if ($tab === 'shared-by-me') return TrainingLog::where('user_id', $userId)->where(fn($q) => $q->where('is_public', true)->orWhereRaw('JSON_LENGTH(shared_with) > 0'))->count();
+        return TrainingLog::where('user_id', $userId)->count();
+    }
+
+    private function filterByPrefix(array $settings, string $prefix): array {
+        $result = [];
+        $len = strlen($prefix);
+        foreach ($settings as $key => $value) {
+            if (strpos($key, $prefix) === 0) $result[substr($key, $len)] = $this->getTyped($key);
+        }
+        return $result;
     }
 }

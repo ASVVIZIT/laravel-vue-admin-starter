@@ -6,13 +6,14 @@
           <span class="title-icon">🏆</span>
           <span class="title-text">Мои тренировки</span>
         </div>
-        <div class="header-stats">
+
+        <!-- 🔥 Условный рендеринг статистики -->
+        <div v-if="showStats" class="header-stats">
           <TrainingStatsBar :summary="summary" :stats="stats" />
         </div>
       </div>
 
       <div class="header-actions">
-        <!-- 🔥 Индикатор загрузки (слева от кнопки Добавить) -->
         <div v-if="loading" class="loading-indicator">
           <el-icon class="is-loading"><Loading /></el-icon>
           <span class="loading-text">Загрузка</span>
@@ -28,7 +29,6 @@
           <span class="btn-label">{{ showForm ? 'Скрыть' : 'Добавить' }}</span>
         </el-button>
 
-        <!-- 🔥 Умная кнопка обновления -->
         <RefreshButton
             :loading="loading"
             :disabled="false"
@@ -75,7 +75,8 @@ const props = defineProps({
   showForm: { type: Boolean, default: false },
   showSettings: { type: Boolean, default: true },
   showDebug: { type: Boolean, default: true },
-  debugVisible: { type: Boolean, default: false }
+  debugVisible: { type: Boolean, default: false },
+  showStats: { type: Boolean, default: true }  // 🔥 НОВЫЙ ПРОП
 })
 
 const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-debug'])
@@ -132,7 +133,6 @@ const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-d
   flex-shrink: 0;
 }
 
-/* 🔥 Индикатор загрузки */
 .loading-indicator {
   display: flex;
   align-items: center;

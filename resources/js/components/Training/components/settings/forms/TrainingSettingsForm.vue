@@ -117,43 +117,57 @@ const toggleTab = (key) => {
 
 const formData = ref(deepClone(SETTINGS_DEFAULTS_CONFIG))
 
-const loadSettings = () => {
-  if (!settingsStore.serverSettings && !settingsStore.frontendSettings) return
+// 🔥 ИСПРАВЛЕНО: Загружаем из API если store пустой
+const loadSettings = async () => {
+  if (!settingsStore.serverSettings || Object.keys(settingsStore.serverSettings).length === 0) {
+    await settingsStore.fetchSettingsStore()
+  }
 
   const normalizeBoolean = (val) => typeof val === 'string' ? val === 'true' : Boolean(val)
 
   if (settingsStore.frontendSettings) {
-    formData.value.interface.frontend = deepMerge(formData.value.interface.frontend, settingsStore.frontendSettings)
+    formData.value.interface.frontend = deepMerge(
+        deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
+        settingsStore.frontendSettings
+    )
   }
+
   if (settingsStore.columnsConfig) {
     Object.keys(SETTINGS_DEFAULTS_CONFIG.interface.columns).forEach(tab => {
       formData.value.interface.columns[tab] = deepMerge(
-          SETTINGS_DEFAULTS_CONFIG.interface.columns[tab],
+          deepClone(SETTINGS_DEFAULTS_CONFIG.interface.columns[tab]),
           settingsStore.columnsConfig[tab] || {}
       )
     })
   }
 
+  // 🔥 ИСПРАВЛЕНО: Разделяем limits на search и display
   if (settingsStore.limits) {
-    formData.value.search.limits = deepMerge(formData.value.search.limits, settingsStore.limits)
+    // Search limits
+    formData.value.search.limits = {
+      search_min_length: settingsStore.limits.search_min_length ?? SETTINGS_DEFAULTS_CONFIG.search.limits.search_min_length,
+      search_results_limit: settingsStore.limits.search_results_limit ?? SETTINGS_DEFAULTS_CONFIG.search.limits.search_results_limit,
+    }
+
+    // Display limits
+    formData.value.display.limits = {
+      max_shared_with: settingsStore.limits.max_shared_with ?? SETTINGS_DEFAULTS_CONFIG.display.limits.max_shared_with,
+      max_sets: settingsStore.limits.max_sets ?? SETTINGS_DEFAULTS_CONFIG.display.limits.max_sets,
+      max_notes_length: settingsStore.limits.max_notes_length ?? SETTINGS_DEFAULTS_CONFIG.display.limits.max_notes_length,
+    }
   }
 
   if (settingsStore.serverSettings) {
     formData.value.display.server = {
-      ...formData.value.display.server,
+      ...deepClone(SETTINGS_DEFAULTS_CONFIG.display.server),
       logs_per_page: settingsStore.serverSettings.logs_per_page ?? SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
       grouping_per_page: settingsStore.serverSettings.grouping_per_page ?? SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
       enable_stats: normalizeBoolean(settingsStore.serverSettings.enable_stats),
       enable_sharing: normalizeBoolean(settingsStore.serverSettings.enable_sharing),
     }
-  }
-  if (settingsStore.limits) {
-    formData.value.display.limits = deepMerge(formData.value.display.limits, settingsStore.limits)
-  }
 
-  if (settingsStore.serverSettings) {
     formData.value.grouping.server = {
-      ...formData.value.grouping.server,
+      ...deepClone(SETTINGS_DEFAULTS_CONFIG.grouping.server),
       grouping_mode: settingsStore.serverSettings.grouping_mode ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
       grouping_auto_threshold: settingsStore.serverSettings.grouping_auto_threshold ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
       enable_min_groups_check: normalizeBoolean(settingsStore.serverSettings.enable_min_groups_check),
@@ -163,7 +177,10 @@ const loadSettings = () => {
   }
 
   if (settingsStore.serverSettings?.form_meta) {
-    metaForm.value = deepMerge(metaForm.value, settingsStore.serverSettings.form_meta)
+    metaForm.value = deepMerge(
+        deepClone(SETTINGS_DEFAULTS_CONFIG.meta),
+        settingsStore.serverSettings.form_meta
+    )
   }
 }
 
@@ -186,8 +203,11 @@ const saveSettings = async () => {
     const payload = {
       server: { ...panelData.display.server, ...panelData.grouping.server, form_meta: metaForm.value },
       limits: { ...panelData.search.limits, ...panelData.display.limits },
-      frontend: panelData.interface.frontend,
-      columns: panelData.interface.columns,
+      // 🔥 ИСПРАВЛЕНО: columns теперь внутри frontend (консистентно с бэкендом)
+      frontend: {
+        ...panelData.interface.frontend,
+        columns: panelData.interface.columns
+      }
     }
     const result = await settingsStore.updateSettingsStore(payload)
     if (result?.success) { emit('saved', panelData); return true }

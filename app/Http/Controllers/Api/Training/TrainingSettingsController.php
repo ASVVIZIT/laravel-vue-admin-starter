@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers\Api\Training;
 
 use App\Http\Controllers\Controller;
@@ -8,74 +7,31 @@ use App\Models\Acl;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 class TrainingSettingsController extends Controller
 {
-    // 🔥 ЕДИНАЯ ТОЧКА ПРАВДЫ — лимиты модуля Training
-    private const LIMITS = [
-        'max_shared_with'    => 100,   // Макс. пользователей в шаринге одной записи
-        'search_results_limit' => 100, // Макс. результатов поиска пользователей
-        'max_sets'           => 50,    // Макс. подходов в одной записи
-        'max_notes_length'   => 1000,  // Макс. длина заметки
-        'search_min_length'  => 2,     // Мин. длина поискового запроса
-    ];
+    // ❌ КОНСТАНТЫ УДАЛЕНЫ. Используем только сервис.
 
     public function __construct(private TrainingSettingsService $settings) {}
 
-    /**
-     * Получить лимит из констант (для использования в валидации и логике)
-     */
-    public static function getLimit(string $key): int
-    {
-        return self::LIMITS[$key] ?? 0;
-    }
-
-    /**
-     * Получить все лимиты (с возможностью переопределения из настроек)
-     */
-    public function getLimits(): array
-    {
-        $limits = self::LIMITS;
-
-        // Если в настройках есть переопределения — берём их
-        foreach ($limits as $key => $default) {
-            $stored = $this->settings->get("limits.{$key}");
-            if ($stored !== null && is_numeric($stored)) {
-                $limits[$key] = (int) $stored;
-            }
-        }
-
-        return $limits;
-    }
-
-    public function index(Request $request): JsonResponse
-    {
-        if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING)) {
-            return response()->json(['success' => false, 'message' => 'Доступ запрещён'], 403);
-        }
+    public function index(Request $request): JsonResponse {
+        if (!Auth::user()->can(Acl::PERMISSION_VIEW_TRAINING)) return response()->json(['success' => false, 'message' => 'Доступ запрещён'], 403);
 
         $tab = $request->get('tab', 'mine');
-        $grouping = $this->settings->resolveGroupingMode(Auth::id(), $tab);
-        $allSettings = $this->settings->getAllGrouped();
-
         return response()->json([
             'success' => true,
             'data' => [
-                'server'   => $allSettings['server'],
-                'frontend' => $allSettings['frontend'],
-                'grouping' => $grouping,
+                'server'   => $this->settings->getAllGrouped()['server'],
+                'frontend' => $this->settings->getAllGrouped()['frontend'],
+                'grouping' => $this->settings->resolveGroupingMode(Auth::id(), $tab),
                 'columns'  => $this->settings->getColumnsConfig(),
-                'limits'   => $this->getLimits(), // 🔥 НОВОЕ: лимиты модуля
+                'limits'   => $this->settings->getLimits(),
             ]
         ]);
     }
 
-    public function update(Request $request): JsonResponse
-    {
-        if (!Auth::user()->can(Acl::PERMISSION_MANAGE_TRAINING)) {
-            return response()->json(['success' => false, 'message' => 'Недостаточно прав'], 403);
-        }
+    public function update(Request $request): JsonResponse {
+        if (!Auth::user()->can(Acl::PERMISSION_MANAGE_TRAINING)) return response()->json(['success' => false, 'message' => 'Недостаточно прав'], 403);
 
         $data = $request->validate([
             'server.grouping_mode' => 'sometimes|in:auto,frontend,server',
@@ -85,24 +41,30 @@ class TrainingSettingsController extends Controller
             'server.logs_per_page' => 'sometimes|integer|min:10|max:200',
             'server.enable_stats' => 'sometimes|boolean',
             'server.enable_sharing' => 'sometimes|boolean',
-
             'server.enable_min_groups_check' => 'sometimes|boolean',
             'server.grouping_min_groups' => 'sometimes|integer|min:1|max:100',
+
+            'server.form_meta' => 'sometimes|array',
+            'server.form_meta.layout' => 'sometimes|in:horizontal,vertical',
+            'server.form_meta.visible_tabs' => 'sometimes|array',
+            'server.form_meta.visible_tabs.*' => 'string|in:interface,search,display,grouping',
+            'server.form_meta.tabs_order' => 'sometimes|array',
+            'server.form_meta.tabs_order.*' => 'string|in:interface,search,display,grouping',
 
             'frontend.default_tab' => 'sometimes|in:mine,shared-with-me,shared-by-me',
             'frontend.show_grouping_toggle' => 'sometimes|boolean',
             'frontend.filters_collapsed_mobile' => 'sometimes|boolean',
             'frontend.compact_view' => 'sometimes|boolean',
 
-            'columns' => 'sometimes|array',
-            'columns.mine' => 'sometimes|array',
-            'columns.mine.*' => 'boolean',
-            'columns.shared-with-me' => 'sometimes|array',
-            'columns.shared-with-me.*' => 'boolean',
-            'columns.shared-by-me' => 'sometimes|array',
-            'columns.shared-by-me.*' => 'boolean',
+            // 🔥 Консистентный префикс frontend.columns
+            'frontend.columns' => 'sometimes|array',
+            'frontend.columns.mine' => 'sometimes|array',
+            'frontend.columns.mine.*' => 'boolean',
+            'frontend.columns.shared-with-me' => 'sometimes|array',
+            'frontend.columns.shared-with-me.*' => 'boolean',
+            'frontend.columns.shared-by-me' => 'sometimes|array',
+            'frontend.columns.shared-by-me.*' => 'boolean',
 
-            // 🔥 НОВОЕ: валидация лимитов
             'limits' => 'sometimes|array',
             'limits.max_shared_with' => 'sometimes|integer|min:1|max:500',
             'limits.search_results_limit' => 'sometimes|integer|min:10|max:500',
@@ -111,17 +73,24 @@ class TrainingSettingsController extends Controller
             'limits.search_min_length' => 'sometimes|integer|min:1|max:10',
         ]);
 
-        DB::transaction(function () use ($data) {
-            foreach ($data as $group => $values) {
-                if (!is_array($values)) continue;
+        $flatSettings = [];
+        foreach ($data as $group => $values) {
+            if (!is_array($values)) continue;
 
-                foreach ($values as $key => $value) {
-                    $fullKey = "{$group}.{$key}";
-                    $normalizedValue = $this->normalizeValue($value);
-                    $this->settings->set($fullKey, $normalizedValue);
+            // Раскладываем frontend.columns в плоские ключи
+            if ($group === 'frontend' && isset($values['columns'])) {
+                foreach ($values['columns'] as $tab => $cols) {
+                    $flatSettings["frontend.columns.{$tab}"] = json_encode($cols);
                 }
+                unset($values['columns']);
             }
-        });
+
+            foreach ($values as $key => $value) {
+                $flatSettings["{$group}.{$key}"] = is_array($value) ? json_encode($value) : (is_bool($value) ? ($value ? 'true' : 'false') : (string)$value);
+            }
+        }
+
+        $this->settings->setMany($flatSettings);
 
         return response()->json([
             'success' => true,
@@ -130,22 +99,8 @@ class TrainingSettingsController extends Controller
                 'server'   => $this->settings->getAllGrouped()['server'],
                 'frontend' => $this->settings->getAllGrouped()['frontend'],
                 'columns'  => $this->settings->getColumnsConfig(),
-                'limits'   => $this->getLimits(), // 🔥 НОВОЕ
+                'limits'   => $this->settings->getLimits(),
             ]
         ]);
-    }
-
-    private function normalizeValue($value)
-    {
-        if (is_array($value)) return json_encode($value);
-        if (is_bool($value)) return $value ? 'true' : 'false';
-        if (is_int($value) || is_float($value)) return (string)$value;
-        if (is_string($value)) {
-            $lower = strtolower(trim($value));
-            if (in_array($lower, ['true', '1'], true)) return 'true';
-            if (in_array($lower, ['false', '0', ''], true)) return 'false';
-            return $value;
-        }
-        return (string)$value;
     }
 }

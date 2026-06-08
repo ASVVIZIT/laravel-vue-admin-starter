@@ -1,47 +1,27 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { TrainingSettingsService } from '@/components/Training/services/TrainingSettingsService.js';
+import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js';
+import { deepClone } from '@/components/Training/utils/appSettingsHelpersUtils.js';
 
 const service = new TrainingSettingsService();
 
 export const useTrainingSettingsStore = defineStore('training-settings', () => {
-    const serverSettings = ref({
-        grouping_mode: 'auto',
-        grouping_auto_threshold: 500,
-        grouping_by: 'user',
-        grouping_per_page: 10,
-        logs_per_page: 50,
-        enable_stats: true,
-        enable_sharing: true,
-        enable_min_groups_check: true,
-        grouping_min_groups: 3,
-        form_meta: {
-            layout: 'horizontal',
-            visible_tabs: ['interface', 'search', 'display', 'grouping'],
-            tabs_order: ['interface', 'search', 'display', 'grouping'],
-        }
-    });
+    // Инициализация из единого источника дефолтов (DRY)
+    const serverSettings = ref(deepClone({
+        ...SETTINGS_DEFAULTS_CONFIG.display.server,
+        ...SETTINGS_DEFAULTS_CONFIG.grouping.server,
+        form_meta: deepClone(SETTINGS_DEFAULTS_CONFIG.meta)
+    }));
 
-    const frontendSettings = ref({
-        default_tab: 'mine',
-        show_grouping_toggle: true,
-        filters_collapsed_mobile: true,
-        compact_view: false
-    });
+    const frontendSettings = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend));
 
-    const limits = ref({
-        max_shared_with: 100,
-        search_results_limit: 100,
-        max_sets: 50,
-        max_notes_length: 1000,
-        search_min_length: 2
-    });
+    const limits = ref(deepClone({
+        ...SETTINGS_DEFAULTS_CONFIG.search.limits,
+        ...SETTINGS_DEFAULTS_CONFIG.display.limits
+    }));
 
-    const columnsConfig = ref({
-        'mine': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true },
-        'shared-with-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: false },
-        'shared-by-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true }
-    });
+    const columnsConfig = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.interface.columns));
 
     const groupingModes = ref({
         'mine': { mode: 'frontend', reason: 'Default' },
@@ -65,7 +45,7 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
 
     const getColumnsForTabStore = (tab) => columnsConfig.value[tab] || columnsConfig.value['mine'];
 
-    // 🔥 НОВОЕ: Снапшот всех настроек для панели отладки
+    // Снапшот всех настроек для панели отладки
     const settingsDebugSnapshot = computed(() => ({
         meta: serverSettings.value.form_meta || {},
         interface: {
@@ -119,7 +99,8 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
                     serverSettings.value = { ...serverSettings.value, ...result.data.server };
                 }
                 if (result.data.frontend) {
-                    const { 'columns.mine': _1, 'columns.shared-with-me': _2, 'columns.shared-by-me': _3, ...commonFrontend } = result.data.frontend;
+                    // columns теперь вложенный объект, а не плоские ключи
+                    const { columns, ...commonFrontend } = result.data.frontend;
                     frontendSettings.value = { ...frontendSettings.value, ...commonFrontend };
                 }
                 if (result.data.grouping) {
@@ -167,33 +148,17 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         try {
             const defaultPayload = {
                 server: {
-                    grouping_mode: 'auto',
-                    grouping_auto_threshold: 500,
-                    grouping_by: 'user',
-                    grouping_per_page: 10,
-                    logs_per_page: 50,
-                    enable_stats: true,
-                    enable_sharing: true,
-                    enable_min_groups_check: true,
-                    grouping_min_groups: 3
+                    ...SETTINGS_DEFAULTS_CONFIG.display.server,
+                    ...SETTINGS_DEFAULTS_CONFIG.grouping.server,
+                    form_meta: deepClone(SETTINGS_DEFAULTS_CONFIG.meta)
                 },
                 frontend: {
-                    default_tab: 'mine',
-                    show_grouping_toggle: true,
-                    filters_collapsed_mobile: true,
-                    compact_view: false
+                    ...deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
+                    columns: deepClone(SETTINGS_DEFAULTS_CONFIG.interface.columns)
                 },
                 limits: {
-                    max_shared_with: 100,
-                    search_results_limit: 100,
-                    max_sets: 50,
-                    max_notes_length: 1000,
-                    search_min_length: 2
-                },
-                columns: {
-                    'mine': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true },
-                    'shared-with-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: false },
-                    'shared-by-me': { date: true, time: true, exercise: true, sharing: true, sets: true, reps: true, volume: true, rating: true, actions: true }
+                    ...SETTINGS_DEFAULTS_CONFIG.search.limits,
+                    ...SETTINGS_DEFAULTS_CONFIG.display.limits
                 }
             };
 
@@ -215,7 +180,7 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
     return {
         serverSettings, frontendSettings, limits, columnsConfig, groupingModes, loading, error, validationErrors,
         isGroupingToggleVisibleStore, getGroupingModeForTabStore, isServerGroupingActiveStore, getColumnsForTabStore,
-        settingsDebugSnapshot, // 🔥 ЭКСПОРТИРУЕМ
+        settingsDebugSnapshot,
         fetchSettingsStore, updateSettingsStore, resetSettingsStore
     };
 });

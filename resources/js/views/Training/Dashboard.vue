@@ -1,9 +1,18 @@
 <template>
   <div class="training-dashboard">
     <TrainingDashboardHeader
-        :summary="summary" :stats="stats" :loading="logStore.currentLoading" :show-form="showForm"
-        :show-settings="true" :show-debug="true" :debug-visible="debugStore.isVisible"
-        @toggle-form="toggleForm" @toggle-settings="toggleSettings" @toggle-debug="debugStore.toggleVisibility()" @refresh="handleRefresh"
+        :summary="summary"
+        :stats="stats"
+        :show-stats="settingsStore.serverSettings?.enable_stats !== false"
+        :loading="logStore.currentLoading"
+        :show-form="showForm"
+        :show-settings="true"
+        :show-debug="true"
+        :debug-visible="debugStore.isVisible"
+        @toggle-form="toggleForm"
+        @toggle-settings="toggleSettings"
+        @toggle-debug="debugStore.toggleVisibility()"
+        @refresh="handleRefresh"
     />
 
     <div class="tabs-row">
@@ -48,7 +57,6 @@
     </main>
 
     <el-dialog v-model="showForm" :title="isEdit ? 'Редактирование' : 'Новая запись'" width="900px" destroy-on-close>
-      <!-- 🔑 :key гарантирует полный пересозд компонента при смене режима -->
       <TrainingLogForm
           :key="currentLogId ?? 'new'"
           :log-id="currentLogId"
@@ -121,7 +129,6 @@ const currentGroupingInfo = computed(() => {
 
 const emptyDescription = computed(() => logStore.config?.emptyText || 'Записей не найдено')
 
-/* 🔥 ИСПРАВЛЕНО: всегда открывает ЧИСТУЮ форму */
 const toggleForm = () => {
   if (showForm.value) return showForm.value = false
   currentLogId.value = null
@@ -138,7 +145,6 @@ const handleEdit = (log) => {
   showForm.value = true
 }
 
-/* Удаление из таблицы */
 const handleTableDelete = async (logId) => {
   try {
     await ElMessageBox.confirm('Удалить запись?', 'Подтверждение', { type: 'warning' })
@@ -193,21 +199,48 @@ onMounted(async () => {
   debug.action('Dashboard начал инициализацию', { defaultTab: activeTab.value })
   try {
     await settingsStore.fetchSettingsStore('mine')
-    const defaultTab = frontendSettings.value.default_tab
-    if (defaultTab && tabConfig[defaultTab]) { activeTab.value = defaultTab; debug.action('Применена вкладка по умолчанию', { tab: defaultTab }) }
-  } catch (err) { debug.error('Ошибка загрузки настроек', err) }
 
-  logStore.setActiveTab(activeTab.value); logStore.loadFiltersFromStorage()
+    // 🔥 ПРИМЕНЕНИЕ: logs_per_page → пагинация
+    const logsPerPage = settingsStore.serverSettings?.logs_per_page
+    if (logsPerPage && logStore.setPerPage) {
+      logStore.setPerPage(logsPerPage)
+      debug.action('Применён размер страницы из настроек', { logsPerPage })
+    }
+
+    const defaultTab = frontendSettings.value.default_tab
+    if (defaultTab && tabConfig[defaultTab]) {
+      activeTab.value = defaultTab
+      debug.action('Применена вкладка по умолчанию', { tab: defaultTab })
+    }
+  } catch (err) {
+    debug.error('Ошибка загрузки настроек', err)
+  }
+
+  logStore.setActiveTab(activeTab.value)
+  logStore.loadFiltersFromStorage()
   try {
     await logStore.refreshCurrentTab()
-    debug.store('Первичная загрузка логов завершена', { tab: activeTab.value, logsLoaded: logStore.currentLogs.length, isGrouped: logStore.isGrouped })
-  } catch (err) { debug.error('Ошибка первичной загрузки логов', err) }
+    debug.store('Первичная загрузка логов завершена', {
+      tab: activeTab.value,
+      logsLoaded: logStore.currentLogs.length,
+      isGrouped: logStore.isGrouped
+    })
+  } catch (err) {
+    debug.error('Ошибка первичной загрузки логов', err)
+  }
 
-  exerciseStore.fetchExercisesStore().then(() => debug.store('Справочник упражнений загружен', { count: exerciseStore.exercises?.length || 0 })).catch(err => debug.error('Ошибка загрузки упражнений', err))
-  window.addEventListener('keydown', handleKeyDown); debug.action('Dashboard полностью смонтирован')
+  exerciseStore.fetchExercisesStore()
+      .then(() => debug.store('Справочник упражнений загружен', { count: exerciseStore.exercises?.length || 0 }))
+      .catch(err => debug.error('Ошибка загрузки упражнений', err))
+
+  window.addEventListener('keydown', handleKeyDown)
+  debug.action('Dashboard полностью смонтирован')
 })
 
-onUnmounted(() => { window.removeEventListener('keydown', handleKeyDown); debug.action('Dashboard размонтирован') })
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+  debug.action('Dashboard размонтирован')
+})
 </script>
 
 <style scoped>

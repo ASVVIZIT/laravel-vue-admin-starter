@@ -7,21 +7,43 @@
             :data-line="index"
             v-html="highlightLine(line)"
         ></span>
+        <!-- 🔥 Номер изменения (если есть) -->
+        <span v-if="getChangeNumber(index)" class="change-number">
+          {{ getChangeNumber(index) }}
+        </span>
       </div>
     </pre>
 
     <!-- Индикатор последних изменений -->
     <div v-if="recentChanges.length > 0" class="changes-indicator">
-      <div class="indicator-title">Последние изменения:</div>
-      <div
-          v-for="(change, idx) in recentChanges"
-          :key="idx"
-          class="change-item"
-          :class="`change-level-${idx}`"
-      >
-        <span class="change-time">{{ change.time }}</span>
-        <span class="change-path">{{ change.path }}</span>
-        <span class="change-value">{{ change.newValue }}</span>
+      <div class="indicator-header">
+        <span class="indicator-title"> История изменений ({{ recentChanges.length }})</span>
+        <el-button
+            size="small"
+            type="danger"
+            text
+            @click="clearAllHighlights"
+            class="clear-btn"
+            title="Убрать всю подсветку"
+        >
+          🗑 Очистить
+        </el-button>
+      </div>
+      <div class="changes-list">
+        <div
+            v-for="(change, idx) in recentChanges"
+            :key="idx"
+            class="change-item"
+            :class="`change-level-${getChangeLevel(idx)}`"
+            @click="scrollToChange(idx)"
+        >
+          <span class="change-number-badge">{{ idx + 1 }}</span>
+          <div class="change-content">
+            <span class="change-time">{{ change.time }}</span>
+            <span class="change-path">{{ change.path }}</span>
+            <span class="change-value">{{ change.newValue }}</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -41,9 +63,9 @@ const containerRef = ref(null)
 const preRef = ref(null)
 const highlightedLines = ref([])
 const recentChanges = ref([])
-const MAX_RECENT_CHANGES = 3
 const MAX_DEPTH = 5
 
+// 🔥 Map: lineIndex → changeIndex (0, 1, 2, 3...)
 const changedLinesMap = ref(new Map())
 
 // ============================================================================
@@ -66,6 +88,7 @@ const trackSettingsChanges = () => {
   const changes = findChanges(previousSettings.value, currentSettings, '')
 
   if (changes.length > 0) {
+    // 🔥 Добавляем ВСЕ изменения (без лимита)
     recentChanges.value.unshift(...changes.map(change => ({
       ...change,
       time: new Date().toLocaleTimeString('ru-RU', {
@@ -75,7 +98,6 @@ const trackSettingsChanges = () => {
       })
     })))
 
-    recentChanges.value = recentChanges.value.slice(0, MAX_RECENT_CHANGES)
     previousSettings.value = currentSettings
 
     nextTick(() => {
@@ -142,15 +164,15 @@ const contextDebugInfo = computed(() => {
   const groupingInfo = settingsStore.getGroupingModeForTabStore(tab)
 
   return {
-    '📌 Текущий контекст': {
+    ' Текущий контекст': {
       'Вкладка': tab,
       'Загружено записей': logStore.currentLogs.length,
       'Таблица сгруппирована': logStore.isGrouped ? '✅ Да' : '❌ Нет',
       'Текущая страница': logStore.currentPagination.page
     },
     '⚙️ Режим группировки': {
-      'Текущий режим': groupingInfo.mode === 'server' ? '🖥 Серверный' : '📱 Фронтенд',
-      'Принудительный режим': logStore.currentForcedMode ? (logStore.currentForcedMode === 'server' ? '🖥 Серверный' : '📱 Фронтенд') : 'Нет (Авто)',
+      'Текущий режим': groupingInfo.mode === 'server' ? ' Серверный' : '📱 Фронтенд',
+      'Принудительный режим': logStore.currentForcedMode ? (logStore.currentForcedMode === 'server' ? ' Серверный' : '📱 Фронтенд') : 'Нет (Авто)',
       'Причина решения': groupingInfo.reason || 'Неизвестно'
     },
     '🎯 Активные фильтры (для этой вкладки)': logStore.currentFilters,
@@ -172,14 +194,14 @@ const settingsConfigInfo = computed(() => {
       'Frontend настройки': snapshot.interface?.frontend || {},
       'Колонки таблицы': snapshot.interface?.columns || {}
     },
-    ' Поиск': {
+    '🔍 Поиск': {
       'Лимиты поиска': snapshot.search?.limits || {}
     },
     '📊 Отображение': {
       'Server настройки': snapshot.display?.server || {},
       'Лимиты': snapshot.display?.limits || {}
     },
-    '🗂 Группировки': snapshot.grouping || {}
+    ' Группировки': snapshot.grouping || {}
   }
 })
 
@@ -196,7 +218,7 @@ watch(formattedDebugInfo, (newJson) => {
 }, { immediate: true })
 
 // ============================================================================
-// Подсветка измененных строк
+// Подсветка измененных строк (ПОСТОЯННАЯ)
 // ============================================================================
 const updateLineHighlighting = () => {
   if (recentChanges.value.length === 0) {
@@ -208,6 +230,7 @@ const updateLineHighlighting = () => {
   const lines = jsonText.split('\n')
   const changedMap = new Map()
 
+  // 🔥 Проходим по ВСЕМ изменениям (в обратном порядке, чтобы последние были сверху)
   recentChanges.value.forEach((change, changeIdx) => {
     const pathParts = change.path.split('.')
     const searchKey = pathParts[pathParts.length - 1]
@@ -222,15 +245,28 @@ const updateLineHighlighting = () => {
   changedLinesMap.value = changedMap
 }
 
+// 🔥 Получаем класс подсветки (без автоматического удаления)
 const getLineHighlightClass = (lineIndex) => {
   const changeIndex = changedLinesMap.value.get(lineIndex)
   if (changeIndex === undefined) return ''
 
-  if (changeIndex === 0) return 'highlight-latest'
-  if (changeIndex === 1) return 'highlight-second'
-  if (changeIndex === 2) return 'highlight-third'
+  // 🔥 Цвет зависит от "возраста" изменения
+  const age = changeIndex // 0 = самое новое, 1 = предыдущее, и т.д.
 
-  return 'highlight-old'
+  if (age === 0) return 'highlight-latest'      // Зеленый
+  if (age === 1) return 'highlight-second'      // Оранжевый
+  if (age === 2) return 'highlight-third'       // Желтый
+  if (age < 5) return 'highlight-recent'        // Светло-зеленый
+  if (age < 10) return 'highlight-old'          // Серый
+
+  return 'highlight-ancient'                    // Очень бледный
+}
+
+// 🔥 Получаем номер изменения для отображения
+const getChangeNumber = (lineIndex) => {
+  const changeIndex = changedLinesMap.value.get(lineIndex)
+  if (changeIndex === undefined) return null
+  return changeIndex + 1 // Нумерация с 1
 }
 
 // ============================================================================
@@ -261,15 +297,57 @@ const scrollToFirstChange = () => {
   if (!targetLine) return
 
   targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' })
+
+  // 🔥 Временная анимация (только для скролла, не убирает подсветку)
   targetLine.classList.add('scroll-target')
   setTimeout(() => {
     targetLine.classList.remove('scroll-target')
   }, 2000)
 }
 
+// 🔥 Скролл к конкретному изменению по клику
+const scrollToChange = (changeIndex) => {
+  const preElement = preRef.value
+  if (!preElement) return
+
+  const lines = preElement.querySelectorAll('.json-line-wrapper')
+  if (!lines || lines.length === 0) return
+
+  // Находим строку с этим changeIndex
+  let targetLine = null
+  changedLinesMap.value.forEach((idx, lineIdx) => {
+    if (idx === changeIndex && lines[lineIdx]) {
+      targetLine = lines[lineIdx]
+    }
+  })
+
+  if (targetLine) {
+    targetLine.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    targetLine.classList.add('scroll-target')
+    setTimeout(() => {
+      targetLine.classList.remove('scroll-target')
+    }, 2000)
+  }
+}
+
 // ============================================================================
-// Подсветка синтаксиса
+// Очистка всей подсветки
 // ============================================================================
+const clearAllHighlights = () => {
+  changedLinesMap.value = new Map()
+  recentChanges.value = []
+}
+
+// ============================================================================
+// Утилиты
+// ============================================================================
+const getChangeLevel = (idx) => {
+  if (idx === 0) return 0
+  if (idx === 1) return 1
+  if (idx === 2) return 2
+  return 3
+}
+
 const escapeHtml = (unsafe) => {
   if (typeof unsafe !== 'string') return String(unsafe)
   return unsafe
@@ -282,16 +360,10 @@ const escapeHtml = (unsafe) => {
 
 const highlightLine = (line) => {
   let html = escapeHtml(line)
-
-  // Ключи
   html = html.replace(/"([^"]+)":/g, '<span class="hl-key">"$1"</span>:')
-  // Строки
   html = html.replace(/"([^"]*)"/g, '<span class="hl-string">"$1"</span>')
-  // Числа
   html = html.replace(/\b(\d+\.?\d*)\b/g, '<span class="hl-number">$1</span>')
-  // Boolean/null
   html = html.replace(/\b(true|false|null)\b/g, '<span class="hl-boolean">$1</span>')
-
   return html
 }
 
@@ -308,7 +380,7 @@ onMounted(() => {
   padding: 8px;
   background: rgba(20, 20, 20, 0.5);
   min-height: 0;
-  line-height: 1.4;
+  line-height: 1.1;
   width: 100%;
   box-sizing: border-box;
   position: relative;
@@ -323,56 +395,95 @@ onMounted(() => {
 }
 .state-container::-webkit-scrollbar-thumb:hover { background: #4ec9b0; }
 
-/* 🔥 ИСПРАВЛЕНО: Убираем лишние отступы */
 .json-pre {
   margin: 0;
   padding: 0;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 0.9em;
-  line-height: 0.4;
+  line-height: 1.0;
   white-space: pre;
   overflow: visible;
 }
 
-/* 🔥 ИСПРАВЛЕНО: Убираем display: block, используем flex для выравнивания */
 .json-line-wrapper {
   display: flex;
   align-items: center;
-  min-height: 1.4em; /* Высота строки */
+  min-height: 1.0em;
   padding: 0 4px;
   border-radius: 2px;
   transition: background-color 0.3s ease;
+  gap: 4px; /* 🔥 Отступ между текстом и номером */
 }
 
-/* 🔥 ИСПРАВЛЕНО: Убираем display: block */
 .json-line {
   flex: 1;
   white-space: pre;
   font-family: inherit;
+  line-height: 1.0;
+  min-width: 0; /* 🔥 Позволяет тексту сжиматься, не ломая flex */
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* Подсветка изменений */
+/* 🔥 Номер как часть строки, а не поверх */
+.change-number {
+  flex-shrink: 0; /* 🔥 Не сжимается */
+  height: 1.0em; /* 🔥 Высота = высоте строки */
+  line-height: 1.0em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(78, 201, 176, 0.25);
+  color: #4ec9b0;
+  font-size: 0.75em;
+  font-weight: bold;
+  padding: 0 5px;
+  border-radius: 2px;
+  min-width: 18px;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+/* ============================================================================
+   ПОДСВЕТКА ИЗМЕНЕНИЙ (ПОСТОЯННАЯ)
+   ============================================================================ */
+
+/* Самое новое изменение — ярко-зеленый */
 .json-line-wrapper.highlight-latest {
   background: rgba(78, 201, 176, 0.3) !important;
   border-left: 3px solid #4ec9b0;
-  animation: highlightPulse 2s ease-in-out;
 }
 
+/* Второе — оранжевый */
 .json-line-wrapper.highlight-second {
-  background: rgba(255, 165, 0, 0.2) !important;
+  background: rgba(255, 165, 0, 0.25) !important;
   border-left: 3px solid #ffa500;
 }
 
+/* Третье — желтый */
 .json-line-wrapper.highlight-third {
-  background: rgba(255, 255, 0, 0.15) !important;
+  background: rgba(255, 255, 0, 0.2) !important;
   border-left: 3px solid #ffff00;
 }
 
+/* 4-5 — светло-зеленый */
+.json-line-wrapper.highlight-recent {
+  background: rgba(78, 201, 176, 0.15) !important;
+  border-left: 3px solid rgba(78, 201, 176, 0.5);
+}
+
+/* 6-10 — серый */
 .json-line-wrapper.highlight-old {
-  background: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   border-left: 3px solid #888;
 }
 
+/* 11+ — очень бледный */
+.json-line-wrapper.highlight-ancient {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-left: 3px solid #555;
+}
+
+/* Анимация скролла (временная) */
 @keyframes highlightPulse {
   0% { background: rgba(78, 201, 176, 0.5); }
   50% { background: rgba(78, 201, 176, 0.2); }
@@ -385,71 +496,115 @@ onMounted(() => {
   transition: all 0.3s ease;
 }
 
-/* 🔥 ИСПРАВЛЕНО: Используем :deep() для v-html контента */
+/* Подсветка синтаксиса */
 :deep(.hl-key) { color: #9cdcfe; font-weight: bold; }
 :deep(.hl-string) { color: #ce9178; }
 :deep(.hl-number) { color: #b5cea8; }
 :deep(.hl-boolean) { color: #569cd6; }
 
-/* Индикатор изменений */
+/* ============================================================================
+   ИНДИКАТОР ИЗМЕНЕНИЙ
+   ============================================================================ */
 .changes-indicator {
   position: sticky;
   bottom: 0;
-  background: rgba(30, 30, 30, 0.95);
+  background: rgba(30, 30, 30, 0.98);
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: 8px;
   margin-top: 8px;
   border-radius: 4px;
   backdrop-filter: blur(8px);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.indicator-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
 }
 
 .indicator-title {
   font-size: 0.85em;
   color: #858585;
-  margin-bottom: 6px;
   font-weight: 600;
+}
+
+.clear-btn {
+  color: #f48771 !important;
+  font-size: 0.85em;
+}
+
+.clear-btn:hover {
+  color: #ff6b6b !important;
+  background: rgba(244, 135, 113, 0.1);
+}
+
+.changes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .change-item {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
   padding: 4px 6px;
-  margin-bottom: 4px;
   border-radius: 3px;
   font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s;
   border-left: 3px solid;
 }
 
-.change-level-0 {
-  background: rgba(78, 201, 176, 0.15);
-  border-left-color: #4ec9b0;
+.change-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
 }
 
-.change-level-1 {
-  background: rgba(255, 165, 0, 0.1);
-  border-left-color: #ffa500;
+.change-number-badge {
+  background: rgba(78, 201, 176, 0.3);
+  color: #4ec9b0;
+  font-weight: bold;
+  font-size: 0.9em;
+  padding: 2px 6px;
+  border-radius: 3px;
+  min-width: 20px;
+  text-align: center;
 }
 
-.change-level-2 {
-  background: rgba(255, 255, 0, 0.08);
-  border-left-color: #ffff00;
+.change-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
 }
+
+.change-level-0 { border-left-color: #4ec9b0; background: rgba(78, 201, 176, 0.1); }
+.change-level-1 { border-left-color: #ffa500; background: rgba(255, 165, 0, 0.08); }
+.change-level-2 { border-left-color: #ffff00; background: rgba(255, 255, 0, 0.05); }
+.change-level-3 { border-left-color: #888; background: rgba(255, 255, 255, 0.03); }
 
 .change-time {
   color: #858585;
-  font-size: 0.9em;
+  font-size: 0.85em;
 }
 
 .change-path {
   color: #9cdcfe;
   font-family: monospace;
-  font-size: 0.95em;
+  font-size: 0.9em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .change-value {
   color: #d4d4d4;
-  font-size: 0.9em;
+  font-size: 0.85em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
