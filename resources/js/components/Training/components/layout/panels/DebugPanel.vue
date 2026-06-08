@@ -241,7 +241,7 @@ const copyState = async () => {
 }
 
 .debug-tab-pane {
-  height: 100%;
+  height: 350px;
   display: flex;
   flex-direction: column;
   position: relative;

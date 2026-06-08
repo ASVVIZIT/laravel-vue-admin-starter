@@ -14,8 +14,10 @@ const debugStore = useTrainingDebugStore()
 const logStore = useTrainingLogStore()
 const settingsStore = useTrainingSettingsStore()
 
-// 🔥 УМНАЯ ВЫЖИМКА: Только то, что нужно для понимания текущего поведения
-const debugInfo = computed(() => {
+// ============================================================================
+// РАЗДЕЛ 1: ТЕКУЩИЙ КОНТЕКСТ (уже был)
+// ============================================================================
+const contextDebugInfo = computed(() => {
   const tab = logStore.activeTab
   const groupingInfo = settingsStore.getGroupingModeForTabStore(tab)
 
@@ -28,7 +30,7 @@ const debugInfo = computed(() => {
     },
     '⚙️ Режим группировки': {
       'Текущий режим': groupingInfo.mode === 'server' ? '🖥 Серверный' : '📱 Фронтенд',
-      'Принудительный режим': logStore.currentForcedMode ? (logStore.currentForcedMode === 'server' ? '🖥 Серверный' : '📱 Фrontend') : 'Нет (Авто)',
+      'Принудительный режим': logStore.currentForcedMode ? (logStore.currentForcedMode === 'server' ? '🖥 Серверный' : '📱 Фронтенд') : 'Нет (Авто)',
       'Причина решения': groupingInfo.reason || 'Неизвестно'
     },
     '🎯 Активные фильтры (для этой вкладки)': logStore.currentFilters,
@@ -41,10 +43,42 @@ const debugInfo = computed(() => {
   }
 })
 
-const formattedDebugInfo = computed(() => JSON.stringify(debugInfo.value, null, 2))
+// ============================================================================
+// РАЗДЕЛ 2: КОНФИГУРАЦИЯ НАСТРОЕК (НОВОЕ!)
+// ============================================================================
+const settingsConfigInfo = computed(() => {
+  const snapshot = settingsStore.settingsDebugSnapshot || {}
+
+  return {
+    '📦 Мета-настройки формы': snapshot.meta || {},
+    '🎨 Интерфейс': {
+      'Frontend настройки': snapshot.interface?.frontend || {},
+      'Колонки таблицы': snapshot.interface?.columns || {}
+    },
+    '🔍 Поиск': {
+      'Лимиты поиска': snapshot.search?.limits || {}
+    },
+    '📊 Отображение': {
+      'Server настройки': snapshot.display?.server || {},
+      'Лимиты': snapshot.display?.limits || {}
+    },
+    '🗂 Группировки': snapshot.grouping || {}
+  }
+})
 
 // ============================================================================
-// ПОДСВЕТКА JSON СИНТАКСИСА (та же, что и была, для красоты)
+// ОБЪЕДИНЯЕМ ВСЁ ВМЕСТЕ
+// ============================================================================
+const fullDebugInfo = computed(() => ({
+  ...contextDebugInfo.value,
+  '═══════════════════════════════════════': {},
+  '⚙️ КОНФИГУРАЦИЯ НАСТРОЕК (авто-обновление)': settingsConfigInfo.value
+}))
+
+const formattedDebugInfo = computed(() => JSON.stringify(fullDebugInfo.value, null, 2))
+
+// ============================================================================
+// ПОДСВЕТКА JSON СИНТАКСИСА
 // ============================================================================
 const escapeHtml = (unsafe) => {
   return String(unsafe)
@@ -108,8 +142,8 @@ const highlightJson = (jsonString) => {
   line-height: 1.5;
 }
 
-/* 🔥 ЦВЕТА ПОДСВЕТКИ СИНТАКСИСА (VS Code Dark+ Theme) */
-:deep(.hl-key) { color: #9cdcfe; font-weight: bold; } /* Ключи теперь жирнее для читаемости */
+/* ЦВЕТА ПОДСВЕТКИ СИНТАКСИСА (VS Code Dark+ Theme) */
+:deep(.hl-key) { color: #9cdcfe; font-weight: bold; }
 :deep(.hl-string) { color: #ce9178; }
 :deep(.hl-number) { color: #b5cea8; }
 :deep(.hl-boolean), :deep(.hl-null) { color: #569cd6; }

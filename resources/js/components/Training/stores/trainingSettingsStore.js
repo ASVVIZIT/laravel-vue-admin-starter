@@ -14,7 +14,12 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         enable_stats: true,
         enable_sharing: true,
         enable_min_groups_check: true,
-        grouping_min_groups: 3
+        grouping_min_groups: 3,
+        form_meta: {
+            layout: 'horizontal',
+            visible_tabs: ['interface', 'search', 'display', 'grouping'],
+            tabs_order: ['interface', 'search', 'display', 'grouping'],
+        }
     });
 
     const frontendSettings = ref({
@@ -24,13 +29,12 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         compact_view: false
     });
 
-    // ⚠️ Дефолты = безопасные минимумы, перезапишутся из бэкенда при fetchSettingsStore()
     const limits = ref({
-        max_shared_with: 0,      // До загрузки = 0 (заблокирует шаринг)
-        search_results_limit: 0, // До загрузки = 0 (заблокирует поиск)
-        max_sets: 0,             // До загрузки = 0 (заблокирует подходы)
-        max_notes_length: 0,     // До загрузки = 0 (заблокирует заметки)
-        search_min_length: 2     // Это единственное безопасное значение
+        max_shared_with: 100,
+        search_results_limit: 100,
+        max_sets: 50,
+        max_notes_length: 1000,
+        search_min_length: 2
     });
 
     const columnsConfig = ref({
@@ -49,10 +53,58 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
     const error = ref(null);
     const validationErrors = ref({});
 
+    // ========================================================================
+    // COMPUTED
+    // ========================================================================
+
     const isGroupingToggleVisibleStore = computed(() => frontendSettings.value.show_grouping_toggle);
+
     const getGroupingModeForTabStore = (tab) => groupingModes.value[tab] || groupingModes.value['mine'];
+
     const isServerGroupingActiveStore = (tab) => getGroupingModeForTabStore(tab)?.mode === 'server';
+
     const getColumnsForTabStore = (tab) => columnsConfig.value[tab] || columnsConfig.value['mine'];
+
+    // 🔥 НОВОЕ: Снапшот всех настроек для панели отладки
+    const settingsDebugSnapshot = computed(() => ({
+        meta: serverSettings.value.form_meta || {},
+        interface: {
+            frontend: { ...frontendSettings.value },
+            columns: { ...columnsConfig.value }
+        },
+        search: {
+            limits: {
+                search_min_length: limits.value.search_min_length,
+                search_results_limit: limits.value.search_results_limit
+            }
+        },
+        display: {
+            server: {
+                logs_per_page: serverSettings.value.logs_per_page,
+                grouping_per_page: serverSettings.value.grouping_per_page,
+                enable_stats: serverSettings.value.enable_stats,
+                enable_sharing: serverSettings.value.enable_sharing
+            },
+            limits: {
+                max_shared_with: limits.value.max_shared_with,
+                max_sets: limits.value.max_sets,
+                max_notes_length: limits.value.max_notes_length
+            }
+        },
+        grouping: {
+            server: {
+                grouping_mode: serverSettings.value.grouping_mode,
+                grouping_auto_threshold: serverSettings.value.grouping_auto_threshold,
+                enable_min_groups_check: serverSettings.value.enable_min_groups_check,
+                grouping_min_groups: serverSettings.value.grouping_min_groups,
+                grouping_by: serverSettings.value.grouping_by
+            }
+        }
+    }));
+
+    // ========================================================================
+    // ACTIONS
+    // ========================================================================
 
     const fetchSettingsStore = async (tab = 'mine') => {
         loading.value = true;
@@ -132,10 +184,10 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
                     compact_view: false
                 },
                 limits: {
-                    max_shared_with: 0,
-                    search_results_limit: 0,
-                    max_sets: 0,
-                    max_notes_length: 0,
+                    max_shared_with: 100,
+                    search_results_limit: 100,
+                    max_sets: 50,
+                    max_notes_length: 1000,
                     search_min_length: 2
                 },
                 columns: {
@@ -163,6 +215,7 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
     return {
         serverSettings, frontendSettings, limits, columnsConfig, groupingModes, loading, error, validationErrors,
         isGroupingToggleVisibleStore, getGroupingModeForTabStore, isServerGroupingActiveStore, getColumnsForTabStore,
+        settingsDebugSnapshot, // 🔥 ЭКСПОРТИРУЕМ
         fetchSettingsStore, updateSettingsStore, resetSettingsStore
     };
 });
