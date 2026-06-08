@@ -19,7 +19,6 @@
 
 ## 2. Схема потока данных
 ```bash
-
 0. КОНФИГИ И УТИЛИТЫ (фронтенд)
   - config/settingsDefaultsConfig.js — единый источник дефолтов
   - utils/appSettingsHelpersUtils.js — deepClone, deepMerge
@@ -79,9 +78,9 @@
   
 ↓ computed / props / v-model
 
-7. КОМПОНЕНТЫ (применение настроек) │
+7. КОМПОНЕНТЫ (применение настроек)
   - Dashboard.vue — default_tab, compact_view, enable_stats, logs_per_page → пагинация, columnsConfig → таблица
-  - TrainingLogTable.vue — колонки, группировка, пагинация │
+  - TrainingLogTable.vue — колонки, группировка, пагинация
   - TrainingLogForm.vue — max_shared_with, max_notes_length, enable_sharing (скрытие блока шаринга)
   - TrainingUserSharingSelector.vue — лимиты шаринга, search_min_length (уже применяет настройки)
   - TrainingSettingsForm.vue — форма редактирования (4 панели)
