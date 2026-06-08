@@ -146,9 +146,9 @@ export const formatSetPreview = (set, type) => {
         return parts.join('/') || '—';
     }
 
-    // 🔥 2. Свободный вес с отягощением: "10 × 50"
+    // 🔥 2. Свободный вес с отягощением: "10×50кг" (БЕЗ пробелов!)
     if (type === 'weighted' && set.weight && set.weight > 0) {
-        return `${set.reps || 0} × ${set.weight}кг`;
+        return `${set.reps || 0}×${set.weight}кг`;
     }
 
     // 🔥 3. Bodyweight / other — ТОЛЬКО повторения, без "×"
