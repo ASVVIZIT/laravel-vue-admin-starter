@@ -132,10 +132,7 @@ export const formatSet = (set, exerciseType = 'bodyweight') => {
 export const formatSetPreview = (set, type) => {
     if (!set) return '—';
 
-    if (type === 'weighted') {
-        return `${set.reps || 0}×${set.weight || 0}кг`;
-    }
-
+    // 🔥 1. Кардио: длительность и/или дистанция
     if (type === 'cardio') {
         const parts = [];
         if (set.duration) {
@@ -149,8 +146,18 @@ export const formatSetPreview = (set, type) => {
         return parts.join('/') || '—';
     }
 
-    // bodyweight, other
-    return `${set.reps || '—'}×`;
+    // 🔥 2. Свободный вес с отягощением: "10 × 50"
+    if (type === 'weighted' && set.weight && set.weight > 0) {
+        return `${set.reps || 0} × ${set.weight}кг`;
+    }
+
+    // 🔥 3. Bodyweight / other — ТОЛЬКО повторения, без "×"
+    // Отжимания: "15", Приседания: "20", Подтягивания: "12"
+    if (set.reps) {
+        return `${set.reps}`;
+    }
+
+    return '—';
 };
 
 /**

@@ -4,7 +4,7 @@
         :data="logs"
         :row-key="getRowKey"
         :tree-props="{ children: 'children', hasChildren: 'hasChildren' }"
-        height="calc(100vh - 380px)"
+        height="calc(100vh - 340px)"
         style="width: 100%"
         :size="compact ? 'small' : 'default'"
         stripe
@@ -13,7 +13,7 @@
         empty-text="Записей не найдено"
         :class="{ 'compact-table': compact, 'grouped-table': isGrouped }"
     >
-      <!-- 🔥 КОЛОНКА ГРУППЫ -->
+      <!-- КОЛОНКА ГРУППЫ -->
       <el-table-column v-if="isGrouped" label="Пользователь / Группа" min-width="170" class-name="group-column" fixed="left" sortable>
         <template #default="{ row }">
           <span v-if="row.children" class="group-label">
@@ -46,7 +46,7 @@
         </template>
       </el-table-column>
 
-      <!-- 🔗 Индикатор шеринга -->
+      <!-- Индикатор шеринга -->
       <el-table-column v-if="isColumnVisible('sharing')" label="🔗" width="50" align="center">
         <template #default="{ row }">
           <template v-if="row.user_id">
@@ -65,7 +65,7 @@
       </el-table-column>
 
       <!-- Подходы -->
-      <el-table-column v-if="isColumnVisible('sets')" label="Подходы" min-width="190">
+      <el-table-column v-if="isColumnVisible('sets')" label="Подходы" min-width="210">
         <template #default="{ row }">
           <div v-if="row.sets" class="sets-preview-row">
             <span v-for="(set, i) in row.sets?.slice(0, 3)" :key="i" class="set-chip-text">{{ formatSetPreview(set, row.exercise?.type) }}</span>
@@ -163,24 +163,126 @@ const isColumnVisible = (columnName) => {
 
 <style scoped>
 .log-table-wrapper { font-size: 12px; display: flex; flex-direction: column; }
-.sets-preview-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; line-height: 1.3; min-height: 24px; }
-.set-chip-text { background: #f5f7fa; border: 1px solid #e4e7ed; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #606266; white-space: nowrap; font-weight: 500; }
-.more-chip { font-size: 10px; color: #409eff; cursor: help; background: #ecf5ff; border: 1px solid #b3d8ff; border-radius: 3px; padding: 1px 6px; }
+
+/* ========================================================================
+   ПОДХОДЫ В ТАБЛИЦЕ (компактный стиль, голубовато-серый)
+   ======================================================================== */
+.sets-preview-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  align-items: center;
+  background: #d9e9f5;
+  border: 1px solid #e4e7ed;
+  padding: 2px 3px;
+  border-radius: 4px;
+  font-size: 9px;
+  color: #606266;
+  white-space: nowrap;
+  font-weight: 500;
+  height: 22px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.set-chip-text {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #d4d7de;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  color: #606266;
+  white-space: nowrap;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.more-chip {
+  font-size: 9px;
+  color: #409eff;
+  cursor: help;
+  background: rgba(64, 158, 255, 0.1);
+  border: 1px solid #b3d8ff;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-weight: 500;
+}
+
+/* ========================================================================
+   ОБЩИЕ СТИЛИ ТАБЛИЦЫ
+   ======================================================================== */
 .rating-stars { color: #e6a23c; font-size: 12px; letter-spacing: 1px; }
 .text-muted { color: #909399; }
+.text-xs { font-size: 10px; }
+.ml-2 { margin-left: 8px; }
+
 .table-pagination { padding: 8px 0 0; display: flex; justify-content: flex-end; }
 :deep(.el-pagination__sizes) { min-width: 115px !important; }
 :deep(.el-select-dropdown) { z-index: 2100 !important; }
 :deep(.el-table__row) { cursor: pointer; }
 :deep(.el-table) { font-size: 12px; }
-:deep(.el-table .cell) { padding: 4px 8px; display: inline-flex; align-items: center; vertical-align: middle; }
-.text-xs { font-size: 10px; }
 
-.compact-table :deep(.el-table .cell) { padding: 2px 6px; }
-.compact-table :deep(.el-table__row) { height: 32px; }
-.compact-table .set-chip-text { padding: 1px 4px; font-size: 10px; }
-.compact-table .more-chip { padding: 0px 4px; font-size: 9px; }
+/* ========================================================================
+   КОМПАКТНАЯ ТАБЛИЦА (Глобальные переопределения для модуля Training)
+   ======================================================================== */
 
+/* Ячейки таблицы */
+:deep(.el-table .el-table__cell) {
+  padding: 1px 4px !important;
+  box-sizing: border-box;
+}
+
+:deep(.el-table .cell) {
+  padding: 1px 4px !important;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+/* Строки таблицы */
+:deep(.el-table__row) {
+  height: 28px !important;
+  min-height: 28px !important;
+}
+
+:deep(.el-table__row td) {
+  padding: 1px 4px !important;
+}
+
+/* Заголовки таблицы */
+:deep(.el-table__header th) {
+  padding: 1px 4px !important;
+  height: 28px !important;
+}
+
+:deep(.el-table__header .cell) {
+  padding: 1px 4px !important;
+  font-size: 11px !important;
+  font-weight: 600;
+}
+
+/* Компактный режим (если есть проп compact) */
+:deep(.el-table.compact-table .el-table__cell) {
+  padding: 1px 4px !important;
+}
+
+:deep(.el-table.compact-table .el-table__row) {
+  height: 24px !important;
+  min-height: 24px !important;
+}
+
+:deep(.el-table.compact-table .cell) {
+  padding: 1px 4px !important;
+  font-size: 11px;
+}
+
+.compact-table .set-chip-text { padding: 0px 3px; font-size: 8px; }
+.compact-table .more-chip { padding: 0px 3px; font-size: 8px; }
+
+/* ========================================================================
+   ГРУППИРОВКА
+   ======================================================================== */
 .grouped-table :deep(.el-table__row--level-0) { background-color: #f0f9ff !important; font-weight: 600; }
 .grouped-table :deep(.el-table__row--level-0:hover > td) { background-color: #e1f0ff !important; }
 .grouped-table :deep(.el-table__row--level-1) { background-color: #fff !important; }
@@ -192,6 +294,4 @@ const isColumnVisible = (columnName) => {
 
 .group-label { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: #303133; flex: 1; min-width: 0; }
 .group-name { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.ml-2 { margin-left: 8px; }
 </style>

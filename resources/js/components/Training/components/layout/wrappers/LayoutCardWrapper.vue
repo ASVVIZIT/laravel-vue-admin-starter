@@ -58,7 +58,7 @@ const wrapperClass = computed(() => ({
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 12px;
+  padding: 4px 8px;
   background: #f5f7fa;
   border-bottom: 1px solid #ebeef5;
   flex-shrink: 0;
@@ -67,7 +67,7 @@ const wrapperClass = computed(() => ({
 .card-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin: 0;
   font-size: 13px;
   font-weight: 600;
@@ -86,7 +86,7 @@ const wrapperClass = computed(() => ({
 }
 
 .card-footer {
-  padding: 10px 12px;
+  padding: 4px 8px;
   border-top: 1px solid #ebeef5;
   background: #fafafa;
   flex-shrink: 0;

@@ -24,6 +24,7 @@
             :shortcuts="config.date.shortcuts"
             @update:model-value="onDateChange"
             @clear="onDateClear"
+            :class="{ 'is-filter-active': localDate }"
             class="w-100"
         />
       </div>
@@ -38,6 +39,7 @@
             popper-class="training-filter-select-popper"
             @update:model-value="onExerciseChange"
             @clear="onExerciseClear"
+            :class="{ 'is-filter-active': localExerciseId && localExerciseId !== 'all' }"
             class="w-100"
         >
           <el-option label="Все упражнения" value="all" />
@@ -63,6 +65,7 @@
             :shortcuts="config.range.shortcuts"
             @update:model-value="onRangeChange"
             @clear="onRangeClear"
+            :class="{ 'is-filter-active': localRange && localRange.length === 2 }"
             class="w-100"
         />
       </div>
@@ -133,20 +136,28 @@ const logStore = useTrainingLogStore()
 const exerciseStore = useExerciseStore()
 const config = FILTER_BLOCKS
 
-// 🔥 Локальное состояние
+// Локальное состояние
 const localDate = ref(null)
-const localExerciseId = ref(null)
+const localExerciseId = ref('all')
 const localRange = ref([])
-const activeQuickDate = ref(null)
-const activeQuickRange = ref(null)
 
 const isSmallScreen = ref(window.innerWidth <= 900)
 const showExtras = ref(!isSmallScreen.value)
 
 const exercisesSnapshot = ref([])
 
-// 🔥 КРИТИЧНО: Флаг для предотвращения двойных запросов
 let isUpdatingFromStore = false
+
+// КЛЮЧЕВОЕ: activeQuickDate и activeQuickRange — computed из фильтров текущей вкладки
+const activeQuickDate = computed(() => {
+  const f = logStore.currentFilters
+  return findMatchingQuickDate(f.date)
+})
+
+const activeQuickRange = computed(() => {
+  const f = logStore.currentFilters
+  return findMatchingQuickRange(f.from, f.to)
+})
 
 // Watch: обновляем снимок упражнений при изменении фильтров
 watch(
@@ -179,7 +190,7 @@ const exerciseOptions = computed(() => {
 
   const baseList = exercisesSnapshot.value.length > 0 ? exercisesSnapshot.value : exerciseStore.exercises
 
-  if (localExerciseId.value) {
+  if (localExerciseId.value && localExerciseId.value !== 'all') {
     const selected = exerciseStore.exercises.find(ex => ex.id === localExerciseId.value)
     if (selected && !baseList.find(ex => ex.id === selected.id)) {
       return [...baseList, selected]
@@ -190,19 +201,16 @@ const exerciseOptions = computed(() => {
 
 const exerciseHint = computed(() => {
   const f = logStore.currentFilters
-  if (!localExerciseId.value) return config.exercise.hint.none
+  if (!localExerciseId.value || localExerciseId.value === 'all') return config.exercise.hint.none
   if (!f.date && !f.from) return config.exercise.hint.all
   return config.exercise.hint.filtered
 })
 
-// 🔥 КРИТИЧНО: Синхронизация Store → Local (только когда изменение извне)
+// Синхронизация Store → Local
 watch(() => logStore.currentFilters.date, (newVal) => {
   if (isUpdatingFromStore) return
   if (newVal !== localDate.value) {
     localDate.value = newVal
-    if (!activeQuickDate.value || !isDateMatchingQuickButton(newVal, activeQuickDate.value)) {
-      activeQuickDate.value = null
-    }
   }
 })
 
@@ -211,32 +219,126 @@ watch(() => [logStore.currentFilters.from, logStore.currentFilters.to], ([newFro
   const current = localRange.value || []
   if (newFrom !== current[0] || newTo !== current[1]) {
     localRange.value = (newFrom && newTo) ? [newFrom, newTo] : []
-    if (!activeQuickRange.value || !isRangeMatchingQuickButton(newFrom, newTo, activeQuickRange.value)) {
-      activeQuickRange.value = null
-    }
   }
 })
 
 watch(() => logStore.currentFilters.exercise_id, (newVal) => {
   if (isUpdatingFromStore) return
-  if (newVal !== localExerciseId.value) {
-    localExerciseId.value = newVal
-  }
+  localExerciseId.value = newVal || 'all'
 })
 
-// 🔥 КРИТИЧНО: Сброс локального состояния при смене вкладки
-watch(() => logStore.activeTab, () => {
+// Единая функция применения фильтров
+const applyFilters = (params) => {
   isUpdatingFromStore = true
-  const f = logStore.currentFilters
-  localDate.value = f.date
-  localExerciseId.value = f.exercise_id
-  localRange.value = (f.from && f.to) ? [f.from, f.to] : []
-  activeQuickDate.value = null
-  activeQuickRange.value = null
+
+  const cleanParams = {}
+  if ('page' in params && params.page !== undefined) cleanParams.page = params.page
+  if ('per_page' in params && params.per_page !== undefined) cleanParams.per_page = params.per_page
+  if ('date' in params) cleanParams.date = params.date || null
+  if ('exercise_id' in params) cleanParams.exercise_id = params.exercise_id || null
+  if ('from' in params) cleanParams.from = params.from || null
+  if ('to' in params) cleanParams.to = params.to || null
+
+  logStore.applyFilters(cleanParams)
+
   nextTick(() => {
     isUpdatingFromStore = false
   })
-})
+}
+
+// Обработчики событий
+const onDateChange = (val) => {
+  if (isUpdatingFromStore) return
+  localRange.value = []
+  showExtras.value = true
+  applyFilters({ date: val, from: null, to: null, page: 1 })
+}
+
+const onDateClear = () => {
+  if (isUpdatingFromStore) return
+  localDate.value = null
+  showExtras.value = false
+  applyFilters({ date: null, from: null, to: null, page: 1 })
+}
+
+const onRangeChange = (val) => {
+  if (isUpdatingFromStore) return
+  localDate.value = null
+  showExtras.value = true
+  applyFilters({ date: null, from: val?.[0] || null, to: val?.[1] || null, page: 1 })
+}
+
+const onRangeClear = () => {
+  if (isUpdatingFromStore) return
+  localRange.value = []
+  showExtras.value = false
+  applyFilters({ date: null, from: null, to: null, page: 1 })
+}
+
+const onExerciseChange = (val) => {
+  if (isUpdatingFromStore) return
+  applyFilters({ exercise_id: val === 'all' ? null : val, page: 1 })
+}
+
+const onExerciseClear = () => {
+  if (isUpdatingFromStore) return
+  localExerciseId.value = 'all'
+  applyFilters({ exercise_id: null, page: 1 })
+}
+
+const handleQuickDate = (type) => {
+  if (isUpdatingFromStore) return
+  localRange.value = []
+  const d = new Date(); d.setHours(0,0,0,0)
+  if (type === 'yesterday') d.setDate(d.getDate() - 1)
+  if (type === 'tomorrow') d.setDate(d.getDate() + 1)
+  const dateStr = d.toISOString().split('T')[0]
+  localDate.value = dateStr
+  showExtras.value = true
+  applyFilters({ date: dateStr, from: null, to: null, page: 1 })
+}
+
+const handleQuickRange = (type) => {
+  if (isUpdatingFromStore) return
+  localDate.value = null
+  const now = new Date(); now.setHours(0,0,0,0); let start = new Date(now)
+  switch (type) {
+    case 'week': start.setDate(now.getDate() - ((now.getDay() || 7) - 1)); break;
+    case 'month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
+    case 'quarter': { const q = Math.floor(now.getMonth() / 3); start = new Date(now.getFullYear(), q * 3, 1); break; }
+    case 'halfyear': { const h = now.getMonth() >= 6 ? 6 : 0; start = new Date(now.getFullYear(), h, 1); break; }
+  }
+  start.setHours(0,0,0,0)
+  const fmt = d => d.toISOString().split('T')[0]
+  localRange.value = [fmt(start), fmt(now)]
+  showExtras.value = true
+  applyFilters({ date: null, from: fmt(start), to: fmt(now), page: 1 })
+}
+
+const clearAll = () => {
+  if (isUpdatingFromStore) return
+  localDate.value = null
+  localExerciseId.value = 'all'
+  localRange.value = []
+  showExtras.value = false
+  logStore.clearFilters()
+}
+
+const findMatchingQuickDate = (date) => {
+  if (!date) return null
+  for (const btn of config.date.quickButtons) {
+    if (isDateMatchingQuickButton(date, btn.id)) return btn.id
+  }
+  return null
+}
+
+const findMatchingQuickRange = (from, to) => {
+  if (!from || !to) return null
+  for (const btn of config.range.quickButtons) {
+    if (isRangeMatchingQuickButton(from, to, btn.id)) return btn.id
+  }
+  return null
+}
 
 const isDateMatchingQuickButton = (date, buttonId) => {
   if (!date || !buttonId) return false
@@ -264,115 +366,6 @@ const isRangeMatchingQuickButton = (from, to, buttonId) => {
   return false
 }
 
-// 🔥 КРИТИЧНО: Единая функция применения фильтров
-const applyFilters = (params) => {
-  isUpdatingFromStore = true
-
-  const cleanParams = {}
-  if ('page' in params && params.page !== undefined) cleanParams.page = params.page
-  if ('per_page' in params && params.per_page !== undefined) cleanParams.per_page = params.per_page
-  if ('date' in params) cleanParams.date = params.date || null
-  if ('exercise_id' in params) cleanParams.exercise_id = params.exercise_id || null
-  if ('from' in params) cleanParams.from = params.from || null
-  if ('to' in params) cleanParams.to = params.to || null
-
-  logStore.applyFilters(cleanParams)
-
-  nextTick(() => {
-    isUpdatingFromStore = false
-  })
-}
-
-// 🔥 ИСПРАВЛЕНО: Обработчики событий
-const onDateChange = (val) => {
-  if (isUpdatingFromStore) return
-  activeQuickDate.value = null
-  localRange.value = []
-  activeQuickRange.value = null
-  showExtras.value = true
-  applyFilters({ date: val, from: null, to: null, page: 1 })
-}
-
-const onDateClear = () => {
-  if (isUpdatingFromStore) return
-  activeQuickDate.value = null
-  localDate.value = null
-  showExtras.value = false
-  applyFilters({ date: null, from: null, to: null, page: 1 })
-}
-
-const onRangeChange = (val) => {
-  if (isUpdatingFromStore) return
-  activeQuickRange.value = null
-  localDate.value = null
-  activeQuickDate.value = null
-  showExtras.value = true
-  applyFilters({ date: null, from: val?.[0] || null, to: val?.[1] || null, page: 1 })
-}
-
-const onRangeClear = () => {
-  if (isUpdatingFromStore) return
-  activeQuickRange.value = null
-  localRange.value = []
-  showExtras.value = false
-  applyFilters({ date: null, from: null, to: null, page: 1 })
-}
-
-const onExerciseChange = (val) => {
-  if (isUpdatingFromStore) return
-  applyFilters({ exercise_id: val === 'all' ? null : val, page: 1 })
-}
-
-const onExerciseClear = () => {
-  if (isUpdatingFromStore) return
-  localExerciseId.value = null
-  applyFilters({ exercise_id: null, page: 1 })
-}
-
-const handleQuickDate = (type) => {
-  if (isUpdatingFromStore) return
-  localRange.value = []
-  activeQuickRange.value = null
-  activeQuickDate.value = type
-  const d = new Date(); d.setHours(0,0,0,0)
-  if (type === 'yesterday') d.setDate(d.getDate() - 1)
-  if (type === 'tomorrow') d.setDate(d.getDate() + 1)
-  const dateStr = d.toISOString().split('T')[0]
-  localDate.value = dateStr
-  showExtras.value = true
-  applyFilters({ date: dateStr, from: null, to: null, page: 1 })
-}
-
-const handleQuickRange = (type) => {
-  if (isUpdatingFromStore) return
-  localDate.value = null
-  activeQuickDate.value = null
-  activeQuickRange.value = type
-  const now = new Date(); now.setHours(0,0,0,0); let start = new Date(now)
-  switch (type) {
-    case 'week': start.setDate(now.getDate() - ((now.getDay() || 7) - 1)); break;
-    case 'month': start = new Date(now.getFullYear(), now.getMonth(), 1); break;
-    case 'quarter': { const q = Math.floor(now.getMonth() / 3); start = new Date(now.getFullYear(), q * 3, 1); break; }
-    case 'halfyear': { const h = now.getMonth() >= 6 ? 6 : 0; start = new Date(now.getFullYear(), h, 1); break; }
-  }
-  start.setHours(0,0,0,0)
-  const fmt = d => d.toISOString().split('T')[0]
-  localRange.value = [fmt(start), fmt(now)]
-  showExtras.value = true
-  applyFilters({ date: null, from: fmt(start), to: fmt(now), page: 1 })
-}
-
-const clearAll = () => {
-  if (isUpdatingFromStore) return
-  localDate.value = null
-  localExerciseId.value = null
-  localRange.value = []
-  activeQuickDate.value = null
-  activeQuickRange.value = null
-  showExtras.value = false
-  logStore.clearFilters()
-}
-
 const handleResize = () => {
   const small = window.innerWidth <= 900
   isSmallScreen.value = small
@@ -382,20 +375,12 @@ const handleResize = () => {
 onMounted(async () => {
   if (!exerciseStore.exercisesLoaded) await exerciseStore.fetchExercisesStore()
 
-  // 🔥 Синхронизация при старте
   isUpdatingFromStore = true
   const f = logStore.currentFilters
   localDate.value = f.date
-  localExerciseId.value = f.exercise_id
+  localExerciseId.value = f.exercise_id || 'all'
   if (f.from && f.to) localRange.value = [f.from, f.to]
 
-  if (f.date && isDateMatchingQuickButton(f.date, 'today')) activeQuickDate.value = 'today'
-  else if (f.date && isDateMatchingQuickButton(f.date, 'yesterday')) activeQuickDate.value = 'yesterday'
-
-  if (f.from && f.to) {
-    if (isRangeMatchingQuickButton(f.from, f.to, 'week')) activeQuickRange.value = 'week'
-    else if (isRangeMatchingQuickButton(f.from, f.to, 'month')) activeQuickRange.value = 'month'
-  }
   nextTick(() => {
     isUpdatingFromStore = false
   })
@@ -407,7 +392,6 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
 </script>
 
 <style scoped>
-/* Стили остаются без изменений */
 .filter-bar { padding: 8px 12px; background: #fff; border-bottom: 1px solid #ebeef5; box-sizing: border-box; }
 .w-100 { width: 100%; }
 .filter-row-main, .filter-row-extras { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 6px; width: 100%; flex-wrap: nowrap; }
@@ -441,4 +425,68 @@ onUnmounted(() => window.removeEventListener('resize', handleResize))
 @media (max-width: 1200px) { .quick-btns-row .el-button { height: 20px; font-size: 9px; } .hint-container { font-size: 9px; } .reset-btn { font-size: 10px; } .col-date { flex: 0 0 25%; } .col-select { flex: 0 0 28%; } }
 @media (max-width: 900px) { .filter-bar { padding: 6px 8px; } .filter-row-main, .filter-row-extras { gap: 8px; } .col-date { flex: 0 0 20%; min-width: 110px; } .col-select { flex: 0 0 24%; min-width: 130px; } .col-range { flex: 1; min-width: 150px; } .col-reset { flex: 0 0 34px !important; min-width: 34px !important; margin-left: 2px; } .reset-btn span { display: none; } .quick-btns-row { gap: 3px; } .quick-btns-row .el-button { height: 22px; font-size: 9px; padding: 0 2px; } .hint-container { font-size: 9px; height: 22px; } .hint-icon { width: 0.9rem; height: 0.9rem; font-size: 11px; } }
 @media (max-width: 550px) { .filter-bar { padding: 4px 4px; } .filter-row-main, .filter-row-extras { gap: 4px; } .col-date { min-width: 95px; } .col-select { min-width: 105px; } .col-range { min-width: 120px; } .quick-btns-row { gap: 2px; } .quick-btns-row .el-button { min-width: 35px; height: 20px; font-size: 8px; padding: 0 1px; } .hint-container { font-size: 8px; height: 20px; gap: 2px; } .hint-icon { width: 0.75rem; height: 0.75rem; font-size: 10px; } }
+
+/* ========================================================================
+   ИНДИКАТОРЫ АКТИВНЫХ ФИЛЬТРОВ
+   ======================================================================== */
+
+/* Quick-кнопки в активном состоянии */
+.btn-quick.el-button--primary {
+  background-color: #409eff !important;
+  border-color: #409eff !important;
+  color: #fff !important;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
+  transition: all 0.2s ease;
+}
+
+.btn-quick.el-button--primary:hover {
+  background-color: #66b1ff !important;
+  border-color: #66b1ff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(64, 158, 255, 0.4);
+}
+
+/* Селект упражнения с активным фильтром */
+.col-select :deep(.el-select.is-filter-active .el-input__wrapper) {
+  border-color: #409eff !important;
+  box-shadow: 0 0 0 1px #409eff inset !important;
+  background-color: #ecf5ff !important;
+  transition: all 0.2s ease;
+}
+
+.col-select :deep(.el-select.is-filter-active .el-input__inner) {
+  color: #409eff;
+  font-weight: 600;
+}
+
+/* Date-picker с активным фильтром */
+.col-date :deep(.el-date-editor.is-filter-active .el-input__wrapper) {
+  border-color: #409eff !important;
+  box-shadow: 0 0 0 1px #409eff inset !important;
+  background-color: #ecf5ff !important;
+  transition: all 0.2s ease;
+}
+
+/* Range-picker с активным фильтром */
+.col-range :deep(.el-date-editor.is-filter-active .el-input__wrapper) {
+  border-color: #409eff !important;
+  box-shadow: 0 0 0 1px #409eff inset !important;
+  background-color: #ecf5ff !important;
+  transition: all 0.2s ease;
+}
+
+/* Анимация появления активного состояния */
+@keyframes filterActivate {
+  from {
+    box-shadow: 0 0 0 0 rgba(64, 158, 255, 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 1px #409eff inset;
+  }
+}
+
+.is-filter-active {
+  animation: filterActivate 0.3s ease-out;
+}
 </style>

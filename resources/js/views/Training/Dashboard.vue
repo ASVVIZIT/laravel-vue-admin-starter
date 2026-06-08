@@ -200,7 +200,6 @@ onMounted(async () => {
   try {
     await settingsStore.fetchSettingsStore('mine')
 
-    // 🔥 ПРИМЕНЕНИЕ: logs_per_page → пагинация
     const logsPerPage = settingsStore.serverSettings?.logs_per_page
     if (logsPerPage && logStore.setPerPage) {
       logStore.setPerPage(logsPerPage)
@@ -260,10 +259,39 @@ onUnmounted(() => {
 :deep(.el-pagination__sizes) { min-width: 115px !important; }
 :deep(.el-select-dropdown) { z-index: 2100 !important; }
 :deep(.el-table) { font-size: 12px; }
-:deep(.el-table .cell) { padding: 4px 8px; }
+:deep(.el-table .cell) { padding: 1px 4px !important; }
 @media (max-width: 768px) {
   .tabs-row { padding: 0 8px; }
   .compact-tabs :deep(.el-tabs__item) { font-size: 10px !important; padding: 0 8px !important; }
   .dashboard-main { padding: 2px; }
+}
+
+/* ========================================================================
+   КОМПАКТНЫЕ ЗАГОЛОВКИ МОДУЛЯ (только для Training)
+   ======================================================================== */
+
+:deep(.layout-card-wrapper .card-header) {
+  padding: 4px 8px !important;
+}
+
+:deep(.layout-card-wrapper .card-title) {
+  font-size: 13px !important;
+  gap: 4px;
+  margin: 0;
+}
+
+:deep(.layout-card-wrapper .card-content) {
+  padding: 4px !important;
+}
+
+:deep(.layout-card-wrapper .card-footer) {
+  padding: 4px 8px !important;
+}
+
+/* Заголовки внутри модуля */
+:deep(h1), :deep(h2), :deep(h3) {
+  margin: 2px 0 !important;
+  padding: 0 !important;
+  font-size: 14px !important;
 }
 </style>

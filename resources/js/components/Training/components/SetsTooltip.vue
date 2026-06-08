@@ -33,7 +33,6 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { List } from '@element-plus/icons-vue'
-// ✅ Единый импорт из основного файла утилит модуля
 import { formatSetPreview } from '@/components/Training/utils/appFormattersUtils.js'
 
 const props = defineProps({
@@ -71,12 +70,12 @@ const onMouseMove = (e) => {
   position: fixed;
   background: #fff;
   border: 1px solid #e4e7ed;
-  border-radius: 6px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-  padding: 8px 12px;
-  min-width: 180px;
-  max-width: 240px;
-  font-size: 11px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  padding: 4px 6px;
+  min-width: 100px;
+  max-width: 180px;
+  font-size: 9px;
   pointer-events: none;
   animation: fadeIn 0.15s ease;
 }
@@ -84,26 +83,33 @@ const onMouseMove = (e) => {
 .tooltip-header {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding-bottom: 6px;
-  margin-bottom: 6px;
+  gap: 3px;
+  padding-bottom: 4px;
+  margin-bottom: 4px;
   border-bottom: 1px dashed #ebeef5;
   color: #606266;
   font-weight: 500;
+  font-size: 10px;
 }
 
-.tooltip-header .el-icon { font-size: 12px; color: #409eff; }
+.tooltip-header .el-icon { font-size: 11px; color: #409eff; }
 
-.tooltip-body { display: flex; flex-direction: column; gap: 4px; }
+.tooltip-body { display: flex; flex-direction: column; gap: 2px; }
 
 .tooltip-set-row {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
+  padding: 1px 4px;
   color: #606266;
 }
 
-.set-index { color: #909399; font-weight: 500; }
+.tooltip-set-row:hover {
+  background: #f5f7fa;
+  border-radius: 2px;
+}
+
+.set-index { color: #909399; font-weight: 500; min-width: 20px; }
 .set-value { font-weight: 500; color: #303133; }
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s ease; }
