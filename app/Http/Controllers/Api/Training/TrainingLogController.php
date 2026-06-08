@@ -7,14 +7,20 @@ use App\Models\Training\TrainingLog;
 use App\Models\Training\Exercise;
 use App\Models\User;
 use App\Models\Acl;
+use App\Services\Training\TrainingSettingsService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Carbon\Carbon;
+use Carbon\Exceptions\InvalidFormatException;
 
 class TrainingLogController extends Controller
 {
+    public function __construct(
+        private TrainingSettingsService $settingsService
+    ) {}
+
     /**
      * GET /api/training/logs
      * Поддержка вкладок: mine / shared_with_me / shared_by_me
@@ -29,9 +35,8 @@ class TrainingLogController extends Controller
         $query = $this->buildTabQuery($userId, $request);
 
         // Фильтры (работают для всех вкладок)
-        if ($request->filled('date')) $query->forDate($request->date);
-        if ($request->filled('exercise_id')) $query->forExercise($request->exercise_id);
-        if ($request->filled('from') && $request->filled('to')) $query->forDateRange($request->from, $request->to);
+        $this->applyFilters($query, $request);
+
         if ($request->boolean('with_trashed')) $query->withTrashed();
 
         $perPage = $request->integer('per_page', 50);
@@ -54,11 +59,6 @@ class TrainingLogController extends Controller
     /**
      * GET /api/training/logs/grouped
      * 🔥 СЕРВЕРНАЯ ГРУППИРОВКА записей
-     *
-     * Параметры:
-     * - tab: mine | shared-with-me | shared-by-me
-     * - group_by: user | exercise | date
-     * - page, per_page (пагинация по группам, а не по записям)
      */
     public function grouped(Request $request): JsonResponse
     {
@@ -68,14 +68,22 @@ class TrainingLogController extends Controller
 
         $userId = Auth::id();
         $tab = $request->get('tab', 'mine');
-        $groupBy = $request->get('group_by', 'user');
+
+        // Валидация group_by
+        $groupBy = $request->validate([
+                'group_by' => 'sometimes|in:user,exercise,date'
+            ])['group_by'] ?? 'user';
+
         $perPage = $request->integer('per_page', 10);
         $page = $request->integer('page', 1);
 
         // Базовый запрос по вкладке
         $query = $this->buildTabQuery($userId, $request, $tab);
 
-        // Загружаем все записи (без пагинации — группировка на сервере)
+        // Применяем фильтры ПЕРЕД загрузкой
+        $this->applyFilters($query, $request);
+
+        // Загружаем отфильтрованные записи
         $logs = $query->with('exercise:id,name,type,default_unit', 'user:id,name,email')
             ->orderBy('date', 'desc')
             ->orderBy('time', 'desc')
@@ -86,9 +94,7 @@ class TrainingLogController extends Controller
             return match ($groupBy) {
                 'user' => "user_{$log->user_id}",
                 'exercise' => "exercise_{$log->exercise_id}",
-                'date' => $log->date instanceof Carbon
-                    ? $log->date->format('Y-m')
-                    : \Carbon\Carbon::parse($log->date)->format('Y-m'),
+                'date' => $this->formatDateGroup($log->date),
                 default => "user_{$log->user_id}",
             };
         });
@@ -99,9 +105,7 @@ class TrainingLogController extends Controller
             $label = match ($groupBy) {
                 'user' => $first->user?->name ?? "Пользователь #{$first->user_id}",
                 'exercise' => $first->exercise?->name ?? "Упражнение #{$first->exercise_id}",
-                'date' => $first->date instanceof Carbon
-                    ? $first->date->format('F Y')
-                    : \Carbon\Carbon::parse($first->date)->format('F Y'),
+                'date' => $this->formatDateLabel($first->date),
                 default => $key,
             };
 
@@ -214,7 +218,6 @@ class TrainingLogController extends Controller
 
     /**
      * GET /api/training/users/{user}/shared
-     * Просмотр чужих тренировок по ID пользователя
      */
     public function shared(Request $request, int $user): JsonResponse
     {
@@ -233,9 +236,8 @@ class TrainingLogController extends Controller
             ->latest('date')
             ->latest('time');
 
-        if ($request->filled('date')) $query->forDate($request->date);
-        if ($request->filled('from') && $request->filled('to')) $query->forDateRange($request->from, $request->to);
-        if ($request->filled('exercise_id')) $query->forExercise($request->exercise_id);
+        // Применяем фильтры
+        $this->applyFilters($query, $request);
 
         $perPage = $request->integer('per_page', 50);
         $logs = $query->paginate($perPage);
@@ -288,10 +290,6 @@ class TrainingLogController extends Controller
         return response()->json(['success' => true, 'message' => 'Запись удалена']);
     }
 
-    /**
-     * POST /api/training/logs/{log}/restore
-     * 🔥 Восстановление удалённой записи (soft delete)
-     */
     public function restore(TrainingLog $log): JsonResponse
     {
         $this->authorizeUpdate($log);
@@ -304,13 +302,8 @@ class TrainingLogController extends Controller
         return response()->json(['success' => true, 'message' => 'Запись восстановлена', 'data' => $log]);
     }
 
-    /**
-     * DELETE /api/training/logs/{log}/force
-     * 🔥 Полное (безвозвратное) удаление записи
-     */
     public function forceDelete(TrainingLog $log): JsonResponse
     {
-        // Полное удаление требует полных прав (manage_training)
         if (!Auth::user()->can(Acl::PERMISSION_MANAGE_TRAINING)) {
             abort(403, 'Недостаточно прав для полного удаления');
         }
@@ -320,17 +313,44 @@ class TrainingLogController extends Controller
     }
 
     // ========================================================================
+    // 🔥 Единый метод применения фильтров (DRY)
+    // ========================================================================
+    private function applyFilters($query, Request $request): void
+    {
+        if ($request->filled('date')) $query->forDate($request->date);
+        if ($request->filled('exercise_id')) $query->forExercise($request->integer('exercise_id'));
+        if ($request->filled('from') && $request->filled('to')) {
+            $query->forDateRange($request->from, $request->to);
+        }
+    }
+
+    // ========================================================================
+    // 🔥 НОВОЕ: Безопасное форматирование даты для группировки
+    // ========================================================================
+    private function formatDateGroup($date): string
+    {
+        try {
+            $carbon = $date instanceof Carbon ? $date : Carbon::parse($date);
+            return $carbon->format('Y-m');
+        } catch (InvalidFormatException $e) {
+            return 'unknown';
+        }
+    }
+
+    private function formatDateLabel($date): string
+    {
+        try {
+            $carbon = $date instanceof Carbon ? $date : Carbon::parse($date);
+            return $carbon->format('F Y');
+        } catch (InvalidFormatException $e) {
+            return 'Неизвестная дата';
+        }
+    }
+
+    // ========================================================================
     // ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
     // ========================================================================
 
-    /**
-     * 🔥 Построение базового запроса для вкладки
-     * Используется в index() и grouped() — единая логика для всех методов
-     *
-     * @param int $userId ID текущего пользователя
-     * @param Request $request HTTP-запрос
-     * @param string|null $tabOverride Явное указание вкладки (для grouped)
-     */
     private function buildTabQuery(int $userId, Request $request, ?string $tabOverride = null)
     {
         $tab = $tabOverride ?? $this->resolveTab($request);
@@ -361,9 +381,6 @@ class TrainingLogController extends Controller
         };
     }
 
-    /**
-     * Определение вкладки по параметрам запроса
-     */
     private function resolveTab(Request $request): string
     {
         if ($request->boolean('shared_with_me')) return 'shared-with-me';
@@ -390,8 +407,7 @@ class TrainingLogController extends Controller
     private function validationRules(bool $isUpdate = false): array
     {
         $req = $isUpdate ? 'sometimes' : 'required';
-        // 🔥 Динамический лимит из единой точки правды
-        $maxSharedWith = TrainingSettingsController::getLimit('max_shared_with');
+        $maxSharedWith = $this->settingsService->getLimit('max_shared_with');
 
         return [
             'exercise_id' => "{$req}|exists:exercises,id",
@@ -408,7 +424,7 @@ class TrainingLogController extends Controller
                 ];
             }),
             'is_public' => 'nullable|boolean',
-            'shared_with' => "nullable|array|max:{$maxSharedWith}", // 🔥 Динамический лимит
+            'shared_with' => "nullable|array|max:{$maxSharedWith}",
             'shared_with.*' => 'integer|exists:users,id',
             'notes' => 'nullable|string|max:1000',
             'rating' => 'nullable|integer|min:1|max:5',
