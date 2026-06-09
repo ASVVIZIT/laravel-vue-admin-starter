@@ -40,7 +40,7 @@ export const safeGetUtils = (obj, path, defaultValue = null) => {
 
 /**
  * ============================================================================
- * ЭКСПОРТ ЛОГОВ В CSV (СУФФИКС Utils) — ЗАЩИЩЕННАЯ ВЕРСИЯ (P0-P3)
+ * ЭКСПОРТ ЛОГОВ В CSV (СУФФИКС Utils) — ФИНАЛЬНАЯ ВЕРСИЯ С ПЕРЕНОСАМИ СТРОК
  * ============================================================================
  */
 export const exportLogsToCsvUtils = (logs, columnsConfig, activeTab = 'mine') => {
@@ -56,33 +56,29 @@ export const exportLogsToCsvUtils = (logs, columnsConfig, activeTab = 'mine') =>
     if (cols.time) { headers.push('Время'); keys.push('time'); }
     if (cols.exercise) { headers.push('Упражнение'); keys.push('exercise_name'); }
     if (cols.sharing) { headers.push('Доступ'); keys.push('access_type'); }
-    if (cols.sets) { headers.push('Подходы'); keys.push('sets'); } // Убрали "(JSON)"
+    if (cols.sets) { headers.push('Подходы'); keys.push('sets'); }
     if (cols.reps) { headers.push('Всего повторов'); keys.push('total_reps'); }
     if (cols.volume) { headers.push('Объём (кг)'); keys.push('total_volume'); }
     if (cols.rating) { headers.push('Оценка'); keys.push('rating'); }
 
-    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (P0/P1 FIXES) ---
+    // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 
-    // P0 Fix: Безопасный парсинг даты БЕЗ сдвига часовых поясов
     const formatDateForCsv = (dateStr) => {
         if (!dateStr) return '';
-        // Берем только "2026-06-06", разбиваем и переворачиваем в "06.06.2026"
         return String(dateStr).split('T')[0].split('-').reverse().join('.');
     };
 
-    // P1 Fix: Умное форматирование подходов (включая кардио и защиту от null)
+    // 🔥 ИЗМЕНЕНИЕ 1: Перенос строки (\n) вместо " | "
     const formatSetsForCsv = (sets) => {
         if (!Array.isArray(sets) || sets.length === 0) return 'Нет данных';
 
         return sets.map((set, idx) => {
-            // P0 Fix: Защита от null/undefined внутри массива
             if (!set || typeof set !== 'object') return `${idx + 1}. Ошибка данных`;
 
             const parts = [];
             if (set.reps) parts.push(`${set.reps}x`);
 
             if (set.weight) {
-                // P1 Fix: Заменяем точку на запятую для корректного распознавания чисел в RU Excel
                 parts.push(`${String(set.weight).replace('.', ',')}кг`);
             }
 
@@ -102,14 +98,14 @@ export const exportLogsToCsvUtils = (logs, columnsConfig, activeTab = 'mine') =>
 
             let baseStr = parts.join('') || 'Без параметров';
 
-            // P1 Fix: Жесткая очистка переносов строк и экранирование кавычек в заметках
             if (set.notes) {
+                // Очищаем переносы строк внутри самой заметки, чтобы не ломать формат ячейки
                 const cleanNote = String(set.notes).replace(/[\r\n]+/g, ' ').replace(/"/g, "'").trim();
                 if (cleanNote) baseStr += ` (${cleanNote})`;
             }
 
             return `${idx + 1}. ${baseStr}`;
-        }).join(' | '); // Разделитель подходов внутри одной ячейки
+        }).join('\n'); // 🔥 ГЛАВНОЕ: разделяем подходы переносом строки
     };
 
     // 2. Формируем строки данных
@@ -120,20 +116,29 @@ export const exportLogsToCsvUtils = (logs, columnsConfig, activeTab = 'mine') =>
             if (key === 'date') {
                 val = formatDateForCsv(log.date);
             } else if (key === 'time') {
-                // P2 Fix: Обрезаем секунды, если они есть (12:41:00 -> 12:41)
                 val = log.time ? String(log.time).substring(0, 5) : '';
             } else if (key === 'exercise_name') {
-                // P2 Fix: Фолбэки, если exercise это не объект
                 val = (typeof log.exercise === 'object' ? log.exercise?.name : log.exercise_name) || 'Неизвестно';
             } else if (key === 'access_type') {
-                val = log.is_public ? 'Публичный' : (log.shared_with?.length > 0 ? `Доступен (${log.shared_with.length})` : 'Личный');
+                // 🔥 ИЗМЕНЕНИЕ 2: Пытаемся показать имена, если бэкенд их отдает
+                if (log.is_public) {
+                    val = 'Публичный';
+                } else if (log.shared_with?.length > 0) {
+                    if (log.shared_with_users && Array.isArray(log.shared_with_users)) {
+                        const names = log.shared_with_users.map(u => u.name || u.email || `ID:${u.id}`).join(', ');
+                        val = `Доступен: ${names}`;
+                    } else {
+                        // Фолбэк, если бэкенд пока отдает только массив ID
+                        val = `Доступен (ID: ${log.shared_with.join(', ')})`;
+                    }
+                } else {
+                    val = 'Личный';
+                }
             } else if (key === 'sets') {
                 val = formatSetsForCsv(log.sets);
             } else if (key === 'total_reps') {
-                // P1 Fix: Локализованное число (59, а не 59.0)
                 val = Array.isArray(log.sets) ? log.sets.reduce((sum, s) => sum + (Number(s?.reps) || 0), 0).toLocaleString('ru-RU') : '0';
             } else if (key === 'total_volume') {
-                // P1 Fix: Локализованное число с плавающей точкой (1 144,2 вместо 1144.2)
                 val = (log.total_volume || 0).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
             } else if (key === 'rating') {
                 val = log.rating ? `${log.rating}/5` : '';
@@ -141,7 +146,9 @@ export const exportLogsToCsvUtils = (logs, columnsConfig, activeTab = 'mine') =>
                 val = log[key] ?? '';
             }
 
-            // Стандартное экранирование CSV: если есть ;, \n или ", оборачиваем в "" и удваиваем внутренние "
+            // 🔥 СТАНДАРТ RFC 4180: Если есть перенос строки (\n), точка с запятой (;) или кавычка ("),
+            // оборачиваем всю ячейку в двойные кавычки, а внутренние кавычки удваиваем.
+            // Excel идеально понимает этот формат и покажет переносы строк внутри ячейки!
             if (typeof val === 'string' && (val.includes(';') || val.includes('\n') || val.includes('"'))) {
                 val = `"${val.replace(/"/g, '""')}"`;
             }
