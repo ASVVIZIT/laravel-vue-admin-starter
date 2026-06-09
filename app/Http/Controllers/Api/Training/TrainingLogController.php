@@ -96,20 +96,24 @@ class TrainingLogController extends Controller
         $groupedData = $groups->map(function ($items, $key) use ($groupBy) {
             $first = $items->first();
 
-            // 🔥 Расчёт метрик (защита от null/NaN)
+            // Общие метрики группы
             $totalSets = $items->sum(fn($log) => is_array($log->sets) ? count($log->sets) : 0);
             $totalVolume = (float) $items->sum('total_volume');
             $totalDuration = (int) $items->sum(fn($log) => collect($log->sets)->sum(fn($s) => is_numeric($s['duration'] ?? null) ? (int)$s['duration'] : 0));
             $totalDistance = (float) $items->sum(fn($log) => collect($log->sets)->sum(fn($s) => is_numeric($s['distance'] ?? null) ? (float)$s['distance'] : 0));
 
-            // 🔥 Умная логика: до 10 сущностей для тултипа
-            if ($groupBy === 'exercise') {
-                $topEntities = $items->pluck('user.name')->filter()->unique()->take(10)->values()->toArray();
-                $entityLabel = 'Пользователи';
-            } else {
-                $topEntities = $items->pluck('exercise.name')->filter()->unique()->take(10)->values()->toArray();
-                $entityLabel = 'Упражнения';
-            }
+            // 🔥 Детализация по каждому упражнению внутри группы
+            $exerciseBreakdown = $items->groupBy(function ($log) {
+                return $log->exercise ? $log->exercise->name : 'Неизвестно';
+            })->map(function ($logs, $exName) {
+                return [
+                    'name' => $exName,
+                    'sets' => $logs->sum(fn($l) => is_array($l->sets) ? count($l->sets) : 0),
+                    'volume' => (float) $logs->sum('total_volume'),
+                    'duration' => (int) $logs->sum(fn($l) => collect($l->sets)->sum(fn($s) => is_numeric($s['duration'] ?? null) ? (int)$s['duration'] : 0)),
+                    'distance' => (float) $logs->sum(fn($l) => collect($l->sets)->sum(fn($s) => is_numeric($s['distance'] ?? null) ? (float)$s['distance'] : 0)),
+                ];
+            })->sortByDesc('volume')->values()->toArray(); // Сортируем: самые "тяжелые" упражнения сверху
 
             $label = match ($groupBy) {
                 'user' => $first->user?->name ?? "Пользователь #{$first->user_id}",
@@ -127,8 +131,7 @@ class TrainingLogController extends Controller
                     'total_volume' => $totalVolume,
                     'total_duration' => $totalDuration,
                     'total_distance' => $totalDistance,
-                    'top_entities' => $topEntities,
-                    'entity_label' => $entityLabel,
+                    'exercise_breakdown' => $exerciseBreakdown,
                 ],
                 'children' => $items->values(),
             ];

@@ -88,7 +88,7 @@
       </el-table-column>
 
       <!-- Подходы -->
-      <el-table-column v-if="isColumnVisible('sets')" label="Подходы" min-width="110">
+      <el-table-column v-if="isColumnVisible('sets')" label="Подходы" min-width="210">
         <template #default="{ row }">
           <span v-if="row.children" class="group-summary-bold">{{ row.summary?.total_sets || 0 }}</span>
           <div v-else-if="row.sets" class="sets-preview-row">

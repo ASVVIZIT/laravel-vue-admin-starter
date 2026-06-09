@@ -8,34 +8,44 @@
         </div>
         <div class="tooltip-divider"></div>
 
-        <div v-if="summary?.top_entities?.length" class="tooltip-body">
-          <div class="tooltip-subheader">{{ summary.entity_label || 'Детали' }}:</div>
-          <div v-for="(entity, i) in summary.top_entities" :key="i" class="tooltip-row">
-            <span class="entity-bullet">•</span>
-            <span class="entity-name">{{ entity }}</span>
+        <!-- 🔥 1. ДЕТАЛИЗАЦИЯ ПО КАЖДОМУ УПРАЖНЕНИЮ -->
+        <div v-if="summary?.exercise_breakdown?.length" class="tooltip-body">
+          <div v-for="(ex, i) in summary.exercise_breakdown" :key="i" class="breakdown-row">
+            <span class="ex-name">{{ ex.name }}</span>
+            <span class="ex-dots"></span>
+            <span class="ex-metrics">
+              <span v-if="ex.volume > 0" class="metric-badge volume">{{ formatVolume(ex.volume) }}</span>
+              <span v-else-if="ex.distance > 0 || ex.duration > 0" class="metric-badge cardio">
+                <span v-if="ex.distance > 0">{{ formatDistance(ex.distance) }}</span>
+                <span v-if="ex.distance > 0 && ex.duration > 0"> • </span>
+                <span v-if="ex.duration > 0">{{ formatDuration(ex.duration) }}</span>
+              </span>
+              <span v-else class="metric-badge sets-only">{{ ex.sets }} подх.</span>
+            </span>
           </div>
         </div>
         <div v-else class="tooltip-body">
-          <span class="text-muted">Нет дополнительных данных</span>
+          <span class="text-muted">Нет данных для отображения</span>
         </div>
 
         <div class="tooltip-divider"></div>
 
+        <!-- 🔥 2. ОБЩИЕ ТОТАЛЫ ПО ВСЕЙ ГРУППЕ (ВСЕ ВМЕСТЕ) -->
         <div class="tooltip-footer">
           <div class="metric-row">
-            <span class="metric-label">Подходов:</span>
+            <span class="metric-label">Всего подходов:</span>
             <span class="metric-value">{{ summary?.total_sets || 0 }}</span>
           </div>
           <div v-if="summary?.total_volume > 0" class="metric-row">
-            <span class="metric-label">Объём:</span>
+            <span class="metric-label">Общий объём:</span>
             <span class="metric-value volume-badge">{{ formatVolume(summary.total_volume) }}</span>
           </div>
           <div v-if="summary?.total_distance > 0" class="metric-row">
-            <span class="metric-label">Дистанция:</span>
+            <span class="metric-label">Общая дистанция:</span>
             <span class="metric-value distance-badge">{{ formatDistance(summary.total_distance) }}</span>
           </div>
           <div v-if="summary?.total_duration > 0" class="metric-row">
-            <span class="metric-label">Время:</span>
+            <span class="metric-label">Общее время:</span>
             <span class="metric-value duration-badge">{{ formatDuration(summary.total_duration) }}</span>
           </div>
         </div>
@@ -61,7 +71,8 @@ defineProps({
   font-size: 10px;
   line-height: 1.4;
   color: #606266;
-  min-width: 160px;
+  min-width: 200px;
+  max-width: 280px;
 }
 .tooltip-header {
   display: flex;
@@ -77,40 +88,72 @@ defineProps({
   background: #ebeef5;
   margin: 4px 0;
 }
-.tooltip-subheader {
-  font-size: 9px;
-  color: #909399;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
-}
-.tooltip-body { display: flex; flex-direction: column; gap: 2px; }
-.tooltip-row {
+
+/* 🔥 Стили для строки детализации */
+.tooltip-body { display: flex; flex-direction: column; gap: 3px; }
+.breakdown-row {
   display: flex;
-  align-items: flex-start;
+  align-items: baseline;
+  gap: 4px;
+  padding: 2px 0;
+}
+.ex-name {
+  flex-shrink: 0;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #303133;
+  font-weight: 500;
+}
+/* Магия точек-разделителей */
+.ex-dots {
+  flex: 1;
+  border-bottom: 1px dotted #c0c4cc;
+  margin: 0 4px;
+  position: relative;
+  top: -2px;
+}
+.ex-metrics {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
   gap: 4px;
 }
-.entity-bullet {
-  color: #409eff;
+
+/* Бейджи метрик в детализации */
+.metric-badge {
+  font-size: 9px;
   font-weight: 600;
-  flex-shrink: 0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
 }
-.entity-name {
-  word-break: break-word;
-  color: #303133;
-  max-width: 180px;
+.metric-badge.volume {
+  background: #f0f9ff;
+  color: #409eff;
 }
+.metric-badge.cardio {
+  background: #f0f9eb;
+  color: #67c23a;
+}
+.metric-badge.sets-only {
+  color: #909399;
+  font-weight: 500;
+}
+
+/* 🔥 Стили для общих тоталов */
 .tooltip-footer {
   display: flex;
   flex-direction: column;
   gap: 3px;
   font-size: 10px;
+  margin-top: 2px;
 }
 .metric-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
 }
 .metric-label {
   color: #909399;
@@ -120,6 +163,7 @@ defineProps({
   font-weight: 600;
   color: #303133;
 }
+/* Цветные бейджи для общих тоталов */
 .volume-badge {
   background: #f0f9ff;
   color: #409eff;
@@ -141,6 +185,7 @@ defineProps({
   border-radius: 3px;
   font-size: 9px;
 }
+
 .info-trigger {
   font-size: 12px;
   color: #909399;
