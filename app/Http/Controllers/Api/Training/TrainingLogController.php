@@ -58,7 +58,7 @@ class TrainingLogController extends Controller
 
     /**
      * GET /api/training/logs/grouped
-     * 🔥 СЕРВЕРНАЯ ГРУППИРОВКА записей
+     * 🔥 СЕРВЕРНАЯ ГРУППИРОВКА записей с умной агрегацией (Summary)
      */
     public function grouped(Request $request): JsonResponse
     {
@@ -69,7 +69,6 @@ class TrainingLogController extends Controller
         $userId = Auth::id();
         $tab = $request->get('tab', 'mine');
 
-        // Валидация group_by
         $groupBy = $request->validate([
                 'group_by' => 'sometimes|in:user,exercise,date'
             ])['group_by'] ?? 'user';
@@ -77,19 +76,14 @@ class TrainingLogController extends Controller
         $perPage = $request->integer('per_page', 10);
         $page = $request->integer('page', 1);
 
-        // Базовый запрос по вкладке
         $query = $this->buildTabQuery($userId, $request, $tab);
-
-        // Применяем фильтры ПЕРЕД загрузкой
         $this->applyFilters($query, $request);
 
-        // Загружаем отфильтрованные записи
-        $logs = $query->with('exercise:id,name,type,default_unit', 'user:id,name,email')
+        $logs = $query->with('exercise:id,name,type', 'user:id,name')
             ->orderBy('date', 'desc')
             ->orderBy('time', 'desc')
             ->get();
 
-        // Группируем по выбранному полю
         $groups = $logs->groupBy(function ($log) use ($groupBy) {
             return match ($groupBy) {
                 'user' => "user_{$log->user_id}",
@@ -99,9 +93,24 @@ class TrainingLogController extends Controller
             };
         });
 
-        // Формируем структуру групп
         $groupedData = $groups->map(function ($items, $key) use ($groupBy) {
             $first = $items->first();
+
+            // 🔥 Расчёт метрик (защита от null/NaN)
+            $totalSets = $items->sum(fn($log) => is_array($log->sets) ? count($log->sets) : 0);
+            $totalVolume = (float) $items->sum('total_volume');
+            $totalDuration = (int) $items->sum(fn($log) => collect($log->sets)->sum(fn($s) => is_numeric($s['duration'] ?? null) ? (int)$s['duration'] : 0));
+            $totalDistance = (float) $items->sum(fn($log) => collect($log->sets)->sum(fn($s) => is_numeric($s['distance'] ?? null) ? (float)$s['distance'] : 0));
+
+            // 🔥 Умная логика: до 10 сущностей для тултипа
+            if ($groupBy === 'exercise') {
+                $topEntities = $items->pluck('user.name')->filter()->unique()->take(10)->values()->toArray();
+                $entityLabel = 'Пользователи';
+            } else {
+                $topEntities = $items->pluck('exercise.name')->filter()->unique()->take(10)->values()->toArray();
+                $entityLabel = 'Упражнения';
+            }
+
             $label = match ($groupBy) {
                 'user' => $first->user?->name ?? "Пользователь #{$first->user_id}",
                 'exercise' => $first->exercise?->name ?? "Упражнение #{$first->exercise_id}",
@@ -113,11 +122,18 @@ class TrainingLogController extends Controller
                 'group_key' => $key,
                 'group_label' => $label,
                 'count' => $items->count(),
+                'summary' => [
+                    'total_sets' => $totalSets,
+                    'total_volume' => $totalVolume,
+                    'total_duration' => $totalDuration,
+                    'total_distance' => $totalDistance,
+                    'top_entities' => $topEntities,
+                    'entity_label' => $entityLabel,
+                ],
                 'children' => $items->values(),
             ];
         })->values();
 
-        // Ручная пагинация по группам
         $totalGroups = $groupedData->count();
         $lastPage = max(1, (int) ceil($totalGroups / $perPage));
         $paginatedGroups = $groupedData->slice(($page - 1) * $perPage, $perPage)->values();

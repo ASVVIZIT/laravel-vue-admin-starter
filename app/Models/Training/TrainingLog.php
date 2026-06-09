@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\Auth;
  * @property string $time
  * @property array $sets
  * @property float $total_volume
+ * @property float $total_distance (виртуальный атрибут, в метрах)
+ * @property int $total_duration (виртуальный атрибут, в секундах)
+ * @property int $total_reps (виртуальный атрибут)
  * @property bool $is_public
  * @property array|null $shared_with
  * @property string|null $notes
@@ -42,24 +45,34 @@ class TrainingLog extends Model
         'rating' => 'integer',
     ];
 
-    // 🔥 АВТО-РАСЧЁТ ПРИ СОХРАНЕНИИ
+    // 🔥 Автоматически добавляем эти виртуальные поля в JSON-ответ API
+    protected $appends = ['total_distance', 'total_duration', 'total_reps'];
+
+    // ========================================================================
+    // АВТО-РАСЧЁТ ПРИ СОХРАНЕНИИ (пуленепробиваемый)
+    // ========================================================================
     protected static function boot()
     {
         parent::boot();
 
-        // Пересчитываем total_volume перед сохранением
         static::saving(function (TrainingLog $log) {
-            if (is_array($log->sets) && count($log->sets) > 0) {
-                $log->total_volume = collect($log->sets)->sum(function ($set) {
-                    return (int)($set['reps'] ?? 0) * (float)($set['weight'] ?? 0);
-                });
-            } else {
+            if (!is_array($log->sets) || empty($log->sets)) {
                 $log->total_volume = 0;
+                return;
             }
+
+            // Защита от NaN и пустых строк с фронтенда
+            $log->total_volume = collect($log->sets)->sum(function ($set) {
+                $reps = is_numeric($set['reps'] ?? null) ? (float)$set['reps'] : 0;
+                $weight = is_numeric($set['weight'] ?? null) ? (float)$set['weight'] : 0;
+                return $reps * $weight;
+            });
         });
     }
 
-    // Связи
+    // ========================================================================
+    // СВЯЗИ
+    // ========================================================================
     public function exercise(): BelongsTo
     {
         return $this->belongsTo(Exercise::class);
@@ -70,7 +83,9 @@ class TrainingLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    // Scopes
+    // ========================================================================
+    // SCOPES
+    // ========================================================================
     public function scopeMine(Builder $query, ?int $userId = null): Builder
     {
         return $query->where('user_id', $userId ?? Auth::id());
@@ -107,27 +122,54 @@ class TrainingLog extends Model
         return $query->where('is_public', true);
     }
 
-    // Атрибуты-вычисления
-    public function getTotalRepsAttribute(): int
-    {
-        if (!is_array($this->sets)) return 0;
-        return array_sum(array_map(fn($s) => (int)($s['reps'] ?? 0), $this->sets));
-    }
+    // ========================================================================
+    // 🔥 УМНЫЕ АТРИБУТЫ (виртуальные поля из JSON 'sets')
+    // ========================================================================
 
-    // 🔥 ТЕПЕРЬ БЕРЁТ ИЗ КОЛОНКИ (быстро!)
+    /**
+     * Берётся из колонки БД (быстро!)
+     */
     public function getTotalVolumeAttribute(): float
     {
         return (float)($this->attributes['total_volume'] ?? 0);
     }
 
+    /**
+     * Сумма повторов по всем подходам
+     */
+    public function getTotalRepsAttribute(): int
+    {
+        if (!is_array($this->sets)) return 0;
+        return collect($this->sets)->sum(function ($s) {
+            return is_numeric($s['reps'] ?? null) ? (int)$s['reps'] : 0;
+        });
+    }
+
+    /**
+     * Сумма дистанции по всем подходам (в метрах)
+     */
+    public function getTotalDistanceAttribute(): float
+    {
+        if (!is_array($this->sets)) return 0;
+        return collect($this->sets)->sum(function ($s) {
+            return is_numeric($s['distance'] ?? null) ? (float)$s['distance'] : 0;
+        });
+    }
+
+    /**
+     * Сумма длительности по всем подходам (в секундах)
+     */
     public function getTotalDurationAttribute(): int
     {
         if (!is_array($this->sets)) return 0;
-        $seconds = array_sum(array_map(fn($s) => (int)($s['duration'] ?? 0), $this->sets));
-        return (int) round($seconds / 60);
+        return (int)collect($this->sets)->sum(function ($s) {
+            return is_numeric($s['duration'] ?? null) ? (int)$s['duration'] : 0;
+        });
     }
 
-    // Хелперы
+    // ========================================================================
+    // ХЕЛПЕРЫ
+    // ========================================================================
     public function canBeEditedBy(int $userId): bool
     {
         return $this->user_id === $userId;
