@@ -33,13 +33,13 @@
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import { Grid } from '@element-plus/icons-vue'
-import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
-import { deepClone, deepMerge } from '@/components/Training/utils/appSettingsHelpersUtils.js'
+import { TRAINING_SETTINGS_DEFAULTS_CONFIG } from '@components/Training/config/trainingSettingsDefaultsConfig.js'
+import { deepClone, deepMerge } from '@components/Training/utils/trainingSettingsHelpersUtils.js'
 
 const props = defineProps({ modelValue: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['update:modelValue'])
 
-const localData = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.interface))
+const localData = ref(deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface))
 
 const columnsTab = ref('mine')
 const tabLabels = { 'mine': 'Мои тренировки', 'shared-with-me': 'Доступные мне', 'shared-by-me': 'Я поделился' }
@@ -53,8 +53,8 @@ watch(() => props.modelValue, (val) => {
   try {
     if (val?.frontend) localData.value.frontend = deepMerge(localData.value.frontend, val.frontend)
     if (val?.columns) {
-      Object.keys(SETTINGS_DEFAULTS_CONFIG.interface.columns).forEach(tab => {
-        localData.value.columns[tab] = deepMerge(SETTINGS_DEFAULTS_CONFIG.interface.columns[tab], val.columns[tab] || {})
+      Object.keys(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.columns).forEach(tab => {
+        localData.value.columns[tab] = deepMerge(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.columns[tab], val.columns[tab] || {})
       })
     }
   } finally {
@@ -68,7 +68,7 @@ watch(() => localData.value, (newVal, oldVal) => {
   emit('update:modelValue', deepClone(newVal))
 }, { deep: true })
 
-const resetToDefaults = () => { localData.value = deepClone(SETTINGS_DEFAULTS_CONFIG.interface) }
+const resetToDefaults = () => { localData.value = deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface) }
 defineExpose({ localData, resetToDefaults })
 </script>
 

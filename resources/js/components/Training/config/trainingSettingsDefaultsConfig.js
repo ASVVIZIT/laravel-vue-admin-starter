@@ -1,13 +1,13 @@
 /**
  * ============================================================================
- * SETTINGS DEFAULTS CONFIG — КОНФИГУРАЦИЯ ПО УМОЛЧАНИЮ
+ * TRAINING SETTINGS DEFAULTS CONFIG — КОНФИГУРАЦИЯ ПО УМОЛЧАНИЮ
  * ============================================================================
  * 📁 Путь: @/components/Training/config/settingsDefaultsConfig.js
  * ✅ Отвечает исключительно за хранение дефолтных значений.
  * ============================================================================
  */
 
-export const SETTINGS_DEFAULTS_CONFIG = {
+export const TRAINING_SETTINGS_DEFAULTS_CONFIG = {
     meta: {
         layout: 'horizontal',
         visible_tabs: ['interface', 'search', 'display', 'grouping'],
@@ -56,4 +56,4 @@ export const SETTINGS_DEFAULTS_CONFIG = {
     }
 }
 
-export default SETTINGS_DEFAULTS_CONFIG
+export default TRAINING_SETTINGS_DEFAULTS_CONFIG

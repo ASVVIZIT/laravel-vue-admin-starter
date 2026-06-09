@@ -27,7 +27,7 @@
     <!-- Карточки статистики -->
     <el-row :gutter="12" class="stats-cards">
       <el-col :span="6" :xs="12">
-        <StatsCard
+        <TrainingStatsCard
             title="Тренировки"
             :stats="{
             count: { label: 'Всего', value: statsData.total_sessions, color: '#409eff' },
@@ -36,7 +36,7 @@
         />
       </el-col>
       <el-col :span="6" :xs="12">
-        <StatsCard
+        <TrainingStatsCard
             title="Объём"
             :stats="{
             sets: { label: 'Подходы', value: statsData.total_sets, format: 'number', color: '#909399' },
@@ -45,7 +45,7 @@
         />
       </el-col>
       <el-col :span="6" :xs="12">
-        <StatsCard
+        <TrainingStatsCard
             title="Тоннаж"
             :stats="{
             volume: { label: 'Суммарный', value: statsData.total_volume, format: 'volume', color: '#f56c6c' }
@@ -53,7 +53,7 @@
         />
       </el-col>
       <el-col :span="6" :xs="12">
-        <StatsCard
+        <TrainingStatsCard
             title="Период"
             :stats="{
             from: { label: 'С', value: statsPeriod.from, format: 'date', color: '#606266' },
@@ -64,13 +64,13 @@
     </el-row>
 
     <!-- График (заглушка) -->
-    <LayoutCardWrapper title="Динамика" :icon="DataLine" bordered shadow class="chart-card">
+    <TrainingLayoutCardWrapper title="Динамика" :icon="DataLine" bordered shadow class="chart-card">
       <div class="chart-placeholder">
         <el-icon><Odometer /></el-icon>
         <p>График будет добавлен в следующей версии</p>
         <span class="hint">Данные: {{ statsData.total_reps }} повторов за период</span>
       </div>
-    </LayoutCardWrapper>
+    </TrainingLayoutCardWrapper>
   </div>
 </template>
 
@@ -78,13 +78,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { TrendCharts, DataLine, Odometer } from '@element-plus/icons-vue'
 import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
-import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
-import StatsCard from '@/components/Training/components/StatsCard.vue'
-import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
-import { formatDate, formatVolume } from '@/components/Training/utils/appFormattersUtils.js'
+import { useTrainingExerciseStore } from '@components/Training/stores/trainingExerciseStore.js'
+import TrainingStatsCard from '@components/Training/components/TrainingStatsCard.vue'
+import TrainingLayoutCardWrapper from '@components/Training/components/layout/wrappers/TrainingLayoutCardWrapper.vue'
+import { formatDate, formatVolume } from '@components/Training/utils/trainingFormattersUtils.js'
 
 const logStore = useTrainingLogStore()
-const exerciseStore = useExerciseStore()
+const exerciseStore = useTrainingExerciseStore()
 
 const period = ref('week')
 const exerciseFilter = ref(null)

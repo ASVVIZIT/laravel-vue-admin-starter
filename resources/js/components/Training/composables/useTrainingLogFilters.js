@@ -5,7 +5,7 @@
  */
 import { ref, watch } from 'vue'
 
-export const useTrainingFilters = (logStore) => {
+export const useTrainingLogFilters = (logStore) => {
     const date = ref(null)
     const range = ref([])
     const exerciseId = ref(null)
@@ -82,4 +82,4 @@ export const useTrainingFilters = (logStore) => {
     return { date, range, exerciseId, activeQuickDate, activeQuickRange, init, setQuickDate, setQuickRange, clearAll, sync }
 }
 
-export default useTrainingFilters
+export default useTrainingLogFilters

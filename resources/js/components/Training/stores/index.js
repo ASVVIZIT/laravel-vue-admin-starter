@@ -1,16 +1,16 @@
-import { useExerciseStore } from './exerciseStore.js';
+import { useTrainingExerciseStore } from './trainingExerciseStore.js';
 import { useTrainingLogStore } from './trainingLogStore.js';
 import { useTrainingSettingsStore } from './trainingSettingsStore.js';
-import { useInterfaceStore } from './interfaceStore.js';
+import { useTrainingInterfaceStore } from './trainingInterfaceStore.js';
 
 /**
  * Объединённый стор для удобного доступа ко всем данным модуля Training
  */
 export const useTrainingStore = () => {
-    const exerciseStore = useExerciseStore();
+    const exerciseStore = useTrainingExerciseStore();
     const logStore = useTrainingLogStore();
     const settingsStore = useTrainingSettingsStore();
-    const interfaceStore = useInterfaceStore();
+    const interfaceStore = useTrainingInterfaceStore();
 
     return {
         // === EXERCISE ===
@@ -105,16 +105,16 @@ export const useTrainingStore = () => {
 };
 
 // ✅ Явные именованные экспорты
-export { useExerciseStore } from './exerciseStore.js';
+export { useTrainingExerciseStore } from './trainingExerciseStore.js';
 export { useTrainingLogStore } from './trainingLogStore.js';
 export { useTrainingSettingsStore } from './trainingSettingsStore.js';
-export { useInterfaceStore } from './interfaceStore.js';
+export { useTrainingInterfaceStore } from './trainingInterfaceStore.js';
 
 // ✅ Безопасный default export
 export default {
     useTrainingStore,
-    useExerciseStore,
+    useTrainingExerciseStore,
     useTrainingLogStore,
     useTrainingSettingsStore,
-    useInterfaceStore
+    useTrainingInterfaceStore
 };

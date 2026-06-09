@@ -1,7 +1,8 @@
 import { ref, computed, watch } from 'vue'
-import { useExerciseFields } from './useExerciseFields.js'
+import { useTrainingExerciseFields } from './useTrainingExerciseFields.js'
+import { TYPE_CHANGE_STATE } from '../config/trainingStatesConfig.js'
 
-export const useTypeChangeGuard = (form, exerciseType, exerciseStore, options = {}) => {
+export const useTrainingTypeChangeGuard = (form, exerciseType, exerciseStore, options = {}) => {
     const { undoTimeout = 20 } = options
 
     const frozenSets = ref([])
@@ -12,7 +13,10 @@ export const useTypeChangeGuard = (form, exerciseType, exerciseStore, options = 
     const undoTimeLeft = ref(0)
     let timer = null
 
-    const state = computed(() => frozenSets.value.length > 0 ? (undoTimeLeft.value > 0 ? 'pending' : 'expired') : 'normal')
+    const state = computed(() => {
+        if (frozenSets.value.length === 0) return TYPE_CHANGE_STATE.NORMAL
+        return undoTimeLeft.value > 0 ? TYPE_CHANGE_STATE.PENDING : TYPE_CHANGE_STATE.EXPIRED
+    })
     const canUndo = computed(() => frozenSets.value.length > 0)
     const hasFrozenData = computed(() => frozenSets.value.length > 0)
 
@@ -33,14 +37,14 @@ export const useTypeChangeGuard = (form, exerciseType, exerciseStore, options = 
         const f = form.value ?? form
         const hasData = f.sets.some(s => s.reps || s.weight || s.duration || s.distance || s.notes?.trim())
         if (!hasData) {
-            f.sets = [{ ...useExerciseFields(newType).defaultSet }]
+            f.sets = [{ ...useTrainingExerciseFields(newType).defaultSet }]
             return
         }
         frozenSets.value = f.sets.map(s => ({ ...s }))
         frozenType.value = exerciseType.value
         frozenExerciseId.value = oldId
         frozenExerciseName.value = oldName
-        f.sets = [{ ...useExerciseFields(newType).defaultSet }]
+        f.sets = [{ ...useTrainingExerciseFields(newType).defaultSet }]
         startTimer()
     }
 

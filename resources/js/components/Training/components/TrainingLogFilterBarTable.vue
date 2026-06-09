@@ -129,12 +129,12 @@
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { RefreshRight, ArrowDown, ArrowUp, InfoFilled } from '@element-plus/icons-vue'
 import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
-import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
-import { FILTER_BLOCKS } from '../config/filterConfig.js'
+import { useTrainingExerciseStore } from '@components/Training/stores/trainingExerciseStore.js'
+import { TRAINING_FILTER_BLOCKS } from '../config/trainingFilterConfig.js'
 
 const logStore = useTrainingLogStore()
-const exerciseStore = useExerciseStore()
-const config = FILTER_BLOCKS
+const exerciseStore = useTrainingExerciseStore()
+const config = TRAINING_FILTER_BLOCKS
 
 // Локальное состояние
 const localDate = ref(null)

@@ -9,7 +9,7 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { logDebugUtils, logErrorUtils } from '@/components/Training/utils/appLoggerUtils.js';
+import { logDebugUtils, logErrorUtils } from '@components/Training/utils/trainingLoggerUtils.js';
 import { TrainingExerciseResource } from '@/components/Training/api/core/resource/TrainingExerciseResource.js';
 
 // Фолбэк-данные если API не отвечает
@@ -21,7 +21,7 @@ const FALLBACK_EXERCISES = [
     { id: 10, name: 'Бег', type: 'cardio', default_unit: 'km' },
 ];
 
-export const useExerciseStore = defineStore('training-exercise', () => {
+export const useTrainingExerciseStore = defineStore('training-exercise', () => {
     // === STATE ===
     const exercises = ref([]);
     const exercisesMap = ref({});
@@ -146,4 +146,4 @@ export const useExerciseStore = defineStore('training-exercise', () => {
     };
 });
 
-export default useExerciseStore;
+export default useTrainingExerciseStore;

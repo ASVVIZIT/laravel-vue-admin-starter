@@ -101,7 +101,6 @@ const typesStore = useTypesStore();
 
 const formRef = ref(null);
 const loading = ref(false);
-// ✅ ИСПРАВЛЕНО: удалён дублирующий ref typesLoading
 
 const formData = ref({
   critical_voltage: 3.2,
@@ -123,12 +122,12 @@ const formRules = {
 
 const batteryTypesForDropdown = computed(() => typesStore.batteryTypesForDropdownStore);
 const bulbTypesForDropdown = computed(() => typesStore.bulbTypesForDropdownStore);
-// ✅ ИСПРАВЛЕНО: используем computed из стора (единственное объявление)
+// ✅  используем computed из стора (единственное объявление)
 const typesLoading = computed(() => typesStore.loading);
 
 onMounted(async () => {
   await loadSettings();
-  // ✅ ИСПРАВЛЕНО: не управляем typesLoading вручную, стор делает это сам
+  // ✅ Не управляем typesLoading вручную, стор делает это сам
   if (!typesStore.typesLoaded.value) {
     await typesStore.fetchTypesStore(); // fetchTypes сам переключает loading
   }

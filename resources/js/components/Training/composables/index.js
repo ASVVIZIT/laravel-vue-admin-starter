@@ -3,14 +3,14 @@
  * TRAINING COMPOSABLES INDEX — БАРРЕЛ-ЭКСПОРТ
  * ============================================================================
  */
-export { useExerciseFields } from './useExerciseFields.js';
-export { useTrainingFilters } from './useTrainingFilters.js';
-export { useTrainingForm } from './useTrainingForm.js';
-export { useTypeChangeGuard, TYPE_CHANGE_STATE } from './useTypeChangeGuard.js';
+export { useTrainingExerciseFields } from './useTrainingExerciseFields.js';
+export { useTrainingLogFilters } from './useTrainingLogFilters.js';
+export { useTrainingLogForm } from './useTrainingLogForm.js';
+export { useTrainingTypeChangeGuard, TYPE_CHANGE_STATE } from './useTrainingTypeChangeGuard.js';
 
 export default {
-    useExerciseFields: () => import('./useExerciseFields.js'),
-    useTrainingFilters: () => import('./useTrainingFilters.js'),
-    useTrainingForm: () => import('./useTrainingForm.js'),
-    useTypeChangeGuard: () => import('./useTypeChangeGuard.js')
+    useTrainingExerciseFields: () => import('./useTrainingExerciseFields.js'),
+    useTrainingLogFilters: () => import('./useTrainingLogFilters.js'),
+    useTrainingLogForm: () => import('./useTrainingLogForm.js'),
+    useTrainingTypeChangeGuard: () => import('./useTrainingTypeChangeGuard.js')
 };

@@ -1,27 +1,27 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { TrainingSettingsService } from '@/components/Training/services/TrainingSettingsService.js';
-import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js';
-import { deepClone } from '@/components/Training/utils/appSettingsHelpersUtils.js';
+import { TRAINING_SETTINGS_DEFAULTS_CONFIG } from '@components/Training/config/trainingSettingsDefaultsConfig.js';
+import { deepClone } from '@components/Training/utils/trainingSettingsHelpersUtils.js';
 
 const service = new TrainingSettingsService();
 
 export const useTrainingSettingsStore = defineStore('training-settings', () => {
     // Инициализация из единого источника дефолтов (DRY)
     const serverSettings = ref(deepClone({
-        ...SETTINGS_DEFAULTS_CONFIG.display.server,
-        ...SETTINGS_DEFAULTS_CONFIG.grouping.server,
-        form_meta: deepClone(SETTINGS_DEFAULTS_CONFIG.meta)
+        ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server,
+        ...TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server,
+        form_meta: deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.meta)
     }));
 
-    const frontendSettings = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend));
+    const frontendSettings = ref(deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend));
 
     const limits = ref(deepClone({
-        ...SETTINGS_DEFAULTS_CONFIG.search.limits,
-        ...SETTINGS_DEFAULTS_CONFIG.display.limits
+        ...TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits,
+        ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits
     }));
 
-    const columnsConfig = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.interface.columns));
+    const columnsConfig = ref(deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.columns));
 
     const groupingModes = ref({
         'mine': { mode: 'frontend', reason: 'Default' },
@@ -148,17 +148,17 @@ export const useTrainingSettingsStore = defineStore('training-settings', () => {
         try {
             const defaultPayload = {
                 server: {
-                    ...SETTINGS_DEFAULTS_CONFIG.display.server,
-                    ...SETTINGS_DEFAULTS_CONFIG.grouping.server,
-                    form_meta: deepClone(SETTINGS_DEFAULTS_CONFIG.meta)
+                    ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server,
+                    ...TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server,
+                    form_meta: deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.meta)
                 },
                 frontend: {
-                    ...deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
-                    columns: deepClone(SETTINGS_DEFAULTS_CONFIG.interface.columns)
+                    ...deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend),
+                    columns: deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.columns)
                 },
                 limits: {
-                    ...SETTINGS_DEFAULTS_CONFIG.search.limits,
-                    ...SETTINGS_DEFAULTS_CONFIG.display.limits
+                    ...TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits,
+                    ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits
                 }
             };
 

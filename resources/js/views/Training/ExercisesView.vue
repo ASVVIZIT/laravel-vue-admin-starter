@@ -52,11 +52,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { List, Search, InfoFilled } from '@element-plus/icons-vue'
-import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
-import { getExerciseTagType, getExerciseIcon } from '@/components/Training/utils/appFormattersUtils.js'
-import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
+import { useTrainingExerciseStore } from '@components/Training/stores/trainingExerciseStore.js'
+import { getExerciseTagType, getExerciseIcon } from '@components/Training/utils/trainingFormattersUtils.js'
+import LayoutCardWrapper from '@components/Training/components/layout/wrappers/TrainingLayoutCardWrapper.vue'
 
-const exerciseStore = useExerciseStore()
+const exerciseStore = useTrainingExerciseStore()
 const search = ref('')
 const filteredExercises = ref([])
 

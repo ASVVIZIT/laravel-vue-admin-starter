@@ -76,13 +76,13 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Loading, Setting, Check, Close } from '@element-plus/icons-vue'
 import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
-import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
-import { deepClone, deepMerge } from '@/components/Training/utils/appSettingsHelpersUtils.js'
+import { TRAINING_SETTINGS_DEFAULTS_CONFIG } from '@components/Training/config/trainingSettingsDefaultsConfig.js'
+import { deepClone, deepMerge } from '@components/Training/utils/trainingSettingsHelpersUtils.js'
 
-import TrainingSettingsInterface from './panels/TrainingSettingsInterface.vue'
-import TrainingSettingsSearch from './panels/TrainingSettingsSearch.vue'
-import TrainingSettingsDisplay from './panels/TrainingSettingsDisplay.vue'
-import TrainingSettingsGrouping from './panels/TrainingSettingsGrouping.vue'
+import TrainingSettingsInterfacePanel from './panels/TrainingSettingsInterfacePanel.vue'
+import TrainingSettingsSearchPanel from './panels/TrainingSettingsSearchPanel.vue'
+import TrainingSettingsDisplayPanel from './panels/TrainingSettingsDisplayPanel.vue'
+import TrainingSettingsGroupingPanel from './panels/TrainingSettingsGroupingPanel.vue'
 
 const props = defineProps({ initialSettings: { type: Object, default: null } })
 const emit = defineEmits(['saved', 'cancelled', 'update:settings'])
@@ -93,13 +93,13 @@ const showMetaSettings = ref(false)
 const panels = ref([])
 
 const allTabs = [
-  { key: 'interface', label: '⚙️ Интерфейс', component: TrainingSettingsInterface, dataKey: 'interface' },
-  { key: 'search', label: '🔍 Поиск', component: TrainingSettingsSearch, dataKey: 'search' },
-  { key: 'display', label: '📊 Отображение', component: TrainingSettingsDisplay, dataKey: 'display' },
-  { key: 'grouping', label: '🗂 Группировки', component: TrainingSettingsGrouping, dataKey: 'grouping' },
+  { key: 'interface', label: '⚙️ Интерфейс', component: TrainingSettingsInterfacePanel, dataKey: 'interface' },
+  { key: 'search', label: '🔍 Поиск', component: TrainingSettingsSearchPanel, dataKey: 'search' },
+  { key: 'display', label: '📊 Отображение', component: TrainingSettingsDisplayPanel, dataKey: 'display' },
+  { key: 'grouping', label: '🗂 Группировки', component: TrainingSettingsGroupingPanel, dataKey: 'grouping' },
 ]
 
-const metaForm = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.meta))
+const metaForm = ref(deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.meta))
 const activeTab = ref('interface')
 
 const visibleTabs = computed(() => {
@@ -115,9 +115,9 @@ const toggleTab = (key) => {
   else metaForm.value.visible_tabs.splice(idx, 1)
 }
 
-const formData = ref(deepClone(SETTINGS_DEFAULTS_CONFIG))
+const formData = ref(deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG))
 
-// 🔥 ИСПРАВЛЕНО: Загружаем из API если store пустой
+// 🔥  Загружаем из API если store пустой
 const loadSettings = async () => {
   if (!settingsStore.serverSettings || Object.keys(settingsStore.serverSettings).length === 0) {
     await settingsStore.fetchSettingsStore()
@@ -127,65 +127,65 @@ const loadSettings = async () => {
 
   if (settingsStore.frontendSettings) {
     formData.value.interface.frontend = deepMerge(
-        deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
+        deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend),
         settingsStore.frontendSettings
     )
   }
 
   if (settingsStore.columnsConfig) {
-    Object.keys(SETTINGS_DEFAULTS_CONFIG.interface.columns).forEach(tab => {
+    Object.keys(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.columns).forEach(tab => {
       formData.value.interface.columns[tab] = deepMerge(
-          deepClone(SETTINGS_DEFAULTS_CONFIG.interface.columns[tab]),
+          deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.columns[tab]),
           settingsStore.columnsConfig[tab] || {}
       )
     })
   }
 
-  // 🔥 ИСПРАВЛЕНО: Разделяем limits на search и display
+  // 🔥 Разделяем limits на search и display
   if (settingsStore.limits) {
     // Search limits
     formData.value.search.limits = {
-      search_min_length: settingsStore.limits.search_min_length ?? SETTINGS_DEFAULTS_CONFIG.search.limits.search_min_length,
-      search_results_limit: settingsStore.limits.search_results_limit ?? SETTINGS_DEFAULTS_CONFIG.search.limits.search_results_limit,
+      search_min_length: settingsStore.limits.search_min_length ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits.search_min_length,
+      search_results_limit: settingsStore.limits.search_results_limit ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits.search_results_limit,
     }
 
     // Display limits
     formData.value.display.limits = {
-      max_shared_with: settingsStore.limits.max_shared_with ?? SETTINGS_DEFAULTS_CONFIG.display.limits.max_shared_with,
-      max_sets: settingsStore.limits.max_sets ?? SETTINGS_DEFAULTS_CONFIG.display.limits.max_sets,
-      max_notes_length: settingsStore.limits.max_notes_length ?? SETTINGS_DEFAULTS_CONFIG.display.limits.max_notes_length,
+      max_shared_with: settingsStore.limits.max_shared_with ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits.max_shared_with,
+      max_sets: settingsStore.limits.max_sets ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits.max_sets,
+      max_notes_length: settingsStore.limits.max_notes_length ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits.max_notes_length,
     }
   }
 
   if (settingsStore.serverSettings) {
     formData.value.display.server = {
-      ...deepClone(SETTINGS_DEFAULTS_CONFIG.display.server),
-      logs_per_page: settingsStore.serverSettings.logs_per_page ?? SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
-      grouping_per_page: settingsStore.serverSettings.grouping_per_page ?? SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
+      ...deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server),
+      logs_per_page: settingsStore.serverSettings.logs_per_page ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
+      grouping_per_page: settingsStore.serverSettings.grouping_per_page ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
       enable_stats: normalizeBoolean(settingsStore.serverSettings.enable_stats),
       enable_sharing: normalizeBoolean(settingsStore.serverSettings.enable_sharing),
     }
 
     formData.value.grouping.server = {
-      ...deepClone(SETTINGS_DEFAULTS_CONFIG.grouping.server),
-      grouping_mode: settingsStore.serverSettings.grouping_mode ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
-      grouping_auto_threshold: settingsStore.serverSettings.grouping_auto_threshold ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
+      ...deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server),
+      grouping_mode: settingsStore.serverSettings.grouping_mode ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
+      grouping_auto_threshold: settingsStore.serverSettings.grouping_auto_threshold ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
       enable_min_groups_check: normalizeBoolean(settingsStore.serverSettings.enable_min_groups_check),
-      grouping_min_groups: settingsStore.serverSettings.grouping_min_groups ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_min_groups,
-      grouping_by: settingsStore.serverSettings.grouping_by ?? SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_by,
+      grouping_min_groups: settingsStore.serverSettings.grouping_min_groups ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_min_groups,
+      grouping_by: settingsStore.serverSettings.grouping_by ?? TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_by,
     }
   }
 
   if (settingsStore.serverSettings?.form_meta) {
     metaForm.value = deepMerge(
-        deepClone(SETTINGS_DEFAULTS_CONFIG.meta),
+        deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.meta),
         settingsStore.serverSettings.form_meta
     )
   }
 }
 
 const collectDataFromPanels = () => {
-  const panelData = deepClone(SETTINGS_DEFAULTS_CONFIG)
+  const panelData = deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG)
   panels.value.forEach(panel => {
     if (!panel?.localData) return
     if (panel.localData.frontend !== undefined) panelData.interface = deepClone(panel.localData)
@@ -203,7 +203,7 @@ const saveSettings = async () => {
     const payload = {
       server: { ...panelData.display.server, ...panelData.grouping.server, form_meta: metaForm.value },
       limits: { ...panelData.search.limits, ...panelData.display.limits },
-      // 🔥 ИСПРАВЛЕНО: columns теперь внутри frontend (консистентно с бэкендом)
+      // 🔥 columns теперь внутри frontend (консистентно с бэкендом)
       frontend: {
         ...panelData.interface.frontend,
         columns: panelData.interface.columns
@@ -227,7 +227,7 @@ const resetSettings = async () => {
     await settingsStore.resetSettingsStore()
     await nextTick()
     await new Promise(resolve => setTimeout(resolve, 100))
-    formData.value = deepClone(SETTINGS_DEFAULTS_CONFIG)
+    formData.value = deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG)
     await nextTick()
     panels.value.forEach(panel => { if (panel?.resetToDefaults) panel.resetToDefaults() })
     emit('saved', formData.value)

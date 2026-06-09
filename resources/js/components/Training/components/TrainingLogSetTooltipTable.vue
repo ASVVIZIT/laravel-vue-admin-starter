@@ -33,7 +33,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { List } from '@element-plus/icons-vue'
-import { formatSetPreview } from '@/components/Training/utils/appFormattersUtils.js'
+import { formatSetPreview } from '@components/Training/utils/trainingFormattersUtils.js'
 
 const props = defineProps({
   allSets: { type: Array, required: true },

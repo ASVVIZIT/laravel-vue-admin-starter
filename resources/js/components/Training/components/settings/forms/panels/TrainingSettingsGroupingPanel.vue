@@ -35,13 +35,13 @@
 
 <script setup>
 import { ref, watch, nextTick } from 'vue'
-import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
-import { deepClone, deepMerge } from '@/components/Training/utils/appSettingsHelpersUtils.js'
+import { TRAINING_SETTINGS_DEFAULTS_CONFIG } from '@components/Training/config/trainingSettingsDefaultsConfig.js'
+import { deepClone, deepMerge } from '@components/Training/utils/trainingSettingsHelpersUtils.js'
 
 const props = defineProps({ modelValue: { type: Object, default: () => ({}) } })
 const emit = defineEmits(['update:modelValue'])
 
-const localData = ref(deepClone(SETTINGS_DEFAULTS_CONFIG.grouping))
+const localData = ref(deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping))
 let isUpdatingFromProps = false
 
 watch(() => props.modelValue, (val) => {
@@ -60,7 +60,7 @@ watch(() => localData.value, (newVal, oldVal) => {
   emit('update:modelValue', deepClone(newVal))
 }, { deep: true })
 
-const resetToDefaults = () => { localData.value = deepClone(SETTINGS_DEFAULTS_CONFIG.grouping) }
+const resetToDefaults = () => { localData.value = deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping) }
 defineExpose({ localData, resetToDefaults })
 </script>
 

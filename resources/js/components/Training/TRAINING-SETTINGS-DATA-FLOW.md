@@ -85,7 +85,7 @@
   - TrainingUserSharingSelector.vue — лимиты шаринга, search_min_length (уже применяет настройки)
   - TrainingSettingsForm.vue — форма редактирования (4 панели)
   - DebugState.vue — интерактивная подсветка изменений
-  - DebugPanel.vue + DebugLogs.vue — панель отладки
+  - TrainingDebugPanel.vue + TrainingDebugLogs.vue — панель отладки
 
 ```
 

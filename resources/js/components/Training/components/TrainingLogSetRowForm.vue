@@ -64,7 +64,7 @@
 <script setup>
 import { computed, shallowRef } from 'vue'
 import { Delete, Check, WarningFilled } from '@element-plus/icons-vue'
-import { useExerciseFields } from '@/components/Training/composables/useExerciseFields.js'
+import { useTrainingExerciseFields } from '@components/Training/composables/useTrainingExerciseFields.js'
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -78,7 +78,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'remove'])
 
-const exerciseConfig = computed(() => useExerciseFields(props.exerciseType))
+const exerciseConfig = computed(() => useTrainingExerciseFields(props.exerciseType))
 const isFieldVisible = (field) => exerciseConfig.value.isFieldVisible(field)
 const placeholderMap = computed(() => exerciseConfig.value.placeholderMap)
 const unitMap = computed(() => exerciseConfig.value.unitMap)

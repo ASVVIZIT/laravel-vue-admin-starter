@@ -1,8 +1,8 @@
 import { ref, computed, toRaw } from 'vue';
-import { useExerciseFields } from './useExerciseFields.js';
-import { getFormRules } from '../utils/appValidatorsUtils.js';
+import { useTrainingExerciseFields } from './useTrainingExerciseFields.js';
+import { getFormRules } from '../utils/trainingValidatorsUtils.js';
 
-export const useTrainingForm = (initialData = null, exercisesList = []) => {
+export const useTrainingLogForm = (initialData = null, exercisesList = []) => {
     const form = ref({
         exercise_id: null,
         date: new Date().toISOString().split('T')[0],
@@ -37,7 +37,7 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
     const exerciseType = computed(() => selectedExercise.value?.type || 'bodyweight');
     const rules = computed(() => getFormRules(exerciseType.value, window.__CURRENT_USER_ID || null));
 
-    const exerciseFields = computed(() => useExerciseFields(exerciseType.value));
+    const exerciseFields = computed(() => useTrainingExerciseFields(exerciseType.value));
     const defaultSet = computed(() => exerciseFields.value.defaultSet);
 
     const addSet = () => {
@@ -149,4 +149,4 @@ export const useTrainingForm = (initialData = null, exercisesList = []) => {
     };
 };
 
-export default useTrainingForm;
+export default useTrainingLogForm;

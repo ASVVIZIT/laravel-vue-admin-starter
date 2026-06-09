@@ -28,15 +28,14 @@
           <el-icon><EditPen /></el-icon>
           <span class="btn-label">{{ showForm ? 'Скрыть' : 'Добавить' }}</span>
         </el-button>
-
-        <RefreshButton
+        <TrainingRefreshButton
             :loading="loading"
             :disabled="false"
             idle-tooltip="Обновить данные"
             loading-tooltip="Загрузка данных..."
             @refresh="$emit('refresh')"
         />
-
+        <TrainingExportCsvButton :disabled="!hasLogs" />
         <el-button
             v-if="showSettings"
             size="small"
@@ -64,9 +63,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { EditPen, Setting, Loading } from '@element-plus/icons-vue'
 import TrainingStatsBar from './TrainingStatsBar.vue'
-import RefreshButton from '@/components/Training/components/common/RefreshButton.vue'
+import TrainingRefreshButton from '@components/Training/components/common/TrainingRefreshButton.vue'
+import TrainingExportCsvButton from '@/components/Training/components/common/TrainingExportCsvButton.vue'
 
 const props = defineProps({
   summary: { type: Object, required: true },
@@ -76,7 +77,12 @@ const props = defineProps({
   showSettings: { type: Boolean, default: true },
   showDebug: { type: Boolean, default: true },
   debugVisible: { type: Boolean, default: false },
-  showStats: { type: Boolean, default: true }  // 🔥 НОВЫЙ ПРОП
+  showStats: { type: Boolean, default: true },
+  hasLogs: { type: Boolean, default: false }
+})
+
+const hasLogs = computed(() => {
+  return true
 })
 
 const emit = defineEmits(['toggle-form', 'refresh', 'toggle-settings', 'toggle-debug'])

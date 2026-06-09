@@ -3,14 +3,18 @@
  * TRAINING UTILS INDEX — БАРРЕЛ-ЭКСПОРТ
  * ============================================================================
  */
-export * from './appFormattersUtils.js';
-export * from './appValidatorsUtils.js';
-export * from './appHelpersUtils.js';
-export * from './appLoggerUtils.js';
+export * from './trainingDebugUtils.js';
+export * from './trainingFormattersUtils.js';
+export * from './trainingHelpersUtils.js';
+export * from './trainingLoggerUtils.js';
+export * from './trainingSettingsHelpersUtils.js';
+export * from './trainingValidatorsUtils.js';
 
 export default {
-    formatters: () => import('./appFormattersUtils.js'),
-    validators: () => import('./appValidatorsUtils.js'),
-    helpers: () => import('./appHelpersUtils.js'),
-    logger: () => import('./appLoggerUtils.js')
+    debug: () => import('./trainingDebugUtils.js'),
+    formatters: () => import('./trainingFormattersUtils.js'),
+    helpers: () => import('./trainingHelpersUtils.js'),
+    logger: () => import('./trainingLoggerUtils.js'),
+    settings: () => import('./trainingSettingsHelpersUtils.js'),
+    validators: () => import('./trainingValidatorsUtils.js'),
 };

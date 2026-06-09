@@ -4,7 +4,7 @@
  * ============================================================================
  */
 
-export const useExerciseFields = (exerciseType = 'bodyweight') => {
+export const useTrainingExerciseFields = (exerciseType = 'bodyweight') => {
     const fieldConfig = {
         bodyweight: {
             fields: ['reps'],
@@ -23,7 +23,7 @@ export const useExerciseFields = (exerciseType = 'bodyweight') => {
         cardio: {
             fields: ['reps', 'duration', 'distance'],
             labels: { reps: 'Круги/Подходы', weight: 'Вес', duration: 'Время', distance: 'Дистанция', notes: 'Заметка' },
-            placeholders: { reps: 'Круги', weight: 'Вес', duration: 'сек', distance: 'м', notes: 'Заметка' },
+            placeholders: { reps: 'Круги', weight: 'Вес', duration: 'сек', distance: 'м', notes: 'Темп, пульс' },
             units: { reps: '', weight: 'кг', duration: 'сек', distance: 'м', notes: '' },
             defaults: { reps: 1, weight: null, duration: null, distance: null, notes: '' }
         },
@@ -58,4 +58,4 @@ export const useExerciseFields = (exerciseType = 'bodyweight') => {
     return { visibleFields, defaultSet, placeholderMap, unitMap, getFieldLabel, isFieldVisible, sanitizeSet };
 };
 
-export default useExerciseFields;
+export default useTrainingExerciseFields;

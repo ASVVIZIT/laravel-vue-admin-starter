@@ -1,8 +1,8 @@
 /**
  * ============================================================================
- * TRAINING FORMATTERS — ФОРМАТТЕРЫ ДАННЫХ
+ * TRAINING FORMATTERS — ФОРМАТТЕРЫ ДАННЫХ МОДУЛЯ TRAINING
  * ============================================================================
- * 📁 Путь: @/components/Training/utils/appFormattersUtils.js
+ * 📁 Путь: @/components/Training/utils/trainingFormattersUtils.js
  * ✅ Назначение: Единое форматирование дат, веса, времени, статистики
  * ============================================================================
  */
@@ -123,7 +123,7 @@ export const formatSet = (set, exerciseType = 'bodyweight') => {
  */
 
 /**
- * Компактное форматирование подхода для отображения в таблице
+ * Компактное форматирование подхода для отображения в таблице (горизонтальный список)
  * Умная логика:
  * - reps=1 + duration → "16м40с" (без "1×")
  * - reps>1 + duration → "3×16м40с"
@@ -152,14 +152,12 @@ export const formatSetPreview = (set, type) => {
 
     // 🔥 1. ЕСТЬ duration (йога, растяжка, планка, кардио, велосипед)
     if (duration > 0) {
-        // Собираем duration + distance с разделителем "/"
         const durationParts = [fmtDuration(duration)];
         if (distance > 0) {
             durationParts.push(distance >= 1000 ? `${(distance / 1000).toFixed(1)}км` : `${distance}м`);
         }
         const durationStr = durationParts.join('/');
 
-        // Если reps > 1 — добавляем "N×" перед duration
         return reps > 1 ? `${reps}×${durationStr}` : durationStr;
     }
 
@@ -184,8 +182,6 @@ export const formatSetPreview = (set, type) => {
 
 /**
  * Подсчитывает общее количество повторов из массива подходов
- * @param {Array} sets - массив подходов
- * @returns {string|number} сумма повторов или '—'
  */
 export const calculateTotalReps = (sets) => {
     if (!Array.isArray(sets) || sets.length === 0) return '—';
@@ -195,9 +191,6 @@ export const calculateTotalReps = (sets) => {
 
 /**
  * Функция сортировки для Element Plus table column по количеству повторов
- * @param {Object} a - первая строка таблицы
- * @param {Object} b - вторая строка таблицы
- * @returns {number} результат сравнения для сортировки
  */
 export const sortByReps = (a, b) => {
     const repA = calculateTotalReps(a.sets);
@@ -207,8 +200,6 @@ export const sortByReps = (a, b) => {
 
 /**
  * Получает список уникальных ID упражнений из массива логов
- * @param {Array} logs - массив записей тренировок
- * @returns {Set<string>} Set с уникальными exercise_id
  */
 export const getUsedExerciseIds = (logs) => {
     if (!Array.isArray(logs)) return new Set();
@@ -221,8 +212,6 @@ export const getUsedExerciseIds = (logs) => {
 
 /**
  * Форматирует количество дополнительных подходов для тултипа
- * @param {number} count - количество скрытых подходов
- * @returns {string} форматированная строка "+N"
  */
 export const formatMoreSets = (count) => {
     if (!count || count <= 0) return '';
@@ -255,7 +244,7 @@ export const formatRating = (rating) => {
 };
 
 /**
- * Получение иконки по типу упражнения
+ * 🔥 Получение иконки по типу упражнения
  */
 export const getExerciseIcon = (type) => {
     const icons = {

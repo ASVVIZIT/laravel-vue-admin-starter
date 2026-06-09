@@ -8,7 +8,7 @@
  * ============================================================================
  */
 
-import { logDebugAction, logDebugApi, logDebugStore, logDebugError } from '../utils/appDebugUtils.js'
+import { logDebugAction, logDebugApi, logDebugStore, logDebugError } from '../utils/trainingDebugUtils.js'
 
 /**
  * Умный хук для отладки внутри компонентов

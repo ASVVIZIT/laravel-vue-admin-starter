@@ -2,7 +2,7 @@
  * ============================================================================
  * TRAINING VALIDATORS — ПРАВИЛА ВАЛИДАЦИИ ФОРМ
  * ============================================================================
- * 📁 Путь: @/components/Training/utils/appValidatorsUtils.js
+ * 📁 Путь: @/components/Training/utils/trainingValidatorsUtils.js
  * ✅ Назначение: Валидация sets, rating, shared_with, дат
  * ✅ Совместимость: Element Plus Form Rules
  * ============================================================================

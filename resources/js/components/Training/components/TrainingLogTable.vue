@@ -1,5 +1,5 @@
 <template>
-  <LayoutCardWrapper title="История тренировок" :icon="List" bordered shadow class="log-table-wrapper">
+  <TrainingLayoutCardWrapper title="История тренировок" :icon="List" bordered shadow class="log-table-wrapper">
     <el-table
         :data="logs"
         :row-key="getRowKey"
@@ -20,7 +20,7 @@
             <el-icon :size="14"><User /></el-icon>
             <span class="group-name">{{ row.group_label }}</span>
             <el-tag size="small" type="info" effect="plain">{{ row.count }}</el-tag>
-            <TrainingGroupSummaryTooltip :summary="row.summary" :group-name="row.group_label" />
+            <TrainingLogGroupTooltipTable :summary="row.summary" :group-name="row.group_label" />
           </span>
           <span v-else class="text-muted">—</span>
         </template>
@@ -45,7 +45,7 @@
       <!-- Упражнение / Активность -->
       <el-table-column v-if="isColumnVisible('exercise')" prop="exercise.name" label="Активность" min-width="170">
         <template #default="{ row }">
-          <TrainingSetsGroupTooltip
+          <TrainingExerciseGroupTooltipTable
               v-if="row.children && row.summary?.top_entities?.length"
               :entities="row.summary.top_entities"
               :entity-label="row.summary.entity_label || 'Упражнения'"
@@ -56,7 +56,7 @@
             <el-tag v-if="row.summary.top_entities.length > 2" size="small" type="info" effect="plain" class="ex-more-tag">
               +{{ row.summary.top_entities.length - 2 }}
             </el-tag>
-          </TrainingSetsGroupTooltip>
+          </TrainingExerciseGroupTooltipTable>
 
           <span v-else-if="row.children" class="text-muted">—</span>
 
@@ -93,9 +93,9 @@
           <span v-if="row.children" class="group-summary-bold">{{ row.summary?.total_sets || 0 }}</span>
           <div v-else-if="row.sets" class="sets-preview-row">
             <span v-for="(set, i) in row.sets?.slice(0, 3)" :key="i" class="set-chip-text">{{ formatSetPreview(set, row.exercise?.type) }}</span>
-            <SetsTooltip v-if="row.sets?.length > 3" :all-sets="row.sets" :visible-count="3" :exercise-type="row.exercise?.type">
+            <TrainingLogSetTooltipTable v-if="row.sets?.length > 3" :all-sets="row.sets" :visible-count="3" :exercise-type="row.exercise?.type">
               <span class="more-chip">+{{ row.sets.length - 3 }}</span>
-            </SetsTooltip>
+            </TrainingLogSetTooltipTable>
           </div>
           <span v-else class="text-muted">—</span>
         </template>
@@ -165,7 +165,7 @@
           @size-change="(size) => $emit('per-page-change', size)"
       />
     </div>
-  </LayoutCardWrapper>
+  </TrainingLayoutCardWrapper>
 </template>
 
 <script setup>
@@ -173,11 +173,11 @@ import { List, Edit, Delete, User, Share, Connection, DataLine } from '@element-
 import {
   formatDate, formatTime, formatVolume, formatDuration, formatDistance,
   formatRating, getExerciseTagType, calculateTotalReps, sortByReps, formatSetPreview
-} from '@/components/Training/utils/appFormattersUtils.js'
-import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
-import SetsTooltip from './SetsTooltip.vue'
-import TrainingGroupSummaryTooltip from './TrainingGroupSummaryTooltip.vue'
-import TrainingSetsGroupTooltip from './TrainingSetsGroupTooltip.vue'
+} from '@components/Training/utils/trainingFormattersUtils.js'
+import TrainingLayoutCardWrapper from '@components/Training/components/layout/wrappers/TrainingLayoutCardWrapper.vue'
+import TrainingLogSetTooltipTable from './TrainingLogSetTooltipTable.vue'
+import TrainingLogGroupTooltipTable from './TrainingLogGroupTooltipTable.vue'
+import TrainingExerciseGroupTooltipTable from './TrainingExerciseGroupTooltipTable.vue'
 
 const props = defineProps({
   logs: { type: Array, default: () => [] },

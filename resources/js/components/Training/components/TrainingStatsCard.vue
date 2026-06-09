@@ -1,5 +1,5 @@
 <template>
-  <LayoutCardWrapper :title="title" :icon="icon" bordered shadow class="stats-card">
+  <TrainingLayoutCardWrapper :title="title" :icon="icon" bordered shadow class="stats-card">
     <div class="stats-grid">
       <div v-for="(stat, key) in stats" :key="key" class="stat-item">
         <span class="stat-label">{{ stat.label }}</span>
@@ -11,12 +11,12 @@
     <div v-if="footer" class="stats-footer">
       <slot name="footer">{{ footer }}</slot>
     </div>
-  </LayoutCardWrapper>
+  </TrainingLayoutCardWrapper>
 </template>
 
 <script setup>
-import { formatDate, formatVolume, formatDuration, formatDistance, formatStreak } from '@/components/Training/utils/appFormattersUtils.js';
-import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue';
+import { formatDate, formatVolume, formatDuration, formatDistance, formatStreak } from '@components/Training/utils/trainingFormattersUtils.js';
+import TrainingLayoutCardWrapper from '@components/Training/components/layout/wrappers/TrainingLayoutCardWrapper.vue';
 
 const props = defineProps({
   title: { type: String, default: 'Статистика' },

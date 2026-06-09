@@ -1,5 +1,5 @@
 <template>
-  <LayoutCardWrapper bordered class="training-form" :show-title="false">
+  <TrainingLayoutCardWrapper bordered class="training-form" :show-title="false">
     <el-form ref="formRef" :model="form" :rules="rules" label-position="top" class="form-scroll-wrapper">
 
       <div class="main-layout-grid">
@@ -22,7 +22,7 @@
               <div v-if="frozenData.exercise" class="frozen-block">
                 <div class="frozen-header">🔒 Было: <b>{{ frozenData.exercise.name }}</b></div>
                 <div class="frozen-scroll-list">
-                  <SetRow v-for="(set, i) in frozenData.sets" :key="'f-'+i" :model-value="set" :index="i"
+                  <TrainingLogSetRowForm v-for="(set, i) in frozenData.sets" :key="'f-'+i" :model-value="set" :index="i"
                           :exercise-type="frozenData.exercise.type" :frozen="true" :removable="false" :status="'success'" />
                 </div>
                 <div class="frozen-actions">
@@ -52,7 +52,7 @@
                   <span class="h-actions"></span>
                 </div>
 
-                <SetRow v-for="(set, i) in form.sets" :key="'a-'+i" v-model="form.sets[i]" :index="i"
+                <TrainingLogSetRowForm v-for="(set, i) in form.sets" :key="'a-'+i" v-model="form.sets[i]" :index="i"
                         :exercise-type="currentExerciseType" :removable="form.sets.length > 1"
                         :errors="setErrors[i] ?? {}" :status="setStatus[i]" @remove="removeSet(i)"
                         :ref="(el) => { if (el) setRefs[i] = el }" />
@@ -91,7 +91,7 @@
                 <el-icon class="help-icon"><QuestionFilled /></el-icon>
               </el-tooltip>
             </template>
-            <TrainingUserSharingSelector
+            <TrainingLogSharingSelectorForm
                 v-model="form.shared_with"
                 placeholder="Найдите пользователя..."
                 :max-visible-tags="4"
@@ -111,30 +111,30 @@
       </el-form-item>
 
     </el-form>
-  </LayoutCardWrapper>
+  </TrainingLayoutCardWrapper>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, QuestionFilled } from '@element-plus/icons-vue'
-import { useTrainingForm } from '@/components/Training/composables/useTrainingForm.js'
-import { useSetValidation } from '@/components/Training/composables/useSetValidation.js'
-import LayoutCardWrapper from '@/components/Training/components/layout/wrappers/LayoutCardWrapper.vue'
-import SetRow from './SetRow.vue'
-import TrainingUserSharingSelector from './TrainingUserSharingSelector.vue'
+import { useTrainingLogForm } from '@components/Training/composables/useTrainingLogForm.js'
+import { useTrainingSetValidation } from '@components/Training/composables/useTrainingSetValidation.js'
+import TrainingLayoutCardWrapper from '@components/Training/components/layout/wrappers/TrainingLayoutCardWrapper.vue'
+import TrainingLogSetRowForm from './TrainingLogSetRowForm.vue'
+import TrainingLogSharingSelectorForm from './TrainingLogSharingSelectorForm.vue'
 import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
-import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
-import { useExerciseFields } from '@/components/Training/composables/useExerciseFields.js'
+import { useTrainingExerciseStore } from '@components/Training/stores/trainingExerciseStore.js'
+import { useTrainingExerciseFields } from '@components/Training/composables/useTrainingExerciseFields.js'
 
 const props = defineProps({ logId: { type: [Number, String] }, initialData: Object })
 const emit = defineEmits(['saved', 'cancelled', 'deleted'])
 
 const logStore = useTrainingLogStore()
-const exerciseStore = useExerciseStore()
-const { validateSet } = useSetValidation()
+const exerciseStore = useTrainingExerciseStore()
+const { validateSet } = useTrainingSetValidation()
 const { form, addSet, removeSet, resetForm, loadFormData, getPlainPayload, selectedExercise, rules } =
-    useTrainingForm(props.initialData, exerciseStore.exercises)
+    useTrainingLogForm(props.initialData, exerciseStore.exercises)
 
 const frozenData = ref({ sets: [], exercise: null })
 const setRefs = ref([])
@@ -149,7 +149,7 @@ const currentExerciseType = computed(() => {
   return ex ? ex.type : 'bodyweight'
 })
 
-const currentConfig = computed(() => useExerciseFields(currentExerciseType.value))
+const currentConfig = computed(() => useTrainingExerciseFields(currentExerciseType.value))
 const isEdit = computed(() => !!props.logId)
 
 const isSetComplete = (s, type) => {

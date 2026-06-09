@@ -14,8 +14,8 @@
 
 import { TrainingSettingsApi } from '@/components/Training/api/core/TrainingSettingsApi.js'
 import { logDebugUtils, logErrorUtils } from '@/components/Training/api/core/utils/coreApiLoggerUtils.js'
-import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
-import { deepClone } from '@/components/Training/utils/appSettingsHelpersUtils.js'
+import { TRAINING_SETTINGS_DEFAULTS_CONFIG } from '@components/Training/config/trainingSettingsDefaultsConfig.js'
+import { deepClone } from '@components/Training/utils/trainingSettingsHelpersUtils.js'
 
 // Ключи localStorage
 const CACHE_KEYS = {
@@ -69,7 +69,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: result.message || 'Используются настройки по умолчанию',
-                data: deepClone({ ...SETTINGS_DEFAULTS_CONFIG.display.server, ...SETTINGS_DEFAULTS_CONFIG.grouping.server }),
+                data: deepClone({ ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server, ...TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server }),
                 isFallback: true
             }
         } catch (error) {
@@ -77,7 +77,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: 'Не удалось загрузить серверные настройки',
-                data: deepClone({ ...SETTINGS_DEFAULTS_CONFIG.display.server, ...SETTINGS_DEFAULTS_CONFIG.grouping.server }),
+                data: deepClone({ ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server, ...TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server }),
                 isFallback: true
             }
         }
@@ -102,7 +102,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: 'Используются настройки по умолчанию',
-                data: deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
+                data: deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend),
                 isFallback: true
             }
         } catch (error) {
@@ -111,7 +111,7 @@ export class TrainingSettingsService {
             return {
                 success: false,
                 message: 'Не удалось загрузить фронтенд-настройки',
-                data: cached || deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend),
+                data: cached || deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend),
                 isCached: !!cached,
                 isFallback: !cached
             }
@@ -197,41 +197,41 @@ export class TrainingSettingsService {
     }
 
     _normalizeServerSettings(raw) {
-        if (!raw) return deepClone({ ...SETTINGS_DEFAULTS_CONFIG.display.server, ...SETTINGS_DEFAULTS_CONFIG.grouping.server })
+        if (!raw) return deepClone({ ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server, ...TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server })
 
         return {
-            grouping_mode: raw.grouping_mode || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
-            grouping_auto_threshold: parseInt(raw.grouping_auto_threshold, 10) || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
-            grouping_by: raw.grouping_by || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_by,
-            grouping_per_page: parseInt(raw.grouping_per_page, 10) || SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
-            logs_per_page: parseInt(raw.logs_per_page, 10) || SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
-            enable_stats: this._parseBoolean(raw.enable_stats, SETTINGS_DEFAULTS_CONFIG.display.server.enable_stats),
-            enable_sharing: this._parseBoolean(raw.enable_sharing, SETTINGS_DEFAULTS_CONFIG.display.server.enable_sharing),
-            enable_min_groups_check: this._parseBoolean(raw.enable_min_groups_check, SETTINGS_DEFAULTS_CONFIG.grouping.server.enable_min_groups_check),
-            grouping_min_groups: parseInt(raw.grouping_min_groups, 10) || SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_min_groups,
+            grouping_mode: raw.grouping_mode || TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_mode,
+            grouping_auto_threshold: parseInt(raw.grouping_auto_threshold, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_auto_threshold,
+            grouping_by: raw.grouping_by || TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_by,
+            grouping_per_page: parseInt(raw.grouping_per_page, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server.grouping_per_page,
+            logs_per_page: parseInt(raw.logs_per_page, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server.logs_per_page,
+            enable_stats: this._parseBoolean(raw.enable_stats, TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server.enable_stats),
+            enable_sharing: this._parseBoolean(raw.enable_sharing, TRAINING_SETTINGS_DEFAULTS_CONFIG.display.server.enable_sharing),
+            enable_min_groups_check: this._parseBoolean(raw.enable_min_groups_check, TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.enable_min_groups_check),
+            grouping_min_groups: parseInt(raw.grouping_min_groups, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.grouping.server.grouping_min_groups,
         }
     }
 
     _normalizeFrontendSettings(raw) {
-        if (!raw) return deepClone(SETTINGS_DEFAULTS_CONFIG.interface.frontend)
+        if (!raw) return deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend)
 
         return {
-            default_tab: raw.default_tab || SETTINGS_DEFAULTS_CONFIG.interface.frontend.default_tab,
-            show_grouping_toggle: this._parseBoolean(raw.show_grouping_toggle, SETTINGS_DEFAULTS_CONFIG.interface.frontend.show_grouping_toggle),
-            filters_collapsed_mobile: this._parseBoolean(raw.filters_collapsed_mobile, SETTINGS_DEFAULTS_CONFIG.interface.frontend.filters_collapsed_mobile),
-            compact_view: this._parseBoolean(raw.compact_view, SETTINGS_DEFAULTS_CONFIG.interface.frontend.compact_view)
+            default_tab: raw.default_tab || TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend.default_tab,
+            show_grouping_toggle: this._parseBoolean(raw.show_grouping_toggle, TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend.show_grouping_toggle),
+            filters_collapsed_mobile: this._parseBoolean(raw.filters_collapsed_mobile, TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend.filters_collapsed_mobile),
+            compact_view: this._parseBoolean(raw.compact_view, TRAINING_SETTINGS_DEFAULTS_CONFIG.interface.frontend.compact_view)
         }
     }
 
     _normalizeLimits(raw) {
-        if (!raw) return deepClone({ ...SETTINGS_DEFAULTS_CONFIG.search.limits, ...SETTINGS_DEFAULTS_CONFIG.display.limits })
+        if (!raw) return deepClone({ ...TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits, ...TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits })
 
         return {
-            search_min_length: parseInt(raw.search_min_length, 10) || SETTINGS_DEFAULTS_CONFIG.search.limits.search_min_length,
-            search_results_limit: parseInt(raw.search_results_limit, 10) || SETTINGS_DEFAULTS_CONFIG.search.limits.search_results_limit,
-            max_shared_with: parseInt(raw.max_shared_with, 10) || SETTINGS_DEFAULTS_CONFIG.display.limits.max_shared_with,
-            max_sets: parseInt(raw.max_sets, 10) || SETTINGS_DEFAULTS_CONFIG.display.limits.max_sets,
-            max_notes_length: parseInt(raw.max_notes_length, 10) || SETTINGS_DEFAULTS_CONFIG.display.limits.max_notes_length,
+            search_min_length: parseInt(raw.search_min_length, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits.search_min_length,
+            search_results_limit: parseInt(raw.search_results_limit, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.search.limits.search_results_limit,
+            max_shared_with: parseInt(raw.max_shared_with, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits.max_shared_with,
+            max_sets: parseInt(raw.max_sets, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits.max_sets,
+            max_notes_length: parseInt(raw.max_notes_length, 10) || TRAINING_SETTINGS_DEFAULTS_CONFIG.display.limits.max_notes_length,
         }
     }
 

@@ -4,12 +4,14 @@
  * ============================================================================
  */
 
-export { default as DebugPanel } from './DebugPanel.vue';
-export { default as DeviceSettingsPanel } from './DeviceSettingsPanel.vue';
-export { default as GlobalSettingsPanel } from './GlobalSettingsPanel.vue';
+export { default as TrainingDebugPanel } from './TrainingDebugPanel.vue';
+export { default as TrainingDebugStatePanel } from './TrainingDebugStatePanel.vue';
+export { default as TrainingDebugLogsPanel } from './TrainingDebugLogsPanel.vue';
+export { default as TrainingGlobalSettingsPanel } from './TrainingGlobalSettingsPanel.vue';
 
 export default {
-    DebugPanel: () => import('./DebugPanel.vue'),
-    DeviceSettingsPanel: () => import('./DeviceSettingsPanel.vue'),
-    GlobalSettingsPanel: () => import('./GlobalSettingsPanel.vue')
+    TrainingDebugPanel: () => import('./TrainingDebugPanel.vue'),
+    TrainingDebugStatePanel: () => import('./TrainingDebugStatePanel.vue'),
+    TrainingDebugLogsPanel: () => import('./TrainingDebugLogsPanel.vue'),
+    TrainingGlobalSettingsPanel: () => import('./TrainingGlobalSettingsPanel.vue')
 };

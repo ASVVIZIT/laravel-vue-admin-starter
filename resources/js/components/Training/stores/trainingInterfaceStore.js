@@ -10,9 +10,9 @@
 
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { logDebugUtils } from '@components/Training/utils/appLoggerUtils.js';
+import { logDebugUtils } from '@components/Training/utils/trainingLoggerUtils.js';
 
-export const useInterfaceStore = defineStore('training-interface', () => {
+export const useTrainingInterfaceStore = defineStore('training-interface', () => {
     // === STATE ===
     const debugPanelVisible = ref(false);
     const globalSettingsVisible = ref(false);
@@ -189,4 +189,4 @@ export const useInterfaceStore = defineStore('training-interface', () => {
     };
 });
 
-export default useInterfaceStore;
+export default useTrainingInterfaceStore;

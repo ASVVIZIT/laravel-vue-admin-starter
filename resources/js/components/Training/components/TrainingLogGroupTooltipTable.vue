@@ -57,7 +57,7 @@
 
 <script setup>
 import { DataAnalysis, InfoFilled } from '@element-plus/icons-vue'
-import { formatVolume, formatDistance, formatDuration } from '@/components/Training/utils/appFormattersUtils.js'
+import { formatVolume, formatDistance, formatDuration } from '@components/Training/utils/trainingFormattersUtils.js'
 
 defineProps({
   summary: { type: Object, default: () => ({}) },

@@ -33,7 +33,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { TRAINING_STATS_CONFIG } from '../config/statsConfig.js'
+import { TRAINING_STATS_CONFIG } from '../config/trainingStatsConfig.js'
 
 const props = defineProps({
   summary: { type: Object, default: () => ({}) },

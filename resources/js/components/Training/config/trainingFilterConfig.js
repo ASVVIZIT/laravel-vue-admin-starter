@@ -6,7 +6,7 @@
 
 import { InfoFilled, CircleCheck, Clock, Calendar } from '@element-plus/icons-vue'
 
-export const FILTER_BLOCKS = {
+export const TRAINING_FILTER_BLOCKS = {
     date: {
         shortcuts: [
             { text: 'Сегодня', value: () => new Date() },
@@ -44,4 +44,4 @@ export const FILTER_BLOCKS = {
     }
 }
 
-export default { FILTER_BLOCKS }
+export default { TRAINING_FILTER_BLOCKS }

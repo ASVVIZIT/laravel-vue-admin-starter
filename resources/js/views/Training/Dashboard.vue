@@ -9,6 +9,7 @@
         :show-settings="true"
         :show-debug="true"
         :debug-visible="debugStore.isVisible"
+        :has-logs="logStore.hasLogs"
         @toggle-form="toggleForm"
         @toggle-settings="toggleSettings"
         @toggle-debug="debugStore.toggleVisibility()"
@@ -34,7 +35,7 @@
       </div>
     </div>
 
-    <div class="filter-wrapper"><TrainingFilterBar /></div>
+    <div class="filter-wrapper"><TrainingLogFilterBarTable /></div>
 
     <main class="dashboard-main">
       <div v-if="logStore.currentLoading" class="state-container"><el-skeleton :rows="8" animated /></div>
@@ -78,21 +79,21 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Switch } from '@element-plus/icons-vue'
 
 import { useTrainingLogStore, TAB_CONFIG } from '@/components/Training/stores/trainingLogStore.js'
-import { useExerciseStore } from '@/components/Training/stores/exerciseStore.js'
+import { useTrainingExerciseStore } from '@components/Training/stores/trainingExerciseStore.js'
 import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
 import { useTrainingDebugStore } from '@/components/Training/stores/trainingDebugStore.js'
 import { useDebug } from '@/components/Training/composables/useDebug.js'
 
 import TrainingDashboardHeader from '@/components/Training/components/TrainingDashboardHeader.vue'
-import TrainingFilterBar from '@/components/Training/components/TrainingFilterBar.vue'
+import TrainingLogFilterBarTable from '@components/Training/components/TrainingLogFilterBarTable.vue'
 import TrainingLogTable from '@/components/Training/components/TrainingLogTable.vue'
 import TrainingLogForm from '@/components/Training/components/TrainingLogForm.vue'
 import TrainingSettingsModal from '@/components/Training/components/settings/modals/TrainingSettingsModal.vue'
-import DebugPanel from '@/components/Training/components/layout/panels/DebugPanel.vue'
+import DebugPanel from '@components/Training/components/layout/panels/TrainingDebugPanel.vue'
 
 const debug = useDebug('Dashboard')
 const logStore = useTrainingLogStore()
-const exerciseStore = useExerciseStore()
+const exerciseStore = useTrainingExerciseStore()
 const settingsStore = useTrainingSettingsStore()
 const debugStore = useTrainingDebugStore()
 

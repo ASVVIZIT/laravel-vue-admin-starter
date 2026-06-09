@@ -18,12 +18,12 @@
 
       <!-- Вкладка: Логи -->
       <el-tab-pane label="Логи" name="logs" class="debug-tab-pane">
-        <DebugLogs />
+        <TrainingDebugLogsPanel />
       </el-tab-pane>
 
       <!-- Вкладка: Настройки и Контекст -->
       <el-tab-pane label="⚙️ Настройки" name="state" class="debug-tab-pane">
-        <DebugState />
+        <TrainingDebugStatePanel />
       </el-tab-pane>
 
     </el-tabs>
@@ -60,8 +60,8 @@ import { ElMessage } from 'element-plus'
 import { useTrainingDebugStore } from '@/components/Training/stores/trainingDebugStore.js'
 import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
 import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
-import DebugLogs from './DebugLogs.vue'
-import DebugState from './DebugState.vue'
+import TrainingDebugLogsPanel from './TrainingDebugLogsPanel.vue'
+import TrainingDebugStatePanel from './TrainingDebugStatePanel.vue'
 
 const debugStore = useTrainingDebugStore()
 const logStore = useTrainingLogStore()

@@ -20,4 +20,4 @@ export const validateSet = (set, type) => {
     return { isValid: invalidFields.length === 0, errors, invalidFields };
 };
 
-export const useSetValidation = () => ({ validateSet });
+export const useTrainingSetValidation = () => ({ validateSet });

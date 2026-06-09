@@ -7,7 +7,7 @@
  * ============================================================================
  */
 
-import { SETTINGS_DEFAULTS_CONFIG } from '@/components/Training/config/settingsDefaultsConfig.js'
+import { TRAINING_SETTINGS_DEFAULTS_CONFIG } from '@components/Training/config/trainingSettingsDefaultsConfig.js'
 
 export const deepClone = (obj) => {
     if (obj === null || typeof obj !== 'object') return obj
@@ -43,14 +43,14 @@ export const deepMerge = (target, source) => {
 }
 
 export const getAppDefaults = (section) => {
-    if (!SETTINGS_DEFAULTS_CONFIG[section]) {
+    if (!TRAINING_SETTINGS_DEFAULTS_CONFIG[section]) {
         console.warn(`[appSettingsHelpersUtils] Unknown section: ${section}`)
         return {}
     }
-    return deepClone(SETTINGS_DEFAULTS_CONFIG[section])
+    return deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG[section])
 }
 
-export const getFullAppDefaults = () => deepClone(SETTINGS_DEFAULTS_CONFIG)
+export const getFullAppDefaults = () => deepClone(TRAINING_SETTINGS_DEFAULTS_CONFIG)
 
 export const mergeWithAppDefaults = (section, data) => {
     return deepMerge(getAppDefaults(section), data || {})
