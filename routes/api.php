@@ -53,6 +53,7 @@ use App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController;
 use App\Http\Controllers\Api\Training\ExerciseController;
 use App\Http\Controllers\Api\Training\TrainingLogController;
 use App\Http\Controllers\Api\Training\TrainingSettingsController;
+use App\Http\Controllers\Api\Training\TrainingExportController;
 
 // Импорты фасадов для отладочных маршрутов
 use Illuminate\Support\Facades\DB;
@@ -353,6 +354,14 @@ Route::namespace('Api\\Training')
             Route::prefix('stats')->name('stats.')->group(function () {
                 Route::get('/', [TrainingLogController::class, 'stats'])->name('index');
                 Route::get('/summary', [TrainingLogController::class, 'summary'])->name('summary');
+            });
+
+            // ===== EXPORT API (Потоковая выгрузка отчетов) =====
+            Route::prefix('export')->name('export.')->group(function () {
+                Route::get('/csv', [TrainingExportController::class, 'exportCsv'])->name('csv');
+                // В будущем можно добавить:
+                // Route::get('/pdf', [TrainingExportController::class, 'exportPdf'])->name('pdf');
+                // Route::get('/excel', [TrainingExportController::class, 'exportExcel'])->name('excel');
             });
 
             // ===== SETTINGS API =====

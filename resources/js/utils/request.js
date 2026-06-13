@@ -7,6 +7,25 @@
  * ✅ Совместимость: 100% обратная совместимость (режим BEFORE по умолчанию)
  * 🔄 Миграция: Постепенное внедрение через флаги __metaMode
  * ============================================================================
+ *
+ * 🎯 СПЕЦИАЛЬНАЯ ОБРАБОТКА ТИПОВ ЗАПРОСОВ
+ * ============================================================================
+ *
+ * Blob-запросы (responseType: 'blob'):
+ * - Автоматически возвращают { blob, headers, status, statusText }
+ * - Работают независимо от мета-режима (BEFORE/AFTER/HYBRID)
+ * - Используются для экспорта файлов (CSV, PDF, Excel)
+ * - Позволяют извлекать имя файла из заголовка Content-Disposition
+ * - Автоматически увеличивают таймаут в 2 раза для больших файлов
+ *
+ * Пример использования:
+ * const { blob, headers } = await request({
+ *     url: '/training/export/csv',
+ *     responseType: 'blob'
+ * })
+ * const fileName = headers['content-disposition'].match(/filename="?(.+)"?/)[1]
+ *
+ * ============================================================================
  */
 
 import '@/bootstrap'
@@ -95,6 +114,11 @@ service.interceptors.request.use(
             config.url = `/admin${config.url}`
         }
 
+        // 🔥 Увеличенный таймаут для blob-запросов (экспорт файлов)
+        if (config.responseType === 'blob') {
+            config.timeout = (config.timeout || 30000) * 2
+        }
+
         return config
     },
 
@@ -125,6 +149,18 @@ service.interceptors.response.use(
         if (authToken) {
             const tokenValue = authToken.replace('Bearer ', '')
             setToken(tokenValue)
+        }
+
+        // 🔥 СПЕЦИАЛЬНАЯ ОБРАБОТКА BLOB-ЗАПРОСОВ (для экспорта файлов)
+        // Автоматически возвращает { blob, headers, status, statusText }
+        // независимо от мета-режима (BEFORE/AFTER/HYBRID)
+        if (response.config.responseType === 'blob') {
+            return {
+                blob: response.data,
+                headers: response.headers,
+                status: response.status,
+                statusText: response.statusText
+            }
         }
 
         // 🔹 Определяем режим для этого запроса

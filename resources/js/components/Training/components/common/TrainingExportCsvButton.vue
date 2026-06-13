@@ -6,7 +6,7 @@
       :disabled="disabled"
       :loading="loading"
       @click="handleExport"
-      title="Скачать текущую таблицу в CSV"
+      title="Скачать таблицу в CSV"
   >
     Экспорт CSV
   </el-button>
@@ -17,15 +17,14 @@ import { ref } from 'vue'
 import { Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useTrainingLogStore } from '@/components/Training/stores/trainingLogStore.js'
-import { useTrainingSettingsStore } from '@/components/Training/stores/trainingSettingsStore.js'
-import { exportLogsToCsvUtils } from '@components/Training/utils/trainingHelpersUtils.js'
+import { TrainingExportResource } from '@/components/Training/api/core/resource/TrainingExportResource.js'
 
 const props = defineProps({
   disabled: { type: Boolean, default: false }
 })
 
 const logStore = useTrainingLogStore()
-const settingsStore = useTrainingSettingsStore()
+const exportResource = new TrainingExportResource()
 const loading = ref(false)
 
 const handleExport = async () => {
@@ -33,20 +32,35 @@ const handleExport = async () => {
 
   loading.value = true
   try {
-    const success = exportLogsToCsvUtils(
-        logStore.currentLogs,
-        settingsStore.columnsConfig,
-        logStore.activeTab
-    )
-
-    if (success) {
-      ElMessage.success(`Экспортировано ${logStore.currentLogs.length} записей`)
-    } else {
-      ElMessage.warning('Нет данных для экспорта')
+    // 🔥 Формируем фильтры из текущего состояния стора
+    const filters = {
+      tab: logStore.activeTab,
+      date_from: logStore.currentFilters.from || undefined,
+      date_to: logStore.currentFilters.to || undefined,
+      exercise_id: logStore.currentFilters.exercise_id || undefined
     }
+
+    const result = await exportResource.getCsvExportResource(filters)
+
+    if (!result.success) {
+      ElMessage.error(result.error || 'Не удалось сформировать отчет')
+      return
+    }
+
+    // 🔥 Создаем blob URL и инициируем скачивание
+    const url = window.URL.createObjectURL(result.blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = result.fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+
+    ElMessage.success(`Отчет "${result.fileName}" успешно скачан`)
   } catch (error) {
-    console.error('Export error:', error)
-    ElMessage.error('Ошибка при создании файла')
+    console.error('[ExportButton] Error:', error)
+    ElMessage.error('Непредвиденная ошибка при экспорте')
   } finally {
     loading.value = false
   }

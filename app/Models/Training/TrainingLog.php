@@ -181,4 +181,9 @@ class TrainingLog extends Model
             || $this->is_public
             || (is_array($this->shared_with) && in_array($viewerId, $this->shared_with, true));
     }
+
+    public function getSharedWithIdsAttribute(): array
+    {
+        return is_array($this->shared_with) ? $this->shared_with : [];
+    }
 }
