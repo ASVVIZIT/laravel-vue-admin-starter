@@ -10,23 +10,22 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class TrainingCsvExportService
 {
     private array $usersMap = [];
-    private array $pendingUserIds = [];
 
     public function export(array $filters = []): StreamedResponse
     {
         $tab = $filters['tab'] ?? 'mine';
         $fileName = "training_logs_{$tab}_" . now()->format('Y-m-d') . ".csv";
+        $encodedFileName = rawurlencode($fileName);
 
         $headers = ['Дата', 'Время', 'Упражнение', 'Доступ', 'Подходы', 'Всего повторов', 'Объём (кг)', 'Оценка'];
 
         return response()->streamDownload(function () use ($filters, $headers) {
             $handle = fopen('php://output', 'w');
 
-            // BOM для корректного отображения кириллицы в Excel
             fprintf($handle, chr(0xEF).chr(0xBB).chr(0xBF));
             fputcsv($handle, $headers, ';');
 
-            // ВАЖНО: Только 'exercise'. НИКАКОГО 'sharedWithUsers'!
+            // Базовый запрос
             $query = TrainingLog::query()
                 ->with(['exercise'])
                 ->where('user_id', Auth::id());
@@ -45,12 +44,11 @@ class TrainingCsvExportService
 
             $query->orderBy('date', 'desc')->orderBy('time', 'desc');
 
-            // Потоковая обработка (O(1) память)
-            $query->lazyById(500, 'id')->each(function ($log) use ($handle) {
-                // Собираем ID напрямую из JSON-колонки
-                $sharedIds = is_array($log->shared_with) ? $log->shared_with : [];
-                $this->ensureUsersLoaded($sharedIds);
+            // 🔥 КЛЮЧЕВОЕ ИСПРАВЛЕНИЕ: Предварительная загрузка ВСЕХ пользователей
+            $this->preloadAllUsers($query);
 
+            // Потоковая обработка
+            $query->lazyById(500, 'id')->each(function ($log) use ($handle) {
                 $row = [
                     $this->formatDate($log->date),
                     $this->formatTime($log->time),
@@ -65,40 +63,50 @@ class TrainingCsvExportService
                 fputcsv($handle, $row, ';');
             });
 
-            $this->flushPendingUsers();
             fclose($handle);
         }, $fileName, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Cache-Control' => 'no-store, no-cache, must-revalidate'
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"; filename*=UTF-8''{$encodedFileName}",
+            'Content-Transfer-Encoding' => 'binary',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
+            'X-Robots-Tag' => 'noindex, nofollow',
         ]);
     }
 
-    private function ensureUsersLoaded(array $userIds): void
+    /**
+     * 🔥 Предварительная загрузка ВСЕХ пользователей из shared_with
+     * Делает ОДИН запрос к БД перед началом обработки
+     */
+    private function preloadAllUsers($query): void
     {
-        $userIds = array_map('intval', array_filter($userIds));
-        $newIds = array_diff($userIds, array_keys($this->usersMap));
-        if (empty($newIds)) return;
+        // Клонируем запрос, чтобы не трогать оригинал
+        $clone = clone $query;
 
-        $this->pendingUserIds = array_merge($this->pendingUserIds, $newIds);
+        // Собираем все уникальные ID из shared_with
+        $allUserIds = [];
+        $clone->select('shared_with')->lazyById(1000, 'id')->each(function ($log) use (&$allUserIds) {
+            if (is_array($log->shared_with)) {
+                foreach ($log->shared_with as $id) {
+                    $allUserIds[] = (int)$id;
+                }
+            }
+        });
 
-        if (count($this->pendingUserIds) >= 1000) {
-            $this->flushPendingUsers();
+        $uniqueIds = array_unique(array_filter($allUserIds));
+
+        if (empty($uniqueIds)) {
+            $this->usersMap = [];
+            return;
         }
-    }
 
-    private function flushPendingUsers(): void
-    {
-        if (empty($this->pendingUserIds)) return;
-
-        $uniqueIds = array_unique($this->pendingUserIds);
-
-        $users = User::whereIn('id', $uniqueIds)
-            ->get(['id', 'name', 'email'])
-            ->mapWithKeys(fn($user) => [(int)$user->id => $user->name ?: $user->email])
+        // 🔥 ОДИН запрос — загружаем всех пользователей сразу
+        $this->usersMap = User::whereIn('id', $uniqueIds)
+            ->pluck('name', 'id')
+            ->map(fn($name, $id) => $name ?: "Пользователь #{$id}")
             ->toArray();
-
-        $this->usersMap = array_merge($this->usersMap, $users);
-        $this->pendingUserIds = [];
     }
 
     private function formatDate($date): string
@@ -115,6 +123,9 @@ class TrainingCsvExportService
         return $time ? substr((string)$time, 0, 5) : '';
     }
 
+    /**
+     * 🔥 Форматирует доступ: каждое имя с новой строки, разделённое запятой
+     */
     private function formatAccess($sharedWith): string
     {
         if (empty($sharedWith)) return 'Личный';
@@ -125,11 +136,12 @@ class TrainingCsvExportService
             if (isset($this->usersMap[$userId])) {
                 $names[] = $this->usersMap[$userId];
             } else {
-                $names[] = "ID:{$userId} (удалён)";
+                $names[] = "Пользователь #{$userId}";
             }
         }
 
-        return 'Доступен: ' . implode(', ', $names);
+        // 🔥 Каждое имя с новой строки, разделённое запятой
+        return 'Доступен: ' . implode(",\n", $names);
     }
 
     private function formatSets($setsJson): string
