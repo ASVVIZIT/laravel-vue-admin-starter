@@ -159,7 +159,10 @@ export default defineConfig(function({ mode }) {
             chunkSizeLogger(),
 
             laravel({
-                input: ['resources/js/app.js'],
+                input: {
+                    'app': 'resources/js/app.js',
+                    'public': 'resources/js/public/public.js'
+                },
                 refresh: [
                     {
                         paths: ['resources/views/**/*.blade.php'],
@@ -200,12 +203,12 @@ export default defineConfig(function({ mode }) {
                 }
             }),
 
-            VitePWA({
+            /*VitePWA({
                 registerType: 'autoUpdate',
                 workbox: {
                     globDirectory: 'public/build',
                     maximumFileSizeToCacheInBytes: 100 * 1024 * 1024,
-                    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,ttf,woff}'],
+                    globPatterns: ['**!/!*.{js,css,html,ico,png,svg,woff2,ttf,woff}'],
                     runtimeCaching: [
                         {
                             urlPattern: function({ url }) {
@@ -267,7 +270,7 @@ export default defineConfig(function({ mode }) {
                         }
                     ]
                 }
-            }),
+            }),*/
 
             VueJsx(),
             VueSetupExtend(),
@@ -292,7 +295,10 @@ export default defineConfig(function({ mode }) {
             }),
 
             Components({
-                dirs: ['resources/js/components/**/*.vue'],
+                dirs: [
+                    'resources/js/components/**/*.vue',      // 🔥 Админка компоненты
+                    'resources/js/public/components/**/*.vue' // 🔥 Public компоненты
+                ],
                 extensions: ['vue', 'js', 'jsx'],
                 resolvers: [
                     ElementPlusResolver({ importStyle: 'sass' }),
@@ -442,10 +448,7 @@ export default defineConfig(function({ mode }) {
             outDir: 'public/build',
             manifest: true,
             sourcemap: false,
-            minify: 'esbuild',
-            rollupOptions: {
-                input: 'resources/js/app.js'
-            }
+            minify: 'esbuild'
         },
         css: { devSourcemap: false }
     }
@@ -481,7 +484,6 @@ export default defineConfig(function({ mode }) {
                 }
             } : undefined,
             rollupOptions: {
-                input: 'resources/js/app.js',
                 plugins: process.env.ANALYZE ? [visualizer({
                     ...BUNDLE_ANALYZER,
                     title: 'Build analysis (' + mode.toUpperCase() + ')'

@@ -2,64 +2,46 @@
 
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
 */
 
-// routes/web.php
+// ============================================================================
+// 🌐 ПУБЛИЧНАЯ ЧАСТЬ (корень сайта)
+// ============================================================================
+Route::get('/', function () {
+    return view('public.home');
+})->name('public.home');
 
-// RouteServiceProvider загружает index.html
-Route::get('/{any}', function () {
-    return view('index');
-})->where('any', '.*');
+// ============================================================================
+//  АДМИНКА (префикс /admin)
+// ============================================================================
+Route::prefix('admin')
+    ->name('admin.')
+    ->group(function () {
+        // 🔥 Редирект с /admin на /admin/#/dashboard
+        Route::get('/', function () {
+            return redirect('/admin/#/dashboard');
+        })->name('redirect');
 
-Route::group(['middleware' => 'web'], function () {
-    Route::get('', 'HomeController@index')->where('any', '.*');
-});
+        // Все маршруты админки → index.blade.php
+        Route::get('/{any?}', function () {
+            return view('index');
+        })->where('any', '.*')->name('spa');
+    });
 
-
-
-// Публичный доступ для получения списка ссылок
+// ============================================================================
+// 📡 ПУБЛИЧНЫЕ API (без авторизации)
+// ============================================================================
 Route::get('social-media-links', [SocialMediaLinkController::class, 'index']);
 
-/*Route::get('/debug-broadcast', function() {
-    return Broadcast::auth(request());
+// ============================================================================
+// 🔧 СТАРЫЕ МАРШРУТЫ (для обратной совместимости)
+// ============================================================================
+Route::group(['middleware' => 'web'], function () {
+    Route::get('home', 'HomeController@index')->name('home.legacy');
 });
-
-Route::get('/test-ws', function() {
-    try {
-        $socket = @fsockopen('94.41.87.10', 8070, $errno, $errstr, 2);
-
-        if ($socket) {
-            fwrite($socket, "GET /ws HTTP/1.1\r\nHost: 94.41.87.10\r\n\r\n");
-            $response = fread($socket, 1024);
-            fclose($socket);
-
-            return response()->json([
-                'status' => 'success',
-                'response' => $response
-            ]);
-        }
-
-        return response()->json([
-            'status' => 'error',
-            'message' => "$errstr ($errno)"
-        ], 500);
-
-    } catch (\Throwable $e) {
-        return response()->json([
-            'status' => 'exception',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-});*/

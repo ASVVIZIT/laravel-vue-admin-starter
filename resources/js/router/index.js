@@ -90,8 +90,8 @@ export const constantRoutes = [
       const loginType = authStore.loginType || getLoginType() || 'user'
       console.log(`[Router] Home redirect for: ${loginType}`)
 
-      if (loginType === 'admin') return '/admin/dashboard';
-      if (loginType === 'tester') return '/tester/dashboard';
+      if (loginType === 'admin') return '/dashboard';;
+      if (loginType === 'tester') return '/dashboard';
       return '/dashboard';
     },
     hidden: true,
@@ -165,7 +165,7 @@ export const asyncRoutes = [
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(),
+  history: createWebHashHistory('/admin/'),
   routes: [...constantRoutes, ...asyncRoutes],
   scrollBehavior: () => ({ top: 0 }),
 });
@@ -194,7 +194,7 @@ router.beforeEach(async (to, from, next) => {
     if (!isAuthenticated) {
       console.log('[Router Guard] Not authenticated, redirecting to login.');
       const loginPath = authStore.loginType === 'admin'
-          ? '/admin/login'
+          ? '/login'
           : '/login';
 
       return next({

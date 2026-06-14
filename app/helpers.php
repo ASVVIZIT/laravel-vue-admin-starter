@@ -6,15 +6,112 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 
-if (!function_exists('responseSuccess')) {
+/**
+ * ============================================================================
+ * GLOBAL HELPER FUNCTIONS — FenixPortal
+ * ============================================================================
+ *
+ * 📁 Файл: app/helpers.php
+ * 📝 Описание: Глобальные хелпер-функции приложения
+ * 🔗 Подключён: composer.json → autoload.files
+ *
+ * ============================================================================
+ * 🔥 IDE HINTS — Объявления функций для PhpStorm (только для автодополнения)
+ * ============================================================================
+ *
+ * Эти объявления нужны ТОЛЬКО для IDE. Они не выполняются (обёрнуты в
+ * if (false)), но PhpStorm видит их и подсвечивает вызовы жёлтым цветом.
+ *
+ * Реальные функции определены ниже внутри if (!function_exists()) блоков.
+ */
+
+if (false) {
     /**
      * Success response
+     *
      * @param array|LengthAwarePaginator $data
      * @param string $msg
      * @param array $other
+     * @param int $statusCode
      * @return JsonResponse
      */
-    function responseSuccess($data = [],string $msg = 'Успешная операция', array $other = [], int $statusCode = 200): JsonResponse
+    function responseSuccess($data = [], string $msg = 'Успешная операция', array $other = [], int $statusCode = 200): JsonResponse {}
+
+    /**
+     * Error response
+     *
+     * @param string $msg
+     * @param int $statusCode
+     * @param array $data
+     * @return JsonResponse
+     */
+    function responseFailed(string $msg = 'Операция завершилась неудачей', int $statusCode = 400, array $data = []): JsonResponse {}
+
+    /**
+     * Return random string with $length
+     *
+     * @param int $length
+     * @return string
+     */
+    function randomString(int $length = 0): string {}
+
+    /**
+     * Return random DateTime in past
+     *
+     * @return \DateTime
+     */
+    function randomDateTime(): \DateTime {}
+
+    /**
+     * Return random element from array
+     *
+     * @param array $array
+     * @return mixed
+     */
+    function randomInArray($array) {}
+
+    /**
+     * Return random boolean
+     *
+     * @return bool
+     */
+    function randomBoolean(): bool {}
+
+    /**
+     * Генерирует HTML-теги для подключения Vite ассетов
+     * Автоматически определяет режим (production/development/docker)
+     *
+     * @param string $entryPoint Entry point (по умолчанию 'resources/js/app.js')
+     * @return HtmlString
+     */
+    function vite_assets(string $entryPoint = 'resources/js/app.js'): HtmlString {}
+
+    /**
+     * Генерирует HTML-теги для публичной части (public.js)
+     * Обёртка над vite_assets() с предопределённым entry point
+     *
+     * @return HtmlString
+     */
+    function vite_public_assets(): HtmlString {}
+}
+
+/**
+ * ============================================================================
+ * РЕАЛЬНЫЕ ФУНКЦИИ (определены ниже)
+ * ============================================================================
+ */
+
+if (!function_exists('responseSuccess')) {
+    /**
+     * Success response
+     *
+     * @param array|LengthAwarePaginator $data
+     * @param string $msg
+     * @param array $other
+     * @param int $statusCode
+     * @return JsonResponse
+     */
+    function responseSuccess($data = [], string $msg = 'Успешная операция', array $other = [], int $statusCode = 200): JsonResponse
     {
         $res = [
             'message' => $msg,
@@ -44,8 +141,9 @@ if (!function_exists('responseSuccess')) {
 if (!function_exists('responseFailed')) {
     /**
      * Error response
+     *
      * @param string $msg
-     * @param integer $statusCode
+     * @param int $statusCode
      * @param array $data
      * @return JsonResponse
      */
@@ -125,7 +223,14 @@ if (!function_exists('randomBoolean')) {
 }
 
 if (!function_exists('vite_assets')) {
-    function vite_assets(): HtmlString
+    /**
+     * Генерирует HTML-теги для подключения Vite ассетов
+     * Автоматически определяет режим (production/development/docker)
+     *
+     * @param string $entryPoint Entry point (по умолчанию 'resources/js/app.js')
+     * @return HtmlString
+     */
+    function vite_assets(string $entryPoint = 'resources/js/app.js'): HtmlString
     {
         $isProduction = app()->isProduction();
         $isDocker = config('app.env') === 'docker';
@@ -140,7 +245,7 @@ if (!function_exists('vite_assets')) {
             }
 
             $manifest = json_decode(file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
-            $entry = $manifest['resources/js/app.js'] ?? throw new \RuntimeException('Entry point not found');
+            $entry = $manifest[$entryPoint] ?? throw new \RuntimeException("Entry point '{$entryPoint}' not found in manifest");
 
             $tags = '';
 
@@ -160,14 +265,13 @@ if (!function_exists('vite_assets')) {
         }
 
         // ==================== DEVELOPMENT MODE ====================
-        // ✅ ИСПОЛЬЗОВАТЬ VITE_DEV_SERVER_URL ИЗ .ENV
         $devServer = $isDocker
             ? rtrim(env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173'), '/')
             : rtrim(env('VITE_DEV_SERVER_URL', 'http://localhost:5173'), '/');
 
         $tags = <<<HTML
             <script type="module" src="$devServer/@vite/client"></script>
-            <script type="module" src="$devServer/resources/js/app.js"></script>
+            <script type="module" src="$devServer/$entryPoint"></script>
         HTML;
 
         $tags .= sprintf(
@@ -176,5 +280,18 @@ if (!function_exists('vite_assets')) {
         );
 
         return new HtmlString($tags);
+    }
+}
+
+if (!function_exists('vite_public_assets')) {
+    /**
+     * Генерирует HTML-теги для публичной части (public.js)
+     * Обёртка над vite_assets() с предопределённым entry point
+     *
+     * @return HtmlString
+     */
+    function vite_public_assets(): HtmlString
+    {
+        return vite_assets('resources/js/public/public.js');
     }
 }

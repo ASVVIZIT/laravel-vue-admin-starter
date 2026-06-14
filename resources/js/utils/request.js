@@ -110,9 +110,9 @@ service.interceptors.request.use(
         }
 
         // 🔹 Авто-префикс для админ-панели
-        if (loginType === 'admin' && !config.url?.startsWith('/admin')) {
+        /*if (loginType === 'admin' && !config.url?.startsWith('/admin')) {
             config.url = `/admin${config.url}`
-        }
+        }*/
 
         // 🔥 Увеличенный таймаут для blob-запросов (экспорт файлов)
         if (config.responseType === 'blob') {

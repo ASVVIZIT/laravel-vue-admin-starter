@@ -325,61 +325,32 @@ export function charsetRemovalPlugin() {
 }
 
 export function createManualChunks() {
-    return function(id) {
-        if (id.includes('element-plus/dist/locale')) {
-            return 'element-locales'
+    // 🔥 НОВЫЙ API: функция принимает (id, {getModuleInfo, getModuleIds})
+    return function(id, { getModuleInfo }) {
+        // 🔥 Защита: если id не строка — пропускаем
+        if (typeof id !== 'string') {
+            return undefined
         }
-        if (id.includes('node_modules/vue') && !id.includes('node_modules/@vue')) {
-            return 'vue-core'
-        }
-        if (id.includes('node_modules/vue-router')) {
-            return 'vue-router'
-        }
-        if (id.includes('node_modules/pinia')) {
-            return 'pinia'
-        }
-        if (id.includes('node_modules/@vueuse')) {
-            return 'vueuse'
-        }
-        if (id.includes('node_modules/element-plus') && !id.includes('element-plus/dist/locale')) {
-            return 'element-plus'
-        }
-        if (id.includes('node_modules/axios')) {
-            return 'http-client'
-        }
-        if (id.includes('node_modules/laravel-echo')) {
-            return 'laravel-echo'
-        }
-        if (id.includes('node_modules/pusher-js')) {
-            return 'pusher'
-        }
-        if (id.includes('node_modules/echarts')) {
-            return 'echarts'
-        }
-        if (id.includes('node_modules/three')) {
-            return 'three'
-        }
-        if (id.includes('node_modules/lodash') || id.includes('node_modules/lodash-es')) {
-            return 'lodash'
-        }
-        if (id.includes('node_modules/dayjs')) {
-            return 'dayjs'
-        }
-        if (id.includes('node_modules/moment')) {
-            return 'moment'
-        }
-        if (id.includes('node_modules/qrcode')) {
-            return 'qrcode'
-        }
-        if (id.includes('node_modules/vuedraggable') || id.includes('node_modules/vue-draggable')) {
-            return 'draggable'
-        }
-        if (id.includes('node_modules')) {
-            return 'vendor'
-        }
-        if (id.includes('.ttf') || id.includes('.woff') || id.includes('.woff2')) {
-            return 'fonts'
-        }
+
+        if (id.includes('element-plus/dist/locale')) return 'element-locales'
+        if (id.includes('node_modules/vue') && !id.includes('node_modules/@vue')) return 'vue-core'
+        if (id.includes('node_modules/vue-router')) return 'vue-router'
+        if (id.includes('node_modules/pinia')) return 'pinia'
+        if (id.includes('node_modules/@vueuse')) return 'vueuse'
+        if (id.includes('node_modules/element-plus') && !id.includes('element-plus/dist/locale')) return 'element-plus'
+        if (id.includes('node_modules/axios')) return 'http-client'
+        if (id.includes('node_modules/laravel-echo')) return 'laravel-echo'
+        if (id.includes('node_modules/pusher-js')) return 'pusher'
+        if (id.includes('node_modules/echarts')) return 'echarts'
+        if (id.includes('node_modules/three')) return 'three'
+        if (id.includes('node_modules/lodash') || id.includes('node_modules/lodash-es')) return 'lodash'
+        if (id.includes('node_modules/dayjs')) return 'dayjs'
+        if (id.includes('node_modules/moment')) return 'moment'
+        if (id.includes('node_modules/qrcode')) return 'qrcode'
+        if (id.includes('node_modules/vuedraggable') || id.includes('node_modules/vue-draggable')) return 'draggable'
+        if (id.includes('node_modules')) return 'vendor'
+        if (id.includes('.ttf') || id.includes('.woff') || id.includes('.woff2')) return 'fonts'
+
         return undefined
     }
 }
