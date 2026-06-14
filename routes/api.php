@@ -373,17 +373,20 @@ Route::namespace('Api\\Training')
             // ===== SHARING API =====
             Route::prefix('users')->name('users.')->group(function () {
 
-                Route::get('/search', function (Request $request) {
+                Route::get('/search', function (
+                    Request $request,
+                    \App\Services\Training\TrainingSettingsService $settingsService  // 🔥 Внедрение
+                ) {
                     $search = $request->get('search', '');
-                    // 🔥 Динамический лимит минимальной длины поиска
-                    $minLength = \App\Http\Controllers\Api\Training\TrainingSettingsController::getLimit('search_min_length');
+
+                    // 🔥 Теперь используем сервис вместо несуществующего статического метода
+                    $minLength = $settingsService->getLimit('search_min_length');
 
                     if (strlen($search) < $minLength) {
                         return response()->json(['success' => true, 'data' => []]);
                     }
 
-                    // 🔥 Динамический лимит результатов поиска
-                    $searchLimit = \App\Http\Controllers\Api\Training\TrainingSettingsController::getLimit('search_results_limit');
+                    $searchLimit = $settingsService->getLimit('search_results_limit');
 
                     $users = \App\Models\User::query()
                         ->where(function ($q) use ($search) {
@@ -391,25 +394,30 @@ Route::namespace('Api\\Training')
                                 ->orWhere('email', 'LIKE', "%{$search}%");
                         })
                         ->where('id', '!=', auth()->id())
-                        ->limit($searchLimit) // 🔥 Было жёсткое 100
+                        ->limit($searchLimit)
                         ->get(['id', 'name', 'email']);
+
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('search');
 
-                Route::get('/by-ids', function (Request $request) {
+                Route::get('/by-ids', function (
+                    Request $request,
+                    \App\Services\Training\TrainingSettingsService $settingsService  // 🔥 Внедрение
+                ) {
                     $ids = explode(',', $request->get('ids', ''));
                     $ids = array_filter(array_map('intval', $ids));
+
                     if (empty($ids)) {
                         return response()->json(['success' => true, 'data' => []]);
                     }
 
-                    // 🔥 Ограничиваем количество запрашиваемых ID для безопасности
-                    $maxIds = \App\Http\Controllers\Api\Training\TrainingSettingsController::getLimit('max_shared_with');
+                    $maxIds = $settingsService->getLimit('max_shared_with');
                     $ids = array_slice($ids, 0, $maxIds);
 
                     $users = \App\Models\User::query()
                         ->whereIn('id', $ids)
                         ->get(['id', 'name', 'email']);
+
                     return response()->json(['success' => true, 'data' => $users]);
                 })->name('by-ids');
 
