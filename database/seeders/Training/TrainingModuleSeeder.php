@@ -15,10 +15,10 @@ class TrainingModuleSeeder extends Seeder
     private const START_DATE = '2024-12-01';
     private const END_DATE = '2026-06-05';
 
-    private const LOGS_PER_INTENSIVE_USER = 2000;  // Было 700
-    private const LOGS_PER_MEDIUM_USER = 1500;     // Было 550
-    private const LOGS_PER_LIGHT_USER = 800;       // Было 300
-    private const BATCH_SIZE = 1000;               // Было 500 (ускорит вставку)
+    private const LOGS_PER_INTENSIVE_USER = 2000;
+    private const LOGS_PER_MEDIUM_USER = 1500;
+    private const LOGS_PER_LIGHT_USER = 800;
+    private const BATCH_SIZE = 1000;
 
     private const SHARING_CONFIG = [
         'public_chance' => 10,
@@ -58,7 +58,7 @@ class TrainingModuleSeeder extends Seeder
 
         $availableUsers = User::whereIn('id', self::SYSTEM_USER_IDS)->pluck('id');
         if ($availableUsers->isEmpty()) {
-            $this->command->error('❌ Нет системных пользователей (ID 1-10).');
+            $this->command->error('❌ Нет системных пользователей (ID 1-20).');
             return;
         }
 
@@ -203,7 +203,9 @@ class TrainingModuleSeeder extends Seeder
                     'notes' => fake()->boolean(20) ? $this->generateProgramNote($programKey, $exercise->type, $isPublic, $sharedWith) : null,
                 ]);
 
-            $batch[] = $log->toArray();
+            // 🔥 ИСПРАВЛЕНО: getAttributes() возвращает ТОЛЬКО реальные колонки БД
+            // toArray() включает $appends (total_distance и др.), которых нет в БД
+            $batch[] = $log->getAttributes();
             $generated++;
 
             if (count($batch) >= self::BATCH_SIZE) {
@@ -222,9 +224,15 @@ class TrainingModuleSeeder extends Seeder
     private function insertBatch(array $batch): void
     {
         $encoded = array_map(function ($row) {
-            if (isset($row['date'])) $row['date'] = date('Y-m-d', strtotime($row['date']));
-            if (isset($row['sets']) && is_array($row['sets'])) $row['sets'] = json_encode($row['sets'], JSON_UNESCAPED_UNICODE);
-            if (isset($row['shared_with']) && is_array($row['shared_with'])) $row['shared_with'] = json_encode($row['shared_with']);
+            if (isset($row['date'])) {
+                $row['date'] = date('Y-m-d', strtotime($row['date']));
+            }
+            if (isset($row['sets']) && is_array($row['sets'])) {
+                $row['sets'] = json_encode($row['sets'], JSON_UNESCAPED_UNICODE);
+            }
+            if (isset($row['shared_with']) && is_array($row['shared_with'])) {
+                $row['shared_with'] = json_encode($row['shared_with']);
+            }
             return $row;
         }, $batch);
 
@@ -302,7 +310,6 @@ class TrainingModuleSeeder extends Seeder
             'server.logs_per_page' => '50',
             'server.enable_stats' => 'true',
             'server.enable_sharing' => 'true',
-            // 🔥 НОВЫЕ НАСТРОЙКИ УМНОЙ ГРУППИРОВКИ
             'server.enable_min_groups_check' => 'true',
             'server.grouping_min_groups' => '3',
         ];
