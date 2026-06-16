@@ -30,7 +30,7 @@ class LandingPageController extends Controller
                 $query->where('is_published', filter_var($request->is_published, FILTER_VALIDATE_BOOLEAN));
             }
 
-            // Поиск по title/slug
+            // Поиск по title/slug/description
             if ($request->filled('search')) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
@@ -44,7 +44,7 @@ class LandingPageController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate($request->get('per_page', 15));
 
-            // ✅ Добавляем blocks_count вручную (blocks — JSON поле)
+            // Добавляем blocks_count вручную (blocks — JSON поле)
             $pages->getCollection()->transform(function ($page) {
                 $page->blocks_count = is_array($page->blocks) ? count($page->blocks) : 0;
                 return $page;
@@ -65,14 +65,37 @@ class LandingPageController extends Controller
     }
 
     /**
+     * GET /api/landing/pages/list
+     * Список лендингов для селектора (ID, title, slug, type)
+     */
+    public function listForSelector(): JsonResponse
+    {
+        try {
+            $pages = LandingPage::where('is_published', true)
+                ->select('id', 'title', 'slug', 'type', 'published_at')
+                ->orderBy('sort_order')
+                ->get()
+                ->map(function ($page) {
+                    $data = $page->toArray();
+                    $data['blocks_count'] = is_array($page->blocks) ? count($page->blocks) : 0;
+                    return $data;
+                });
+
+            return response()->json($pages);
+
+        } catch (\Throwable $e) {
+            Log::error('[LandingPageController@listForSelector] Ошибка', ['error' => $e->getMessage()]);
+            return response()->json(['error' => 'Ошибка загрузки списка'], 500);
+        }
+    }
+
+    /**
      * GET /api/landing/public
      * Публичный список опубликованных лендингов (БЕЗ авторизации)
      */
     public function publicIndex(): JsonResponse
     {
         try {
-            // ✅ ИСПРАВЛЕНО: убран withCount('blocks') — это JSON поле!
-            // ✅ ИСПРАВЛЕНО: убран select() — нужен blocks для подсчёта
             $pages = LandingPage::published()
                 ->orderBy('sort_order')
                 ->orderBy('published_at', 'desc')
@@ -85,7 +108,6 @@ class LandingPageController extends Controller
                         'type' => $page->type,
                         'description' => $page->description,
                         'published_at' => $page->published_at?->toIso8601String(),
-                        // ✅ Считаем блоки вручную из JSON поля
                         'blocks_count' => is_array($page->blocks) ? count($page->blocks) : 0,
                     ];
                 });
@@ -105,7 +127,6 @@ class LandingPageController extends Controller
     public function show(LandingPage $page): JsonResponse
     {
         try {
-            // Добавляем blocks_count
             $data = $page->toArray();
             $data['blocks_count'] = is_array($page->blocks) ? count($page->blocks) : 0;
 
@@ -178,12 +199,12 @@ class LandingPageController extends Controller
 
             $validated['updated_by'] = auth()->id();
 
-            // ✅ Если публикуют впервые — устанавливаем published_at
+            // Если публикуют впервые — устанавливаем published_at
             if (isset($validated['is_published']) && $validated['is_published'] && !$page->published_at) {
                 $validated['published_at'] = now();
             }
 
-            // ✅ Если снимают с публикации — очищаем published_at
+            // Если снимают с публикации — очищаем published_at
             if (isset($validated['is_published']) && !$validated['is_published']) {
                 $validated['published_at'] = null;
             }
@@ -278,7 +299,6 @@ class LandingPageController extends Controller
                 return response()->json(['error' => 'Лендинг не найден'], 404);
             }
 
-            // ✅ Формируем публичные данные вручную (безопаснее чем getPublicData)
             return response()->json([
                 'id' => $page->id,
                 'slug' => $page->slug,

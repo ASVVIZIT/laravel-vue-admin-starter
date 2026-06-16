@@ -503,6 +503,11 @@ Route::prefix('landing')->group(function () {
     // ✅ ЗАЩИЩЁННЫЕ маршруты (требуют auth:sanctum)
     Route::middleware('auth:sanctum')->group(function () {
 
+        // ✅ ДОБАВЛЕНО: Список лендингов для селектора (ID, title, slug, type)
+        // ⚠️ ВАЖНО: должен быть ПЕРЕД /pages/{page}, иначе {page} перехватит 'list'
+        Route::get('/pages/list', [LandingPageController::class, 'listForSelector'])
+            ->name('api.landing.pages.list');
+
         // CRUD лендингов
         Route::get('/pages', [LandingPageController::class, 'index'])
             ->name('api.landing.pages.index');
@@ -530,7 +535,11 @@ Route::prefix('landing')->group(function () {
             // POST — переключить режим (maintenance/landing/production)
             Route::post('/switch/{mode}', [SiteSettingsController::class, 'switchMode'])
                 ->name('public-mode.switch')
-                ->where('mode', 'maintenance|landing|production');
+                ->where('mode', 'maintenance|landing|production|preview');
+
+            // ✅ ДОБАВЛЕНО: Сохранить HTML заглушки
+            Route::post('/maintenance-html', [SiteSettingsController::class, 'updateMaintenanceHtml'])
+                ->name('maintenance-html.update');
         });
     });
 });

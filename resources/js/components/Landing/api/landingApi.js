@@ -55,5 +55,17 @@ export const landingApi = {
      */
     async publish(id) {
         return request.post(`/landing/pages/${id}/publish`)
+    },
+
+    async getPublicMode() {
+        return request.get('/api/landing/settings/public-mode')
+    },
+
+    async updatePublicMode(data) {
+        return request.post('/api/landing/settings/public-mode', data)
+    },
+
+    async switchMode(mode) {
+        return request.post(`/api/landing/settings/switch/${mode}`)
     }
 }

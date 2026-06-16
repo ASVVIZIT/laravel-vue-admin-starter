@@ -57,7 +57,7 @@ export default [
                 name: 'SiteModeSettings',
                 component: () => import('@/views/Landing/SiteModeSwitcher.vue'),
                 meta: {
-                    title: 'Режим сайта',
+                    title: 'Настройки сайта',
                     bootstrapIcon: 'bi bi-gear',
                     permissions: ['manage landing'],
                 },
