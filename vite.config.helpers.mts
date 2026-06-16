@@ -291,7 +291,9 @@ export function createAliases(root, __dirname) {
         '@plugins': root + '/plugins',
         '@modules': root + '/modules',
         'element-plus': path.resolve(__dirname, 'node_modules/element-plus'),
-        'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js'
+        'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
+        '@landing-admin': path.resolve(__dirname, 'resources/js/components/Landing'),
+        '@landing-public': path.resolve(__dirname, 'resources/js/components/Landing'),
     }
 }
 

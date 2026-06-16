@@ -1,50 +1,27 @@
 <template>
-  <div class="public-app">
-    <AnimatedBackground />
-
-    <div class="content-wrapper">
-      <HeroSection />
-
-      <CountdownSection target-date="25.11.2026" />
-
-      <ProgressSection />
-
-      <TechStackSection />
-
-      <FeaturesSection />
-
-      <FooterSection />
-    </div>
-  </div>
+  <router-view />
 </template>
 
 <script setup>
-import {
-  AnimatedBackground,
-  HeroSection,
-  CountdownSection,
-  ProgressSection,
-  TechStackSection,
-  FeaturesSection,
-  FooterSection
-} from './components'
+// Минимальный App.vue без ElementPlus конфигов
 </script>
 
-<style scoped>
-.public-app {
-  min-height: 100vh;
-  background: #0a0e27;
-  color: #fff;
-  position: relative;
-  overflow-x: hidden;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+<style>
+/* ✅ Глобальная плавная прокрутка */
+html {
+  scroll-behavior: smooth;
 }
 
-.content-wrapper {
-  position: relative;
-  z-index: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 60px 24px;
+/* ✅ Убираем отступы по умолчанию */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ✅ Плавная прокрутка для всех элементов */
+body {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 </style>

@@ -41,7 +41,9 @@
       "@modules/*": ["./resources/js/modules/*"],
       "@themes/*": ["./resources/js/styles/themes/*"],
       "element-plus/*": ["./node_modules/element-plus/*"],
-      "moment/*": ["./node_modules/moment/*"]
+      "moment/*": ["./node_modules/moment/*"],
+      "@landing-admin/*": ["./resources/js/components/Landing/*"],
+      "@landing-public/*": ["./resources/js/components/Landing/*"],
     },
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "types": [

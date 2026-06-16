@@ -16,6 +16,7 @@ import servicesRoutes from './modules/services.js';
 import dynamicTableRoutes from './modules/dynamicTable.js';
 import smartLightRoutes from './modules/SmartLight/smart-light.js';
 import trainingRoutes from './modules/Training/training.js';
+import landingRoutes from './modules/Landing/landingRouter.js';
 import contactManagementRoutes from './modules/ContactManagement/contact-management.js';
 
 // Функции для работы с куками
@@ -146,6 +147,7 @@ export const constantRoutes = [
   ...dynamicTableRoutes,
   ...smartLightRoutes,
   ...trainingRoutes,
+  ...landingRoutes,
   contactManagementRoutes,
 ];
 
@@ -207,12 +209,11 @@ router.beforeEach(async (to, from, next) => {
       return next('/401');
     }
   } else {
-    console.log('[Router Guard] Route does not require auth, proceeding.'); // Добавьте это
+    console.log('[Router Guard] Route does not require auth, proceeding.');
   }
 
   next();
 });
-// ...
 
 export function resetRouter() {
   const asyncRouterNameArr = asyncRoutes.map((mItem) => mItem.name);

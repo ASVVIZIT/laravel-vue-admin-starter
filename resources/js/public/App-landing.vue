@@ -1,13 +1,7 @@
 <template>
-$END$
+  <LandingPublic />
 </template>
 
-<script>
-export default {
-name: "App-landing"
-}
+<script setup>
+import LandingPublic from './components/Landing/PublicLanding.vue'
 </script>
-
-<style scoped>
-
-</style>

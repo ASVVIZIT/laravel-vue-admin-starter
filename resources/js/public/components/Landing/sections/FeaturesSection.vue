@@ -15,7 +15,7 @@
 <script setup>
 import SectionTitle from '../ui/SectionTitle.vue'
 import FeatureCard from '../widgets/FeatureCard.vue'
-import { featuresList } from '../../data/features'
+import { featuresList } from '../data/features.js'
 
 defineProps({
   features: {

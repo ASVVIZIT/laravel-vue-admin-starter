@@ -1,8 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
+use App\Http\Controllers\HomeController; // ✅ Импортируем контроллер
 
 /*
 |--------------------------------------------------------------------------
@@ -11,28 +12,23 @@ use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
 */
 
 // ============================================================================
-// 🌐 ПУБЛИЧНАЯ ЧАСТЬ (корень сайта)
-// ============================================================================
-Route::get('/', function () {
-    return view('public.home');
-})->name('public.home');
-
-// ============================================================================
-//  АДМИНКА (префикс /admin)
+// 🔐 АДМИНКА — ПЕРЕД catch-all!
 // ============================================================================
 Route::prefix('admin')
     ->name('admin.')
     ->group(function () {
-        // 🔥 Редирект с /admin на /admin/#/dashboard
-        Route::get('/', function () {
-            return redirect('/admin/#/dashboard');
-        })->name('redirect');
-
-        // Все маршруты админки → index.blade.php
+        // ✅ Просто отдаём SPA, без редиректа на хэш!
         Route::get('/{any?}', function () {
             return view('index');
         })->where('any', '.*')->name('spa');
     });
+
+// ============================================================================
+// 🌐 ПУБЛИЧНАЯ ЧАСТЬ — catch-all В КОНЦЕ!
+// ============================================================================
+Route::get('/{any?}', function () {
+    return view('public.home');
+})->where('any', '.*')->name('public.spa');
 
 // ============================================================================
 // 📡 ПУБЛИЧНЫЕ API (без авторизации)
@@ -43,5 +39,6 @@ Route::get('social-media-links', [SocialMediaLinkController::class, 'index']);
 // 🔧 СТАРЫЕ МАРШРУТЫ (для обратной совместимости)
 // ============================================================================
 Route::group(['middleware' => 'web'], function () {
-    Route::get('home', 'HomeController@index')->name('home.legacy');
+    // ✅ СОВРЕМЕННЫЙ синтаксис (Laravel 8+)
+    Route::get('home', [HomeController::class, 'index'])->name('home.legacy');
 });

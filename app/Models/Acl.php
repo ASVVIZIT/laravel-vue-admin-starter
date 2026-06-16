@@ -26,7 +26,6 @@ final class Acl
     // ===== ПРАВА: МЕНЮ =====
     const PERMISSION_VIEW_MENU_ADMINISTRATOR = 'view menu administrator';
     const PERMISSION_VIEW_MENU_PERMISSION = 'view menu permission';
-
     const PERMISSION_VIEW_MENU_ELEMENT_UI = 'view menu element ui';
     const PERMISSION_VIEW_MENU_COMPONENTS = 'view menu components';
     const PERMISSION_VIEW_MENU_CHARTS = 'view menu charts';
@@ -41,6 +40,9 @@ final class Acl
     const PERMISSION_VIEW_MENU_PDF = 'view menu pdf';
     const PERMISSION_VIEW_MENU_I18N = 'view menu i18n';
 
+    // ===== ПРАВА: Landing Builder =====
+    const PERMISSION_VIEW_MENU_LANDING = 'view menu landing';
+
     // ===== ПРАВА: УПРАВЛЕНИЕ =====
     const PERMISSION_USER_MANAGE = 'manage user';
     const PERMISSION_USER_EDIT_MANAGE = 'manage user edit';
@@ -48,6 +50,10 @@ final class Acl
     const PERMISSION_ENTITY_MANAGE = 'manage entity';
     const PERMISSION_ARTICLE_MANAGE = 'manage article';
     const PERMISSION_PERMISSION_MANAGE = 'manage permission';
+
+    // ===== ПРАВА: Landing Builder
+    const PERMISSION_VIEW_LANDING = 'view landing';
+    const PERMISSION_MANAGE_LANDING = 'manage landing';
 
     // ===== ПРАВА: SMARTLIGHT =====
     const PERMISSION_VIEW_SMART_LIGHT = 'view smart light';
@@ -68,9 +74,6 @@ final class Acl
 
     /**
      * Получить все права доступа (кроме исключённых)
-     *
-     * @param array $exclusives Список прав для исключения из результата
-     * @return array Массив строк с именами прав
      */
     public static function permissions(array $exclusives = []): array
     {
@@ -90,8 +93,6 @@ final class Acl
 
     /**
      * Получить права, отвечающие за отображение меню
-     *
-     * @return array Массив строк с именами прав меню
      */
     public static function menuPermissions(): array
     {
@@ -110,8 +111,6 @@ final class Acl
 
     /**
      * Получить все роли системы
-     *
-     * @return array Массив строк с именами ролей
      */
     public static function roles(): array
     {

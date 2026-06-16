@@ -48,6 +48,10 @@ use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
 use App\Http\Controllers\Api\Company\CompanyController;
 use App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController;
 
+use App\Http\Controllers\Api\Landing\LandingPageController;
+use App\Http\Controllers\Api\Landing\SiteSettingsController;
+
+
 use App\Http\Controllers\Api\Training\ExerciseController;
 use App\Http\Controllers\Api\Training\TrainingLogController;
 use App\Http\Controllers\Api\Training\TrainingSettingsController;
@@ -485,7 +489,54 @@ Route::prefix('companies/{company}')->group(function () {
 });
 
 // ============================================================================
-// 🔧 8. ОТЛАДОЧНЫЕ МАРШРУТЫ
+// 8. Landing Pages API
+// ============================================================================
+Route::prefix('landing')->group(function () {
+
+    // ✅ ПУБЛИЧНЫЕ маршруты (БЕЗ авторизации)
+    Route::get('/public', [LandingPageController::class, 'publicIndex'])
+        ->name('api.landing.public.index');
+
+    Route::get('/public/{slug}', [LandingPageController::class, 'publicShow'])
+        ->name('api.landing.public');
+
+    // ✅ ЗАЩИЩЁННЫЕ маршруты (требуют auth:sanctum)
+    Route::middleware('auth:sanctum')->group(function () {
+
+        // CRUD лендингов
+        Route::get('/pages', [LandingPageController::class, 'index'])
+            ->name('api.landing.pages.index');
+        Route::get('/pages/{page}', [LandingPageController::class, 'show'])
+            ->name('api.landing.pages.show');
+        Route::post('/pages', [LandingPageController::class, 'store'])
+            ->name('api.landing.pages.store');
+        Route::put('/pages/{page}', [LandingPageController::class, 'update'])
+            ->name('api.landing.pages.update');
+        Route::delete('/pages/{page}', [LandingPageController::class, 'destroy'])
+            ->name('api.landing.pages.destroy');
+        Route::post('/pages/{page}/publish', [LandingPageController::class, 'publish'])
+            ->name('api.landing.pages.publish');
+
+        // ✅ Настройки режима сайта — ИСПРАВЛЕНО!
+        Route::prefix('settings')->name('api.landing.settings.')->group(function () {
+            // GET — получить текущий режим
+            Route::get('/public-mode', [SiteSettingsController::class, 'getPublicMode'])
+                ->name('public-mode.get');
+
+            // POST — обновить режим (полные настройки)
+            Route::post('/public-mode', [SiteSettingsController::class, 'updatePublicMode'])
+                ->name('public-mode.update');
+
+            // POST — переключить режим (maintenance/landing/production)
+            Route::post('/switch/{mode}', [SiteSettingsController::class, 'switchMode'])
+                ->name('public-mode.switch')
+                ->where('mode', 'maintenance|landing|production');
+        });
+    });
+});
+
+// ============================================================================
+// 🔧 9. ОТЛАДОЧНЫЕ МАРШРУТЫ
 // ============================================================================
 Route::get('/debug/network', function(Request $request) {
     $dbConnected = false;

@@ -304,7 +304,13 @@ export default defineConfig(function({ mode }) {
                     ElementPlusResolver({ importStyle: 'sass' }),
                     IconsResolver({ prefix: 'Icon', enabledCollections: ['ep'] })
                 ],
-                dts: 'types/components.d.ts'
+                dts: 'types/components.d.ts',
+/*                exclude: [
+                    '**!/Landing/common/DynamicBlockRenderer.vue',
+                    '**!/Landing/blocks/!*.vue',
+                    '**!/Landing/composables/!*.js',
+                    '**!/Landing/config/!*.js'
+                ]*/
             }),
 
             Icons({
@@ -468,7 +474,7 @@ export default defineConfig(function({ mode }) {
             }
         },
         build: {
-            sourcemap: 'hidden',
+            sourcemap: true,
             minify: isSizeBuild ? 'terser' : 'esbuild',
             target: 'es2020',
             cssTarget: 'chrome80',

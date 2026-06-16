@@ -7,11 +7,14 @@ use Illuminate\Http\Request;
 
 class Authenticate extends Middleware
 {
-    /**
-     * Get the path the user should be redirected to when they are not authenticated.
-     */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        // ✅ Для API запросов — не редиректим (вернём 401)
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return null;
+        }
+
+        // ✅ Для web запросов — редирект на админский login (SPA маршрут)
+        return '/admin/#/login';
     }
 }

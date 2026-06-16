@@ -2,136 +2,29 @@
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\HtmlString;
 
-/**
- * ============================================================================
- * GLOBAL HELPER FUNCTIONS — FenixPortal
- * ============================================================================
- *
- * 📁 Файл: app/helpers.php
- * 📝 Описание: Глобальные хелпер-функции приложения
- * 🔗 Подключён: composer.json → autoload.files
- *
- * ============================================================================
- * 🔥 IDE HINTS — Объявления функций для PhpStorm (только для автодополнения)
- * ============================================================================
- *
- * Эти объявления нужны ТОЛЬКО для IDE. Они не выполняются (обёрнуты в
- * if (false)), но PhpStorm видит их и подсвечивает вызовы жёлтым цветом.
- *
- * Реальные функции определены ниже внутри if (!function_exists()) блоков.
- */
-
-if (false) {
-    /**
-     * Success response
-     *
-     * @param array|LengthAwarePaginator $data
-     * @param string $msg
-     * @param array $other
-     * @param int $statusCode
-     * @return JsonResponse
-     */
-    function responseSuccess($data = [], string $msg = 'Успешная операция', array $other = [], int $statusCode = 200): JsonResponse {}
-
-    /**
-     * Error response
-     *
-     * @param string $msg
-     * @param int $statusCode
-     * @param array $data
-     * @return JsonResponse
-     */
-    function responseFailed(string $msg = 'Операция завершилась неудачей', int $statusCode = 400, array $data = []): JsonResponse {}
-
-    /**
-     * Return random string with $length
-     *
-     * @param int $length
-     * @return string
-     */
-    function randomString(int $length = 0): string {}
-
-    /**
-     * Return random DateTime in past
-     *
-     * @return \DateTime
-     */
-    function randomDateTime(): \DateTime {}
-
-    /**
-     * Return random element from array
-     *
-     * @param array $array
-     * @return mixed
-     */
-    function randomInArray($array) {}
-
-    /**
-     * Return random boolean
-     *
-     * @return bool
-     */
-    function randomBoolean(): bool {}
-
-    /**
-     * Генерирует HTML-теги для подключения Vite ассетов
-     * Автоматически определяет режим (production/development/docker)
-     *
-     * @param string $entryPoint Entry point (по умолчанию 'resources/js/app.js')
-     * @return HtmlString
-     */
-    function vite_assets(string $entryPoint = 'resources/js/app.js'): HtmlString {}
-
-    /**
-     * Генерирует HTML-теги для публичной части (public.js)
-     * Обёртка над vite_assets() с предопределённым entry point
-     *
-     * @return HtmlString
-     */
-    function vite_public_assets(): HtmlString {}
-}
-
-/**
- * ============================================================================
- * РЕАЛЬНЫЕ ФУНКЦИИ (определены ниже)
- * ============================================================================
- */
+// ============================================================================
+// БАЗОВЫЕ ХЕЛПЕРЫ
+// ============================================================================
 
 if (!function_exists('responseSuccess')) {
-    /**
-     * Success response
-     *
-     * @param array|LengthAwarePaginator $data
-     * @param string $msg
-     * @param array $other
-     * @param int $statusCode
-     * @return JsonResponse
-     */
     function responseSuccess($data = [], string $msg = 'Успешная операция', array $other = [], int $statusCode = 200): JsonResponse
     {
-        $res = [
-            'message' => $msg,
-            'data' => $data,
-            'code' => $statusCode,
-        ];
+        $res = ['message' => $msg, 'data' => $data, 'code' => $statusCode];
+        if (!empty($other)) $res = array_merge($res, $other);
 
-        $res = !empty($other) ? array_merge($res, $other) : $res;
         if ($data instanceof LengthAwarePaginator) {
-            $data = $data->toArray();
-            $page = [
-                'current_page' => (int)$data['current_page'],
-                'last_page' => (int)$data['last_page'],
-                'per_page' => (int)$data['per_page'],
-                'total' => (int)$data['total'],
+            $arr = $data->toArray();
+            $res['data'] = $arr['data'];
+            $res['count'] = (int) $arr['total'];
+            $res['pages'] = [
+                'current_page' => (int) $arr['current_page'],
+                'last_page' => (int) $arr['last_page'],
+                'per_page' => (int) $arr['per_page'],
+                'total' => (int) $arr['total'],
             ];
-
-            $res['data'] = $data['data'];
-            $res['count'] = (int)$data['total'];
-            $res['pages'] = $page;
         }
 
         return response()->json($res);
@@ -139,159 +32,137 @@ if (!function_exists('responseSuccess')) {
 }
 
 if (!function_exists('responseFailed')) {
-    /**
-     * Error response
-     *
-     * @param string $msg
-     * @param int $statusCode
-     * @param array $data
-     * @return JsonResponse
-     */
     function responseFailed(string $msg = 'Операция завершилась неудачей', int $statusCode = 400, array $data = []): JsonResponse
     {
-        if (config('app.debug')) {
-            return response()->json([
-                'message' => $msg,
-                'data' => $data,
-            ])->setStatusCode($statusCode);
-        }
-
-        return response()->json([
-            'message' => $msg,
-            'data' => $data,
-        ])->setStatusCode($statusCode);
+        return response()->json(['message' => $msg, 'data' => $data])->setStatusCode($statusCode);
     }
 }
 
 if (!function_exists('randomString')) {
-    /**
-     * Return random string with $length
-     *
-     * @param int $length
-     * @return string
-     */
     function randomString(int $length = 0): string
     {
-        if ($length === 0) {
-            $length = mt_rand(10, 100);
+        if ($length === 0) $length = mt_rand(10, 100);
+        $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $result = '';
+        for ($i = 0; $i < $length; $i++) {
+            $result .= $characters[rand(0, strlen($characters) - 1)];
         }
-
-        $characters = ' 0123456789 abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        $charactersLength = strlen($characters);
-        $randomString = '';
-        for ($index = 0; $index < $length; $index++) {
-            $randomString .= $characters[rand(0, $charactersLength - 1)];
-        }
-
-        return $randomString;
+        return $result;
     }
 }
 
 if (!function_exists('randomDateTime')) {
-    /**
-     * @return \DateTime
-     */
     function randomDateTime(): \DateTime
     {
-        $dateTime = new \DateTime();
-        $randomHours = mt_rand(0, 1000);
-        $dateTime->modify(sprintf('-%s hours', $randomHours));
-
-        return $dateTime;
+        $dt = new \DateTime();
+        $dt->modify(sprintf('-%s hours', mt_rand(0, 1000)));
+        return $dt;
     }
 }
 
 if (!function_exists('randomInArray')) {
-    /**
-     * @param array $array
-     * @return mixed
-     */
-    function randomInArray($array)
-    {
-        return $array[array_rand($array)];
-    }
+    function randomInArray($array) { return $array[array_rand($array)]; }
 }
 
 if (!function_exists('randomBoolean')) {
-    /**
-     * @return bool
-     */
-    function randomBoolean(): bool
-    {
-        return (bool)mt_rand(0, 1);
-    }
+    function randomBoolean(): bool { return (bool) mt_rand(0, 1); }
 }
+
+// ============================================================================
+// VITE ASSETS
+// ============================================================================
 
 if (!function_exists('vite_assets')) {
     /**
      * Генерирует HTML-теги для подключения Vite ассетов
-     * Автоматически определяет режим (production/development/docker)
-     *
-     * @param string $entryPoint Entry point (по умолчанию 'resources/js/app.js')
-     * @return HtmlString
      */
     function vite_assets(string $entryPoint = 'resources/js/app.js'): HtmlString
     {
         $isProduction = app()->isProduction();
-        $isDocker = config('app.env') === 'docker';
-        $viteBase = config('vite.base', '/build/');
-
-        // ==================== PRODUCTION MODE ====================
-        if ($isProduction) {
-            $manifestPath = public_path('build/manifest.json');
-
-            if (!file_exists($manifestPath)) {
-                throw new \RuntimeException('Vite manifest not found.');
-            }
-
-            $manifest = json_decode(file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
-            $entry = $manifest[$entryPoint] ?? throw new \RuntimeException("Entry point '{$entryPoint}' not found in manifest");
-
-            $tags = '';
-
-            $tags .= sprintf(
-                '<script type="module" src="%s"></script>',
-                asset($viteBase . $entry['file'])
-            );
-
-            foreach ($entry['css'] ?? [] as $css) {
-                $tags .= sprintf(
-                    '<link rel="stylesheet" href="%s">',
-                    asset($viteBase . $css)
-                );
-            }
-
-            return new HtmlString($tags);
-        }
 
         // ==================== DEVELOPMENT MODE ====================
-        $devServer = $isDocker
-            ? rtrim(env('VITE_DOCKER_SERVER_URL', 'http://host.docker.internal:5173'), '/')
-            : rtrim(env('VITE_DEV_SERVER_URL', 'http://localhost:5173'), '/');
+        if (!$isProduction) {
+            $devServer = rtrim(env('VITE_DEV_SERVER_URL', 'http://localhost:5173'), '/');
+            return new HtmlString(
+                '<script type="module" src="' . $devServer . '/@vite/client"></script>' .
+                '<script type="module" src="' . $devServer . '/' . ltrim($entryPoint, '/') . '"></script>'
+            );
+        }
 
-        $tags = <<<HTML
-            <script type="module" src="$devServer/@vite/client"></script>
-            <script type="module" src="$devServer/$entryPoint"></script>
-        HTML;
+        // ==================== PRODUCTION MODE ====================
+        $manifestPath = public_path('build/manifest.json');
 
-        $tags .= sprintf(
-            '<link rel="icon" type="image/x-icon" href="%s">',
-            asset('favicon.ico')
-        );
+        if (!file_exists($manifestPath)) {
+            Log::error('[Vite] manifest.json не найден');
+            return new HtmlString('<!-- Vite manifest not found -->');
+        }
 
-        return new HtmlString($tags);
+        $manifest = json_decode(file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+
+        // 🔥 Поиск entry: по полному пути ИЛИ по basename
+        $entry = $manifest[$entryPoint]
+            ?? $manifest[pathinfo($entryPoint, PATHINFO_FILENAME)]
+            ?? null;
+
+        if (!$entry) {
+            Log::error('[Vite] Entry не найден', [
+                'entry_point' => $entryPoint,
+                'available_keys' => array_keys($manifest),
+            ]);
+            return new HtmlString("<!-- Vite: entry '{$entryPoint}' not found -->");
+        }
+
+        $basePath = 'build/';
+        $html = '';
+        $preloaded = []; // ✅ Массив для уникальных preload
+
+        // ✅ 1. Preload CSS
+        foreach ($entry['css'] ?? [] as $css) {
+            $html .= '<link rel="preload" as="style" href="' . asset($basePath . $css) . '">' . PHP_EOL;
+        }
+
+        // ✅ 2. Preload main JS
+        if (!empty($entry['file'])) {
+            $html .= '<link rel="modulepreload" href="' . asset($basePath . $entry['file']) . '">' . PHP_EOL;
+            $preloaded[] = $entry['file'];
+        }
+
+        // ✅ 3. Preload dynamic imports (ИСПРАВЛЕНО: $html вместо $tags)
+        foreach ($entry['dynamicImports'] ?? [] as $dynamicImport) {
+            if (isset($manifest[$dynamicImport]['file'])) {
+                $file = $manifest[$dynamicImport]['file'];
+                if (!in_array($file, $preloaded)) {
+                    $preloaded[] = $file;
+                    // ✅ ИСПРАВЛЕНО: $html .= вместо $tags .=
+                    $html .= '<link rel="modulepreload" href="' . asset($basePath . $file) . '">' . PHP_EOL;
+                }
+            }
+        }
+
+        // ✅ 4. Подключить CSS
+        foreach ($entry['css'] ?? [] as $css) {
+            $html .= '<link rel="stylesheet" href="' . asset($basePath . $css) . '">' . PHP_EOL;
+        }
+
+        // ✅ 5. Подключить main JS
+        if (!empty($entry['file'])) {
+            $html .= '<script type="module" src="' . asset($basePath . $entry['file']) . '"></script>' . PHP_EOL;
+        }
+
+        return new HtmlString($html);
     }
 }
 
 if (!function_exists('vite_public_assets')) {
-    /**
-     * Генерирует HTML-теги для публичной части (public.js)
-     * Обёртка над vite_assets() с предопределённым entry point
-     *
-     * @return HtmlString
-     */
     function vite_public_assets(): HtmlString
     {
         return vite_assets('resources/js/public/public.js');
+    }
+}
+
+if (!function_exists('vite_admin_assets')) {
+    function vite_admin_assets(): HtmlString
+    {
+        return vite_assets('resources/js/app.js');
     }
 }

@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
-/**
- * Class HomeController
- *
- * @package App\Http\Controllers
- */
+use Illuminate\Http\Request;
+
 class HomeController extends Controller
 {
     /**
-     * Entry point for Laravue Dashboard
-     *
-     * @return \Illuminate\Contracts\View\Factory|\Illuminate\View\View
+     * Старая главная страница (для обратной совместимости)
      */
     public function index()
     {
-        return view('index');
+        // ✅ Редирект на новую публичную часть
+        return redirect('/');
+
+        // ИЛИ отдай старый view:
+        // return view('home');
     }
 }

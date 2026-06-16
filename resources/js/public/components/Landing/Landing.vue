@@ -27,7 +27,7 @@ import {
   TechStackSection,
   FeaturesSection,
   FooterSection
-} from './components/Landing/index.js'
+} from './index.js'
 </script>
 
 <style scoped>

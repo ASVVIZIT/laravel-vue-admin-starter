@@ -1,9 +1,6 @@
-/**
- * Store для управления лендингами
- */
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { landingApi } from '@/api/landingApi'
+import { landingApi } from '../api/landingApi'
 
 export const useLandingStore = defineStore('landing', () => {
     const landings = ref([])

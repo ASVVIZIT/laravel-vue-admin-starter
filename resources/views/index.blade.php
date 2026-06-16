@@ -8,12 +8,18 @@
     <title>{{ config('app.name', 'Laravel') }}</title>
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
     <meta name="theme-color" content="#ffffff">
+    {{-- Подключаем app.js через наш хелпер --}}
+    {{ vite_admin_assets() }}
+    {{-- Передаём данные в JavaScript --}}
 </head>
 <body>
-<div id="app">
-</div>
-
-{{ vite_assets() }}
-
+<div id="app"></div>
+<script>
+    window.Laravel = {
+        csrfToken: '{{ csrf_token() }}',
+        user: @json(auth()->user()),
+        appName: '{{ config('app.name') }}'
+    }
+</script>
 </body>
 </html>

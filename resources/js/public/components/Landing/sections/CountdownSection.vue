@@ -59,7 +59,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useCountdown } from '../../composables/useCountdown'
+import { useCountdown } from '../composables/useCountdown.js'
 
 const props = defineProps({
   /**
