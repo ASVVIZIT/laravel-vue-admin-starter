@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Models\Template;
 use App\Models\ColumnTemplate;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Http\Controllers\Controller;
@@ -50,7 +51,7 @@ class TemplateController extends Controller
                 'error' => 'TEMPLATE_NOT_FOUND'
             ], 404);
         } catch (\Exception $e) {
-            \Log::error('Ошибка при загрузке шаблона: ' . $e->getMessage());
+            Log::error('Ошибка при загрузке шаблона: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Ошибка при загрузке шаблона',
                 'error' => 'SERVER_ERROR'

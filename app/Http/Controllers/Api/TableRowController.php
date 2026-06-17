@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\TableRow;
 use App\Models\Template;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
@@ -91,7 +92,7 @@ class TableRowController extends Controller
                 'error' => 'VALIDATION_ERROR'
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('TableRowController index error: ' . $e->getMessage());
+            Log::error('TableRowController index error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Внутренняя ошибка сервера',
                 'error' => 'SERVER_ERROR'
@@ -157,7 +158,7 @@ class TableRowController extends Controller
                 'error' => 'VALIDATION_ERROR'
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('TableRowController store error: ' . $e->getMessage());
+            Log::error('TableRowController store error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Внутренняя ошибка сервера',
                 'error' => 'SERVER_ERROR'

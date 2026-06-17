@@ -134,6 +134,10 @@ Route::prefix('tester')->middleware('is_testing')->group(function () {
 
 // --- Основные маршруты аутентификации ---
 Route::namespace('Api')->group(function() {
+
+
+    Route::get('/auth/config', [AuthController::class, 'getConfig']);
+
     // CSRF-защита для Sanctum
     Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
 
@@ -553,13 +557,13 @@ Route::get('/debug/network', function(Request $request) {
     try {
         $dbConnected = DB::connection()->getPdo() ? true : false;
     } catch (\Exception $e) {
-        \Log::error("DB Connection Error: " . $e->getMessage());
+        Log::error("DB Connection Error: " . $e->getMessage());
     }
 
     try {
         $redisConnected = Redis::connection()->ping() === true;
     } catch (\Exception $e) {
-        \Log::error("Redis Connection Error: " . $e->getMessage());
+        Log::error("Redis Connection Error: " . $e->getMessage());
     }
 
     return response()->json([

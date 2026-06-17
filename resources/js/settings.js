@@ -1,3 +1,4 @@
+// resources/js/settings.js
 export default {
   /**
    * @type {String}

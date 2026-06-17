@@ -1,91 +1,100 @@
 // resources/js/App.js
 
 // ==============================================
-// SECTION 1: Импорт глобальных стилей и иконок
+// SECTION 1: — Bootstrap (настройка axios)
+// ==============================================
+import '@/bootstrap'  // Настраивает window.axios
+
+// ==============================================
+// SECTION 2: 🔥 Загрузка конфига авторизации
+// ==============================================
+import { initAuthConfig } from '@/utils/authConfig'
+
+// ==============================================
+// SECTION 3: Импорт глобальных стилей и иконок
 // ==============================================
 import '@styles/main.scss'
 import 'bootstrap-icons/font/bootstrap-icons.scss'
 
 // ==============================================
-// SECTION 2: Импорт сторонних библиотек
-// SUBSECTION 2.1: Базовые утилиты
-// ----------------------------
+// SECTION 4: Импорт сторонних библиотек
+// ==============================================
 import { createApp, watch } from 'vue'
-// Подключение Pinia
 import { createPinia } from 'pinia'
 const pinia = createPinia()
 
-// ----------------------------
-// SUBSECTION 2.2: UI-библиотека ElementPlus
-// ----------------------------
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import { dayjs } from 'element-plus'
 
-// ----------------------------
-// SUBSECTION 2.3: Работа с датами/временем
-// ----------------------------
 import moment from 'moment-timezone'
 
 // ==============================================
-// SECTION 3: Импорт компонентов приложения
+// SECTION 5: Импорт компонентов приложения
 // ==============================================
-import App from '@views/App.vue' // Обновленный App.vue
+import App from '@views/App.vue'
 import Icon from '@components/Icon/Icon.vue'
 import SvgIcon from '@components/SvgIcon.vue'
 
 // ==============================================
-// SECTION 4: Маршрутизация и безопасность
+// SECTION 6: Маршрутизация и безопасность
 // ==============================================
 import router from '@/router'
 import '@/permission'
 
 // ==============================================
-// SECTION 5: Локализация
+// SECTION 7: Локализация
 // ==============================================
 import i18n, { getLanguage } from './lang'
 
 // ==============================================
-// SECTION 6: Инициализация временных настроек
+// SECTION 8: Инициализация временных настроек
 // ==============================================
 const timeZone = "Asia/Yekaterinburg"
 moment.locale('ru-ru')
 moment.tz(timeZone)
 
-// Глобальные настройки
-const app = createApp(App)
-app.config.devtools = true
-app.config.globalProperties.moment = moment
-
-// Установка начальной локали dayjs
-const initialLanguage = getLanguage()
-dayjs.locale(initialLanguage)
-
 // ==============================================
-// SECTION 7: Подключение плагинов
+// SECTION 9: Директивы
 // ==============================================
-app.use(pinia)
-app.use(ElementPlus, {
-    size: 'small',
-})
-app.use(i18n)
-app.use(router)
-
 import TalkStreamDirective from '@/modules/TalkStream/Directives/loadingDirective'
-app.use(TalkStreamDirective)
 
 // ==============================================
-// SECTION 8: Глобальная регистрация компонентов
+// SECTION 10: 🔥 АСИНХРОННАЯ ИНИЦИАЛИЗАЦИЯ
 // ==============================================
-app.component('SvgIcon', SvgIcon)
-app.component('Icon', Icon)
+(async () => {
+    // 1️⃣ Загружаем конфиг авторизации ПЕРЕД монтированием
+    await initAuthConfig()
 
-app.mount('#app')
+    // 2️⃣ Создаём приложение
+    const app = createApp(App)
+    app.config.devtools = true
+    app.config.globalProperties.moment = moment
 
-// Следим за изменением языка только для dayjs
-watch(
-    () => i18n.global.locale.value,
-    (newLang) => {
-        dayjs.locale(newLang)
-    }
-)
+    const initialLanguage = getLanguage()
+    dayjs.locale(initialLanguage)
+
+    // 3️⃣ Подключаем плагины
+    app.use(pinia)
+    app.use(ElementPlus, { size: 'small' })
+    app.use(i18n)
+    app.use(router)
+    app.use(TalkStreamDirective)
+
+    // 4️⃣ Глобальная регистрация компонентов
+    app.component('SvgIcon', SvgIcon)
+    app.component('Icon', Icon)
+
+    // 5️⃣ Монтируем приложение
+    app.mount('#app')
+
+    // 6️⃣ Следим за изменением языка
+    watch(
+        () => i18n.global.locale.value,
+        (newLang) => {
+            dayjs.locale(newLang)
+        }
+    )
+
+    console.log('[App] ✅ Приложение инициализировано')
+})()

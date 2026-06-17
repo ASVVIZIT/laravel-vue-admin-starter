@@ -2,6 +2,9 @@
 
 return [
 
+
+    'token_storage_mode' => env('AUTH_TOKEN_STORAGE_MODE', 'cookie'),
+
     /*
     |--------------------------------------------------------------------------
     | Authentication Defaults

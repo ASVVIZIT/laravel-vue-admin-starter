@@ -1,4 +1,6 @@
+// resources/js/bootstrap.js
 // @ts-ignore
+
 import axios from 'axios';
 
 /**

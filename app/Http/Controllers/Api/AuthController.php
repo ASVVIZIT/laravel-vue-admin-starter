@@ -138,13 +138,43 @@ class AuthController extends BaseController
      */
     public function logout(Request $request): JsonResponse
     {
-        // Удаляем все токены пользователя
-        $request->user()->tokens()->delete();
-        $request->user()->currentAccessToken()->delete();
-        // Очищаем сессию
+        $user = $request->user();
+
+        if (!$user) {
+            $this->invalidateSession($request);
+            return response()->json(['message' => 'Вы не авторизованы']);
+        }
+
+        try {
+            $currentToken = $user->currentAccessToken();
+
+            if ($currentToken instanceof \Laravel\Sanctum\PersonalAccessToken) {
+                $currentToken->delete();
+                Log::info('[Auth] Удалён Bearer-токен', [
+                    'user_id' => $user->id,
+                    'token_id' => $currentToken->id,
+                ]);
+            } else {
+                Log::info('[Auth] Cookie-сессия', ['user_id' => $user->id]);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('[Auth] Ошибка удаления токена', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+
+        $this->invalidateSession($request);
+        return response()->json(['message' => 'Успешный выход']);
+    }
+
+    private function invalidateSession(Request $request): void
+    {
         Auth::guard('web')->logout();
 
-        return response()->json(['message' => 'Успешный выход']);
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
     }
 
     public function user(Request $request): UserResource
@@ -191,6 +221,13 @@ class AuthController extends BaseController
     {
         return response()->json([
             'verified' => $request->user()->hasVerifiedEmail()
+        ]);
+    }
+
+    public function getConfig(): JsonResponse
+    {
+        return response()->json([
+            'token_storage_mode' => config('auth.token_storage_mode', 'cookie'),
         ]);
     }
 }

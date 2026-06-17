@@ -135,18 +135,20 @@ export const useAuthStore = defineStore('auth', () => {
             }
         } catch (err) {
             console.error('[AuthStore] Logout API error:', err);
-            error.value = err?.response?.data?.error ||
-                err.message ||
-                'Logout failed';
+            error.value = err?.response?.data?.error || err.message || 'Logout failed';
         } finally {
+            // ✅ СОХРАНЯЕМ loginType ПЕРЕД очисткой!
+            const currentLoginType = loginType.value;
+
             user.value = null;
             token.value = null;
             removeToken();
             removeLoginType();
 
-            const path = loginType.value === 'admin'
+            // ✅ Редирект на ПРАВИЛЬНУЮ страницу логина
+            const path = currentLoginType === 'admin'
                 ? '/admin/login'
-                : loginType.value === 'tester'
+                : currentLoginType === 'tester'
                     ? '/tester/login'
                     : '/login';
 

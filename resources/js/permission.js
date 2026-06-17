@@ -1,9 +1,8 @@
-// resources/js/permission.js
 import router from './router'
 import { ElMessage } from 'element-plus'
 import NProgress from 'nprogress'
 import 'nprogress/nprogress.css'
-import { isLogged } from '@/utils/auth' // Проверяет наличие токена
+import { isLogged } from '@/utils/auth'
 import getPageTitle from '@/utils/get-page-title'
 import { userStore } from "@/store/userStore"
 import { permissionStore } from "@/store/permissionStore"
@@ -11,7 +10,6 @@ import { useAuthStore } from '@/store/authStore'
 
 NProgress.configure({ showSpinner: false })
 
-// Белый список теперь主要用于 входных страниц, а не для всех публичных маршрутов
 const whiteList = [
   '/login',
   '/admin/login',
@@ -30,46 +28,36 @@ router.beforeEach(async (to, from, next) => {
   const isUserLogged = isLogged()
   const loginType = authStore.loginType
 
-  // Debug logging
-  console.group(`[Permission] Navigation to: ${to.path}`)
-  console.log('Full path:', to.fullPath)
-  console.log('Hash:', to.hash)
-  console.log('Query:', to.query)
-  console.log('Login type:', loginType)
-  console.log('Authenticated:', isUserLogged)
-  console.groupEnd()
-
-  // Handle admin login with hash navigation
-  if (to.path === '/' && to.hash.startsWith('#/dashboard') && to.fullPath.includes('/admin/login')) {
-    console.log('[Permission] Handling admin login hash navigation')
-    authStore.setLoginType('admin')
-    next({ path: '/admin/dashboard', replace: true })
-    return
+  // ✅ Устанавливаем loginType из meta (если есть)
+  if (to.meta.loginType) {
+    authStore.setLoginType(to.meta.loginType)
   }
 
   if (isUserLogged) {
-    // Redirect to home if already logged in
-    if (to.path === '/login' || to.path === '/admin/login' || to.path === '/tester/login') {
+    // Если на странице логина — редирект на dashboard
+    if (whiteList.includes(to.path)) {
       let redirectPath = '/dashboard'
       if (loginType === 'admin') redirectPath = '/admin/dashboard'
       if (loginType === 'tester') redirectPath = '/tester/dashboard'
 
-      console.log(`[Permission] Already logged in, redirecting to: ${redirectPath}`)
       next({ path: redirectPath })
       NProgress.done()
     } else {
+      // Загружаем пользователя
       try {
-        // Check if user roles are loaded
         const hasRoles = user.roles && user.roles.length > 0
         if (hasRoles) {
+          // Проверка ролей
+          if (to.meta.role && !user.roles.includes(to.meta.role)) {
+            next('/401')
+            NProgress.done()
+            return
+          }
           next()
         } else {
-          // Fetch user info and generate routes
           await user.fetchInfo()
           const accessRoutes = await permission.generateRoutes(user.roles, user.permissions)
-          accessRoutes.forEach(route => {
-            router.addRoute(route)
-          })
+          accessRoutes.forEach(route => router.addRoute(route))
           next({ ...to, replace: true })
         }
       } catch (error) {
@@ -77,7 +65,7 @@ router.beforeEach(async (to, from, next) => {
         await user.reset()
         ElMessage.error(error.message || 'Authentication error')
 
-        // Redirect to correct login page
+        // ✅ Редирект на ПРАВИЛЬНУЮ страницу логина
         const loginPath = loginType === 'admin'
             ? '/admin/login'
             : loginType === 'tester'
@@ -89,57 +77,38 @@ router.beforeEach(async (to, from, next) => {
       }
     }
   } else {
-    // --- ИЗМЕНЁННАЯ ЛОГИКА ---
-    // Проверяем, требует ли маршрут ЯВНО аутентификации
-    // Это означает, что если у любого маршрута в цепочке (сам или родитель) meta.requiresAuth === true,
-    // то пользователь должен быть аутентифицирован.
-    const routeRequiresAuth = to.matched.some(record => record.meta.requiresAuth === true);
+    // НЕ авторизован
 
-    // Если маршрут требует аутентификации, но пользователь не аутентифицирован
-    if (routeRequiresAuth) {
-      // Проверяем, является ли маршрут страницей входа (во избежание цикла)
-      const isLoginRoute = whiteList.includes(to.path);
-
-      if (isLoginRoute) {
-        // Если пользователь на странице входа, но маршрут требует аутентификации, перенаправить на главную или другую страницу по умолчанию
-        console.log('[Permission] User on login page but route requires auth, redirecting away.');
-        next('/'); // или другая страница, например, next('/dashboard') если это разрешено неавторизованным
-        NProgress.done();
-        return;
-      }
-
-      // Редирект на страницу входа
-      let loginPath = '/login'
-      if (to.meta.loginType === 'admin') loginPath = '/admin/login'
-      if (to.meta.loginType === 'tester') loginPath = '/tester/login'
-
-      console.log(`[Permission] Route requires auth, redirecting to login: ${loginPath}`)
-      next(`${loginPath}?redirect=${to.path}`)
-      NProgress.done()
-      return; // ВАЖНО: используем return, чтобы прервать выполнение
-    }
-
-    // Если маршрут НЕ требует аутентификации (requiresAuth !== true), пускаем
-    // Это включает маршруты с requiresAuth: false, requiresAuth: undefined, и любые другие значения, кроме true
-    console.log(`[Permission] Route does not require explicit auth, proceeding.`);
-
-    // Устанавливаем тип логина для страниц входа (если применимо)
-    // Это нужно только если мы действительно переходим на страницу входа
+    // Если на странице логина — пропускаем
     if (whiteList.includes(to.path)) {
+      // ✅ Устанавливаем loginType из пути
       if (to.path === '/admin/login' || to.fullPath.includes('/admin/login')) {
         authStore.setLoginType('admin')
-        console.log('[Permission] Setting login type to admin')
-      }
-      else if (to.path === '/tester/login') {
+      } else if (to.path === '/tester/login') {
         authStore.setLoginType('tester')
-        console.log('[Permission] Setting login type to tester')
-      }
-      else {
+      } else {
         authStore.setLoginType('user')
-        console.log('[Permission] Setting login type to user')
       }
+      next()
+      return
     }
-    next(); // Пропускаем маршрут, который не требует аутентификации
+
+    // Если маршрут требует авторизации — редирект на логин
+    const routeRequiresAuth = to.matched.some(record => record.meta.requiresAuth === true)
+
+    if (routeRequiresAuth) {
+      // ✅ Редирект на ПРАВИЛЬНУЮ страницу логина
+      let loginPath = '/login'
+      if (loginType === 'admin') loginPath = '/admin/login'
+      if (loginType === 'tester') loginPath = '/tester/login'
+
+      next(`${loginPath}?redirect=${to.path}`)
+      NProgress.done()
+      return
+    }
+
+    // Маршрут не требует авторизации — пропускаем
+    next()
   }
 })
 
