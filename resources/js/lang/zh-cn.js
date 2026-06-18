@@ -38,19 +38,72 @@ export default {
     "logout": "退出",
     "home": "首页"
   },
+  "auth": {
+    "forgotPasswordTitle": "忘记密码？",
+    "forgotPasswordSubtitle": "输入您的邮箱，我们将发送重置链接",
+    "sendResetLink": "发送重置链接",
+    "emailSent": "邮件已发送！",
+    "checkEmail": "请检查您的邮箱 {email} 获取重置链接",
+    "resetLinkSent": "重置链接已发送到您的邮箱",
+    "resetFailed": "发送重置链接失败",
+    "backToLogin": "返回登录",
+
+    "resetPasswordTitle": "重置密码",
+    "resetPasswordSubtitle": "输入您的新密码",
+    "resetPassword": "重置密码",
+    "passwordResetSuccess": "密码重置成功",
+    "invalidResetLink": "无效或过期的重置链接",
+
+    "registerTitle": "创建账户",
+    "registerSubtitle": "填写表格创建您的账户",
+    "register": "注册",
+    "registerSuccess": "注册成功！请检查您的邮箱",
+    "registerFailed": "注册失败",
+    "alreadyHaveAccount": "已有账户？登录",
+    "agreeTerms": "我同意条款和条件",
+    "mustAgreeTerms": "请同意条款",
+
+    "emailVerificationTitle": "邮箱验证",
+    "emailVerificationSubtitle": "我们已向您的邮箱发送验证链接",
+    "emailVerified": "您的邮箱已验证！",
+    "checkYourEmail": "请检查您的邮箱：",
+    "goToLogin": "前往登录",
+    "verificationResent": "验证邮件已重新发送",
+    "resendFailed": "重新发送验证邮件失败",
+    "resendVerification": "重新发送验证邮件",
+    "resendCooldown": "{seconds}秒后可重发",
+    "sending": "发送中...",
+    "verifying": "验证中...",
+    "invalidVerificationLink": "无效的验证链接",
+    "verificationFailed": "验证失败"
+  },
   "login": {
     "title": "登录您的个人账户",
     "adminTitle": "管理员登录",
     "testerTitle": "测试登录",
+    "moderatorTitle": "版主登录",
+    "vipTitle": "贵宾登录",
+
     "email": "邮箱",
+    "username": "用户名",
+    "password": "密码",
+    "confirmPassword": "确认密码",
+    "any": "任意",
+
     "logIn": "登录",
     "loginAsTester": "以测试员身份登录",
     "selectRole": "选择角色",
-    "username": "用户名",
-    "password": "密码",
-    "any": "任意",
+
+    "forgotPassword": "忘记密码？",
+    "register": "注册",
+    "rememberMe": "记住我",
+    "twoFactorCode": "双重认证码",
+    "captcha": "输入验证码",
+    "vipCode": "贵宾码",
+
     "thirdparty": "或通过以下方式登录",
     "thirdpartyTips": "本地无法模拟，请结合您自己的业务进行模拟！！！",
+
     "loginSuccess": "登录成功",
     "loginFailed": "登录失败"
   },
@@ -75,15 +128,9 @@ export default {
       "name": "名称"
     },
     "rules": {
-      "role": {
-        "required": "需要角色"
-      },
-      "name": {
-        "required": "需要名称"
-      },
-      "sex": {
-        "required": "需要性别"
-      },
+      "role": { "required": "需要角色" },
+      "name": { "required": "需要名称" },
+      "sex": { "required": "需要性别" },
       "email": {
         "required": "需要邮箱",
         "type": "请输入有效的邮箱"
@@ -91,26 +138,35 @@ export default {
       "password": {
         "placeholder": "输入密码",
         "required": "需要密码",
-        "minLength": "密码不能包含少于6位数字。"
+        "minLength": "密码不能包含少于6位数字"
       },
       "confirmPassword": {
-        "required": "确认密码",
+        "required": "需要确认密码",
         "mismatched": "密码不匹配！"
+      },
+      "twoFactor": {
+        "required": "需要双重认证码",
+        "pattern": "验证码必须是6位数字",
+        "placeholder": "请输入6位验证码"
+      },
+      "captcha": {
+        "required": "需要输入验证码",
+        "invalid": "验证码错误"
+      },
+      "phone": {
+        "required": "需要电话号码",
+        "pattern": "电话格式无效"
+      },
+      "vipCode": {
+        "required": "需要贵宾码",
+        "pattern": "贵宾码必须是 VIP-XXXXXXXX 格式"
       },
       "accessory": {
         "fields": {
-          "name": {
-            "required": "名称必填"
-          },
-          "model": {
-            "required": "型号必填"
-          },
-          "type_id": {
-            "required": "请选择设备类型"
-          },
-          "brand_id": {
-            "required": "请选择品牌"
-          }
+          "name": { "required": "名称必填" },
+          "model": { "required": "型号必填" },
+          "type_id": { "required": "请选择设备类型" },
+          "brand_id": { "required": "请选择品牌" }
         }
       }
     }
@@ -128,13 +184,12 @@ export default {
       "switchRoles": "切换角色",
       "tips": "某些情况下不适合使用v-role/v-permission（例如Element Tab组件或el-table-column），请手动使用v-if和checkRole/checkPermission。"
     },
+    "errors": {
+      "cantEditAdmin": "无法为管理员用户修改权限"
+    },
     "table": {
-      "edit": {
-        "user": "编辑访问权限"
-      },
-      "rolePermissions": {
-        "name": "继承自角色"
-      },
+      "edit": { "user": "编辑访问权限" },
+      "rolePermissions": { "name": "继承自角色" },
       "userPermissions": {
         "name": {
           "menu": "附加菜单",
@@ -146,23 +201,16 @@ export default {
         "cancelButtonText": "取消",
         "warning": "警告",
         "continue": "继续？",
-        "confirm1": {
-          "message": "将永久删除该用户"
-        }
+        "confirm1": { "message": "将永久删除该用户" }
       },
       "elMessage": {
         "update": {
-          "success": {
-            "message": "权限更新成功"
-          }
+          "success": { "message": "权限更新成功" },
+          "error": { "message": "更新权限时发生错误" }
         },
         "delete": {
-          "success": {
-            "message": "删除完成"
-          },
-          "canceled": {
-            "message": "删除已取消"
-          }
+          "success": { "message": "删除完成" },
+          "canceled": { "message": "删除已取消" }
         },
         "newUser": {
           "success": {
@@ -173,9 +221,7 @@ export default {
           }
         },
         "confirmPermission": {
-          "success": {
-            "message": "权限更新成功"
-          }
+          "success": { "message": "权限更新成功" }
         }
       }
     }
@@ -202,6 +248,7 @@ export default {
       "readings": "阅读量",
       "status": "状态",
       "actions": "操作",
+      "buttons": { "actions": "操作列表" },
       "edit": "编辑",
       "publish": "发布",
       "draft": "草稿",
@@ -223,50 +270,17 @@ export default {
           "account": "账户"
         },
         "fields": {
-          "role": {
-            "title": "角色",
-            "placeholder": "选择角色"
-          },
-          "name": {
-            "title": "名称",
-            "placeholder": "您的名字"
-          },
-          "email": {
-            "title": "邮箱",
-            "placeholder": "您的邮箱"
-          },
-          "password": {
-            "title": "密码",
-            "placeholder": "输入密码"
-          },
-          "confirmPassword": {
-            "title": "确认密码",
-            "placeholder": "不能与名称或邮箱相同"
-          },
-          "sex": {
-            "title": "性别",
-            "placeholder": ""
-          },
-          "male": {
-            "title": "男",
-            "placeholder": ""
-          },
-          "female": {
-            "title": "女",
-            "placeholder": ""
-          },
-          "age": {
-            "title": "年龄",
-            "placeholder": "未指定出生日期"
-          },
-          "birthday": {
-            "title": "生日",
-            "placeholder": "选择出生日期"
-          },
-          "description": {
-            "title": "描述",
-            "placeholder": "写下关于您自己..."
-          }
+          "role": { "title": "角色", "placeholder": "选择角色" },
+          "name": { "title": "名称", "placeholder": "您的名字" },
+          "email": { "title": "邮箱", "placeholder": "您的邮箱" },
+          "password": { "title": "密码", "placeholder": "输入密码" },
+          "confirmPassword": { "title": "确认密码", "placeholder": "不能与名称或邮箱相同" },
+          "sex": { "title": "性别", "placeholder": "" },
+          "male": { "title": "男", "placeholder": "" },
+          "female": { "title": "女", "placeholder": "" },
+          "age": { "title": "年龄", "placeholder": "未指定出生日期" },
+          "birthday": { "title": "生日", "placeholder": "选择出生日期" },
+          "description": { "title": "描述", "placeholder": "写下关于您自己..." }
         }
       },
       "columns": {
@@ -281,29 +295,17 @@ export default {
         "cancelButtonText": "取消",
         "warning": "警告",
         "continue": "继续？",
-        "confirm1": {
-          "message@j": "这将永久删除用户。<br><strong>{name}</strong>"
-        }
+        "confirm1": { "message@j": "这将永久删除用户。<br><strong>{name}</strong>" }
       },
       "elMessage": {
         "created": {
-          "success": {
-            "message": "用户已创建"
-          },
-          "error": {
-            "message": "用户创建错误"
-          }
+          "success": { "message": "用户已创建" },
+          "error": { "message": "用户创建错误" }
         },
         "delete": {
-          "success": {
-            "message": "用户已成功删除"
-          },
-          "error": {
-            "message": "用户删除错误"
-          },
-          "canceled": {
-            "message": "删除已取消"
-          }
+          "success": { "message": "用户已成功删除" },
+          "error": { "message": "用户删除错误" },
+          "canceled": { "message": "删除已取消" }
         },
         "newUser": {
           "success": {
@@ -342,56 +344,21 @@ export default {
       },
       "elMessage": {
         "update": {
-          "success": {
-            "message": "用户的信息已成功更新"
-          }
+          "success": { "message": "用户的信息已成功更新" }
         }
       },
       "fields": {
-        "role": {
-          "title": "角色",
-          "placeholder": "选择角色"
-        },
-        "name": {
-          "title": "名称",
-          "placeholder": "您的名字"
-        },
-        "email": {
-          "title": "邮箱",
-          "placeholder": "您的邮箱"
-        },
-        "password": {
-          "title": "密码",
-          "placeholder": "输入密码"
-        },
-        "confirmPassword": {
-          "title": "确认密码",
-          "placeholder": "不能与名称或邮箱相同"
-        },
-        "sex": {
-          "title": "性别",
-          "placeholder": ""
-        },
-        "male": {
-          "title": "男",
-          "placeholder": ""
-        },
-        "female": {
-          "title": "女",
-          "placeholder": ""
-        },
-        "age": {
-          "title": "年龄",
-          "placeholder": "未指定出生日期"
-        },
-        "birthday": {
-          "title": "生日",
-          "placeholder": "选择出生日期"
-        },
-        "description": {
-          "title": "描述",
-          "placeholder": "写下关于您自己..."
-        }
+        "role": { "title": "角色", "placeholder": "选择角色" },
+        "name": { "title": "名称", "placeholder": "您的名字" },
+        "email": { "title": "邮箱", "placeholder": "您的邮箱" },
+        "password": { "title": "密码", "placeholder": "输入密码" },
+        "confirmPassword": { "title": "确认密码", "placeholder": "不能与名称或邮箱相同" },
+        "sex": { "title": "性别", "placeholder": "" },
+        "male": { "title": "男", "placeholder": "" },
+        "female": { "title": "女", "placeholder": "" },
+        "age": { "title": "年龄", "placeholder": "未指定出生日期" },
+        "birthday": { "title": "生日", "placeholder": "选择出生日期" },
+        "description": { "title": "描述", "placeholder": "写下关于您自己..." }
       }
     }
   },
@@ -401,12 +368,14 @@ export default {
     "moderator": "版主",
     "name": "角色",
     "description": {
-      "superadmin": "超级管理员。拥有对所有页面的访问权和完全权限，等等。",
+      "superadmin": "超级管理员。拥有对所有页面的访问权和完全权限，以及更多。",
       "admin": "管理员。拥有对所有页面的访问权和完全权限。",
       "manager": "经理。拥有对大多数页面的访问权和权限（权限页面除外）。",
       "editor": "编辑。可访问大多数页面，拥有对文章及相关资源的完全访问权限。",
       "user": "普通用户。可访问部分页面。",
-      "visitor": "访客。可访问静态页面，无任何写入权限。"
+      "visitor": "访客。可访问静态页面，无任何写入权限。",
+      "moderator": "版主。可以审核内容和管理用户。",
+      "vip": "贵宾。具有扩展功能的特权用户。"
     }
   },
   "switchLang": {
@@ -438,52 +407,12 @@ export default {
       },
       "operational": {
         "title": "操作参数",
-        "group": {
-          "safety": "安全和操作条件"
-        }
+        "group": { "safety": "安全和操作条件" }
       },
       "additional": {
         "title": "附加设备",
-        "group": {
-          "compatibility": "兼容性和控制"
-        }
+        "group": { "compatibility": "兼容性和控制" }
       }
-    },
-    "table": {
-      "title": "配件列表",
-      "add_button": "添加配件",
-      "search_placeholder": "按型号、名称或品牌搜索...",
-      "empty_text": "无数据",
-      "total_items": "总记录数:",
-      "actions": "操作",
-      "columns": {
-        "id": "ID",
-        "name": "名称",
-        "model": "型号",
-        "brand": "品牌",
-        "type": "类型",
-        "compatible_models": "兼容型号",
-        "cross_section": "电缆截面",
-        "current_rating": "额定电流",
-        "thickness": "厚度",
-        "quantity_per_pack": "每包数量",
-        "rated_diff_current": "差动电流",
-        "voltage": "电压",
-        "communication_protocol": "通讯协议",
-        "remote_control": "遥控",
-        "ip_rating": "防护等级",
-        "mounting_type": "安装类型",
-        "standards": "标准",
-        "material": "材料",
-        "edit": "编辑",
-        "delete": "删除"
-      }
-    },
-    "messages": {
-      "delete_confirm": "您确定要删除此配件吗？此操作不可撤销。",
-      "delete_confirm_title": "删除确认",
-      "delete_success": "配件删除成功",
-      "delete_error": "删除配件时出错: {error}"
     },
     "table": {
       "title": "配件列表",
@@ -572,8 +501,8 @@ export default {
       "rated_diff_current_unit_id": "差动电流单位"
     },
     "remote_control_status": {
-      "yes": "有",
-      "no": "无"
+      "true": "有",
+      "false": "无"
     },
     "buttons": {
       "table": "到表格",
@@ -607,22 +536,10 @@ export default {
       "add_title": "添加品牌",
       "edit_title": "正在编辑: {name}",
       "fields": {
-        "name": {
-          "label": "品牌名称",
-          "placeholder": "例如: 施耐德电气"
-        },
-        "country": {
-          "label": "生产国家",
-          "placeholder": "例如: 法国"
-        },
-        "website": {
-          "label": "网站",
-          "placeholder": "https://example.com"
-        },
-        "description": {
-          "label": "描述",
-          "placeholder": "品牌简要描述"
-        }
+        "name": { "label": "品牌名称", "placeholder": "例如: 施耐德电气" },
+        "country": { "label": "生产国家", "placeholder": "例如: 法国" },
+        "website": { "label": "网站", "placeholder": "https://example.com" },
+        "description": { "label": "描述", "placeholder": "品牌简要描述" }
       },
       "rules": {
         "name_required": "名称必填",
@@ -668,18 +585,9 @@ export default {
       "add_title": "添加设备类型",
       "edit_title": "正在编辑: {name}",
       "fields": {
-        "name": {
-          "label": "类型名称",
-          "placeholder": "例如: 断路器"
-        },
-        "code": {
-          "label": "类型代码",
-          "placeholder": "例如: CB"
-        },
-        "description": {
-          "label": "描述",
-          "placeholder": "设备类型简要描述"
-        }
+        "name": { "label": "类型名称", "placeholder": "例如: 断路器" },
+        "code": { "label": "类型代码", "placeholder": "例如: CB" },
+        "description": { "label": "描述", "placeholder": "设备类型简要描述" }
       },
       "rules": {
         "name_required": "名称必填",
@@ -725,26 +633,11 @@ export default {
       "add_title": "添加测量单位",
       "edit_title": "正在编辑: {name}",
       "fields": {
-        "name": {
-          "label": "名称",
-          "placeholder": "例如: 安培"
-        },
-        "symbol": {
-          "label": "符号（存储）",
-          "placeholder": "例如: a (小写)"
-        },
-        "display_symbol": {
-          "label": "显示符号",
-          "placeholder": "例如: A"
-        },
-        "physical_quantity": {
-          "label": "物理量",
-          "placeholder": "例如: 电流"
-        },
-        "measurement_category_id": {
-          "label": "类别",
-          "placeholder": "选择类别"
-        }
+        "name": { "label": "名称", "placeholder": "例如: 安培" },
+        "symbol": { "label": "符号（存储）", "placeholder": "例如: a (小写)" },
+        "display_symbol": { "label": "显示符号", "placeholder": "例如: A" },
+        "physical_quantity": { "label": "物理量", "placeholder": "例如: 电流" },
+        "measurement_category_id": { "label": "类别", "placeholder": "选择类别" }
       },
       "rules": {
         "name_required": "名称必填",
@@ -774,27 +667,27 @@ export default {
     "view404": {
       "buttons": {
         "back": "返回",
-        "backHome": "回家吧",
+        "backHome": "回家吧"
       },
-      "OOPS": `哎呀！`,
-      "Message": `保镖说你不能进入这个页面。..`,
-      "Info": `请检查您输入的URL是否正确. 点击下面的按钮返回主页.`,
-      "CopyrightBy":`版权由`,
-      "ProjectInGithub":`Github中的项目`,
+      "OOPS": "哎呀！",
+      "Message": "保镖说你不能进入这个页面...",
+      "Info": "请检查您输入的URL是否正确。点击下面的按钮返回主页。",
+      "CopyrightBy": "版权由",
+      "ProjectInGithub": "Github中的项目"
     },
     "view401": {
       "buttons": {
         "back": "返回",
-        "backHome": "回家吧",
+        "backHome": "回家吧"
       },
-      "CanGo": `或者你可以去:`,
-      "OOPS": `哇！`,
-      "Permission": `您没有访问此页面的权限。`,
-      "MessageAdmin": `如果您不满意，请与管理员联系。`,
-      "JustLookingAroundHref": `https://www.google.com/`,
-      "JustLookingAround": `互联网搜索`,
-      "ShowPicture": `显示初始屏幕`,
-      "CasualLook": `访问被拒绝`,
+      "CanGo": "或者你可以去:",
+      "OOPS": "哇！",
+      "Permission": "您没有访问此页面的权限。",
+      "MessageAdmin": "如果您不满意，请与管理员联系。",
+      "JustLookingAroundHref": "https://www.google.com/",
+      "JustLookingAround": "互联网搜索",
+      "ShowPicture": "显示初始屏幕",
+      "CasualLook": "访问被拒绝"
     },
     "units": {
       "A": "安",
@@ -814,5 +707,10 @@ export default {
       "kg": "千克",
       "l": "升"
     }
-  }
+  },
+  "error": {
+    "loadPermissions": "加载权限出错"
+  },
+  "roles_description_admin": "系统管理员",
+  "roles_description_superadmin": "超级管理员"
 };

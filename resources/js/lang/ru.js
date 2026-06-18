@@ -26,7 +26,7 @@ export default {
         "Accessories": "Аксессуар Электрики",
         "AccessoriesList": "Список аксессуаров",
         "AccessoryCreate": "Создание аксессуара электрики",
-        "AccessoryEdit": "Редактирование аксессуара электрики",
+        "AccessoryEdit": "Редактирование аксессуара электрики"
     },
     "navbar": {
         "logOut": "Выйти из системы",
@@ -38,21 +38,74 @@ export default {
         "logout": "Выйти из системы",
         "home": "Домой"
     },
+    "auth": {
+        "forgotPasswordTitle": "Забыли пароль?",
+        "forgotPasswordSubtitle": "Введите email и мы отправим ссылку для сброса",
+        "sendResetLink": "Отправить ссылку",
+        "emailSent": "Письмо отправлено!",
+        "checkEmail": "Проверьте почту {email} для получения ссылки",
+        "resetLinkSent": "Ссылка для сброса отправлена на вашу почту",
+        "resetFailed": "Не удалось отправить ссылку",
+        "backToLogin": "Вернуться к входу",
+
+        "resetPasswordTitle": "Сброс пароля",
+        "resetPasswordSubtitle": "Введите новый пароль",
+        "resetPassword": "Сбросить пароль",
+        "passwordResetSuccess": "Пароль успешно сброшен",
+        "invalidResetLink": "Неверная или истёкшая ссылка",
+
+        "registerTitle": "Создать аккаунт",
+        "registerSubtitle": "Заполните форму для создания аккаунта",
+        "register": "Зарегистрироваться",
+        "registerSuccess": "Регистрация успешна! Проверьте вашу почту",
+        "registerFailed": "Ошибка регистрации",
+        "alreadyHaveAccount": "Уже есть аккаунт? Войти",
+        "agreeTerms": "Я согласен с условиями использования",
+        "mustAgreeTerms": "Пожалуйста, примите условия",
+
+        "emailVerificationTitle": "Подтверждение Email",
+        "emailVerificationSubtitle": "Мы отправили ссылку для подтверждения на вашу почту",
+        "emailVerified": "Ваш email подтверждён!",
+        "checkYourEmail": "Проверьте вашу почту:",
+        "goToLogin": "Перейти к входу",
+        "verificationResent": "Письмо отправлено повторно",
+        "resendFailed": "Не удалось отправить письмо",
+        "resendVerification": "Отправить письмо повторно",
+        "resendCooldown": "Повтор через {seconds}с",
+        "sending": "Отправка...",
+        "verifying": "Проверяем...",
+        "invalidVerificationLink": "Неверная ссылка подтверждения",
+        "verificationFailed": "Ошибка подтверждения"
+    },
     "login": {
-        "title": "Войдите в свой личный кабинет",
-        "adminTitle": "Вход администратора",
+        "title": "Вход в личный кабинет",
+        "adminTitle": "Вход для администратора",
         "testerTitle": "Тестовый вход",
+        "moderatorTitle": "Вход для модератора",
+        "vipTitle": "VIP вход",
+
         "email": "Email",
-        "logIn": "Авторизоваться",
-        "loginAsTester": "Войти как тестер",
-        "selectRole": "Выберите роль",
         "username": "Имя пользователя",
         "password": "Пароль",
-        "any": "any",
-        "thirdparty": "Или соединиться с",
-        "thirdpartyTips": "Невозможно смоделировать локально, поэтому, пожалуйста, объедините вашу собственную бизнес-симуляцию!!!",
-        "loginSuccess": "Успешный вход в систему",
-        "loginFailed": "Войти в систему не удалось",
+        "confirmPassword": "Подтвердите пароль",
+        "any": "любой",
+
+        "logIn": "Войти",
+        "loginAsTester": "Войти как тестер",
+        "selectRole": "Выберите роль",
+
+        "forgotPassword": "Забыли пароль?",
+        "register": "Регистрация",
+        "rememberMe": "Запомнить меня",
+        "twoFactorCode": "Код 2FA",
+        "captcha": "Введите код с картинки",
+        "vipCode": "VIP код",
+
+        "thirdparty": "Или войдите через",
+        "thirdpartyTips": "Невозможно эмулировать локально, интегрируйте свой бизнес-процесс!!!",
+
+        "loginSuccess": "Успешный вход",
+        "loginFailed": "Ошибка входа"
     },
     "validation": {
         "general": {
@@ -94,23 +147,32 @@ export default {
                 "minLength": "Пароль не может содержать менее 6 цифр"
             },
             "confirmPassword": {
-                "required": "Требуется ввести пароль",
+                "required": "Требуется подтвердить пароль",
                 "mismatched": "Пароль не совпадает!"
+            },
+            "twoFactor": {
+                "required": "Требуется код двухфакторной аутентификации",
+                "pattern": "Код должен состоять из 6 цифр",
+                "placeholder": "Введите 6-значный код"
+            },
+            "captcha": {
+                "required": "Требуется ввести код с картинки",
+                "invalid": "Неверный код с картинки"
+            },
+            "phone": {
+                "required": "Требуется указать телефон",
+                "pattern": "Неверный формат телефона"
+            },
+            "vipCode": {
+                "required": "Требуется VIP код",
+                "pattern": "VIP код должен быть в формате VIP-XXXXXXXX"
             },
             "accessory": {
                 "fields": {
-                    "name": {
-                        "required": "Название обязательно"
-                    },
-                    "model": {
-                        "required": "Модель обязательна"
-                    },
-                    "type_id": {
-                        "required": "Выберите тип устройства"
-                    },
-                    "brand_id": {
-                        "required": "Выберите бренд"
-                    }
+                    "name": { "required": "Название обязательно" },
+                    "model": { "required": "Модель обязательна" },
+                    "type_id": { "required": "Выберите тип устройства" },
+                    "brand_id": { "required": "Выберите бренд" }
                 }
             }
         }
@@ -155,20 +217,12 @@ export default {
             },
             "elMessage": {
                 "update": {
-                    "success": {
-                        "message": "Обновление разрешений прошло успешно."
-                    },
-                    "error": {
-                        "message": "При обновлении разрешений произошла ошибка."
-                    },
+                    "success": { "message": "Обновление разрешений прошло успешно." },
+                    "error": { "message": "При обновлении разрешений произошла ошибка." }
                 },
                 "delete": {
-                    "success": {
-                        "message": "Удаление завершено."
-                    },
-                    "canceled": {
-                        "message": "Удаление отменено."
-                    }
+                    "success": { "message": "Удаление завершено." },
+                    "canceled": { "message": "Удаление отменено." }
                 },
                 "newUser": {
                     "success": {
@@ -179,9 +233,7 @@ export default {
                     }
                 },
                 "confirmPermission": {
-                    "success": {
-                        "message": "Разрешения были успешно обновлены."
-                    }
+                    "success": { "message": "Разрешения были успешно обновлены." }
                 }
             }
         }
@@ -209,7 +261,7 @@ export default {
             "status": "Статус",
             "actions": "Действия",
             "buttons": {
-                "actions": "Список действий",
+                "actions": "Список действий"
             },
             "edit": "Изменить",
             "publish": "Опубликовать",
@@ -232,50 +284,17 @@ export default {
                     "account": "Аккаунт"
                 },
                 "fields": {
-                    "role": {
-                        "title": "Роль",
-                        "placeholder": "Пожалуйста, выберите роль"
-                    },
-                    "name": {
-                        "title": "Имя",
-                        "placeholder": "Ваше имя"
-                    },
-                    "email": {
-                        "title": "Email",
-                        "placeholder": "Ваша почта"
-                    },
-                    "password": {
-                        "title": "Пароль",
-                        "placeholder": "Введите пароль"
-                    },
-                    "confirmPassword": {
-                        "title": "Подтвердить пароль",
-                        "placeholder": "Не должен совпадать с именем и почтой)"
-                    },
-                    "sex": {
-                        "title": "Пол",
-                        "placeholder": ""
-                    },
-                    "male": {
-                        "title": "Мужчина",
-                        "placeholder": ""
-                    },
-                    "female": {
-                        "title": "Женщина",
-                        "placeholder": ""
-                    },
-                    "age": {
-                        "title": "Лет",
-                        "placeholder": "Дата рождения не указана"
-                    },
-                    "birthday": {
-                        "title": "День рождения",
-                        "placeholder": "Выберите дату рождения"
-                    },
-                    "description": {
-                        "title": "Описание",
-                        "placeholder": "Напишите о себе..."
-                    }
+                    "role": { "title": "Роль", "placeholder": "Пожалуйста, выберите роль" },
+                    "name": { "title": "Имя", "placeholder": "Ваше имя" },
+                    "email": { "title": "Email", "placeholder": "Ваша почта" },
+                    "password": { "title": "Пароль", "placeholder": "Введите пароль" },
+                    "confirmPassword": { "title": "Подтвердить пароль", "placeholder": "Не должен совпадать с именем и почтой)" },
+                    "sex": { "title": "Пол", "placeholder": "" },
+                    "male": { "title": "Мужчина", "placeholder": "" },
+                    "female": { "title": "Женщина", "placeholder": "" },
+                    "age": { "title": "Лет", "placeholder": "Дата рождения не указана" },
+                    "birthday": { "title": "День рождения", "placeholder": "Выберите дату рождения" },
+                    "description": { "title": "Описание", "placeholder": "Напишите о себе..." }
                 }
             },
             "columns": {
@@ -296,23 +315,13 @@ export default {
             },
             "elMessage": {
                 "created": {
-                    "success": {
-                        "message": "Пользователь создан"
-                    },
-                    "error": {
-                        "message": "Ошибка создания пользователя"
-                    }
+                    "success": { "message": "Пользователь создан" },
+                    "error": { "message": "Ошибка создания пользователя" }
                 },
                 "delete": {
-                    "success": {
-                        "message": "Пользователь успешно удалён"
-                    },
-                    "error": {
-                        "message": "Ошибка удаления пользователя"
-                    },
-                    "canceled": {
-                        "message": "Удаление отменено"
-                    }
+                    "success": { "message": "Пользователь успешно удалён" },
+                    "error": { "message": "Ошибка удаления пользователя" },
+                    "canceled": { "message": "Удаление отменено" }
                 },
                 "newUser": {
                     "success": {
@@ -351,56 +360,21 @@ export default {
             },
             "elMessage": {
                 "update": {
-                    "success": {
-                        "message": "Информация о пользователе была успешно обновлена"
-                    }
+                    "success": { "message": "Информация о пользователе была успешно обновлена" }
                 }
             },
             "fields": {
-                "role": {
-                    "title": "Роль",
-                    "placeholder": "Пожалуйста, выберите роль"
-                },
-                "name": {
-                    "title": "Имя",
-                    "placeholder": "Ваше имя"
-                },
-                "email": {
-                    "title": "Email",
-                    "placeholder": "Ваша почта"
-                },
-                "password": {
-                    "title": "Пароль",
-                    "placeholder": "Введите пароль"
-                },
-                "confirmPassword": {
-                    "title": "Подтвердить пароль",
-                    "placeholder": "Не должен совпадать с именем и почтой)"
-                },
-                "sex": {
-                    "title": "Пол",
-                    "placeholder": ""
-                },
-                "male": {
-                    "title": "Мужчина",
-                    "placeholder": ""
-                },
-                "female": {
-                    "title": "Женщина",
-                    "placeholder": ""
-                },
-                "age": {
-                    "title": "Лет",
-                    "placeholder": "Дата рождения не указана"
-                },
-                "birthday": {
-                    "title": "День рождения",
-                    "placeholder": "Выберите дату рождения"
-                },
-                "description": {
-                    "title": "Описание",
-                    "placeholder": "Напишите о себе..."
-                }
+                "role": { "title": "Роль", "placeholder": "Пожалуйста, выберите роль" },
+                "name": { "title": "Имя", "placeholder": "Ваше имя" },
+                "email": { "title": "Email", "placeholder": "Ваша почта" },
+                "password": { "title": "Пароль", "placeholder": "Введите пароль" },
+                "confirmPassword": { "title": "Подтвердить пароль", "placeholder": "Не должен совпадать с именем и почтой)" },
+                "sex": { "title": "Пол", "placeholder": "" },
+                "male": { "title": "Мужчина", "placeholder": "" },
+                "female": { "title": "Женщина", "placeholder": "" },
+                "age": { "title": "Лет", "placeholder": "Дата рождения не указана" },
+                "birthday": { "title": "День рождения", "placeholder": "Выберите дату рождения" },
+                "description": { "title": "Описание", "placeholder": "Напишите о себе..." }
             }
         }
     },
@@ -415,7 +389,9 @@ export default {
             "manager": "Manager. Имеет доступ и разрешения на большинство страниц, за исключением страницы разрешений.",
             "editor": "Editor. Имеет доступ к большинству страниц, полное разрешение на доступ к статьям и связанным с ними ресурсам.",
             "user": "Normal user. Имеет доступ к некоторым страницам.",
-            "visitor": "Visitor. Имеет доступ к статическим страницам, не иметь никаких разрешений на запись."
+            "visitor": "Visitor. Имеет доступ к статическим страницам, не иметь никаких разрешений на запись.",
+            "moderator": "Moderator. Может модерировать контент и управлять пользователями.",
+            "vip": "VIP. Привилегированный пользователь с расширенными возможностями."
         }
     },
     "switchLang": {
@@ -447,15 +423,11 @@ export default {
             },
             "operational": {
                 "title": "Эксплуатационные параметры",
-                "group": {
-                    "safety": "Безопасность и условия эксплуатации"
-                }
+                "group": { "safety": "Безопасность и условия эксплуатации" }
             },
             "additional": {
                 "title": "Дополнительное оборудование",
-                "group": {
-                    "compatibility": "Совместимость и управление"
-                }
+                "group": { "compatibility": "Совместимость и управление" }
             }
         },
         "table": {
@@ -580,22 +552,10 @@ export default {
             "add_title": "Добавить бренд",
             "edit_title": "Редактирование: {name}",
             "fields": {
-                "name": {
-                    "label": "Название бренда",
-                    "placeholder": "Например: Schneider Electric"
-                },
-                "country": {
-                    "label": "Страна производитель",
-                    "placeholder": "Например: Франция"
-                },
-                "website": {
-                    "label": "Веб-сайт",
-                    "placeholder": "https://example.com"
-                },
-                "description": {
-                    "label": "Описание",
-                    "placeholder": "Краткое описание бренда"
-                }
+                "name": { "label": "Название бренда", "placeholder": "Например: Schneider Electric" },
+                "country": { "label": "Страна производитель", "placeholder": "Например: Франция" },
+                "website": { "label": "Веб-сайт", "placeholder": "https://example.com" },
+                "description": { "label": "Описание", "placeholder": "Краткое описание бренда" }
             },
             "rules": {
                 "name_required": "Название обязательно",
@@ -615,7 +575,7 @@ export default {
             "add_success": "Бренд успешно добавлен",
             "update_success": "Изменения сохранены",
             "error": "Ошибка: {error}"
-        },
+        }
     },
     "deviceType": {
         "table": {
@@ -641,18 +601,9 @@ export default {
             "add_title": "Добавить тип устройства",
             "edit_title": "Редактирование: {name}",
             "fields": {
-                "name": {
-                    "label": "Название типа",
-                    "placeholder": "Например: Автоматический выключатель"
-                },
-                "code": {
-                    "label": "Код типа",
-                    "placeholder": "Например: CB"
-                },
-                "description": {
-                    "label": "Описание",
-                    "placeholder": "Краткое описание типа устройства"
-                }
+                "name": { "label": "Название типа", "placeholder": "Например: Автоматический выключатель" },
+                "code": { "label": "Код типа", "placeholder": "Например: CB" },
+                "description": { "label": "Описание", "placeholder": "Краткое описание типа устройства" }
             },
             "rules": {
                 "name_required": "Название обязательно",
@@ -698,26 +649,11 @@ export default {
             "add_title": "Добавить единицу измерения",
             "edit_title": "Редактирование: {name}",
             "fields": {
-                "name": {
-                    "label": "Название",
-                    "placeholder": "Например: Ампер"
-                },
-                "symbol": {
-                    "label": "Символ (хранится)",
-                    "placeholder": "Например: a (в нижнем регистре)"
-                },
-                "display_symbol": {
-                    "label": "Отображаемый символ",
-                    "placeholder": "Например: A"
-                },
-                "physical_quantity": {
-                    "label": "Физическая величина",
-                    "placeholder": "Например: ток"
-                },
-                "measurement_category_id": {
-                    "label": "Категория",
-                    "placeholder": "Выберите категорию"
-                }
+                "name": { "label": "Название", "placeholder": "Например: Ампер" },
+                "symbol": { "label": "Символ (хранится)", "placeholder": "Например: a (в нижнем регистре)" },
+                "display_symbol": { "label": "Отображаемый символ", "placeholder": "Например: A" },
+                "physical_quantity": { "label": "Физическая величина", "placeholder": "Например: ток" },
+                "measurement_category_id": { "label": "Категория", "placeholder": "Выберите категорию" }
             },
             "rules": {
                 "name_required": "Название обязательно",
@@ -747,27 +683,27 @@ export default {
         "view404": {
             "buttons": {
                 "back": "Назад",
-                "backHome": "Назад Домой",
+                "backHome": "Назад Домой"
             },
-            "OOPS": `Ууупс!`,
-            "Message": `Охрана сервиса сказала, что вы не можете зайти на эту страницу...`,
-            "Info": `Пожалуйста, проверьте правильность введенного вами URL-адреса. Нажмите на кнопку ниже, чтобы вернуться на главную страницу.`,
-            "CopyrightBy":`Copyright by`,
-            "ProjectInGithub":`Project in github`,
+            "OOPS": "Ууупс!",
+            "Message": "Охрана сервиса сказала, что вы не можете зайти на эту страницу...",
+            "Info": "Пожалуйста, проверьте правильность введенного вами URL-адреса. Нажмите на кнопку ниже, чтобы вернуться на главную страницу.",
+            "CopyrightBy": "Copyright by",
+            "ProjectInGithub": "Project in github"
         },
         "view401": {
             "buttons": {
                 "back": "Назад",
-                "backHome": "Назад Домой",
+                "backHome": "Назад Домой"
             },
-            "CanGo": `Или ты можешь перейти:`,
-            "OOPS": `Ууупс!`,
-            "Permission": `У вас нет разрешения на переход на эту страницу.`,
-            "MessageAdmin": `Если вы не удовлетворены, пожалуйста, свяжитесь с администратором.`,
-            "JustLookingAroundHref": `https://www.google.com/`,
-            "JustLookingAround": `Поиск в интернете`,
-            "ShowPicture": `Показать заставку`,
-            "CasualLook": `Доступ запрещён`,
+            "CanGo": "Или ты можешь перейти:",
+            "OOPS": "Ууупс!",
+            "Permission": "У вас нет разрешения на переход на эту страницу.",
+            "MessageAdmin": "Если вы не удовлетворены, пожалуйста, свяжитесь с администратором.",
+            "JustLookingAroundHref": "https://www.google.com/",
+            "JustLookingAround": "Поиск в интернете",
+            "ShowPicture": "Показать заставку",
+            "CasualLook": "Доступ запрещён"
         },
         "units": {
             "A": "А",
@@ -788,8 +724,9 @@ export default {
             "l": "л"
         }
     },
-    "error.loadPermissions": "Ошибка загрузки разрешений",
-    "permission.editPermissionForForm": "Редактирование разрешений для роли",
-    "roles.description.admin": "Администратор системы",
-    "roles.description.superadmin": "Суперадминистратор"
+    "error": {
+        "loadPermissions": "Ошибка загрузки разрешений"
+    },
+    "roles_description_admin": "Администратор системы",
+    "roles_description_superadmin": "Суперадминистратор"
 };

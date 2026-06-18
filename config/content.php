@@ -19,8 +19,8 @@ return [
     // Default Avatar
     'default_avatar' => env('DEFAULT_AVATAR', '/images/avatar.png'),
 
-    'default_avatar_male' => 'images/avatar-male.png',
-    'default_avatar_female' => 'images/avatar-female.png',
+    'default_avatar_male' => '/images/avatar-male.png',
+    'default_avatar_female' => '/images/avatar-female.png',
 
     // Color Theme
     'color_theme' => 'gray-theme',

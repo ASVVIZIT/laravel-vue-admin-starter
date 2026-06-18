@@ -61,7 +61,7 @@ export const userStore = defineStore('user', () => {
             const data = response.data;
             id.value = data?.id ?? null;
             name.value = data?.name ?? '';
-            avatar.value = data?.avatar || 'images/avatar-male.png';
+            avatar.value = data?.avatar || '/images/avatar-male.png';
             email.value = data?.email ?? '';
             roles.value = Array.isArray(data?.roles) ? data.roles : [];
             permissions.value = Array.isArray(data?.permissions) ? data.permissions : [];

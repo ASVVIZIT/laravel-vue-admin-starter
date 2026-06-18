@@ -31,33 +31,87 @@ export const constantRoutes = [
     path: '/auth',
     component: AuthLayout,
     children: [
+      // ====================================================================
+      // 🔐 СТРАНИЦЫ ВХОДА (с ModeSwitcher)
+      // ====================================================================
       {
-        path: '/login',      // ← ОТНОСИТЕЛЬНЫЙ путь (будет /admin/login)
+        path: '/login',
         name: 'Login',
         component: () => import('@views/auth/admin/login.vue'),
-        meta: { loginType: 'user', requiresAuth: false },
+        meta: { loginType: 'user', requiresAuth: false, hideModeSwitcher: false },
         hidden: true,
       },
       {
-        path: '/admin',      // ← ОТНОСИТЕЛЬНЫЙ путь (будет /admin/admin)
+        path: '/admin',
         name: 'AdminLogin',
         component: () => import('@views/auth/admin/AdminLogin.vue'),
-        meta: { loginType: 'admin', requiresAuth: false },
+        meta: { loginType: 'admin', requiresAuth: false, hideModeSwitcher: false },
         hidden: true,
       },
       {
-        path: '/tester',     // ← ОТНОСИТЕЛЬНЫЙ путь (будет /admin/tester)
+        path: '/tester',
         name: 'TesterLogin',
         component: () => import('@/views/auth/tester/TesterLogin.vue'),
-        meta: { loginType: 'tester', requiresAuth: false },
+        meta: { loginType: 'tester', requiresAuth: false, hideModeSwitcher: false },
         hidden: true,
-      }
+      },
+
+      // ====================================================================
+      // 🔑 ВОССТАНОВЛЕНИЕ ПАРОЛЯ (без ModeSwitcher)
+      // ====================================================================
+      {
+        path: '/forgot-password',
+        name: 'ForgotPassword',
+        component: () => import('@/views/auth/ForgotPassword.vue'),
+        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
+        hidden: true,
+      },
+      {
+        path: '/reset-password',
+        name: 'ResetPassword',
+        component: () => import('@/views/auth/ResetPassword.vue'),
+        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
+        hidden: true,
+      },
+
+      // ====================================================================
+      // 📝 РЕГИСТРАЦИЯ (без ModeSwitcher)
+      // ====================================================================
+      {
+        path: '/register',
+        name: 'Register',
+        component: () => import('@/views/auth/Register.vue'),
+        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
+        hidden: true,
+      },
+
+      // ====================================================================
+      // ✉️ ПОДТВЕРЖДЕНИЕ EMAIL (без ModeSwitcher)
+      // ====================================================================
+      {
+        path: '/email-verify',
+        name: 'EmailVerification',
+        component: () => import('@/views/auth/EmailVerification.vue'),
+        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
+        hidden: true,
+      },
+
+      // ====================================================================
+      // 🔀 OAUTH REDIRECT
+      // ====================================================================
+      {
+        path: '/auth-redirect',
+        name: 'AuthRedirect',
+        component: () => import('@/views/auth/AuthRedirect.vue'),
+        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
+        hidden: true,
+      },
     ]
   },
 
   {
     path: '/auth-redirect',
-    component: () => import('@views/auth/admin/AuthRedirect.vue'),
+    component: () => import('@views/auth/AuthRedirect.vue'),
     hidden: true,
   },
 

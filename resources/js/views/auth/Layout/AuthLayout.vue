@@ -1,12 +1,12 @@
 <template>
   <div class="auth-page" :class="`theme-${safeMode}`">
     <div class="auth-container">
-      <!-- ЛЕВАЯ КОЛОНКА: Картинка -->
+      <!-- ЛЕВАЯ КОЛОНКА: Картинка/Код -->
       <div class="auth-image" :style="bgStyle">
         <div class="photo-credit">
           <span>Powered by ASV</span>
         </div>
-        <div class="mode-badge" :class="`mode-${safeMode}`">
+        <div class="mode-badge" :class="`mode-${safeMode}`" v-if="showModeSwitcher">
           <span class="mode-icon">{{ currentModeData.icon }}</span>
           <span class="mode-label">{{ currentModeData.label }}</span>
         </div>
@@ -14,30 +14,40 @@
 
       <!-- ПРАВАЯ КОЛОНКА: Форма -->
       <div class="auth-content">
+        <!-- Заголовок -->
         <div class="title-wrap">
-          <h3 class="title">
-            <img class="logo" alt="Fenix Portal" :src="logo" />
-            {{ currentModeData.title }}
-            <LangSelect class="set-language" />
-          </h3>
-          <p class="sub-heading">{{ currentModeData.subtitle }}</p>
+          <div class="brand-logo">
+            <span class="logo-icon">🔥</span>
+            <span class="logo-text">FENIX PORTAL</span>
+          </div>
+          <h1 class="main-title">Fenix Portal</h1>
+          <p class="sub-heading">{{ currentPageSubtitle }}</p>
         </div>
 
         <!-- Переключатель режимов -->
-        <ModeSwitcher
-            v-model="safeMode"
-            :modes="availableModes"
-            @change="handleModeChange"
-        />
+        <div v-if="showModeSwitcher" class="mode-switcher-wrapper">
+          <div class="mode-switcher">
+            <button
+                v-for="mode in availableModes"
+                :key="mode.value"
+                :class="['mode-btn', { active: safeMode === mode.value }]"
+                @click="handleModeChange(mode.value)"
+            >
+              <span class="mode-btn-icon">{{ mode.icon }}</span>
+              <span class="mode-btn-label">{{ $t(mode.label) }}</span>
+            </button>
+          </div>
+        </div>
 
-        <!-- 🔥 Плавная смена формы через transition -->
+        <!-- Плавная смена формы -->
         <transition name="fade-slide" mode="out-in">
-          <div class="form-wrapper" :key="safeMode">
+          <div class="form-wrapper" :key="currentRouteName">
             <router-view />
           </div>
         </transition>
 
-        <div class="auth-footer">
+        <!-- Футер -->
+        <div class="auth-footer" v-if="showFooter">
           <p class="footer-text">{{ currentModeData.footerText }}</p>
         </div>
       </div>
@@ -48,16 +58,13 @@
 </template>
 
 <script setup>
-import { computed, onMounted, watch } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/store/authStore'
 import { VALID_LOGIN_TYPES } from '@/utils/auth'
-import { detectBasePath, getTypeFromBase, getBaseForType } from '@/utils/detectBasePath'
-import ModeSwitcher from '../components/ModeSwitcher.vue'
+import { detectBasePath, getTypeFromBase } from '@/utils/detectBasePath'
 import AuthBackground from '../components/AuthBackground.vue'
-import LangSelect from '@components/LangSelect/LangSelect.vue'
 
-import logo from '@/assets/login/logo.svg'
 import bgUser from '@/assets/login/background.jpg'
 import bgAdmin from '@/assets/login/background.jpg'
 import bgTester from '@/assets/login/background.jpg'
@@ -74,7 +81,6 @@ const availableModes = [
 
 const modeConfigs = {
   user: {
-    title: 'Fenix Portal',
     subtitle: 'Вход в систему',
     footerText: 'Обычный доступ к порталу',
     icon: '👤',
@@ -83,7 +89,6 @@ const modeConfigs = {
     bgImage: bgUser
   },
   admin: {
-    title: 'Fenix Portal',
     subtitle: 'Панель администратора',
     footerText: 'Требуется повышенная авторизация',
     icon: '🔐',
@@ -92,7 +97,6 @@ const modeConfigs = {
     bgImage: bgAdmin
   },
   tester: {
-    title: 'Fenix Portal',
     subtitle: 'Режим тестирования',
     footerText: 'Используйте тестовые учётные данные',
     icon: '🧪',
@@ -102,19 +106,35 @@ const modeConfigs = {
   }
 }
 
-// 🔥 Читаем тип из URL (при прямом заходе) ИЛИ из store (при переключении)
+const pageConfigs = {
+  'Login': { getSubtitle: () => modeConfigs[authStore.loginType]?.subtitle || 'Вход в систему' },
+  'AdminLogin': { getSubtitle: () => 'Панель администратора' },
+  'TesterLogin': { getSubtitle: () => 'Режим тестирования' },
+  'ForgotPassword': { getSubtitle: () => 'Восстановление пароля' },
+  'ResetPassword': { getSubtitle: () => 'Установка нового пароля' },
+  'Register': { getSubtitle: () => 'Создание аккаунта' },
+  'EmailVerification': { getSubtitle: () => 'Подтверждение email' },
+  'AuthRedirect': { getSubtitle: () => 'Перенаправление...' }
+}
+
+const currentRouteName = computed(() => route.name || 'default')
+
+const showModeSwitcher = computed(() => !route.meta?.hideModeSwitcher)
+const showFooter = computed(() => !route.meta?.hideFooter)
+
+const currentPageSubtitle = computed(() => {
+  const pageConfig = pageConfigs[route.name]
+  return pageConfig?.getSubtitle ? pageConfig.getSubtitle() : ''
+})
+
 const safeMode = computed({
   get: () => {
-    // При прямом заходе — читаем из URL
+    if (!showModeSwitcher.value) {
+      return VALID_LOGIN_TYPES.includes(authStore.loginType) ? authStore.loginType : 'user'
+    }
     const basePath = detectBasePath()
     const typeFromUrl = getTypeFromBase(basePath)
-
-    // Если в store уже установлен тип (переключили слайдером) — используем его
-    if (VALID_LOGIN_TYPES.includes(authStore.loginType)) {
-      return authStore.loginType
-    }
-
-    return VALID_LOGIN_TYPES.includes(typeFromUrl) ? typeFromUrl : 'user'
+    return VALID_LOGIN_TYPES.includes(authStore.loginType) ? authStore.loginType : (VALID_LOGIN_TYPES.includes(typeFromUrl) ? typeFromUrl : 'user')
   },
   set: (val) => {
     if (VALID_LOGIN_TYPES.includes(val)) {
@@ -123,33 +143,20 @@ const safeMode = computed({
   }
 })
 
-const currentModeData = computed(() => {
-  return modeConfigs[safeMode.value] || modeConfigs.user
-})
+const currentModeData = computed(() => modeConfigs[safeMode.value] || modeConfigs.user)
 
 const bgStyle = computed(() => ({
   backgroundImage: `url(${currentModeData.value.bgImage})`
 }))
 
-// 🔥 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: НЕ меняем URL при переключении слайдером!
 const handleModeChange = (mode) => {
-  if (!VALID_LOGIN_TYPES.includes(mode)) {
-    console.warn('[AuthLayout] Invalid mode:', mode)
-    return
-  }
-
-  if (mode === safeMode.value) return
-
-  // Просто меняем тип в store — форма перерисуется через transition
+  if (!VALID_LOGIN_TYPES.includes(mode) || mode === safeMode.value) return
   authStore.setLoginType(mode, true)
-  console.log(`[AuthLayout] ✅ Mode changed to: ${mode} (without URL change)`)
 }
 
-// Синхронизация при монтировании
 onMounted(() => {
   const basePath = detectBasePath()
   const typeFromUrl = getTypeFromBase(basePath)
-
   if (authStore.loginType !== typeFromUrl) {
     authStore.setLoginType(typeFromUrl, true)
   }
@@ -166,122 +173,177 @@ $textColor: #eee;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #054b5d;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   padding: 20px;
   position: relative;
   overflow-x: hidden;
-  transition: background-color 0.6s ease;
 }
 
 .auth-container {
-  background: $bg;
+  background: rgba(29, 27, 40, 0.95);
   width: 100%;
-  max-width: 1120px;
-  min-height: 590px;
+  max-width: 1100px;
+  min-height: 600px;
   display: grid;
   grid-template-columns: 1fr 480px;
-  transition: all 0.3s ease-in-out;
-  position: relative;
-  z-index: 1;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
 }
 
 .auth-image {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-  background-color: #303c4b;
-  background-position: 50%;
+  position: relative;
+  background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
   min-height: 400px;
-  position: relative;
-  transition: background-image 0.6s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+  }
 
   .photo-credit {
-    align-self: flex-end;
-    background-color: rgba(255, 255, 255, 0.8);
-    margin: 10px;
-    padding: 5px 8px;
-    border-radius: 4px;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 8px 12px;
+    border-radius: 6px;
+    z-index: 1;
 
     span {
-      margin: 0;
       font-size: 12px;
       color: #333;
+      font-weight: 500;
     }
   }
 }
 
 .mode-badge {
-  align-self: flex-start;
+  position: absolute;
+  top: 20px;
+  left: 20px;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  margin: 10px;
   border-radius: 20px;
   backdrop-filter: blur(10px);
   font-weight: 600;
-  transition: all 0.3s ease;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 
-  &.mode-user   { background: rgba(24, 144, 255, 0.9); color: #fff; }
-  &.mode-admin  { background: rgba(255, 77, 79, 0.9); color: #fff; }
-  &.mode-tester { background: rgba(250, 173, 20, 0.9); color: #fff; }
+  &.mode-user   { background: rgba(24, 144, 255, 0.95); color: #fff; }
+  &.mode-admin  { background: rgba(255, 77, 79, 0.95); color: #fff; }
+  &.mode-tester { background: rgba(250, 173, 20, 0.95); color: #fff; }
 
   .mode-icon { font-size: 20px; }
   .mode-label { font-size: 14px; }
 }
 
 .auth-content {
-  padding: 40px 50px;
+  padding: 50px 60px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   position: relative;
-  overflow-y: auto;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 30px;
+  padding: 12px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  .logo-icon {
+    font-size: 24px;
+  }
+
+  .logo-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: $textColor;
+    letter-spacing: 1px;
+  }
 }
 
 .title-wrap {
-  margin-bottom: 20px;
-  position: relative;
+  text-align: center;
+  margin-bottom: 35px;
 
-  .logo {
-    display: block;
-    width: 100%;
-    max-width: 200px;
-    height: auto;
-    margin: 0 auto 20px;
-  }
-
-  .title {
-    font-size: 24px;
+  .main-title {
+    font-size: 32px;
     color: $textColor;
     margin: 0 0 10px 0;
-    text-align: center;
-    font-weight: bold;
+    font-weight: 700;
+    letter-spacing: 0.5px;
   }
 
   .sub-heading {
     font-size: 14px;
     color: $dark_gray;
-    text-align: center;
     margin: 0;
-  }
-
-  .set-language {
-    color: $textColor;
-    position: absolute;
-    top: 0;
-    right: 0;
-    cursor: pointer;
   }
 }
 
-// 🔥 Плавная анимация смены формы
+.mode-switcher-wrapper {
+  margin-bottom: 30px;
+}
+
+.mode-switcher {
+  display: flex;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.mode-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: $dark_gray;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: $textColor;
+  }
+
+  &.active {
+    background: rgba(24, 144, 255, 0.15);
+    color: #1890ff;
+    border: 1px solid rgba(24, 144, 255, 0.3);
+  }
+
+  .mode-btn-icon {
+    font-size: 24px;
+  }
+
+  .mode-btn-label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+}
+
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: all 0.3s ease;
@@ -298,48 +360,11 @@ $textColor: #eee;
 }
 
 .form-wrapper {
-  margin-top: 20px;
-
-  :deep(.login),
-  :deep(.admin-login),
-  :deep(.tester-login) {
-    height: auto;
-    background: transparent;
-    display: block;
-  }
-
-  :deep(.login-container),
-  :deep(.admin-login),
-  :deep(.tester-login) {
-    background: transparent !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    min-height: auto !important;
-    display: block !important;
-    grid-template-columns: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-  }
-
-  :deep(.login-form),
-  :deep(.admin-login form),
-  :deep(.tester-login form) {
-    min-width: auto !important;
-    padding: 0 !important;
-    width: 100%;
-  }
-
-  :deep(.login-image) {
-    display: none !important;
-  }
-
-  :deep(.title-wrap) {
-    display: none !important;
-  }
+  margin-top: 10px;
 }
 
 .auth-footer {
-  margin-top: 20px;
+  margin-top: 25px;
   text-align: center;
 
   .footer-text {
@@ -349,54 +374,19 @@ $textColor: #eee;
   }
 }
 
-// Акцентные цвета
-.auth-page.theme-user .auth-content :deep(.el-button--primary) {
-  background: #1890ff;
-  border-color: #1890ff;
-  &:hover { background: #40a9ff; border-color: #40a9ff; }
-}
-
-.auth-page.theme-admin .auth-content :deep(.el-button--primary) {
-  background: #ff4d4f;
-  border-color: #ff4d4f;
-  &:hover { background: #ff7875; border-color: #ff7875; }
-}
-
-.auth-page.theme-tester .auth-content :deep(.el-button--primary) {
-  background: #faad14;
-  border-color: #faad14;
-  &:hover { background: #ffc53d; border-color: #ffc53d; }
-}
-
-// Адаптивность
-@media (max-width: 1200px) {
-  .auth-container {
-    max-width: 900px;
-    grid-template-columns: 1fr 400px;
-  }
-  .auth-content { padding: 30px 40px; }
-}
-
 @media (max-width: 900px) {
   .auth-container {
     grid-template-columns: 1fr;
     max-width: 500px;
     min-height: auto;
   }
-  .auth-image { min-height: 200px; max-height: 250px; }
-  .auth-content { padding: 30px 20px; }
-}
 
-@media (max-width: 600px) {
-  .auth-page { padding: 10px; }
-  .auth-container { max-width: 100%; border-radius: 0; }
-  .auth-image { min-height: 150px; max-height: 180px; }
-  .auth-content { padding: 20px 15px; }
-  .title-wrap .title { font-size: 20px; }
-  .mode-badge {
-    padding: 8px 12px;
-    .mode-icon { font-size: 16px; }
-    .mode-label { font-size: 12px; }
+  .auth-image {
+    display: none;
+  }
+
+  .auth-content {
+    padding: 40px 30px;
   }
 }
 </style>

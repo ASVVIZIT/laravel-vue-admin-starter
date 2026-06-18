@@ -38,19 +38,72 @@ export default {
     "logout": "Log Out",
     "home": "Home"
   },
+  "auth": {
+    "forgotPasswordTitle": "Forgot Password?",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a reset link",
+    "sendResetLink": "Send Reset Link",
+    "emailSent": "Email Sent!",
+    "checkEmail": "Check your email {email} for the reset link",
+    "resetLinkSent": "Reset link sent to your email",
+    "resetFailed": "Failed to send reset link",
+    "backToLogin": "Back to Login",
+
+    "resetPasswordTitle": "Reset Password",
+    "resetPasswordSubtitle": "Enter your new password",
+    "resetPassword": "Reset Password",
+    "passwordResetSuccess": "Password reset successfully",
+    "invalidResetLink": "Invalid or expired reset link",
+
+    "registerTitle": "Create Account",
+    "registerSubtitle": "Fill in the form to create your account",
+    "register": "Register",
+    "registerSuccess": "Registration successful! Please check your email",
+    "registerFailed": "Registration failed",
+    "alreadyHaveAccount": "Already have an account? Login",
+    "agreeTerms": "I agree to the terms and conditions",
+    "mustAgreeTerms": "Please agree to the terms",
+
+    "emailVerificationTitle": "Email Verification",
+    "emailVerificationSubtitle": "We've sent a verification link to your email",
+    "emailVerified": "Your email has been verified!",
+    "checkYourEmail": "Please check your email:",
+    "goToLogin": "Go to Login",
+    "verificationResent": "Verification email resent",
+    "resendFailed": "Failed to resend verification email",
+    "resendVerification": "Resend Verification Email",
+    "resendCooldown": "Resend in {seconds}s",
+    "sending": "Sending...",
+    "verifying": "Verifying...",
+    "invalidVerificationLink": "Invalid verification link",
+    "verificationFailed": "Verification failed"
+  },
   "login": {
     "title": "Log in to your personal account",
     "adminTitle": "Administrator Login",
     "testerTitle": "Test Login",
+    "moderatorTitle": "Moderator Login",
+    "vipTitle": "VIP Login",
+
     "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "any": "any",
+
     "logIn": "Log In",
     "loginAsTester": "Log in as Tester",
     "selectRole": "Select Role",
-    "username": "Username",
-    "password": "Password",
-    "any": "any",
+
+    "forgotPassword": "Forgot Password?",
+    "register": "Register",
+    "rememberMe": "Remember me",
+    "twoFactorCode": "2FA Code",
+    "captcha": "Enter captcha",
+    "vipCode": "VIP Code",
+
     "thirdparty": "Or connect with",
     "thirdpartyTips": "Cannot be simulated locally, so please integrate your own business simulation!!!",
+
     "loginSuccess": "Login successful",
     "loginFailed": "Login failed"
   },
@@ -75,15 +128,9 @@ export default {
       "name": "name"
     },
     "rules": {
-      "role": {
-        "required": "Role is required"
-      },
-      "name": {
-        "required": "Name is required"
-      },
-      "sex": {
-        "required": "Gender is required"
-      },
+      "role": { "required": "Role is required" },
+      "name": { "required": "Name is required" },
+      "sex": { "required": "Gender is required" },
       "email": {
         "required": "Email is required",
         "type": "Enter a valid email"
@@ -94,23 +141,32 @@ export default {
         "minLength": "Password cannot be less than 6 digits"
       },
       "confirmPassword": {
-        "required": "Confirm password",
+        "required": "Confirm password is required",
         "mismatched": "Passwords do not match!"
+      },
+      "twoFactor": {
+        "required": "2FA code is required",
+        "pattern": "Code must be 6 digits",
+        "placeholder": "Enter 6-digit code"
+      },
+      "captcha": {
+        "required": "Captcha is required",
+        "invalid": "Invalid captcha"
+      },
+      "phone": {
+        "required": "Phone is required",
+        "pattern": "Invalid phone format"
+      },
+      "vipCode": {
+        "required": "VIP code is required",
+        "pattern": "VIP code must be in format VIP-XXXXXXXX"
       },
       "accessory": {
         "fields": {
-          "name": {
-            "required": "Name is required"
-          },
-          "model": {
-            "required": "Model is required"
-          },
-          "type_id": {
-            "required": "Select device type"
-          },
-          "brand_id": {
-            "required": "Select brand"
-          }
+          "name": { "required": "Name is required" },
+          "model": { "required": "Model is required" },
+          "type_id": { "required": "Select device type" },
+          "brand_id": { "required": "Select brand" }
         }
       }
     }
@@ -128,13 +184,12 @@ export default {
       "switchRoles": "Switch roles",
       "tips": "In some cases, using v-role/v-permission is not suitable (e.g., Element Tab component or el-table-column). Use v-if with checkRole/checkPermission instead."
     },
+    "errors": {
+      "cantEditAdmin": "Cannot edit permissions for administrator users"
+    },
     "table": {
-      "edit": {
-        "user": "Edit Access Rights"
-      },
-      "rolePermissions": {
-        "name": "Inherited from role"
-      },
+      "edit": { "user": "Edit Access Rights" },
+      "rolePermissions": { "name": "Inherited from role" },
       "userPermissions": {
         "name": {
           "menu": "Additional Menus",
@@ -146,23 +201,16 @@ export default {
         "cancelButtonText": "Cancel",
         "warning": "Warning",
         "continue": "Continue?",
-        "confirm1": {
-          "message": "This will permanently delete the user"
-        }
+        "confirm1": { "message": "This will permanently delete the user" }
       },
       "elMessage": {
         "update": {
-          "success": {
-            "message": "Permissions updated successfully"
-          }
+          "success": { "message": "Permissions updated successfully" },
+          "error": { "message": "An error occurred while updating permissions." }
         },
         "delete": {
-          "success": {
-            "message": "Deletion completed"
-          },
-          "canceled": {
-            "message": "Deletion canceled"
-          }
+          "success": { "message": "Deletion completed" },
+          "canceled": { "message": "Deletion canceled" }
         },
         "newUser": {
           "success": {
@@ -173,9 +221,7 @@ export default {
           }
         },
         "confirmPermission": {
-          "success": {
-            "message": "Permissions updated successfully"
-          }
+          "success": { "message": "Permissions updated successfully" }
         }
       }
     }
@@ -202,6 +248,7 @@ export default {
       "readings": "Readings",
       "status": "Status",
       "actions": "Actions",
+      "buttons": { "actions": "Action list" },
       "edit": "Edit",
       "publish": "Publish",
       "draft": "Draft",
@@ -223,50 +270,17 @@ export default {
           "account": "Account"
         },
         "fields": {
-          "role": {
-            "title": "Role",
-            "placeholder": "Select a role"
-          },
-          "name": {
-            "title": "Name",
-            "placeholder": "Your name"
-          },
-          "email": {
-            "title": "Email",
-            "placeholder": "Your email"
-          },
-          "password": {
-            "title": "Password",
-            "placeholder": "Enter password"
-          },
-          "confirmPassword": {
-            "title": "Confirm Password",
-            "placeholder": "Must not match name or email"
-          },
-          "sex": {
-            "title": "Gender",
-            "placeholder": ""
-          },
-          "male": {
-            "title": "Male",
-            "placeholder": ""
-          },
-          "female": {
-            "title": "Female",
-            "placeholder": ""
-          },
-          "age": {
-            "title": "Age",
-            "placeholder": "Birthdate not specified"
-          },
-          "birthday": {
-            "title": "Birthday",
-            "placeholder": "Select birthdate"
-          },
-          "description": {
-            "title": "Description",
-            "placeholder": "Write about yourself..."
-          }
+          "role": { "title": "Role", "placeholder": "Select a role" },
+          "name": { "title": "Name", "placeholder": "Your name" },
+          "email": { "title": "Email", "placeholder": "Your email" },
+          "password": { "title": "Password", "placeholder": "Enter password" },
+          "confirmPassword": { "title": "Confirm Password", "placeholder": "Must not match name or email" },
+          "sex": { "title": "Gender", "placeholder": "" },
+          "male": { "title": "Male", "placeholder": "" },
+          "female": { "title": "Female", "placeholder": "" },
+          "age": { "title": "Age", "placeholder": "Birthdate not specified" },
+          "birthday": { "title": "Birthday", "placeholder": "Select birthdate" },
+          "description": { "title": "Description", "placeholder": "Write about yourself..." }
         }
       },
       "columns": {
@@ -281,29 +295,17 @@ export default {
         "cancelButtonText": "Cancel",
         "warning": "Warning",
         "continue": "Continue?",
-        "confirm1": {
-          "message@j": "This will permanently delete the user.<br><strong>{name}</strong>"
-        }
+        "confirm1": { "message@j": "This will permanently delete the user.<br><strong>{name}</strong>" }
       },
       "elMessage": {
         "created": {
-          "success": {
-            "message": "User created"
-          },
-          "error": {
-            "message": "User creation error"
-          }
+          "success": { "message": "User created" },
+          "error": { "message": "User creation error" }
         },
         "delete": {
-          "success": {
-            "message": "User successfully deleted"
-          },
-          "error": {
-            "message": "User deletion error"
-          },
-          "canceled": {
-            "message": "Deletion canceled"
-          }
+          "success": { "message": "User successfully deleted" },
+          "error": { "message": "User deletion error" },
+          "canceled": { "message": "Deletion canceled" }
         },
         "newUser": {
           "success": {
@@ -342,56 +344,21 @@ export default {
       },
       "elMessage": {
         "update": {
-          "success": {
-            "message": "User information has been updated successfully"
-          }
+          "success": { "message": "User information has been updated successfully" }
         }
       },
       "fields": {
-        "role": {
-          "title": "Role",
-          "placeholder": "Select a role"
-        },
-        "name": {
-          "title": "Name",
-          "placeholder": "Your name"
-        },
-        "email": {
-          "title": "Email",
-          "placeholder": "Your email"
-        },
-        "password": {
-          "title": "Password",
-          "placeholder": "Enter password"
-        },
-        "confirmPassword": {
-          "title": "Confirm Password",
-          "placeholder": "Must not match name or email"
-        },
-        "sex": {
-          "title": "Gender",
-          "placeholder": ""
-        },
-        "male": {
-          "title": "Male",
-          "placeholder": ""
-        },
-        "female": {
-          "title": "Female",
-          "placeholder": ""
-        },
-        "age": {
-          "title": "Age",
-          "placeholder": "Birthdate not specified"
-        },
-        "birthday": {
-          "title": "Birthday",
-          "placeholder": "Select birthdate"
-        },
-        "description": {
-          "title": "Description",
-          "placeholder": "Write about yourself..."
-        }
+        "role": { "title": "Role", "placeholder": "Select a role" },
+        "name": { "title": "Name", "placeholder": "Your name" },
+        "email": { "title": "Email", "placeholder": "Your email" },
+        "password": { "title": "Password", "placeholder": "Enter password" },
+        "confirmPassword": { "title": "Confirm Password", "placeholder": "Must not match name or email" },
+        "sex": { "title": "Gender", "placeholder": "" },
+        "male": { "title": "Male", "placeholder": "" },
+        "female": { "title": "Female", "placeholder": "" },
+        "age": { "title": "Age", "placeholder": "Birthdate not specified" },
+        "birthday": { "title": "Birthday", "placeholder": "Select birthdate" },
+        "description": { "title": "Description", "placeholder": "Write about yourself..." }
       }
     }
   },
@@ -406,7 +373,9 @@ export default {
       "manager": "Manager. Has access and permissions to most pages, except the permissions page.",
       "editor": "Editor. Has access to most pages, full permission to access articles and related resources.",
       "user": "Normal user. Has access to some pages.",
-      "visitor": "Visitor. Has access to static pages, no write permissions."
+      "visitor": "Visitor. Has access to static pages, no write permissions.",
+      "moderator": "Moderator. Can moderate content and manage users.",
+      "vip": "VIP. Privileged user with extended capabilities."
     }
   },
   "switchLang": {
@@ -438,15 +407,11 @@ export default {
       },
       "operational": {
         "title": "Operational Parameters",
-        "group": {
-          "safety": "Safety and Operating Conditions"
-        }
+        "group": { "safety": "Safety and Operating Conditions" }
       },
       "additional": {
         "title": "Additional Equipment",
-        "group": {
-          "compatibility": "Compatibility and Control"
-        }
+        "group": { "compatibility": "Compatibility and Control" }
       }
     },
     "table": {
@@ -536,8 +501,8 @@ export default {
       "rated_diff_current_unit_id": "Diff Current Unit"
     },
     "remote_control_status": {
-      "yes": "yes",
-      "no": "no"
+      "true": "yes",
+      "false": "no"
     },
     "buttons": {
       "table": "To Table",
@@ -571,22 +536,10 @@ export default {
       "add_title": "Add Brand",
       "edit_title": "Editing: {name}",
       "fields": {
-        "name": {
-          "label": "Brand Name",
-          "placeholder": "e.g. Schneider Electric"
-        },
-        "country": {
-          "label": "Manufacturer Country",
-          "placeholder": "e.g. France"
-        },
-        "website": {
-          "label": "Website",
-          "placeholder": "https://example.com"
-        },
-        "description": {
-          "label": "Description",
-          "placeholder": "Brief brand description"
-        }
+        "name": { "label": "Brand Name", "placeholder": "e.g. Schneider Electric" },
+        "country": { "label": "Manufacturer Country", "placeholder": "e.g. France" },
+        "website": { "label": "Website", "placeholder": "https://example.com" },
+        "description": { "label": "Description", "placeholder": "Brief brand description" }
       },
       "rules": {
         "name_required": "Name is required",
@@ -632,18 +585,9 @@ export default {
       "add_title": "Add Device Type",
       "edit_title": "Editing: {name}",
       "fields": {
-        "name": {
-          "label": "Type Name",
-          "placeholder": "e.g. Circuit Breaker"
-        },
-        "code": {
-          "label": "Type Code",
-          "placeholder": "e.g. CB"
-        },
-        "description": {
-          "label": "Description",
-          "placeholder": "Brief device type description"
-        }
+        "name": { "label": "Type Name", "placeholder": "e.g. Circuit Breaker" },
+        "code": { "label": "Type Code", "placeholder": "e.g. CB" },
+        "description": { "label": "Description", "placeholder": "Brief device type description" }
       },
       "rules": {
         "name_required": "Name is required",
@@ -689,26 +633,11 @@ export default {
       "add_title": "Add Measurement Unit",
       "edit_title": "Editing: {name}",
       "fields": {
-        "name": {
-          "label": "Name",
-          "placeholder": "e.g. Ampere"
-        },
-        "symbol": {
-          "label": "Symbol (stored)",
-          "placeholder": "e.g. a (lowercase)"
-        },
-        "display_symbol": {
-          "label": "Display Symbol",
-          "placeholder": "e.g. A"
-        },
-        "physical_quantity": {
-          "label": "Physical Quantity",
-          "placeholder": "e.g. current"
-        },
-        "measurement_category_id": {
-          "label": "Category",
-          "placeholder": "Select category"
-        }
+        "name": { "label": "Name", "placeholder": "e.g. Ampere" },
+        "symbol": { "label": "Symbol (stored)", "placeholder": "e.g. a (lowercase)" },
+        "display_symbol": { "label": "Display Symbol", "placeholder": "e.g. A" },
+        "physical_quantity": { "label": "Physical Quantity", "placeholder": "e.g. current" },
+        "measurement_category_id": { "label": "Category", "placeholder": "Select category" }
       },
       "rules": {
         "name_required": "Name is required",
@@ -738,27 +667,27 @@ export default {
     "view404": {
       "buttons": {
         "back": "Back",
-        "backHome": "Back Home",
+        "backHome": "Back Home"
       },
-      "OOPS": `OOPS!`,
-      "Message": `The bodyguard said that you can't enter this page...`,
-      "Info": `Please check that the URL you entered is correct. Click the button below to return to the homepage.`,
-      "CopyrightBy":`Copyright by`,
-      "ProjectInGithub":`Project in github`,
+      "OOPS": "OOPS!",
+      "Message": "The bodyguard said that you can't enter this page...",
+      "Info": "Please check that the URL you entered is correct. Click the button below to return to the homepage.",
+      "CopyrightBy": "Copyright by",
+      "ProjectInGithub": "Project in github"
     },
     "view401": {
       "buttons": {
         "back": "Back",
-        "backHome": "Back Home",
+        "backHome": "Back Home"
       },
-      "CanGo": `Or you can go:`,
-      "OOPS": `Whoops!`,
-      "Permission": `You do not have permission to access this page.`,
-      "MessageAdmin": `If you are not satisfied, please contact the administrator.`,
-      "JustLookingAroundHref": `https://www.google.com/`,
-      "JustLookingAround": `Internet search`,
-      "ShowPicture": `Show a splash screen`,
-      "CasualLook": `Access is denied`,
+      "CanGo": "Or you can go:",
+      "OOPS": "Whoops!",
+      "Permission": "You do not have permission to access this page.",
+      "MessageAdmin": "If you are not satisfied, please contact the administrator.",
+      "JustLookingAroundHref": "https://www.google.com/",
+      "JustLookingAround": "Internet search",
+      "ShowPicture": "Show a splash screen",
+      "CasualLook": "Access is denied"
     },
     "units": {
       "A": "A",
@@ -778,5 +707,10 @@ export default {
       "kg": "kg",
       "l": "l"
     }
-  }
+  },
+  "error": {
+    "loadPermissions": "Error loading permissions"
+  },
+  "roles_description_admin": "System administrator",
+  "roles_description_superadmin": "Super administrator"
 };
