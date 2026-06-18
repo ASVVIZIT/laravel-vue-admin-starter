@@ -1,12 +1,12 @@
-// resources/js/router/index.js
-import { createRouter, createWebHashHistory } from 'vue-router';
+import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '@/store/authStore';
-import { getLoginType } from '@/utils/auth';
+import { getLoginType, VALID_LOGIN_TYPES } from '@/utils/auth';
+import { detectBasePath, getTypeFromBase } from '@/utils/detectBasePath';
+import { getDefaultLoginType } from '@/utils/authConfig';
 
-/* Layout */
 import Layout from '@/layout/Layout.vue';
+import AuthLayout from '@/views/auth/Layout/AuthLayout.vue';
 
-/* Router for modules */
 import chartsRoutes from './modules/charts';
 import adminRoutes from './modules/admin';
 import nestedRoutes from './modules/nested';
@@ -19,122 +19,85 @@ import trainingRoutes from './modules/Training/training.js';
 import landingRoutes from './modules/Landing/landingRouter.js';
 import contactManagementRoutes from './modules/ContactManagement/contact-management.js';
 
-// ============================================================================
-// 📌 CONSTANT ROUTES (публичные + базовые)
-// ============================================================================
-export const constantRoutes = [
-  // ========================================================================
-  // 🔐 СТРАНИЦЫ ВХОДА (разные для разных типов пользователей)
-  // ========================================================================
+// 🔥 ДИНАМИЧЕСКИЙ BASE PATH
+const basePath = detectBasePath();
+const initialType = getTypeFromBase(basePath);
 
-  // 👤 Обычный пользователь
+console.log(`[Router] Base path: ${basePath}, type: ${initialType}`);
+
+export const constantRoutes = [
+  // 🔐 СТРАНИЦЫ ВХОДА — обёрнуты в AuthLayout
   {
-    path: '/login',
-    name: 'UserLogin',
-    component: () => import('@views/auth/admin/login.vue'),
-    meta: {
-      loginType: 'user',
-      title: 'User Login',
-      requiresAuth: false  // ← Явно указываем что НЕ требует авторизации
-    },
-    hidden: true,
+    path: '/auth',
+    component: AuthLayout,
+    children: [
+      {
+        path: '/login',      // ← ОТНОСИТЕЛЬНЫЙ путь (будет /admin/login)
+        name: 'Login',
+        component: () => import('@views/auth/admin/login.vue'),
+        meta: { loginType: 'user', requiresAuth: false },
+        hidden: true,
+      },
+      {
+        path: '/admin',      // ← ОТНОСИТЕЛЬНЫЙ путь (будет /admin/admin)
+        name: 'AdminLogin',
+        component: () => import('@views/auth/admin/AdminLogin.vue'),
+        meta: { loginType: 'admin', requiresAuth: false },
+        hidden: true,
+      },
+      {
+        path: '/tester',     // ← ОТНОСИТЕЛЬНЫЙ путь (будет /admin/tester)
+        name: 'TesterLogin',
+        component: () => import('@/views/auth/tester/TesterLogin.vue'),
+        meta: { loginType: 'tester', requiresAuth: false },
+        hidden: true,
+      }
+    ]
   },
 
-  // 🔀 OAuth редирект
   {
     path: '/auth-redirect',
-    name: 'AuthRedirect',
     component: () => import('@views/auth/admin/AuthRedirect.vue'),
     hidden: true,
   },
 
-  // 👨‍💼 Администратор — своя логика, своя валидация
-  {
-    path: '/admin/login',
-    name: 'AdminLogin',
-    component: () => import('@views/auth/admin/AdminLogin.vue'),
-    meta: {
-      loginType: 'admin',
-      title: 'Admin Login',
-      requiresAuth: false  // ← Явно указываем что НЕ требует авторизации
-    },
-    hidden: true,
-    beforeEnter: (to, from, next) => {
-      const authStore = useAuthStore()
-      authStore.setLoginType('admin')
-      console.log('[Router] Admin login - setting loginType to admin')
-
-      // Обработка hash-навигации
-      if (to.hash) {
-        const pathFromHash = to.hash.replace('#', '')
-        next(pathFromHash)
-      } else {
-        next()
-      }
-    }
-  },
-
-  // 🧪 Тестер — отдельная система (2-факторка, ограничения и т.д.)
-  {
-    path: '/tester/login',
-    name: 'TesterLogin',
-    component: () => import('@/views/auth/tester/TesterLogin.vue'),
-    meta: {
-      loginType: 'tester',
-      title: 'Tester Login',
-      requiresAuth: false  // ← Явно указываем что НЕ требует авторизации
-    },
-    hidden: true,
-    beforeEnter: (to, from, next) => {
-      const authStore = useAuthStore()
-      authStore.setLoginType('tester')
-      console.log('[Router] Tester login - setting loginType to tester')
-      next()
-    }
-  },
-
-  // ========================================================================
-  // ❌ СТРАНИЦЫ ОШИБОК
-  // ========================================================================
   {
     path: '/404',
     name: 'Page404',
     component: () => import('@/views/error-page/404.vue'),
-    meta: { title: '404', requiresAuth: false },
     hidden: true,
   },
   {
     path: '/401',
-    name: 'Page401',
     component: () => import('@/views/error-page/401.vue'),
-    meta: { title: '401', requiresAuth: false },
     hidden: true,
   },
 
-  // ========================================================================
-  // 🏠 ГЛАВНАЯ СТРАНИЦА (редирект по типу пользователя)
-  // ========================================================================
+  // 🔥 ГЛАВНАЯ — редирект на ОТНОСИТЕЛЬНЫЙ путь
   {
     path: '/',
-    name: 'Home',
-    redirect: (to) => {
-      const authStore = useAuthStore();
-      const loginType = authStore.loginType || getLoginType() || 'user'
-      console.log(`[Router] Home redirect for loginType: ${loginType}`)
+    redirect: () => {
+      try {
+        const authStore = useAuthStore();
 
-      // Редирект на соответствующий dashboard
-      if (loginType === 'admin') return '/admin/dashboard';
-      if (loginType === 'tester') return '/tester/dashboard';
-      return '/dashboard';  // Обычный пользователь
+        if (authStore?.isAuthenticated) {
+          const currentType = authStore.loginType || getLoginType();
+          const safeType = VALID_LOGIN_TYPES.includes(currentType) ? currentType : getDefaultLoginType();
+          // ✅ ОТНОСИТЕЛЬНЫЙ путь (без base)
+          return '/dashboard';
+        }
+
+        // ✅ ОТНОСИТЕЛЬНЫЙ путь (без base)
+        return '/login';
+
+      } catch (e) {
+        console.warn('[Router] Redirect error:', e?.message);
+        return '/login';
+      }
     },
     hidden: true,
-    // ❌ УБРАЛИ requiresAuth: true — это вызывало проблемы!
-    // Проверка авторизации происходит в permission.js
   },
 
-  // ========================================================================
-  // 📊 DASHBOARD (основной, для обычных пользователей)
-  // ========================================================================
   {
     path: '/',
     component: Layout,
@@ -150,38 +113,26 @@ export const constantRoutes = [
           showInGuide: true,
           affix: true,
           noCache: false,
-          requiresAuth: true  // ← Требует авторизации
+          requiresAuth: true
         }
       }
     ]
   },
 
-  // ========================================================================
-  // 👤 ПРОФИЛЬ ПОЛЬЗОВАТЕЛЯ
-  // ========================================================================
   {
     path: '/profile',
     component: Layout,
     redirect: '/profile/edit',
-    meta: { requiresAuth: true },
     children: [
       {
         path: 'edit',
         component: () => import('@/views/users/SelfProfile.vue'),
         name: 'SelfProfile',
-        meta: {
-          title: 'UserProfile',
-          bootstrapIcon: 'person-circle',
-          noCache: true,
-          requiresAuth: true
-        },
+        meta: { title: 'UserProfile', bootstrapIcon: 'person-circle', noCache: true },
       },
     ],
   },
 
-  // ========================================================================
-  // 📖 GUIDE (руководство)
-  // ========================================================================
   {
     path: '/guide',
     component: Layout,
@@ -191,18 +142,11 @@ export const constantRoutes = [
         path: 'index',
         component: () => import('@/views/guide/guide.vue'),
         name: 'Guide',
-        meta: {
-          title: 'Guide',
-          bootstrapIcon: 'bi bi-megaphone-fill',
-          noCache: true
-        },
+        meta: { title: 'Guide', bootstrapIcon: 'bi bi-megaphone-fill', noCache: true },
       },
     ],
   },
 
-  // ========================================================================
-  // 📦 МОДУЛИ (публичные для всех авторизованных)
-  // ========================================================================
   ...dynamicTableRoutes,
   ...smartLightRoutes,
   ...trainingRoutes,
@@ -210,9 +154,6 @@ export const constantRoutes = [
   contactManagementRoutes,
 ];
 
-// ============================================================================
-// 📌 ASYNC ROUTES (загружаются динамически по ролям)
-// ============================================================================
 export const asyncRoutes = [
   {
     path: '/redirect/:path*',
@@ -228,20 +169,33 @@ export const asyncRoutes = [
   { path: '/:pathMatch(.*)*', name: 'NotFound', redirect: '/404', hidden: true },
 ];
 
-// ============================================================================
-// 🚀 СОЗДАНИЕ РОУТЕРА
-// ============================================================================
 const router = createRouter({
-  history: createWebHashHistory(),  // ✅ БЕЗ '/admin/' base path
+  history: createWebHistory(basePath),
   routes: [...constantRoutes, ...asyncRoutes],
   scrollBehavior: () => ({ top: 0 }),
 });
 
-// ============================================================================
-// 🔄 СБРОС РОУТЕРА (для динамических маршрутов)
-// ============================================================================
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore()
+
+  // 🔥 При прямом заходе по URL — синхронизируем тип из URL
+  if (to.meta?.loginType && VALID_LOGIN_TYPES.includes(to.meta.loginType)) {
+    // Только если пользователь НЕ авторизован
+    if (!authStore.isAuthenticated) {
+      authStore.setLoginType(to.meta.loginType, true)
+    }
+  }
+
+  next()
+})
+
+export { basePath, initialType }
+
 export function resetRouter() {
-  const asyncRouterNameArr = asyncRoutes.map((mItem) => mItem.name).filter(Boolean);
+  const asyncRouterNameArr = asyncRoutes
+      .map((mItem) => mItem?.name)
+      .filter(Boolean);
+
   asyncRouterNameArr.forEach((name) => {
     if (router.hasRoute(name)) {
       router.removeRoute(name);

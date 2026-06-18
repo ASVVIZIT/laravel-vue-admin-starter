@@ -12,58 +12,32 @@ use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Models\LoginAttempt;
-use function csrf_token;
-use function logger;
-use function response;
-use function responseSuccess;
-use function session;
 
-/**
- * Class AuthController
- *
- * @package App\Http\Controllers\Api
- */
 class AuthController extends BaseController
 {
     public function csrf(Request $request)
     {
-        // Получаем или запускаем сессию
         $session = $request->session();
-
-        if (!$session->isStarted()) {
-            $session->start();
+        if (!$session || !$session->isStarted()) {
+            $session?->start();
         }
 
-        // Генерируем токен
         $token = csrf_token();
 
-        // Отправляем его как куку
         return response()->json(['status' => 'OK'])
             ->withCookie(Cookie::make('XSRF-TOKEN', $token, 1440, null, null, false, false))
             ->withCookie(Cookie::make(
                 'laravel_vue_admin_fenix_session',
-                $session->getId(),
+                $session?->getId() ?? '',
                 1440,
-                null,
-                null,
-                false,
-                false,
-                false,
-                null,
-                'None'
+                null, null, false, false, false, null, 'None'
             ));
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
     public function login(Request $request)
     {
-        // Получаем IP клиента
-        $ipAddress = $request->ip();
+        $ipAddress = $request->ip() ?? 'unknown';
 
-        // Проверяем, заблокирован ли IP
         $banRecord = LoginAttempt::where('ip_address', $ipAddress)
             ->where('is_banned', true)
             ->first();
@@ -72,7 +46,6 @@ class AuthController extends BaseController
             return response()->json(['error' => 'Ваш IP заблокирован'], 403);
         }
 
-        // Валидация входных данных
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required|string|min:6'
@@ -82,23 +55,22 @@ class AuthController extends BaseController
             return response()->json($validator->errors(), 422);
         }
 
-        // Попытка аутентификации
         $credentials = $request->only('email', 'password');
 
         if (Auth::attempt($credentials)) {
-            // Аутентификация успешна
             $user = Auth::user();
 
-            // Очищаем неудачные попытки для этого IP при успешном входе
-            // Сброс счетчика попыток
+            if (!$user) {
+                return response()->json(['error' => 'Authentication failed'], 401);
+            }
+
             LoginAttempt::recordAttempt(
                 $ipAddress,
-                $request->email,
-                $request->userAgent(),
+                $request->input('email', ''),
+                $request->userAgent() ?? '',
                 true
             );
 
-            // Генерация токена Sanctum
             $token = $user->createToken('fenix-token')->plainTextToken;
 
             return response()->json([
@@ -106,36 +78,46 @@ class AuthController extends BaseController
                 'token' => $token,
                 'token_type' => 'Bearer',
                 'user' => $user,
+                'token_storage_mode' => config('auth.token_storage_mode', 'cookie'),
             ]);
         } else {
-            // Аутентификация не удалась
-            // Логируем неудачную попытку
-            $attempt = LoginAttempt::recordAttempt(
+            LoginAttempt::recordAttempt(
                 $ipAddress,
-                $request->email,
-                $request->userAgent(),
+                $request->input('email', ''),
+                $request->userAgent() ?? '',
                 false
             );
 
-            // Проверяем количество неудачных попыток за последние 15 минут
             $failedAttemptsCount = LoginAttempt::where('ip_address', $ipAddress)
                 ->where('created_at', '>', now()->subMinutes(15))
                 ->count();
 
-            // Если 5 или более попыток, блокируем IP
             if ($failedAttemptsCount >= 5) {
                 LoginAttempt::where('ip_address', $ipAddress)->update(['is_banned' => true]);
-                return response()->json(['error' => 'Ваш IP заблокирован из-за множества неудачных попыток входа'], 403);
+                return response()->json(['error' => 'Ваш IP заблокирован'], 403);
             }
 
-            return response()->json(['error' => 'Неверные учетные данные'], 401);
+            return response()->json(['error' => 'Неверные учётные данные'], 401);
         }
     }
 
-    /**
-     * @param Request $request
-     * @return JsonResponse
-     */
+    public function getConfig(): JsonResponse
+    {
+        $defaultType = config('auth.default_login_type', 'admin');
+        $validTypes = config('auth.valid_login_types', ['user', 'admin', 'tester']);
+
+        // P0: Валидация дефолтного типа
+        if (!is_array($validTypes) || !in_array($defaultType, $validTypes, true)) {
+            $defaultType = 'admin';
+        }
+
+        return response()->json([
+            'token_storage_mode' => config('auth.token_storage_mode', 'cookie'),
+            'valid_login_types' => is_array($validTypes) ? $validTypes : ['user', 'admin', 'tester'],
+            'default_login_type' => $defaultType,
+        ]);
+    }
+
     public function logout(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -152,7 +134,7 @@ class AuthController extends BaseController
                 $currentToken->delete();
                 Log::info('[Auth] Удалён Bearer-токен', [
                     'user_id' => $user->id,
-                    'token_id' => $currentToken->id,
+                    'token_id' => $currentToken->id ?? null,
                 ]);
             } else {
                 Log::info('[Auth] Cookie-сессия', ['user_id' => $user->id]);
@@ -179,10 +161,11 @@ class AuthController extends BaseController
 
     public function user(Request $request): UserResource
     {
-        // Возвращаем данные аутентифицированного пользователя
-        // return response()->json($request->user());
-
-        return new UserResource($request->user());
+        $user = $request->user();
+        if (!$user) {
+            abort(401, 'Unauthenticated');
+        }
+        return new UserResource($user);
     }
 
     public function register(Request $request)
@@ -198,9 +181,9 @@ class AuthController extends BaseController
         }
 
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => bcrypt($request->password)
+            'name' => $request->input('name', ''),
+            'email' => $request->input('email', ''),
+            'password' => bcrypt($request->input('password', ''))
         ]);
 
         $user->sendEmailVerificationNotification();
@@ -209,25 +192,24 @@ class AuthController extends BaseController
 
     public function resendVerification(Request $request)
     {
-        if ($request->user()->hasVerifiedEmail()) {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        if ($user->hasVerifiedEmail()) {
             return response()->json(['message' => 'Email уже подтвержден']);
         }
 
-        $request->user()->sendEmailVerificationNotification();
+        $user->sendEmailVerificationNotification();
         return response()->json(['message' => 'Ссылка отправлена']);
     }
 
     public function checkVerification(Request $request)
     {
+        $user = $request->user();
         return response()->json([
-            'verified' => $request->user()->hasVerifiedEmail()
-        ]);
-    }
-
-    public function getConfig(): JsonResponse
-    {
-        return response()->json([
-            'token_storage_mode' => config('auth.token_storage_mode', 'cookie'),
+            'verified' => $user ? $user->hasVerifiedEmail() : false
         ]);
     }
 }

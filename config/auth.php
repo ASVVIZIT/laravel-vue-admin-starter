@@ -136,10 +136,13 @@ return [
         ]
     ],
 
-    // 🆕 Режим хранения токена авторизации
+    // Режим хранения токена авторизации
     'token_storage_mode' => env('AUTH_TOKEN_STORAGE_MODE', 'cookie'),
 
-    // 🆕 Валидные типы пользователей (P0 защита на бэкенде)
+    // Валидные типы пользователей
     'valid_login_types' => ['user', 'admin', 'tester'],
+
+    // Тип входа по умолчанию
+    'default_login_type' => env('DEFAULT_LOGIN_TYPE', 'admin'),
 
 ];

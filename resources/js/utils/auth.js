@@ -2,91 +2,63 @@ import Cookies from 'js-cookie';
 
 const TokenKey = 'fenix-token';
 const LoginTypeKey = 'loginType';
+const StorageMethodKey = 'auth_token_storage_mode';
 
-// Универсальная функция получения CSRF токена
-export const getCsrfToken = () => Cookies.get('XSRF-TOKEN');
+// P0: Валидные типы пользователей
+export const VALID_LOGIN_TYPES = ['user', 'admin', 'tester'];
 
-/**
- * Получить способ хранения токена
- * Приоритет: localStorage > cookie (по умолчанию cookie)
- */
-function getStorageMethod() {
-  // Можно читать из конфига Laravel через API
-  // Или из localStorage (если установлено вручную)
-  return localStorage.getItem('token_storage') || 'cookie';
-}
+// ============================================================================
+// 🎛️ СПОСОБ ХРАНЕНИЯ
+// ============================================================================
 
-// Проверка авторизации
-export const isLogged = () => {
-  const method = getStorageMethod();
-
-  if (method === 'localStorage') {
-    return !!localStorage.getItem(TokenKey);
-  }
-
-  return !!Cookies.get(TokenKey);
+export const getStorageMethod = () => {
+  const method = localStorage.getItem(StorageMethodKey);
+  return (method === 'localStorage') ? 'localStorage' : 'cookie';
 };
 
-// Установка токена
-export const setToken = (token) => {
-  const method = getStorageMethod();
-
-  if (method === 'localStorage') {
-    localStorage.setItem(TokenKey, token);
-    return;
+export const setStorageMethod = (method) => {
+  if (method !== 'cookie' && method !== 'localStorage') {
+    console.warn('[Auth] Неверный способ хранения, используем cookie:', method);
+    method = 'cookie';
   }
-
-  // Cookie способ
-  const hostname = window.location.hostname;
-  const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
-  ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
-      ? hostname : undefined;
-
-  return Cookies.set(TokenKey, token, {
-    expires: 7,
-    domain,
-    secure: window.location.protocol === 'https:',
-    sameSite: 'Lax'
-  });
+  localStorage.setItem(StorageMethodKey, method);
 };
 
-// Получение токена
-export const getToken = () => {
+// ============================================================================
+// 🔐 CSRF
+// ============================================================================
+
+export const getCsrfToken = () => Cookies.get('XSRF-TOKEN') || '';
+
+// ============================================================================
+// 👤 ТИП ВХОДА (с P0 защитой)
+// ============================================================================
+
+export const getLoginType = () => {
   const method = getStorageMethod();
+  let type;
 
   if (method === 'localStorage') {
-    return localStorage.getItem(TokenKey);
+    type = localStorage.getItem(LoginTypeKey);
+  } else {
+    const hostname = window.location.hostname;
+    const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
+    ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
+        ? hostname : undefined;
+    type = Cookies.get(LoginTypeKey, { domain });
   }
 
-  // Cookie способ
-  const hostname = window.location.hostname;
-  const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
-  ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
-      ? hostname : undefined;
-
-  return Cookies.get(TokenKey, { domain });
+  // P0: Валидация типа
+  return VALID_LOGIN_TYPES.includes(type) ? type : 'user';
 };
 
-// Удаление токена
-export const removeToken = () => {
-  const method = getStorageMethod();
-
-  if (method === 'localStorage') {
-    localStorage.removeItem(TokenKey);
-    return;
-  }
-
-  // Cookie способ
-  const hostname = window.location.hostname;
-  const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
-  ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
-      ? hostname : undefined;
-
-  return Cookies.remove(TokenKey, { domain });
-};
-
-// Установка типа входа
 export const setLoginType = (type) => {
+  // P0: Валидация входного значения
+  if (!VALID_LOGIN_TYPES.includes(type)) {
+    console.warn('[Auth] Неверный тип входа:', type, '— используем user');
+    type = 'user';
+  }
+
   const method = getStorageMethod();
 
   if (method === 'localStorage') {
@@ -94,13 +66,12 @@ export const setLoginType = (type) => {
     return;
   }
 
-  // Cookie способ
   const hostname = window.location.hostname;
   const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
   ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
       ? hostname : undefined;
 
-  return Cookies.set(LoginTypeKey, type, {
+  Cookies.set(LoginTypeKey, type, {
     expires: 7,
     domain,
     secure: window.location.protocol === 'https:',
@@ -108,24 +79,6 @@ export const setLoginType = (type) => {
   });
 };
 
-// Получение типа входа
-export const getLoginType = () => {
-  const method = getStorageMethod();
-
-  if (method === 'localStorage') {
-    return localStorage.getItem(LoginTypeKey) || 'user';
-  }
-
-  // Cookie способ
-  const hostname = window.location.hostname;
-  const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
-  ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
-      ? hostname : undefined;
-
-  return Cookies.get(LoginTypeKey, { domain }) || 'user';
-};
-
-// Удаление типа входа
 export const removeLoginType = () => {
   const method = getStorageMethod();
 
@@ -134,50 +87,84 @@ export const removeLoginType = () => {
     return;
   }
 
-  // Cookie способ
   const hostname = window.location.hostname;
   const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
   ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
       ? hostname : undefined;
 
-  return Cookies.remove(LoginTypeKey, { domain });
+  Cookies.remove(LoginTypeKey, { domain });
 };
-/**
- * Установить способ хранения токена
- * @param {'cookie' | 'localStorage'} method
- */
-export const setStorageMethod = (method) => {
-  if (!['cookie', 'localStorage'].includes(method)) {
-    console.error('[Auth] Неверный способ хранения:', method);
+
+// ============================================================================
+// 🔑 ТОКЕН (с P1 защитой)
+// ============================================================================
+
+export const getToken = () => {
+  const method = getStorageMethod();
+  let token;
+
+  if (method === 'localStorage') {
+    token = localStorage.getItem(TokenKey);
+  } else {
+    const hostname = window.location.hostname;
+    const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
+    ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
+        ? hostname : undefined;
+    token = Cookies.get(TokenKey, { domain });
+  }
+
+  // P1: Возвращаем null вместо undefined
+  return token || null;
+};
+
+export const setToken = (token) => {
+  // P1: Защита от установки undefined/null
+  if (!token || typeof token !== 'string') {
+    console.warn('[Auth] Попытка установить невалидный токен:', typeof token);
     return;
   }
 
-  localStorage.setItem('token_storage', method);
-  console.log(`[Auth] Способ хранения изменён на: ${method}`);
+  const method = getStorageMethod();
+
+  if (method === 'localStorage') {
+    localStorage.setItem(TokenKey, token);
+    return;
+  }
+
+  const hostname = window.location.hostname;
+  const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
+  ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
+      ? hostname : undefined;
+
+  Cookies.set(TokenKey, token, {
+    expires: 7,
+    domain,
+    secure: window.location.protocol === 'https:',
+    sameSite: 'Lax'
+  });
 };
 
-/**
- * Миграция токена из cookie в localStorage (или наоборот)
- */
-export const migrateToken = (fromMethod, toMethod) => {
-  const token = getToken();
-  const loginType = getLoginType();
+export const removeToken = () => {
+  const method = getStorageMethod();
 
-  if (token) {
-    // Устанавливаем в новый способ
-    localStorage.setItem('token_storage', toMethod);
-    setToken(token);
-    setLoginType(loginType);
-
-    // Удаляем из старого способа
-    if (fromMethod === 'cookie') {
-      Cookies.remove(TokenKey);
-      Cookies.remove(LoginTypeKey);
-    } else if (fromMethod === 'localStorage') {
-      localStorage.removeItem(TokenKey);
-      localStorage.removeItem(LoginTypeKey);
-    }
-
-    console.log(`[Auth] Токен мигрирован: ${fromMethod} → ${toMethod}`);
+  if (method === 'localStorage') {
+    localStorage.removeItem(TokenKey);
+    return;
   }
+
+  const hostname = window.location.hostname;
+  const domain = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) ||
+  ['fenixlaravel.loc', '94.41.87.10'].includes(hostname)
+      ? hostname : undefined;
+
+  Cookies.remove(TokenKey, { domain });
+};
+
+// ============================================================================
+// ✅ ПРОВЕРКА АВТОРИЗАЦИИ
+// ============================================================================
+
+export const isLogged = () => {
+  const token = getToken();
+  return !!token && token.length > 0;
 };

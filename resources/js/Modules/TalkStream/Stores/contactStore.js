@@ -1,12 +1,15 @@
 import { defineStore } from 'pinia';
 import TalkService from '@/modules/TalkStream/Services/talkService';
 import { userStore } from '@/store/userStore';
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+
+// 🔥 Выносим экземпляр класса из state
+const talkService = new TalkService();
 
 export const useContactStore = defineStore('contact', {
     state: () => ({
         contacts: [],
-        onlineUsers: [], // Список ID пользователей онлайн
-        talkService: new TalkService(),
+        onlineUsers: [],
         selectedContact: null,
         userId: null,
         userFrom: {
@@ -17,91 +20,143 @@ export const useContactStore = defineStore('contact', {
             roles: []
         }
     }),
+
     actions: {
         async loadUserId() {
             try {
-                const res = await this.talkService.getUserId()
-                this.userId = res.data.id
+                const res = await talkService.getUserId()
+                this.userId = res?.data?.id ?? null
             } catch (e) {
-                console.error('[contactStore] Не удалось получить ID пользователя')
+                console.error('[contactStore] Не удалось получить ID пользователя:', e?.message)
                 this.userId = null
             }
         },
 
         async loadContacts() {
             try {
-                const res = await this.talkService.getContacts({}, 'contacts')
-                console.log('res loadContacts', res.data)
-                this.contacts = res.data
+                const res = await talkService.getContacts({}, 'contacts')
+                this.contacts = Array.isArray(res?.data) ? res.data : []
             } catch (e) {
                 console.error('[contactStore] Ошибка загрузки контактов:', e)
+                this.contacts = []
             }
         },
 
         selectContact(contact) {
+            if (!contact?.id) {
+                console.warn('[ContactStore] Попытка выбрать контакт без id')
+                return
+            }
             this.selectedContact = contact
-            localStorage.setItem('last-selected-contact', contact.id)
+            try {
+                localStorage.setItem('last-selected-contact', String(contact.id))
+            } catch (e) {
+                console.warn('[ContactStore] Не удалось сохранить в localStorage')
+            }
             console.log('[ContactStore] Выбран контакт:', contact.id)
         },
 
         async getContact(id) {
-            const res = await this.talkService.get(id, 'contacts')
-            const contact = res.data
-            const index = this.contacts.findIndex(c => c.id === contact.id)
-
-            if (index >= 0) {
-                this.contacts[index] = contact
-            } else {
-                this.contacts.push(contact)
+            if (!id) {
+                console.warn('[ContactStore] getContact вызван без id')
+                return null
             }
 
-            return contact
+            try {
+                const res = await talkService.get(id, 'contacts')
+                const contact = res?.data
+                if (!contact) return null
+
+                const index = this.contacts.findIndex(c => c.id === contact.id)
+
+                if (index >= 0) {
+                    this.contacts[index] = contact
+                } else {
+                    this.contacts.push(contact)
+                }
+
+                return contact
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getContact:', e?.message)
+                return null
+            }
         },
 
+        // 🔥 useFriendStore теперь импортирован
         getFriendsOnly() {
-            return this.contacts.filter(c => useFriendStore().isFriend(c.id))
+            try {
+                const friend = friendStore()  // ← Правильный вызов
+                return this.contacts.filter(c => friend.isFriend(c?.id))
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getFriendsOnly:', e?.message)
+                return []
+            }
         },
 
         async getIncomingRequests() {
-            const res = await this.talkService.getIncomingFriends({}, 'friends/incoming')
-            return res.data
+            try {
+                const res = await talkService.getIncomingFriends({}, 'friends/incoming')
+                return Array.isArray(res?.data) ? res.data : []
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getIncomingRequests:', e?.message)
+                return []
+            }
         },
 
         async getFriendsList() {
-            const res = await this.talkService.getFriendsList()
-            return res.data
+            try {
+                const res = await talkService.getFriendsList()
+                return Array.isArray(res?.data) ? res.data : []
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getFriendsList:', e?.message)
+                return []
+            }
         },
 
         setOnline(userId) {
+            if (!userId) return
             if (!this.onlineUsers.includes(userId)) {
                 this.onlineUsers.push(userId)
             }
         },
 
         setOffline(userId) {
+            if (!userId) return
             this.onlineUsers = this.onlineUsers.filter(id => id !== userId)
         },
 
         isOnline(userId) {
+            if (!userId) return false
             return this.onlineUsers.includes(userId)
         },
 
+        // доступ к userStor refreshUserFrom
         async refreshUserFrom() {
-            const useUserStore = userStore()
-            await useUserStore.fetchInfo()
+            try {
+                const store = userStore()
+                await store.fetchInfo()
 
-            this.userFrom = {
-                id: useUserStore.id,
-                name: useUserStore.name,
-                avatar: useUserStore.avatar,
-                email: useUserStore.email,
-                roles: useUserStore.roles
+                // ✅ Правильный доступ к свойствам userStore
+                this.userFrom = {
+                    id: store.id,           // ✅ ref → store.id (не store.user.id)
+                    name: store.name,       // ✅ ref → store.name
+                    avatar: store.avatar,   // ✅ ref → store.avatar
+                    email: store.email,     // ✅ ref → store.email
+                    roles: Array.isArray(store.roles) ? store.roles : []
+                }
+            } catch (e) {
+                console.error('[ContactStore] Ошибка refreshUserFrom:', e?.message)
+                this.userFrom = {
+                    id: null, name: '', avatar: '', email: '', roles: []
+                }
             }
         }
     },
+
     getters: {
         isContactSelected: (state) => (contactId) => {
-            return state.selectedContact?.id === contactId
+            if (!contactId || !state.selectedContact) return false
+            return state.selectedContact.id === contactId
         }
     }
 })

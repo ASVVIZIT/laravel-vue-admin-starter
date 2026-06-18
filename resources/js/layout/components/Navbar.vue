@@ -2,12 +2,12 @@
   <div id="main-navbar" class="navbar rowBC reset-el-dropdown">
     <div class="rowSC">
       <hamburger
-        id="hamburger-container"
-        v-if="settings.showHamburger"
-        :is-active="opened"
-        class="hamburger-container"
-        @toggleClick="toggleSideBar"
-        @toggleSidebarLock="toggleSidebarLock"
+          id="hamburger-container"
+          v-if="settings.showHamburger"
+          :is-active="opened"
+          class="hamburger-container"
+          @toggleClick="toggleSideBar"
+          @toggleSidebarLock="toggleSidebarLock"
       />
       <breadcrumb id="breadcrumb-container" class="breadcrumb-container" />
     </div>
@@ -18,8 +18,8 @@
       <el-dropdown trigger="click" size="medium">
         <div class="avatar-wrapper">
           <img
-            src="https://laravel-vue-admin.eu.org/images/avatar.gif"
-            class="user-avatar"
+              :src="userAvatar"
+              class="user-avatar"
           />
           <CaretBottom style="width: 1em; height: 1em; margin-left: 4px" />
         </div>
@@ -34,7 +34,9 @@
             <a target="_blank" :href="linkGithub">
               <el-dropdown-item>{{ t('navbar.github')}}</el-dropdown-item>
             </a>
-            <el-dropdown-item divided @click="loginOut">{{ t('navbar.logout')}}</el-dropdown-item>
+            <el-dropdown-item divided @click="handleLogout">
+              {{ t('navbar.logout')}}
+            </el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -43,55 +45,72 @@
 </template>
 
 <script setup>
-import {reactive, toRef} from "vue"
-import {useI18n} from "vue-i18n"
+import { computed } from "vue"
+import { useRouter, useRoute } from "vue-router"  // ← ИМПОРТ!
+import { useI18n } from "vue-i18n"
 
 import Timer from './Timer/Timer.vue'
-const linkGithub = `https://github.com/asvvizit/laravel-vue-admin-starter`
-const {t} = useI18n({useScope: 'global'})
-import { Unlock, Lock } from '@element-plus/icons-vue'
+import { Unlock, Lock, CaretBottom } from '@element-plus/icons-vue'
 import HeaderSearch from '@/components/HeaderSearch/HeaderSearch.vue'
 import SizeSelect from '@/components/SizeSelect/SizeSelect.vue'
 import LangSelect from '@/components/LangSelect/LangSelect.vue'
 import ScreenFull from '@/components/ScreenFull/ScreenFull.vue'
-
-import { CaretBottom } from '@element-plus/icons-vue'
 import Breadcrumb from './Breadcrumb'
 import Hamburger from './Hamburger'
+
+// 🔥 Импорты store'ов
 import { appStore } from '@/store/appStore'
 import { userStore } from '@/store/userStore'
+import { useAuthStore } from '@/store/authStore'  // ← НОВОЕ!
+
+// 🔥 Утилиты для base path
+import { getBaseForType } from '@/utils/detectBasePath'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n({ useScope: 'global' })
 
 const useUserStore = userStore()
 const useAppStore = appStore()
+const authStore = useAuthStore()  // ← НОВОЕ!
 
-const settings = computed(() => {
-  return useAppStore.settings
+const linkGithub = `https://github.com/asvvizit/laravel-vue-admin-starter`
+
+const settings = computed(() => useAppStore.settings)
+const opened = computed(() => useAppStore.sidebar.opened)
+
+// 🔥 Аватар пользователя
+const userAvatar = computed(() => {
+  return useUserStore.user?.avatar || 'https://laravel-vue-admin.eu.org/images/avatar.gif'
 })
 
-const opened = computed(() => {
-  return useAppStore.sidebar.opened
-})
+// 🔥 ПРАВИЛЬНЫЙ logout
+const handleLogout = async () => {
+  console.log('[Navbar] Logout clicked')
 
-const loginOut = async () => {
-  await useUserStore.logout().then(() => {
-    router.push(`/login?redirect=/`)
-  })
+  try {
+    // Вызываем logout из authStore (не из userStore!)
+    await authStore.logout()
+
+    // authStore.logout() уже делает редирект через window.location.href
+    // с правильным base path, поэтому router.push здесь не нужен
+  } catch (error) {
+    console.error('[Navbar] Logout error:', error)
+    // В случае ошибки — принудительный редирект
+    const basePath = getBaseForType(authStore.loginType || 'user')
+    window.location.href = basePath + 'login'
+  }
 }
 
 const toggleSidebarLock = () => {
   useAppStore.toggleSidebarLock()
 }
 
-// Обновим метод toggleSideBar
 const toggleSideBar = () => {
   if (!useAppStore.isSidebarLocked) {
     useAppStore.toggleSideBar()
   }
 }
-
 </script>
 
 <style lang="scss" scoped>
@@ -104,7 +123,6 @@ const toggleSideBar = () => {
   box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
 }
 
-//logo
 .avatar-wrapper {
   margin-top: 5px;
   position: relative;
@@ -126,7 +144,6 @@ const toggleSideBar = () => {
   }
 }
 
-//center-title
 .heardCenterTitle {
   text-align: center;
   position: absolute;
@@ -137,7 +154,6 @@ const toggleSideBar = () => {
   transform: translate(-50%, -50%);
 }
 
-//drop-down
 .right-menu {
   cursor: pointer;
   margin-right: 40px;

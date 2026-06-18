@@ -1,13 +1,15 @@
-// resources/js/api/auth.js
 import request from '@/utils/request';
 import Cookies from 'js-cookie';
 
 export const login = (data, loginType = 'user') => {
-  const url = loginType === 'admin' ? '/admin/auth/login' : '/auth/login';
+  // 🔥 ОДИН endpoint для всех типов! Контроллер сам определяет тип
   return request({
-    url,
+    url: '/auth/login',  // ← Всегда /auth/login
     method: 'post',
-    data,
+    data: {
+      ...data,
+      login_type: loginType  // ← Передаём тип в теле запроса
+    },
   });
 };
 
@@ -34,32 +36,29 @@ export const getInfo = () => {
 
 export const csrf = () => {
   return new Promise((resolve) => {
-    // Проверяем, есть ли уже токен
     const existingToken = Cookies.get('XSRF-TOKEN');
     if (existingToken) {
       resolve(existingToken);
       return;
     }
 
-    // Если токена нет - запрашиваем
     request({
       url: '/sanctum/csrf-cookie',
       method: 'get',
     })
         .then(() => {
-          // Проверяем установился ли токен
           const token = Cookies.get('XSRF-TOKEN');
           if (token) {
             resolve(token);
           } else {
-            // Если не установился - ждем 100мс и проверяем снова
             setTimeout(() => {
               resolve(Cookies.get('XSRF-TOKEN') || '');
             }, 100);
           }
         })
-        .catch(() => {
-          resolve(''); // Все равно разрешаем промис
+        .catch((err) => {
+          console.warn('[Auth] CSRF cookie failed:', err?.message);
+          resolve('');
         });
   });
 };

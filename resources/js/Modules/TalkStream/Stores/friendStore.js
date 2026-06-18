@@ -1,143 +1,174 @@
-// resources/js/modules/TalkStream/Stores/friendStore.js
 import { defineStore } from 'pinia'
 import TalkService from '@/modules/TalkStream/Services/talkService'
+
+// 🔥 Выносим экземпляр класса из state
+const talkService = new TalkService()
 
 export const friendStore = defineStore('friend', {
     state: () => ({
         friendRequests: [],
-        friends: [],
-        incomingRequests: [],
-        sentRequests: [],
-        talkService: new TalkService()
+        friends: [],              // Массив ID друзей (числа)
+        incomingRequests: [],     // Массив объектов запросов
+        sentRequests: [],         // Массив ID исходящих запросов (числа)
     }),
+
     actions: {
         async sendRequest(friendId) {
+            if (!friendId) {
+                console.warn('[friendStore] sendRequest: friendId не указан')
+                return
+            }
+
             try {
-                await this.talkService.sendFriendRequest(friendId).then(res => {
-                    this.sentRequests.push(res.data)
-                })
+                const res = await talkService.sendFriendRequest(friendId)
+                if (res?.data) {
+                    this.sentRequests.push(Number(friendId))
+                }
             } catch (e) {
-                console.error('Не удалось загрузить запросы:', e.message)
-                this.sentRequests = []
+                console.error('[friendStore] sendRequest error:', e?.message)
             }
         },
+
         async acceptRequest(id) {
+            if (!id) {
+                console.warn('[friendStore] acceptRequest: id не указан')
+                return
+            }
+
             try {
-                await this.talkService.acceptFriendRequest(id).then(() => {
-                    this.incomingRequests = this.incomingRequests.filter(r => r.id !== id)
-                })
+                await talkService.acceptFriendRequest(id)
+                this.incomingRequests = this.incomingRequests.filter(r => r?.id !== id)
             } catch (e) {
-                console.error('Не удалось загрузить запросы:', e.message)
-                this.incomingRequests = []
+                console.error('[friendStore] acceptRequest error:', e?.message)
             }
         },
+
         async loadIncomingRequests() {
             try {
-                console.log('Запрашиваем входящие запросы в друзья...')
-                const res = await this.talkService.getIncomingFriendsRequest()
-                console.log('Получено входящих запросов:', res.data.length)
-                this.incomingRequests = res.data || []
+                console.log('[friendStore] Запрашиваем входящие запросы...')
+                const res = await talkService.getIncomingFriendsRequest()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено входящих запросов:', data.length)
+                this.incomingRequests = data
             } catch (e) {
-                console.error('Не удалось загрузить входящие запросы:', e.message)
+                console.error('[friendStore] loadIncomingRequests error:', e?.message)
                 this.incomingRequests = []
             }
         },
+
         async loadSentRequests() {
             try {
-                console.log('Запрашиваем исходящие запросы в друзья...')
-                const res = await this.talkService.getSentRequests()
-                console.log('Получено исходящих запросов:', res.data.length)
-                this.sentRequests = res.data || []
+                console.log('[friendStore] Запрашиваем исходящие запросы...')
+                const res = await talkService.getSentRequests()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено исходящих запросов:', data.length)
+                // 🔥 Сохраняем ID (числа), не объекты
+                this.sentRequests = data.map(r => Number(r?.id)).filter(Boolean)
             } catch (e) {
-                console.error('Не удалось загрузить исходящие запросы:', e.message)
+                console.error('[friendStore] loadSentRequests error:', e?.message)
                 this.sentRequests = []
             }
         },
+
         async loadFriendsList() {
             try {
-                console.log('Запрашиваем список друзей...')
-                const res = await this.talkService.getFriendsList()
-                console.log('Получено друзей число:', res.data.length)
-                this.friends = res.data.map(f => Number(f.id))
+                console.log('[friendStore] Запрашиваем список друзей...')
+                const res = await talkService.getFriendsList()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено друзей:', data.length)
+                this.friends = data.map(f => Number(f?.id)).filter(Boolean)
             } catch (e) {
-                console.error('Не удалось загрузить друзей:', e.message)
+                console.error('[friendStore] loadFriendsList error:', e?.message)
                 this.friends = []
             }
         },
 
-        async isFriend(userId) {
+        // 🔥 ПЕРЕИМЕНОВАНО: было isFriend (async) → checkFriendWithServer
+        async checkFriendWithServer(userId) {
+            if (!userId) return false
+
             try {
                 const isCached = this.friends.includes(Number(userId))
                 if (isCached) return true
-                console.log('isFriend isCached ', isCached)
-                // Если не в кэше — запрос на сервер
-                const res = await this.talkService.isFriend(userId)
-                console.log('isFriend res ', res)
-                if (res.data.isFriend) {
+
+                const res = await talkService.isFriend(userId)
+                if (res?.data?.isFriend) {
                     this.friends.push(Number(userId))
+                    return true
                 }
-                console.log('res.data.isFriend ', res.data.isFriend)
-                return res.data.isFriend
+                return false
             } catch (e) {
-                console.error('Не удалось определить друзей:', e.message)
+                console.error('[friendStore] checkFriendWithServer error:', e?.message)
+                return false
             }
         },
 
-        async checkFriend(userId) {
-            const isFriend = await this.talkService.isFriend(userId)
-            if (isFriend.data.isFriend) {
-                this.friends.push(Number(userId))
-            }
-            console.log('checkFriend ', isFriend.data.isFriend)
-            return isFriend.data.isFriend
-        },
-
+        // 🔥 ОСТАВЛЁН как есть (sync версия)
         isFriend(userId) {
             const id = Number(userId)
             if (isNaN(id)) return false
             return this.friends.includes(id)
         },
+
+        // 🔥 ИСПРАВЛЕНО: сравниваем id объекта, а не сам объект
         hasIncoming(userId) {
             const id = Number(userId)
-            //console.log('hasIncoming userId', userId)
             if (isNaN(id)) return false
+            return this.incomingRequests.some(r => r?.id === id)
+        },
 
-            //console.log('hasIncoming isNaN(id)', isNaN(id))
-            return this.incomingRequests.includes(id)
-        },
         hasSent(userId) {
-            //console.log('hasSent userId', userId)
-            return this.sentRequests.includes(Number(userId))
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.sentRequests.includes(id)
         },
+
         addFriend(userId) {
             const id = Number(userId)
-            if (!this.isFriend(id)) {
+            if (isNaN(id)) return
+            if (!this.friends.includes(id)) {
                 this.friends.push(id)
-                console.log('addFriend ', this.friends)
             }
         },
+
         addIncoming(userId) {
-            if (!this.incomingRequests.includes(Number(userId))) {
-                this.incomingRequests.push(Number(userId))
-                console.log('incomingRequests ', this.incomingRequests)
+            const id = Number(userId)
+            if (isNaN(id)) return
+            if (!this.incomingRequests.some(r => r?.id === id)) {
+                this.incomingRequests.push({ id })
             }
         },
 
         removeSent(userId) {
             const id = Number(userId)
+            if (isNaN(id)) return
             this.sentRequests = this.sentRequests.filter(uid => uid !== id)
-            console.log('sentRequests ', this.sentRequests)
         },
 
         removeIncoming(userId) {
             const id = Number(userId)
-            this.incomingRequests = this.incomingRequests.filter(uid => uid !== id)
-            console.log('incomingRequests ', this.incomingRequests)
+            if (isNaN(id)) return
+            this.incomingRequests = this.incomingRequests.filter(r => r?.id !== id)
         },
 
         isPending(userId) {
-            return this.sentRequests.includes(Number(userId))
-        }
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.sentRequests.includes(id)
+        },
 
+        // 🔥 НОВЫЙ: полная очистка (для logout)
+        reset() {
+            this.friendRequests = []
+            this.friends = []
+            this.incomingRequests = []
+            this.sentRequests = []
+        }
+    },
+
+    getters: {
+        friendsCount: (state) => state.friends.length,
+        incomingCount: (state) => state.incomingRequests.length,
+        sentCount: (state) => state.sentRequests.length,
     }
 })
