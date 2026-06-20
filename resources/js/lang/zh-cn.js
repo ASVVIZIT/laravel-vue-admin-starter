@@ -712,5 +712,104 @@ export default {
     "loadPermissions": "加载权限出错"
   },
   "roles_description_admin": "系统管理员",
-  "roles_description_superadmin": "超级管理员"
+  "roles_description_superadmin": "超级管理员",
+
+  "i18nChecker": {
+    // === 基础 ===
+    "title": "i18n 翻译检查器",
+    "subtitle": "检查和扫描翻译",
+
+    // === 模式 ===
+    "simpleMode": "简单检查",
+    "simpleDesc": "检查已知键列表",
+    "scannerMode": "代码扫描器",
+    "scannerDesc": "自动搜索所有键",
+    "validatorMode": "路径验证",
+
+    // === 扫描器 ===
+    "startScan": "启动扫描器",
+    "scanning": "扫描中...",
+    "scanComplete": "扫描完成！",
+    "scanFailed": "扫描失败",
+    "scanError": "扫描错误",
+    "scanHint": "扫描器将找到代码中的所有键并与翻译进行比较",
+    "keysInCode": "代码中的键",
+
+    // === 验证器 ===
+    "validating": "验证中...",
+    "startValidation": "验证路径",
+    "validateHint": "查找嵌套不正确的键",
+    "validationComplete": "路径验证完成！",
+
+    // === 统计 ===
+    "totalKeys": "总计",
+    "coverage": "覆盖率",
+    "usedInCode": "已使用",
+    "missingKeys": "缺失",
+    "unusedKeys": "未使用",
+    "duplicates": "重复项",
+    "wrongPaths": "错误路径",
+    "flatKeys": "扁平键",
+
+    // === 筛选和搜索 ===
+    "searchKey": "按关键字搜索...",
+    "allFiles": "所有文件",
+    "allCategories": "所有类别",
+    "all": "全部",
+    "statusFound": "✅ 已找到",
+    "statusMissing": "❌ 缺失",
+    "search": "搜索...",
+    "refresh": "刷新",
+    "exportMissing": "导出",
+
+    // === 表格 ===
+    "colKey": "键",
+    "colCategory": "类别",
+    "colPriority": "优先级",
+    "colTranslation": "翻译",
+    "colStatus": "状态",
+    "key": "键",
+    "priority": "优先级",
+    "translation": "翻译",
+    "files": "文件",
+    "paths": "路径",
+    "wrongPath": "错误路径",
+    "correctPath": "正确路径",
+    "usedIn": "使用于",
+
+    // === 优先级 ===
+    "priorityCritical": "关键",
+    "priorityNormal": "普通",
+    "priorityLow": "低",
+
+    // === 状态 ===
+    "ok": "正常",
+    "miss": "缺失",
+    "notTranslated": "未翻译",
+
+    // === 部分 ===
+    "missingIn": "缺失于",
+    "unusedIn": "未使用于",
+    "duplicatesFound": "发现重复项",
+    "wrongPathsFound": "发现错误路径",
+    "flatKeysFound": "发现扁平键",
+
+    // === 复制 ===
+    "copy": "复制",
+    "copyFilteredKeys": "已筛选的键",
+    "copyAllKeys": "所有键",
+    "copyFilteredTemplate": "翻译模板（已筛选）",
+    "copyAllTemplate": "翻译模板（全部）",
+    "copiedCount": "已复制",
+    "copyFailed": "复制失败",
+
+    // === 消息 ===
+    "noMissing": "所有键都存在！",
+    "exported": "已导出！",
+    "copied": "键已复制！",
+    "noIssues": "没有翻译问题！",
+    "noPathIssues": "没有路径问题！",
+    "clickToScan": "点击「启动扫描器」分析翻译",
+    "clickToValidate": "点击「验证路径」分析结构"
+  }
 };

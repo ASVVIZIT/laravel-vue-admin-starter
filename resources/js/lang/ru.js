@@ -728,5 +728,104 @@ export default {
         "loadPermissions": "Ошибка загрузки разрешений"
     },
     "roles_description_admin": "Администратор системы",
-    "roles_description_superadmin": "Суперадминистратор"
+    "roles_description_superadmin": "Суперадминистратор",
+
+    "i18nChecker": {
+        // === Основные ===
+        "title": "Проверка переводов i18n",
+        "subtitle": "Проверка и сканирование переводов",
+
+        // === Режимы ===
+        "simpleMode": "Простая проверка",
+        "simpleDesc": "Проверка известного списка ключей",
+        "scannerMode": "Сканер кода",
+        "scannerDesc": "Автоматический поиск всех ключей",
+        "validatorMode": "Проверка путей",
+
+        // === Сканер ===
+        "startScan": "Запустить сканер",
+        "scanning": "Сканирование...",
+        "scanComplete": "Сканирование завершено!",
+        "scanFailed": "Ошибка сканирования",
+        "scanError": "Ошибка при сканировании",
+        "scanHint": "Сканер найдёт все ключи в коде и сравнит с переводами",
+        "keysInCode": "ключей в коде",
+
+        // === Validator ===
+        "validating": "Проверка...",
+        "startValidation": "Проверить пути",
+        "validateHint": "Найдёт ключи с неправильной вложенностью",
+        "validationComplete": "Проверка путей завершена!",
+
+        // === Статистика ===
+        "totalKeys": "Всего",
+        "coverage": "Покрытие",
+        "usedInCode": "Исп.",
+        "missingKeys": "Отс.",
+        "unusedKeys": "Не исп.",
+        "duplicates": "Дубликатов",
+        "wrongPaths": "Неправильных путей",
+        "flatKeys": "Плоских ключей",
+
+        // === Фильтры и поиск ===
+        "searchKey": "Поиск по ключу...",
+        "allFiles": "Все файлы",
+        "allCategories": "Все категории",
+        "all": "Все",
+        "statusFound": "✅ Найдено",
+        "statusMissing": "❌ Отсутствует",
+        "search": "Поиск...",
+        "refresh": "Обновить",
+        "exportMissing": "Экспорт",
+
+        // === Таблица ===
+        "colKey": "Ключ",
+        "colCategory": "Категория",
+        "colPriority": "Приоритет",
+        "colTranslation": "Перевод",
+        "colStatus": "Статус",
+        "key": "Ключ",
+        "priority": "Приоритет",
+        "translation": "Перевод",
+        "files": "Файлы",
+        "paths": "Пути",
+        "wrongPath": "Неправильный путь",
+        "correctPath": "Правильный путь",
+        "usedIn": "Используется в",
+
+        // === Приоритеты ===
+        "priorityCritical": "КРИТ",
+        "priorityNormal": "НОРМ",
+        "priorityLow": "НИЗК",
+
+        // === Статусы ===
+        "ok": "OK",
+        "miss": "MISS",
+        "notTranslated": "Не переведено",
+
+        // === Секции ===
+        "missingIn": "Отсутствуют в",
+        "unusedIn": "Не используются в",
+        "duplicatesFound": "Найдены дубликаты",
+        "wrongPathsFound": "Неправильные пути",
+        "flatKeysFound": "Плоские ключи",
+
+        // === Копирование ===
+        "copy": "Копировать",
+        "copyFilteredKeys": "Отфильтрованные ключи",
+        "copyAllKeys": "Все ключи",
+        "copyFilteredTemplate": "Шаблон для перевода (отфильтр.)",
+        "copyAllTemplate": "Шаблон для перевода (все)",
+        "copiedCount": "Скопировано",
+        "copyFailed": "Не удалось скопировать",
+
+        // === Сообщения ===
+        "noMissing": "Все ключи присутствуют!",
+        "exported": "Экспортировано!",
+        "copied": "Ключи скопированы!",
+        "noIssues": "Нет проблем с переводами!",
+        "noPathIssues": "Нет проблем с путями!",
+        "clickToScan": "Нажмите «Запустить сканер» для анализа переводов",
+        "clickToValidate": "Нажмите «Проверить пути» для анализа структуры"
+    }
 };

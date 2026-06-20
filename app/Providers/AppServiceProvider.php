@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Policies\UserTabPolicy;
 use App\Models\UserTab;
+use App\Services\I18nLanguageService;
 use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\DB;
@@ -19,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        //
+        $this->app->singleton(I18nLanguageService::class);
     }
 
     protected $policies = [

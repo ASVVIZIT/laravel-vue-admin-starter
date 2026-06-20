@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 // Импорты моделей
 use App\Models\Acl;
 
+use App\Http\Controllers\Api\I18nScannerController;
+
 // === ИМПОРТЫ КОНТРОЛЛЕРОВ АВТОРИЗАЦИИ ===
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminAuthController;
@@ -69,13 +71,16 @@ use Illuminate\Contracts\Routing\Registrar as RouteContract;
 |
 | Все маршруты автоматически получают префикс /api
 | Структура:
-| 1. 🌐 ПУБЛИЧНЫЕ API (без авторизации)
-| 2. 🔐 АУТЕНТИФИКАЦИЯ (вход/выход/CSRF)
-| 3. 🛡️ ЗАЩИЩЁННЫЕ API (требуют auth:sanctum) — для Admin SPA
-| 4. 📱 SMARTLIGHT API (устройства)
-| 5. 🎯 TRAINING API (тренировки)
-| 6. 🏢 COMPANIES & CHANNELS API
-| 7. 🔧 ОТЛАДОЧНЫЕ МАРШРУТЫ
+| 1.  🌐 ПУБЛИЧНЫЕ API (без авторизации)
+| 2.  🔐 АУТЕНТИФИКАЦИЯ (вход/выход/CSRF)
+| 3.  🛡️ ЗАЩИЩЁННЫЕ API (требуют auth:sanctum) — для Admin SPA
+| 4.  📹 ВИДЕО-ФУНКЦИОНАЛ (дополнительные маршруты)
+| 5.  📱 SMARTLIGHT API (устройства)
+| 6.  🎯 TRAINING API (тренировки)
+| 7.  🏢 COMPANIES & CHANNELS API
+| 8.  🌐 LANDING PAGES API
+| 9.  🔧 ОТЛАДОЧНЫЕ МАРШРУТЫ
+| 10. 🌍 I18N SCANNER (проверка переводов)
 |
 */
 
@@ -146,6 +151,9 @@ Route::namespace('Api')->group(function() {
 
     // === ЗАЩИЩЁННЫЕ МАРШРУТЫ (требуют auth:sanctum) ===
     Route::middleware('auth:sanctum')->group(function () {
+
+        // ❌ УДАЛЕНО ОТСЮДА: Route::get('/i18n/scan', ...);
+        // Теперь находится в отдельной секции 10
 
         // --- Верификация email ---
         Route::post('/email/verify/{id}/{hash}', [AuthController::class, 'verify']);
@@ -576,3 +584,46 @@ Route::get('/debug/network', function(Request $request) {
         ]
     ]);
 });
+
+// ============================================================================
+// 🌍 10. I18N SCANNER (проверка переводов)
+// ============================================================================
+//
+// Сканер проверяет все переводы i18n в проекте:
+// - Находит все ключи в коде (.vue, .js, .ts)
+// - Сравнивает с переводами в resources/js/lang/{ru,en,zh-cn}.js
+// - Показывает отсутствующие и неиспользуемые ключи
+// - Поддерживает самореферентность (проверяет и себя тоже)
+//
+// Доступ: только для авторизованных пользователей
+// Префикс: /api/i18n
+// ============================================================================
+Route::middleware(['auth:sanctum'])
+    ->prefix('i18n')
+    ->name('i18n.')
+    ->group(function () {
+
+        // 🔥 НОВЫЙ: Получить список доступных языков
+        Route::get('/languages', [I18nScannerController::class, 'getAvailableLanguages'])
+            ->name('languages');
+
+        // Полный скан (теперь динамически находит языки)
+        Route::get('/scan', [I18nScannerController::class, 'scan'])
+            ->name('scan')
+            ->middleware('throttle:10,1');
+
+        // Получить ключи из кода
+        Route::get('/keys', [I18nScannerController::class, 'getKeys'])
+            ->name('keys')
+            ->middleware('throttle:30,1');
+
+        // Валидация внутри контроллера через I18nLanguageService
+        Route::get('/translations/{lang}', [I18nScannerController::class, 'getTranslations'])
+            ->name('translations')
+            ->middleware('throttle:30,1');
+
+        // Проверка путей ключей (Validator Mode)
+        Route::get('/validate-paths', [I18nScannerController::class, 'validatePaths'])
+            ->name('validate-paths')
+            ->middleware('throttle:10,1');
+    });

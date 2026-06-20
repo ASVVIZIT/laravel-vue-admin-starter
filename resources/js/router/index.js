@@ -17,6 +17,7 @@ import dynamicTableRoutes from './modules/dynamicTable.js';
 import smartLightRoutes from './modules/SmartLight/smart-light.js';
 import trainingRoutes from './modules/Training/training.js';
 import landingRoutes from './modules/Landing/landingRouter.js';
+import i18nCheckerRoutes from './modules/i18nChecker.js';
 import contactManagementRoutes from './modules/ContactManagement/contact-management.js';
 
 // 🔥 ДИНАМИЧЕСКИЙ BASE PATH
@@ -205,6 +206,7 @@ export const constantRoutes = [
   ...smartLightRoutes,
   ...trainingRoutes,
   ...landingRoutes,
+  ...i18nCheckerRoutes,
   contactManagementRoutes,
 ];
 

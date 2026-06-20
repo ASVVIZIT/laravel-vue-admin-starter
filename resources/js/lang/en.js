@@ -175,6 +175,7 @@ export default {
     "actions": {
       "addRole": "Add Role Permission",
       "editPermission": "Edit Permissions",
+      "editPermissionForForm": "Edit permissions for form",
       "delete": "Delete",
       "confirm": "Confirm",
       "cancel": "Cancel"
@@ -532,6 +533,58 @@ export default {
         "delete": "Delete"
       }
     },
+    "i18nChecker": {
+      "title": "i18n Translations Checker",
+      "subtitle": "Check and scan translations",
+      "simpleMode": "Simple Check",
+      "scannerMode": "Code Scanner",
+      "scanComplete": "Scan complete!",
+      "scanFailed": "Scan failed",
+      "scanError": "Scan error",
+      "scanning": "Scanning...",
+      "startScan": "Start Scanner",
+      "scanHint": "Scanner will find all keys in code and compare with translations",
+      "keysInCode": "keys in code",
+      "totalKeys": "Total",
+      "coverage": "Coverage",
+      "usedInCode": "Used",
+      "missingKeys": "Missing",
+      "unusedKeys": "Unused",
+      "missingIn": "Missing in",
+      "searchKey": "Search by key...",
+      "allFiles": "All files",
+      "copy": "Copy",
+      "copyFilteredKeys": "Filtered keys",
+      "copyAllKeys": "All keys",
+      "copyFilteredTemplate": "Translation template (filtered)",
+      "copyAllTemplate": "Translation template (all)",
+      "colKey": "Key",
+      "files": "Files",
+      "colStatus": "Status",
+      "unusedIn": "Unused in",
+      "noIssues": "No translation issues!",
+      "clickToScan": "Click \"Start Scanner\" to analyze translations",
+      "copiedCount": "Copied",
+      "copyFailed": "Failed to copy"
+    },
+    "i18nView": {
+      "title": "International Example",
+      "note": "See documentation for adding and removing languages",
+      "datePlaceholder": "Select date",
+      "selectPlaceholder": "Select",
+      "default": "Default",
+      "primary": "Primary",
+      "success": "Success",
+      "info": "Info",
+      "warning": "Warning",
+      "danger": "Danger",
+      "tableName": "Name",
+      "tableDate": "Date",
+      "tableAddress": "Address",
+      "one": "一",
+      "two": "二",
+      "three": "三"
+    },
     "form": {
       "add_title": "Add Brand",
       "edit_title": "Editing: {name}",
@@ -712,5 +765,104 @@ export default {
     "loadPermissions": "Error loading permissions"
   },
   "roles_description_admin": "System administrator",
-  "roles_description_superadmin": "Super administrator"
+  "roles_description_superadmin": "Super administrator",
+
+  "i18nChecker": {
+    // === Basic ===
+    "title": "i18n Translations Checker",
+    "subtitle": "Check and scan translations",
+
+    // === Modes ===
+    "simpleMode": "Simple Check",
+    "simpleDesc": "Check known list of keys",
+    "scannerMode": "Code Scanner",
+    "scannerDesc": "Automatic search of all keys",
+    "validatorMode": "Path Validation",
+
+    // === Scanner ===
+    "startScan": "Start Scanner",
+    "scanning": "Scanning...",
+    "scanComplete": "Scan complete!",
+    "scanFailed": "Scan failed",
+    "scanError": "Scan error",
+    "scanHint": "Scanner will find all keys in code and compare with translations",
+    "keysInCode": "keys in code",
+
+    // === Validator ===
+    "validating": "Validating...",
+    "startValidation": "Validate Paths",
+    "validateHint": "Finds keys with incorrect nesting",
+    "validationComplete": "Path validation complete!",
+
+    // === Statistics ===
+    "totalKeys": "Total",
+    "coverage": "Coverage",
+    "usedInCode": "Used",
+    "missingKeys": "Missing",
+    "unusedKeys": "Unused",
+    "duplicates": "Duplicates",
+    "wrongPaths": "Wrong paths",
+    "flatKeys": "Flat keys",
+
+    // === Filters & Search ===
+    "searchKey": "Search by key...",
+    "allFiles": "All files",
+    "allCategories": "All categories",
+    "all": "All",
+    "statusFound": "✅ Found",
+    "statusMissing": "❌ Missing",
+    "search": "Search...",
+    "refresh": "Refresh",
+    "exportMissing": "Export",
+
+    // === Table ===
+    "colKey": "Key",
+    "colCategory": "Category",
+    "colPriority": "Priority",
+    "colTranslation": "Translation",
+    "colStatus": "Status",
+    "key": "Key",
+    "priority": "Priority",
+    "translation": "Translation",
+    "files": "Files",
+    "paths": "Paths",
+    "wrongPath": "Wrong path",
+    "correctPath": "Correct path",
+    "usedIn": "Used in",
+
+    // === Priorities ===
+    "priorityCritical": "CRIT",
+    "priorityNormal": "NORM",
+    "priorityLow": "LOW",
+
+    // === Statuses ===
+    "ok": "OK",
+    "miss": "MISS",
+    "notTranslated": "Not translated",
+
+    // === Sections ===
+    "missingIn": "Missing in",
+    "unusedIn": "Unused in",
+    "duplicatesFound": "Duplicates found",
+    "wrongPathsFound": "Wrong paths found",
+    "flatKeysFound": "Flat keys found",
+
+    // === Copy ===
+    "copy": "Copy",
+    "copyFilteredKeys": "Filtered keys",
+    "copyAllKeys": "All keys",
+    "copyFilteredTemplate": "Translation template (filtered)",
+    "copyAllTemplate": "Translation template (all)",
+    "copiedCount": "Copied",
+    "copyFailed": "Failed to copy",
+
+    // === Messages ===
+    "noMissing": "All keys present!",
+    "exported": "Exported!",
+    "copied": "Keys copied!",
+    "noIssues": "No translation issues!",
+    "noPathIssues": "No path issues!",
+    "clickToScan": "Click \"Start Scanner\" to analyze translations",
+    "clickToValidate": "Click \"Validate Paths\" to analyze structure"
+  }
 };
