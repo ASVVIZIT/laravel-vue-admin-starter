@@ -99,7 +99,7 @@ export const keysToCheck = [
     { key: 'validation.rules.vipCode.pattern',  category: 'Validation', priority: 'low' },
 
     // ========================================================================
-    //  ROLES
+    // 👥 ROLES
     // ========================================================================
     { key: 'roles.admin',                   category: 'Roles', priority: 'critical' },
     { key: 'roles.user',                    category: 'Roles', priority: 'critical' },
@@ -115,7 +115,7 @@ export const keysToCheck = [
     { key: 'roles.description.vip',         category: 'Roles', priority: 'low' },
 
     // ========================================================================
-    //  NAVBAR
+    // 🧭 NAVBAR
     // ========================================================================
     { key: 'navbar.home',      category: 'Navbar', priority: 'critical' },
     { key: 'navbar.profile',   category: 'Navbar', priority: 'critical' },
@@ -127,14 +127,21 @@ export const keysToCheck = [
     { key: 'navbar.size',      category: 'Navbar', priority: 'normal' },
 
     // ========================================================================
-    // 🔍 I18N CHECKER (САМОРЕФЕРЕНТНОСТЬ!)
+    // 🔍 I18N CHECKER — ПОЛНЫЙ СПИСОК (78 ключей)
     // ========================================================================
+
+    // Основные
     { key: 'i18nChecker.title',                category: 'I18nChecker', priority: 'critical' },
     { key: 'i18nChecker.subtitle',             category: 'I18nChecker', priority: 'critical' },
+
+    // Режимы
     { key: 'i18nChecker.simpleMode',           category: 'I18nChecker', priority: 'critical' },
     { key: 'i18nChecker.simpleDesc',           category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.scannerMode',          category: 'I18nChecker', priority: 'critical' },
     { key: 'i18nChecker.scannerDesc',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.validatorMode',        category: 'I18nChecker', priority: 'critical' },
+
+    // Сканер
     { key: 'i18nChecker.startScan',            category: 'I18nChecker', priority: 'critical' },
     { key: 'i18nChecker.scanning',             category: 'I18nChecker', priority: 'critical' },
     { key: 'i18nChecker.scanComplete',         category: 'I18nChecker', priority: 'critical' },
@@ -142,37 +149,117 @@ export const keysToCheck = [
     { key: 'i18nChecker.scanError',            category: 'I18nChecker', priority: 'critical' },
     { key: 'i18nChecker.scanHint',             category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.keysInCode',           category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.missingIn',            category: 'I18nChecker', priority: 'critical' },
-    { key: 'i18nChecker.unusedIn',             category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.files',                category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.language',             category: 'I18nChecker', priority: 'critical' },
-    { key: 'i18nChecker.category',             category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.status',               category: 'I18nChecker', priority: 'normal' },
+
+    // Validator
+    { key: 'i18nChecker.validating',           category: 'I18nChecker', priority: 'critical' },
+    { key: 'i18nChecker.startValidation',      category: 'I18nChecker', priority: 'critical' },
+    { key: 'i18nChecker.validateHint',         category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.validationComplete',   category: 'I18nChecker', priority: 'critical' },
+
+    // Статистика
+    { key: 'i18nChecker.totalKeys',            category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.coverage',             category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.usedInCode',           category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.missingKeys',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.unusedKeys',           category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.duplicates',           category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.wrongPaths',           category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.flatKeys',             category: 'I18nChecker', priority: 'normal' },
+
+    // Фильтры и поиск
+    { key: 'i18nChecker.searchKey',            category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.allFiles',             category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.allCategories',        category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.all',                  category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.statusFound',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.statusMissing',        category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.search',               category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.refresh',              category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.exportMissing',        category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.allCategories',        category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.all',                  category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.found',                category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.missing',              category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.totalKeys',            category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.foundKeys',            category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.missingKeys',          category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.byCategory',           category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.detailedResults',      category: 'I18nChecker', priority: 'normal' },
+
+    // Таблица
+    { key: 'i18nChecker.colKey',               category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.colCategory',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.colPriority',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.colTranslation',       category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.colStatus',            category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.key',                  category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.priority',             category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.translation',          category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.notTranslated',        category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.ok',                   category: 'I18nChecker', priority: 'normal' },
-    { key: 'i18nChecker.miss',                 category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.files',                category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.paths',                category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.wrongPath',            category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.correctPath',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.usedIn',               category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.language',             category: 'I18nChecker', priority: 'critical' },
+    { key: 'i18nChecker.category',             category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.status',               category: 'I18nChecker', priority: 'normal' },
+
+    // Приоритеты
     { key: 'i18nChecker.priorityCritical',     category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.priorityNormal',       category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.priorityLow',          category: 'I18nChecker', priority: 'normal' },
+
+    // Статусы
+    { key: 'i18nChecker.ok',                   category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.miss',                 category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.notTranslated',        category: 'I18nChecker', priority: 'normal' },
+
+    // Секции
+    { key: 'i18nChecker.missingIn',            category: 'I18nChecker', priority: 'critical' },
+    { key: 'i18nChecker.unusedIn',             category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.duplicatesFound',      category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.wrongPathsFound',      category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.flatKeysFound',        category: 'I18nChecker', priority: 'normal' },
+
+    // Копирование
+    { key: 'i18nChecker.copy',                 category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.copyFilteredKeys',     category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.copyAllKeys',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.copyFilteredTemplate', category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.copyAllTemplate',      category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.copiedCount',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.copyFailed',           category: 'I18nChecker', priority: 'low' },
+
+    // Простой режим (Simple)
+    { key: 'i18nChecker.total',                category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.found',                category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.missing',              category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.foundKeys',            category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.byCategory',           category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.detailedResults',      category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.showing',              category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.from',                 category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.entries',              category: 'I18nChecker', priority: 'normal' },
+
+    // Сообщения
     { key: 'i18nChecker.noMissing',            category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.exported',             category: 'I18nChecker', priority: 'normal' },
     { key: 'i18nChecker.copied',               category: 'I18nChecker', priority: 'low' },
-    { key: 'i18nChecker.copyFailed',           category: 'I18nChecker', priority: 'low' },
+    { key: 'i18nChecker.noIssues',             category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.noPathIssues',         category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.clickToScan',          category: 'I18nChecker', priority: 'normal' },
+    { key: 'i18nChecker.clickToValidate',      category: 'I18nChecker', priority: 'normal' },
+
+    // ========================================================================
+    // 🌐 I18N VIEW (страница i18n)
+    // ========================================================================
+    { key: 'i18nView.title',             category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.note',              category: 'I18nView', priority: 'normal' },
+    { key: 'i18nView.datePlaceholder',   category: 'I18nView', priority: 'normal' },
+    { key: 'i18nView.selectPlaceholder', category: 'I18nView', priority: 'normal' },
+    { key: 'i18nView.default',           category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.primary',           category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.success',           category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.info',              category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.warning',           category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.danger',            category: 'I18nView', priority: 'critical' },
+    { key: 'i18nView.tableName',         category: 'I18nView', priority: 'normal' },
+    { key: 'i18nView.tableDate',         category: 'I18nView', priority: 'normal' },
+    { key: 'i18nView.tableAddress',      category: 'I18nView', priority: 'normal' },
+    { key: 'i18nView.one',               category: 'I18nView', priority: 'low' },
+    { key: 'i18nView.two',               category: 'I18nView', priority: 'low' },
+    { key: 'i18nView.three',             category: 'I18nView', priority: 'low' },
 ];
 
 export function getCategories() {

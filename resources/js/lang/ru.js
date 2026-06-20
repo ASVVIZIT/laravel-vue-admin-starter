@@ -26,7 +26,8 @@ export default {
         "Accessories": "Аксессуар Электрики",
         "AccessoriesList": "Список аксессуаров",
         "AccessoryCreate": "Создание аксессуара электрики",
-        "AccessoryEdit": "Редактирование аксессуара электрики"
+        "AccessoryEdit": "Редактирование аксессуара электрики",
+        "i18nChecker": "Проверка переводов i18n",
     },
     "navbar": {
         "logOut": "Выйти из системы",
@@ -730,6 +731,7 @@ export default {
     "roles_description_admin": "Администратор системы",
     "roles_description_superadmin": "Суперадминистратор",
 
+    // 🔍 I18N CHECKER (Сканер переводов) — ПОЛНЫЙ БЛОК
     "i18nChecker": {
         // === Основные ===
         "title": "Проверка переводов i18n",
@@ -819,6 +821,14 @@ export default {
         "copiedCount": "Скопировано",
         "copyFailed": "Не удалось скопировать",
 
+        // === Простой режим (Simple) === 🔥 НОВЫЕ
+        "total": "Всего",
+        "found": "Найдено",
+        "missing": "Отсутствует",
+        "showing": "Показано",
+        "from": "из",
+        "entries": "записей",
+
         // === Сообщения ===
         "noMissing": "Все ключи присутствуют!",
         "exported": "Экспортировано!",
@@ -826,6 +836,33 @@ export default {
         "noIssues": "Нет проблем с переводами!",
         "noPathIssues": "Нет проблем с путями!",
         "clickToScan": "Нажмите «Запустить сканер» для анализа переводов",
-        "clickToValidate": "Нажмите «Проверить пути» для анализа структуры"
-    }
+        "clickToValidate": "Нажмите «Проверить пути» для анализа структуры",
+
+        "language": "Язык",
+        "category": "Категория",
+        "status": "Статус",
+        "foundKeys": "Найдено ключей",
+        "byCategory": "По категориям",
+        "detailedResults": "Детальные результаты"
+    },
+
+    // 🌐 I18N VIEW (Страница i18n) — ПОЛНЫЙ БЛОК
+    "i18nView": {
+        "title": "Международный пример",
+        "note": "Добавление и удаление языков смотрите в документации",
+        "datePlaceholder": "Выберите дату",
+        "selectPlaceholder": "Выберите",
+        "default": "По умолчанию",
+        "primary": "Основной",
+        "success": "Успех",
+        "info": "Информация",
+        "warning": "Предупреждение",
+        "danger": "Ошибка",
+        "tableName": "Имя",
+        "tableDate": "Дата",
+        "tableAddress": "Адрес",
+        "one": "一",
+        "two": "二",
+        "three": "三"
+    },
 };

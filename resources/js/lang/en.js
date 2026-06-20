@@ -16,6 +16,7 @@ export default {
     "Page404": "404",
     "Administrator": "Administrator",
     "UserList": "Users",
+    "UserList": "Users",
     "UserProfile": "User Profile",
     "DynamicTable": "Dynamic table",
     "Guide": "Website Guide",
@@ -26,7 +27,8 @@ export default {
     "Accessories": "Electrical Accessories",
     "AccessoriesList": "Accessories List",
     "AccessoryCreate": "Create Electrical Accessory",
-    "AccessoryEdit": "Edit Electrical Accessory"
+    "AccessoryEdit": "Edit Electrical Accessory",
+    "i18nChecker": "i18n Translations Checker",
   },
   "navbar": {
     "logOut": "Log Out",
@@ -533,58 +535,6 @@ export default {
         "delete": "Delete"
       }
     },
-    "i18nChecker": {
-      "title": "i18n Translations Checker",
-      "subtitle": "Check and scan translations",
-      "simpleMode": "Simple Check",
-      "scannerMode": "Code Scanner",
-      "scanComplete": "Scan complete!",
-      "scanFailed": "Scan failed",
-      "scanError": "Scan error",
-      "scanning": "Scanning...",
-      "startScan": "Start Scanner",
-      "scanHint": "Scanner will find all keys in code and compare with translations",
-      "keysInCode": "keys in code",
-      "totalKeys": "Total",
-      "coverage": "Coverage",
-      "usedInCode": "Used",
-      "missingKeys": "Missing",
-      "unusedKeys": "Unused",
-      "missingIn": "Missing in",
-      "searchKey": "Search by key...",
-      "allFiles": "All files",
-      "copy": "Copy",
-      "copyFilteredKeys": "Filtered keys",
-      "copyAllKeys": "All keys",
-      "copyFilteredTemplate": "Translation template (filtered)",
-      "copyAllTemplate": "Translation template (all)",
-      "colKey": "Key",
-      "files": "Files",
-      "colStatus": "Status",
-      "unusedIn": "Unused in",
-      "noIssues": "No translation issues!",
-      "clickToScan": "Click \"Start Scanner\" to analyze translations",
-      "copiedCount": "Copied",
-      "copyFailed": "Failed to copy"
-    },
-    "i18nView": {
-      "title": "International Example",
-      "note": "See documentation for adding and removing languages",
-      "datePlaceholder": "Select date",
-      "selectPlaceholder": "Select",
-      "default": "Default",
-      "primary": "Primary",
-      "success": "Success",
-      "info": "Info",
-      "warning": "Warning",
-      "danger": "Danger",
-      "tableName": "Name",
-      "tableDate": "Date",
-      "tableAddress": "Address",
-      "one": "一",
-      "two": "二",
-      "three": "三"
-    },
     "form": {
       "add_title": "Add Brand",
       "edit_title": "Editing: {name}",
@@ -767,6 +717,7 @@ export default {
   "roles_description_admin": "System administrator",
   "roles_description_superadmin": "Super administrator",
 
+  // 🔍 I18N CHECKER
   "i18nChecker": {
     // === Basic ===
     "title": "i18n Translations Checker",
@@ -856,6 +807,14 @@ export default {
     "copiedCount": "Copied",
     "copyFailed": "Failed to copy",
 
+    // === Simple Mode === 🔥 NEW
+    "total": "Total",
+    "found": "Found",
+    "missing": "Missing",
+    "showing": "Showing",
+    "from": "of",
+    "entries": "entries",
+
     // === Messages ===
     "noMissing": "All keys present!",
     "exported": "Exported!",
@@ -863,6 +822,33 @@ export default {
     "noIssues": "No translation issues!",
     "noPathIssues": "No path issues!",
     "clickToScan": "Click \"Start Scanner\" to analyze translations",
-    "clickToValidate": "Click \"Validate Paths\" to analyze structure"
-  }
+    "clickToValidate": "Click \"Validate Paths\" to analyze structure",
+
+    "language": "Language",
+    "category": "Category",
+    "status": "Status",
+    "foundKeys": "Found keys",
+    "byCategory": "By category",
+    "detailedResults": "Detailed results"
+  },
+
+  // 🌐 I18N VIEW
+  "i18nView": {
+    "title": "International Example",
+    "note": "See documentation for adding and removing languages",
+    "datePlaceholder": "Select date",
+    "selectPlaceholder": "Select",
+    "default": "Default",
+    "primary": "Primary",
+    "success": "Success",
+    "info": "Info",
+    "warning": "Warning",
+    "danger": "Danger",
+    "tableName": "Name",
+    "tableDate": "Date",
+    "tableAddress": "Address",
+    "one": "一",
+    "two": "二",
+    "three": "三"
+  },
 };

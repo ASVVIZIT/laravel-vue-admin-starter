@@ -63,11 +63,11 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import Icon from '@/components/Icon/Icon.vue';
-import I18nCheckerSimpleMode from './I18nCheckerSimpleMode.vue';
-import I18nScannerMode from './I18nScannerMode.vue';
-import I18nValidatorMode from './I18nValidatorMode.vue';
-import { scanI18n, validateI18nPaths } from '@/api/i18n';
+import Icon from '@components/Icon/Icon.vue';
+import I18nCheckerSimpleMode from '@components/I18nChecker/components/I18nCheckerSimpleMode.vue';
+import I18nScannerMode from '@components/I18nChecker/components/I18nScannerMode.vue';
+import I18nValidatorMode from '@components/I18nChecker/components/I18nValidatorMode.vue';
+import { scanI18n, validateI18nPaths } from '@components/I18nChecker/api/i18n.js';
 
 const { t } = useI18n();
 
@@ -126,8 +126,6 @@ const runValidator = async () => {
   try {
     const response = await validateI18nPaths();
 
-    console.log('[Validator] Response:', response);
-
     if (response?.success && response?.data) {
       validatorReport.value = response.data;
       ElMessage.success(t('i18nChecker.validationComplete') || 'Проверка путей завершена!');
@@ -136,7 +134,6 @@ const runValidator = async () => {
       ElMessage.error(validatorError.value);
     }
   } catch (error) {
-    console.error('[Validator] Error:', error);
     validatorError.value = error?.response?.data?.message || 'Ошибка при проверке';
     ElMessage.error(validatorError.value);
   } finally {
@@ -147,22 +144,22 @@ const runValidator = async () => {
 
 <style lang="scss" scoped>
 .i18n-checker {
-  padding: 8px;
+  padding: 4px;
   max-width: 1400px;
   margin: 0 auto;
 }
 
 .i18n-page-header {
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 
   .i18n-page-title {
     font-size: 20px;
     font-weight: 700;
     color: #303133;
-    margin: 0 0 6px 0;
+    margin: 0 0 4px 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 
     .bi {
       font-size: 24px;
@@ -179,9 +176,9 @@ const runValidator = async () => {
 
 .i18n-mode-switcher {
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding: 6px;
+  gap: 4px;
+  margin-bottom: 4px;
+  padding: 4px;
   background: #fff;
   border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -192,8 +189,8 @@ const runValidator = async () => {
     flex-direction: row;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 0 12px;
+    gap: 4px;
+    padding: 0 10px;
     height: 30px;
     background: #f5f7fa;
     border: 2px solid transparent;

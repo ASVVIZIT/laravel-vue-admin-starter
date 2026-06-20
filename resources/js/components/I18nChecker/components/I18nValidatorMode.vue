@@ -83,7 +83,7 @@
                 :data="report.duplicates"
                 stripe
                 size="small"
-                height="300"
+                height="350"
                 style="width: 100%;"
             >
               <el-table-column prop="key" :label="$t('i18nChecker.colKey') || 'Ключ'" width="200">
@@ -130,7 +130,7 @@
                 :data="report.wrongPaths"
                 stripe
                 size="small"
-                height="300"
+                height="350"
                 style="width: 100%;"
             >
               <el-table-column prop="wrongPath" :label="$t('i18nChecker.wrongPath') || 'Неправильный путь'" width="280">
@@ -221,7 +221,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import Icon from '@/components/Icon/Icon.vue';
+import Icon from '@components/Icon/Icon.vue';
 
 const { t } = useI18n();
 
@@ -240,15 +240,15 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 .i18n-validator-mode {
   background: #fff;
   border-radius: 6px;
-  padding: 6px;
+  padding: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .i18n-validate-control {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px;
+  gap: 4px;
+  padding: 4px;
   border-bottom: 1px solid #ebeef5;
 
   .i18n-validate-hint {
@@ -260,48 +260,48 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 .i18n-error-block {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
-  margin: 6px 0;
+  gap: 4px;
+  padding: 4px;
+  margin: 4px 0;
   background: #fff1f0;
   border: 1px solid #ffccc7;
-  border-radius: 4px;
+  border-radius: 3px;
   color: #cf1322;
 
-  .bi { font-size: 14px; color: #ff4d4f; }
-  p { margin: 0; font-size: 11px; }
+  .bi { font-size: 12px; color: #ff4d4f; }
+  p { margin: 0; font-size: 9px; }
 }
 
-.i18n-validate-results { margin-top: 6px; }
+.i18n-validate-results { margin-top: 4px; }
 
 .i18n-validate-empty {
   text-align: center;
-  padding: 30px 20px;
+  padding: 10px;
   color: #909399;
 
   .bi {
-    font-size: 36px;
-    margin-bottom: 8px;
+    font-size: 28px;
+    margin-bottom: 4px;
     color: #c0c4cc;
     display: block;
   }
 
-  p { margin: 0; font-size: 12px; }
+  p { margin: 0; font-size: 10px; }
 }
 
 .i18n-stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 4px;
+  margin-bottom: 4px;
 
   .i18n-stat-card {
     background: #f5f7fa;
     border-radius: 4px;
-    padding: 8px;
+    padding: 4px;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     border-left: 3px solid #52c41a;
 
     &.i18n-stat-duplicates { border-left-color: #faad14; }
@@ -347,21 +347,21 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 .i18n-collapse-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  font-size: 9px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
   width: 100%;
 
-  .bi { font-size: 12px; }
+  .bi { font-size: 10px; }
 
   &.i18n-collapse-header-danger {
     background: #fff1f0;
     color: #cf1322;
-    border-left: 3px solid #ff4d4f;
+    border-left: 2px solid #ff4d4f;
 
     &:hover { background: #ffeded; }
   }
@@ -369,7 +369,7 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
   &.i18n-collapse-header-warning {
     background: #fffbe6;
     color: #ad6800;
-    border-left: 3px solid #faad14;
+    border-left: 2px solid #faad14;
 
     &:hover { background: #fff8d4; }
   }
@@ -377,7 +377,7 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 
 .i18n-table-wrapper {
   background: #fff;
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
   border: 1px solid #ebeef5;
   margin-top: 4px;
@@ -386,13 +386,13 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
     .el-table__header th {
       background: #fafafa !important;
       font-weight: 600;
-      font-size: 10px;
+      font-size: 9px;
       padding: 4px 0;
     }
 
     .el-table__row td {
       padding: 4px 0;
-      font-size: 10px;
+      font-size: 9px;
     }
   }
 }
@@ -402,7 +402,7 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
   padding: 2px 4px;
   border-radius: 2px;
   font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 9px;
+  font-size: 8px;
   color: #d4380d;
   word-break: break-all;
 
@@ -421,19 +421,19 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 .i18n-paths-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
 }
 
 .i18n-files-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
 }
 
 .i18n-unused-wrapper {
   background: #fff;
-  border-radius: 4px;
-  padding: 6px;
+  border-radius: 3px;
+  padding: 4px;
   border: 1px solid #ebeef5;
   max-height: 250px;
   overflow-y: auto;
@@ -443,11 +443,11 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 .i18n-unused-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 3px;
+  gap: 4px;
 
   .i18n-unused-tag {
     font-family: 'Consolas', 'Monaco', monospace;
-    font-size: 9px;
+    font-size: 8px;
   }
 
   .i18n-more-unused {
@@ -459,15 +459,15 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
 
 .i18n-no-issues {
   text-align: center;
-  padding: 20px;
+  padding: 10px;
   color: #52c41a;
 
   .bi {
-    font-size: 24px;
+    font-size: 20px;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
 
-  p { margin: 0; font-size: 12px; }
+  p { margin: 0; font-size: 10px; }
 }
 </style>

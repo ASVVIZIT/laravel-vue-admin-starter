@@ -1,4 +1,4 @@
-import request from '@/utils/request';
+import request from '@utils/request.js';
 
 /**
  * Сканировать код и найти все i18n ключи

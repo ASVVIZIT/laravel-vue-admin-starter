@@ -26,7 +26,8 @@ export default {
     "Accessories": "电气配件",
     "AccessoriesList": "配件清单",
     "AccessoryCreate": "创建电气配件",
-    "AccessoryEdit": "编辑电气配件"
+    "AccessoryEdit": "编辑电气配件",
+    "i18nChecker": "i18n 翻译检查器",
   },
   "navbar": {
     "logOut": "退出登录",
@@ -714,6 +715,7 @@ export default {
   "roles_description_admin": "系统管理员",
   "roles_description_superadmin": "超级管理员",
 
+  // 🔍 I18N CHECKER (翻译检查器)
   "i18nChecker": {
     // === 基础 ===
     "title": "i18n 翻译检查器",
@@ -803,6 +805,14 @@ export default {
     "copiedCount": "已复制",
     "copyFailed": "复制失败",
 
+    // === 简单模式 === 🔥 新增
+    "total": "总计",
+    "found": "已找到",
+    "missing": "缺失",
+    "showing": "显示",
+    "from": "/",
+    "entries": "条记录",
+
     // === 消息 ===
     "noMissing": "所有键都存在！",
     "exported": "已导出！",
@@ -810,6 +820,33 @@ export default {
     "noIssues": "没有翻译问题！",
     "noPathIssues": "没有路径问题！",
     "clickToScan": "点击「启动扫描器」分析翻译",
-    "clickToValidate": "点击「验证路径」分析结构"
-  }
+    "clickToValidate": "点击「验证路径」分析结构",
+
+    "language": "语言",
+    "category": "类别",
+    "status": "状态",
+    "foundKeys": "已找到键",
+    "byCategory": "按类别",
+    "detailedResults": "详细结果"
+  },
+
+  // 🌐 I18N VIEW (国际化示例)
+  "i18nView": {
+    "title": "国际化示例",
+    "note": "添加和删除语言请参阅文档",
+    "datePlaceholder": "选择日期",
+    "selectPlaceholder": "选择",
+    "default": "默认",
+    "primary": "主要",
+    "success": "成功",
+    "info": "信息",
+    "warning": "警告",
+    "danger": "错误",
+    "tableName": "名称",
+    "tableDate": "日期",
+    "tableAddress": "地址",
+    "one": "一",
+    "two": "二",
+    "three": "三"
+  },
 };

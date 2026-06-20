@@ -10,8 +10,8 @@
       >
         <Icon class-name="search" />
         {{ loading
-        ? ($t('i18nChecker.scanning') || 'Сканирование...')
-        : ($t('i18nChecker.startScan') || 'Запустить сканер')
+          ? ($t('i18nChecker.scanning') || 'Сканирование...')
+          : ($t('i18nChecker.startScan') || 'Запустить сканер')
         }}
       </el-button>
       <span class="i18n-scan-hint">
@@ -180,7 +180,7 @@
                   :data="filteredMissing"
                   stripe
                   size="small"
-                  height="280"
+                  height="350"
                   style="width: 100%;"
               >
                 <el-table-column prop="key" :label="$t('i18nChecker.colKey') || 'Ключ'" width="320" fixed>
@@ -313,7 +313,7 @@
 import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import Icon from '@/components/Icon/Icon.vue';
+import Icon from '@components/Icon/Icon.vue';
 
 const { t } = useI18n();
 
@@ -418,10 +418,8 @@ const copyMissing = (command) => {
 
   let text;
   if (isTemplate) {
-    // Шаблон для перевода: "key": ""
     text = items.map(item => `"${item.key}": ""`).join('\n');
   } else {
-    // Просто список ключей
     text = items.map(item => item.key).join('\n');
   }
 
@@ -445,7 +443,6 @@ const copyToClipboard = async (text, count) => {
         (t('i18nChecker.copiedCount') || 'Скопировано') + `: ${count}`
     );
   } catch (err) {
-    // Фолбэк для старых браузеров
     const textarea = document.createElement('textarea');
     textarea.value = text;
     textarea.style.position = 'fixed';
@@ -479,14 +476,14 @@ const getFlagEmoji = (lang) => {
 .i18n-scanner-mode {
   background: #fff;
   border-radius: 6px;
-  padding: 6px;
+  padding: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .i18n-scan-control {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   padding: 4px 6px;
   border-bottom: 1px solid #ebeef5;
 
@@ -502,7 +499,7 @@ const getFlagEmoji = (lang) => {
   .i18n-total-keys {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     padding: 2px 6px;
     background: #f0f9ff;
     border: 1px solid #b3d8ff;
@@ -527,8 +524,8 @@ const getFlagEmoji = (lang) => {
 .i18n-error-block {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px;
+  gap: 4px;
+  padding: 4px;
   margin: 4px 0;
   background: #fff1f0;
   border: 1px solid #ffccc7;
@@ -544,12 +541,12 @@ const getFlagEmoji = (lang) => {
 
 .i18n-scan-empty {
   text-align: center;
-  padding: 20px 16px;
+  padding: 10px;
   color: #909399;
 
   .bi {
     font-size: 28px;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     color: #c0c4cc;
     display: block;
   }
@@ -563,8 +560,8 @@ const getFlagEmoji = (lang) => {
 
 .i18n-lang-tabs {
   display: flex;
-  gap: 3px;
-  padding: 3px;
+  gap: 4px;
+  padding: 4px;
   background: #f5f7fa;
   border-radius: 4px;
   overflow-x: auto;
@@ -581,7 +578,7 @@ const getFlagEmoji = (lang) => {
   .i18n-lang-tab {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     padding: 0 8px;
     height: 22px;
     min-height: 22px;
@@ -665,7 +662,7 @@ const getFlagEmoji = (lang) => {
   .i18n-summary-item {
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     padding: 2px 4px;
     background: #fff;
     border: 1px solid #ebeef5;
@@ -749,7 +746,7 @@ const getFlagEmoji = (lang) => {
 }
 
 // ============================================================================
-// 🔥 🔥 🔥 ПАНЕЛЬ ПОИСКА И КОПИРОВАНИЯ — НОВОЕ!
+// 🔥 ПАНЕЛЬ ПОИСКА И КОПИРОВАНИЯ
 // ============================================================================
 
 .i18n-search-panel {
@@ -782,7 +779,6 @@ const getFlagEmoji = (lang) => {
   }
 }
 
-// 🔥 Подсветка найденного текста
 :deep(.i18n-highlight) {
   background: #fff3b0;
   color: #d4380d;
@@ -800,18 +796,18 @@ const getFlagEmoji = (lang) => {
   border-radius: 3px;
   overflow: hidden;
   border: 1px solid #ebeef5;
-  margin-top: 3px;
+  margin-top: 4px;
 
   :deep(.el-table) {
     .el-table__header th {
       background: #fafafa !important;
       font-weight: 600;
       font-size: 9px;
-      padding: 3px 0;
+      padding: 4px 0;
     }
 
     .el-table__row td {
-      padding: 3px 0;
+      padding: 4px 0;
       font-size: 9px;
     }
   }
@@ -819,7 +815,7 @@ const getFlagEmoji = (lang) => {
 
 .i18n-key-code {
   background: #f5f7fa;
-  padding: 1px 3px;
+  padding: 2px 4px;
   border-radius: 2px;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 8px;
@@ -830,7 +826,7 @@ const getFlagEmoji = (lang) => {
 .i18n-files-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 4px;
 
   .i18n-more-files {
     color: #909399;
@@ -849,13 +845,13 @@ const getFlagEmoji = (lang) => {
   border: 1px solid #ebeef5;
   max-height: 200px;
   overflow-y: auto;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .i18n-unused-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 2px;
+  gap: 4px;
 
   .i18n-unused-tag {
     font-family: 'Consolas', 'Monaco', monospace;
@@ -871,7 +867,7 @@ const getFlagEmoji = (lang) => {
 
 .i18n-no-issues {
   text-align: center;
-  padding: 16px;
+  padding: 10px;
   color: #52c41a;
 
   .bi {

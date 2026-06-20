@@ -1,27 +1,27 @@
 <template>
   <div class="i18n-checker-simple">
-    <!-- 🔥 КОМПАКТНАЯ ПАНЕЛЬ УПРАВЛЕНИЯ -->
+    <!-- 🔥 ПАНЕЛЬ УПРАВЛЕНИЯ -->
     <div class="i18n-control-bar">
       <el-radio-group v-model="selectedLang" size="small" @change="runCheck">
         <el-radio-button label="ru">🇷🇺 RU</el-radio-button>
-        <el-radio-button label="en">🇬 EN</el-radio-button>
+        <el-radio-button label="en">🇬🇧 EN</el-radio-button>
         <el-radio-button label="zh-cn">🇨🇳 ZH</el-radio-button>
       </el-radio-group>
 
       <el-select v-model="selectedCategory" size="small" style="width: 160px;">
-        <el-option label="Все категории" value="all" />
+        <el-option :label="$t('i18nChecker.allCategories')" value="all" />
         <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
       </el-select>
 
       <el-select v-model="selectedStatus" size="small" style="width: 140px;">
-        <el-option label="Все" value="all" />
-        <el-option label="✅ Найдено" value="found" />
-        <el-option label="❌ Отсутствует" value="missing" />
+        <el-option :label="$t('i18nChecker.all')" value="all" />
+        <el-option :label="$t('i18nChecker.statusFound')" value="found" />
+        <el-option :label="$t('i18nChecker.statusMissing')" value="missing" />
       </el-select>
 
       <el-input
           v-model="searchQuery"
-          placeholder="Поиск..."
+          :placeholder="$t('i18nChecker.search')"
           size="small"
           clearable
           style="width: 180px;"
@@ -35,38 +35,37 @@
 
       <el-button size="small" @click="runCheck">
         <Icon class-name="arrow-clockwise" />
-        Обновить
+        {{ $t('i18nChecker.refresh') }}
       </el-button>
       <el-button size="small" @click="exportMissing">
         <Icon class-name="download" />
-        Экспорт
+        {{ $t('i18nChecker.exportMissing') }}
       </el-button>
     </div>
 
-    <!--  КОМПАКТНАЯ СТАТИСТИКА -->
+    <!-- 🔥 СТАТИСТИКА -->
     <div class="i18n-stats-row">
       <div class="i18n-stat-chip">
-        <span class="i18n-stat-label">Всего:</span>
+        <span class="i18n-stat-label">{{ $t('i18nChecker.total') }}:</span>
         <span class="i18n-stat-value">{{ results.stats.total }}</span>
       </div>
       <div class="i18n-stat-chip i18n-stat-found">
-        <span class="i18n-stat-label">Найдено:</span>
+        <span class="i18n-stat-label">{{ $t('i18nChecker.found') }}:</span>
         <span class="i18n-stat-value">{{ results.stats.found }}</span>
         <span class="i18n-stat-percent">{{ percentFound }}%</span>
       </div>
       <div class="i18n-stat-chip i18n-stat-missing">
-        <span class="i18n-stat-label">Отсутствует:</span>
+        <span class="i18n-stat-label">{{ $t('i18nChecker.missing') }}:</span>
         <span class="i18n-stat-value">{{ results.stats.missing }}</span>
         <span class="i18n-stat-percent">{{ percentMissing }}%</span>
       </div>
 
-      <!-- Прогресс-бар -->
       <div class="i18n-progress-bar">
         <div class="i18n-progress-fill" :style="{ width: percentFound + '%' }" />
       </div>
     </div>
 
-    <!-- 🔥 КОМПАКТНЫЕ КАТЕГОРИИ -->
+    <!-- 🔥 КАТЕГОРИИ -->
     <div class="i18n-categories-row">
       <div
           v-for="(stat, cat) in results.stats.byCategory"
@@ -80,29 +79,29 @@
       </div>
     </div>
 
-    <!-- 🔥 ТАБЛИЦА С ПРОКРУТКОЙ -->
+    <!-- 🔥 ТАБЛИЦА -->
     <div class="i18n-table-wrapper">
       <el-table
           :data="filteredResults"
           stripe
           size="small"
-          height="500"
+          height="350"
           style="width: 100%;"
           :row-class-name="tableRowClassName"
       >
-        <el-table-column prop="key" label="Ключ" width="320" fixed>
+        <el-table-column prop="key" :label="$t('i18nChecker.colKey')" width="320" fixed>
           <template #default="{ row }">
             <code class="i18n-key-code">{{ row.key }}</code>
           </template>
         </el-table-column>
 
-        <el-table-column prop="category" label="Категория" width="130">
+        <el-table-column prop="category" :label="$t('i18nChecker.colCategory')" width="130">
           <template #default="{ row }">
             <el-tag size="small" effect="plain">{{ row.category }}</el-tag>
           </template>
         </el-table-column>
 
-        <el-table-column prop="priority" label="Приоритет" width="110" align="center">
+        <el-table-column prop="priority" :label="$t('i18nChecker.colPriority')" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="priorityType(row.priority)" size="small" effect="dark">
               {{ priorityLabel(row.priority) }}
@@ -110,28 +109,27 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="value" label="Перевод" min-width="200">
+        <el-table-column prop="value" :label="$t('i18nChecker.colTranslation')" min-width="200">
           <template #default="{ row }">
             <span v-if="row.value" class="i18n-translation-value">{{ row.value }}</span>
             <span v-else class="i18n-translation-missing">
               <Icon class-name="exclamation-circle" />
-              Не переведено
+              {{ $t('i18nChecker.notTranslated') }}
             </span>
           </template>
         </el-table-column>
 
-        <el-table-column label="Статус" width="90" align="center" fixed="right">
+        <el-table-column :label="$t('i18nChecker.colStatus')" width="90" align="center" fixed="right">
           <template #default="{ row }">
             <el-tag :type="row.value ? 'success' : 'danger'" size="small" effect="dark">
-              {{ row.value ? '✅ OK' : '❌ MISS' }}
+              {{ row.value ? '✅ ' + $t('i18nChecker.ok') : '❌ ' + $t('i18nChecker.miss') }}
             </el-tag>
           </template>
         </el-table-column>
       </el-table>
 
-      <!-- Счётчик внизу -->
       <div class="i18n-table-footer">
-        Показано {{ filteredResults.length }} из {{ allResults.length }} записей
+        {{ $t('i18nChecker.showing') }} {{ filteredResults.length }} {{ $t('i18nChecker.from') }} {{ allResults.length }} {{ $t('i18nChecker.entries') }}
       </div>
     </div>
   </div>
@@ -141,8 +139,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import Icon from '@/components/Icon/Icon.vue';
-import { keysToCheck, getCategories, checkTranslations, exportMissingAsJS } from '@/utils/i18nChecker';
+import Icon from '@components/Icon/Icon.vue';
+import { keysToCheck, getCategories, checkTranslations, exportMissingAsJS } from '@components/i18nChecker/utils/i18nChecker.js';
 
 const { t, locale } = useI18n();
 
@@ -207,9 +205,9 @@ const priorityType = (priority) => ({
 }[priority] || 'info');
 
 const priorityLabel = (priority) => ({
-  critical: 'КРИТ',
-  normal: 'НОРМ',
-  low: 'НИЗК'
+  critical: t('i18nChecker.priorityCritical'),
+  normal: t('i18nChecker.priorityNormal'),
+  low: t('i18nChecker.priorityLow')
 }[priority] || priority);
 
 const tableRowClassName = ({ row }) => {
@@ -218,7 +216,7 @@ const tableRowClassName = ({ row }) => {
 
 const exportMissing = () => {
   if (results.value.missing.length === 0) {
-    ElMessage.success('Все ключи присутствуют!');
+    ElMessage.success(t('i18nChecker.noMissing'));
     return;
   }
 
@@ -231,7 +229,7 @@ const exportMissing = () => {
   a.click();
   URL.revokeObjectURL(url);
 
-  ElMessage.success('Экспортировано!');
+  ElMessage.success(t('i18nChecker.exported'));
 };
 
 onMounted(() => {
@@ -243,17 +241,17 @@ onMounted(() => {
 .i18n-checker-simple {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 4px;
   height: 100%;
 }
 
 .i18n-control-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
+  gap: 4px;
+  padding: 4px 10px;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   flex-wrap: wrap;
 
@@ -265,19 +263,19 @@ onMounted(() => {
 .i18n-stats-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+  gap: 4px;
+  padding: 4px 10px;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
   .i18n-stat-chip {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 4px 10px;
     background: #f5f7fa;
-    border-radius: 6px;
+    border-radius: 4px;
     font-size: 13px;
 
     .i18n-stat-label {
@@ -327,16 +325,16 @@ onMounted(() => {
 .i18n-categories-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 4px;
+  padding: 4px 10px;
   background: #fff;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 
   .i18n-category-chip {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 4px 10px;
     background: #f5f7fa;
     border-radius: 4px;
@@ -369,7 +367,7 @@ onMounted(() => {
 
 .i18n-table-wrapper {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   flex: 1;
@@ -377,7 +375,7 @@ onMounted(() => {
   flex-direction: column;
 
   .i18n-table-footer {
-    padding: 8px 12px;
+    padding: 4px 10px;
     background: #fafafa;
     border-top: 1px solid #ebeef5;
     font-size: 12px;
@@ -388,7 +386,7 @@ onMounted(() => {
 
 .i18n-key-code {
   background: #f5f7fa;
-  padding: 2px 6px;
+  padding: 2px 4px;
   border-radius: 3px;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 11px;
@@ -423,11 +421,11 @@ onMounted(() => {
     background: #fafafa !important;
     font-weight: 600;
     font-size: 13px;
-    padding: 8px 0;
+    padding: 4px 0;
   }
 
   .el-table__row td {
-    padding: 6px 0;
+    padding: 4px 0;
     font-size: 13px;
   }
 }
