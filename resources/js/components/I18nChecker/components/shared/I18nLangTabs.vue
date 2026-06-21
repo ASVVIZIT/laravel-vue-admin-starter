@@ -20,7 +20,9 @@
 </template>
 
 <script setup>
-const props = defineProps({
+import { getFlagEmoji } from '@components/I18nChecker/config/languagesConfig.js';
+
+defineProps({
   languages: {
     type: Object,
     required: true
@@ -31,17 +33,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:modelValue']);
-
-const getFlagEmoji = (lang) => {
-  const flags = {
-    'ru': '🇷🇺',
-    'en': '🇬🇧',
-    'zh-cn': '🇨🇳',
-    'zh': '🇨🇳'
-  };
-  return flags[lang] || '🌍';
-};
+defineEmits(['update:modelValue']);
 </script>
 
 <style lang="scss" scoped>

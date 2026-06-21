@@ -3,8 +3,8 @@
     <!-- 🔥 ПАНЕЛЬ УПРАВЛЕНИЯ -->
     <div class="i18n-control-bar">
       <el-radio-group v-model="selectedLang" size="small" @change="runCheck">
-        <el-radio-button label="ru">🇷🇺 RU</el-radio-button>
-        <el-radio-button label="en">🇬🇧 EN</el-radio-button>
+        <el-radio-button label="ru">🇺 RU</el-radio-button>
+        <el-radio-button label="en">🇬 EN</el-radio-button>
         <el-radio-button label="zh-cn">🇨🇳 ZH</el-radio-button>
       </el-radio-group>
 
@@ -103,7 +103,7 @@
 
         <el-table-column prop="priority" :label="$t('i18nChecker.colPriority')" width="110" align="center">
           <template #default="{ row }">
-            <el-tag :type="priorityType(row.priority)" size="small" effect="dark">
+            <el-tag :type="getPriorityType(row.priority)" size="small" effect="dark">
               {{ priorityLabel(row.priority) }}
             </el-tag>
           </template>
@@ -140,7 +140,8 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Icon from '@components/Icon/Icon.vue';
-import { keysToCheck, getCategories, checkTranslations, exportMissingAsJS } from '@components/i18nChecker/utils/i18nChecker.js';
+import { keysToCheck, getCategories, checkTranslations, exportMissingAsJS } from '@components/I18nChecker/utils/i18nChecker.js';
+import { getPriorityType, getPriorityLabelKey } from '@components/I18nChecker/config/prioritiesConfig.js';
 
 const { t, locale } = useI18n();
 
@@ -198,17 +199,7 @@ const runCheck = () => {
   );
 };
 
-const priorityType = (priority) => ({
-  critical: 'danger',
-  normal: 'warning',
-  low: 'info'
-}[priority] || 'info');
-
-const priorityLabel = (priority) => ({
-  critical: t('i18nChecker.priorityCritical'),
-  normal: t('i18nChecker.priorityNormal'),
-  low: t('i18nChecker.priorityLow')
-}[priority] || priority);
+const priorityLabel = (priority) => t(getPriorityLabelKey(priority));
 
 const tableRowClassName = ({ row }) => {
   return row.value ? 'i18n-row-found' : 'i18n-row-missing';

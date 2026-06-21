@@ -44,44 +44,7 @@
       <div v-if="activeLang" class="i18n-lang-content">
 
         <!-- Сводка -->
-        <div class="i18n-lang-summary">
-          <div class="i18n-summary-item">
-            <span class="i18n-summary-label">{{ $t('i18nChecker.totalKeys') || 'Всего' }}</span>
-            <span class="i18n-summary-value">
-              {{ report.summary?.languages?.[activeLang]?.totalKeys || 0 }}
-            </span>
-          </div>
-          <div class="i18n-summary-item i18n-summary-coverage">
-            <span class="i18n-summary-label">{{ $t('i18nChecker.coverage') || 'Покрытие' }}</span>
-            <span class="i18n-summary-value">
-              {{ report.summary?.languages?.[activeLang]?.coverage || '0%' }}
-            </span>
-          </div>
-          <div class="i18n-summary-item i18n-summary-used">
-            <span class="i18n-summary-label">{{ $t('i18nChecker.usedInCode') || 'Исп.' }}</span>
-            <span class="i18n-summary-value">
-              {{ report.summary?.languages?.[activeLang]?.usedInCode || 0 }}
-            </span>
-          </div>
-          <div class="i18n-summary-item i18n-summary-missing">
-            <span class="i18n-summary-label">{{ $t('i18nChecker.missingKeys') || 'Отс.' }}</span>
-            <span class="i18n-summary-value">
-              {{ report.summary?.languages?.[activeLang]?.missing || 0 }}
-            </span>
-          </div>
-          <div class="i18n-summary-item i18n-summary-unused">
-            <span class="i18n-summary-label">{{ $t('i18nChecker.unusedKeys') || 'Не исп.' }}</span>
-            <span class="i18n-summary-value">
-              {{ report.summary?.languages?.[activeLang]?.unused || 0 }}
-            </span>
-          </div>
-          <div class="i18n-summary-progress">
-            <div
-                class="i18n-summary-progress-fill"
-                :style="{ width: report.summary?.languages?.[activeLang]?.coverage || '0%' }"
-            />
-          </div>
-        </div>
+        <I18nStatsGrid :stats="scannerStats" />
 
         <!-- 🔥 СВОРАЧИВАЕМЫЕ СЕКЦИИ -->
         <el-collapse v-model="expandedSections" class="i18n-collapse">
@@ -301,6 +264,9 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Icon from '@components/Icon/Icon.vue';
 import I18nLangTabs from '@components/I18nChecker/components/shared/I18nLangTabs.vue';
+import I18nStatsGrid from '@components/I18nChecker/components/shared/I18nStatsGrid.vue';
+import { SCANNER_STATS_CONFIG } from '@components/I18nChecker/config/scannerStatsConfig.js';
+import { SCANNER_SECTIONS } from '@components/I18nChecker/config/sectionsConfig.js';
 
 const { t } = useI18n();
 
@@ -313,7 +279,7 @@ const props = defineProps({
 defineEmits(['scan']);
 
 const activeLang = ref(null);
-const expandedSections = ref(['missing', 'unused']);
+const expandedSections = ref([...SCANNER_SECTIONS]);
 
 // 🔥 Поиск и фильтры
 const missingSearch = ref('');
@@ -447,6 +413,20 @@ const copyToClipboard = async (text, count) => {
     document.body.removeChild(textarea);
   }
 };
+
+// 🔥 Статистика для shared компонента (конфиг + маппинг)
+const scannerStats = computed(() => {
+  if (!activeLang.value || !props.report?.summary?.languages?.[activeLang.value]) return [];
+
+  const langData = props.report.summary.languages[activeLang.value];
+
+  return SCANNER_STATS_CONFIG.map(cfg => ({
+    icon: cfg.icon,
+    label: t(cfg.labelKey),
+    value: langData[cfg.key] || 0,
+    class: cfg.class
+  }));
+});
 </script>
 
 <style lang="scss" scoped>
@@ -531,145 +511,7 @@ const copyToClipboard = async (text, count) => {
   p { margin: 0; font-size: 10px; }
 }
 
-// ============================================================================
-// 🔥 ТАБЫ ЯЗЫКОВ
-// ============================================================================
-
-.i18n-lang-tabs {
-  display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  height: 28px;
-  min-height: 28px;
-  scrollbar-width: thin;
-  scrollbar-color: #c0c4cc transparent;
-
-  &::-webkit-scrollbar { height: 3px; }
-  &::-webkit-scrollbar-track { background: transparent; }
-  &::-webkit-scrollbar-thumb { background: #c0c4cc; border-radius: 2px; }
-
-  .i18n-lang-tab {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 0 8px;
-    height: 22px;
-    min-height: 22px;
-    background: #fff;
-    border: 1px solid #dcdfe6;
-    border-radius: 3px;
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    flex-shrink: 0;
-    font-size: 9px;
-
-    &:hover {
-      border-color: #b3d8ff;
-      background: #ecf5ff;
-    }
-
-    &.i18n-lang-tab-active {
-      background: #1890ff;
-      border-color: #1890ff;
-      color: #fff;
-
-      .i18n-lang-coverage {
-        color: #fff;
-        background: rgba(255, 255, 255, 0.2);
-      }
-
-      .i18n-lang-stats {
-        .i18n-lang-missing,
-        .i18n-lang-unused {
-          color: rgba(255, 255, 255, 0.8);
-        }
-      }
-    }
-
-    .i18n-lang-flag { font-size: 10px; }
-    .i18n-lang-name { font-weight: 600; font-size: 9px; }
-
-    .i18n-lang-coverage {
-      font-weight: 700;
-      font-size: 9px;
-      color: #52c41a;
-      padding: 1px 3px;
-      background: #f6ffed;
-      border-radius: 2px;
-
-      &.i18n-lang-coverage-bad {
-        color: #ff4d4f;
-        background: #fff1f0;
-      }
-    }
-
-    .i18n-lang-stats {
-      display: flex;
-      gap: 2px;
-      font-size: 8px;
-
-      .i18n-lang-missing { color: #ff4d4f; }
-      .i18n-lang-unused { color: #faad14; }
-    }
-  }
-}
-
 .i18n-lang-content { margin-top: 4px; }
-
-// ============================================================================
-// 🔥 СВОДКА
-// ============================================================================
-
-.i18n-lang-summary {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 6px;
-  background: #fafafa;
-  border: 1px solid #ebeef5;
-  border-radius: 3px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-
-  .i18n-summary-item {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 4px;
-    background: #fff;
-    border: 1px solid #ebeef5;
-    border-radius: 2px;
-
-    .i18n-summary-label { font-size: 8px; color: #909399; }
-    .i18n-summary-value { font-size: 9px; font-weight: 700; color: #303133; }
-
-    &.i18n-summary-coverage .i18n-summary-value { color: #1890ff; }
-    &.i18n-summary-used .i18n-summary-value { color: #52c41a; }
-    &.i18n-summary-missing .i18n-summary-value { color: #ff4d4f; }
-    &.i18n-summary-unused .i18n-summary-value { color: #faad14; }
-  }
-
-  .i18n-summary-progress {
-    flex: 1;
-    min-width: 60px;
-    height: 4px;
-    background: #f0f0f0;
-    border-radius: 2px;
-    overflow: hidden;
-
-    .i18n-summary-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #52c41a, #73d13d);
-      border-radius: 2px;
-      transition: width 0.5s ease;
-    }
-  }
-}
 
 // ============================================================================
 // 🔥 СВОРАЧИВАЕМЫЕ СЕКЦИИ

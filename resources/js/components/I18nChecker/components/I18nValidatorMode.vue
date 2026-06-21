@@ -29,36 +29,7 @@
     <div v-if="report" class="i18n-validate-results">
 
       <!-- Статистика -->
-      <div class="i18n-stats-grid">
-        <div class="i18n-stat-card">
-          <div class="i18n-stat-icon">📊</div>
-          <div class="i18n-stat-info">
-            <div class="i18n-stat-value">{{ report.summary?.totalKeys || 0 }}</div>
-            <div class="i18n-stat-label">{{ $t('i18nChecker.totalKeys') || 'Всего ключей' }}</div>
-          </div>
-        </div>
-        <div class="i18n-stat-card i18n-stat-duplicates">
-          <div class="i18n-stat-icon">🔁</div>
-          <div class="i18n-stat-info">
-            <div class="i18n-stat-value">{{ report.summary?.duplicates || 0 }}</div>
-            <div class="i18n-stat-label">{{ $t('i18nChecker.duplicates') || 'Дубликатов' }}</div>
-          </div>
-        </div>
-        <div class="i18n-stat-card i18n-stat-wrong-paths">
-          <div class="i18n-stat-icon"></div>
-          <div class="i18n-stat-info">
-            <div class="i18n-stat-value">{{ report.summary?.wrongPaths || 0 }}</div>
-            <div class="i18n-stat-label">{{ $t('i18nChecker.wrongPaths') || 'Неправильных путей' }}</div>
-          </div>
-        </div>
-        <div class="i18n-stat-card i18n-stat-flat-keys">
-          <div class="i18n-stat-icon">📝</div>
-          <div class="i18n-stat-info">
-            <div class="i18n-stat-value">{{ report.summary?.flatKeys || 0 }}</div>
-            <div class="i18n-stat-label">{{ $t('i18nChecker.flatKeys') || 'Плоских ключей' }}</div>
-          </div>
-        </div>
-      </div>
+      <I18nStatsGrid :stats="validatorStats" />
 
       <!-- Сворачиваемые секции -->
       <el-collapse v-model="expandedSections" class="i18n-collapse">
@@ -219,9 +190,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import Icon from '@components/Icon/Icon.vue';
+import I18nStatsGrid from '@components/I18nChecker/components/shared/I18nStatsGrid.vue';
+import { VALIDATOR_STATS_CONFIG } from '@components/I18nChecker/config/validatorStatsConfig.js';
+import { VALIDATOR_SECTIONS } from '@components/I18nChecker/config/sectionsConfig.js';
 
 const { t } = useI18n();
 
@@ -233,7 +207,21 @@ defineProps({
 
 defineEmits(['validate']);
 
-const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
+const expandedSections = ref([...VALIDATOR_SECTIONS]);
+
+// 🔥 Статистика для shared компонента (конфиг + маппинг)
+const validatorStats = computed(() => {
+  if (!props.report?.summary) return [];
+
+  const summary = props.report.summary;
+
+  return VALIDATOR_STATS_CONFIG.map(cfg => ({
+    icon: cfg.icon,
+    label: t(cfg.labelKey),
+    value: summary[cfg.key] || 0,
+    class: cfg.class
+  }));
+});
 </script>
 
 <style lang="scss" scoped>
@@ -287,45 +275,6 @@ const expandedSections = ref(['duplicates', 'wrongPaths', 'flatKeys']);
   }
 
   p { margin: 0; font-size: 10px; }
-}
-
-.i18n-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 4px;
-  margin-bottom: 4px;
-
-  .i18n-stat-card {
-    background: #f5f7fa;
-    border-radius: 4px;
-    padding: 4px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    border-left: 3px solid #52c41a;
-
-    &.i18n-stat-duplicates { border-left-color: #faad14; }
-    &.i18n-stat-wrong-paths { border-left-color: #ff4d4f; }
-    &.i18n-stat-flat-keys { border-left-color: #1890ff; }
-
-    .i18n-stat-icon { font-size: 20px; }
-
-    .i18n-stat-info {
-      flex: 1;
-
-      .i18n-stat-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #303133;
-      }
-
-      .i18n-stat-label {
-        font-size: 10px;
-        color: #909399;
-        margin-top: 2px;
-      }
-    }
-  }
 }
 
 .i18n-collapse {
