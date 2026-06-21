@@ -64,7 +64,7 @@
               </div>
             </template>
 
-            <!-- 🔥 ПАНЕЛЬ ПОИСКА И КОПИРОВАНИЯ -->
+            <!--  ПАНЕЛЬ ПОИСКА И КОПИРОВАНИЯ -->
             <div class="i18n-search-panel">
               <el-input
                   v-model="missingSearch"
@@ -106,16 +106,16 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="filtered-keys">
+                    <el-dropdown-item :command="COPY_COMMANDS.FILTERED_KEYS">
                       {{ $t('i18nChecker.copyFilteredKeys') || 'Отфильтрованные ключи' }}
                     </el-dropdown-item>
-                    <el-dropdown-item command="all-keys">
+                    <el-dropdown-item :command="COPY_COMMANDS.ALL_KEYS">
                       {{ $t('i18nChecker.copyAllKeys') || 'Все missing ключи' }}
                     </el-dropdown-item>
-                    <el-dropdown-item command="filtered-template" divided>
+                    <el-dropdown-item :command="COPY_COMMANDS.FILTERED_TEMPLATE" divided>
                       {{ $t('i18nChecker.copyFilteredTemplate') || 'Шаблон для перевода (отфильтр.)' }}
                     </el-dropdown-item>
-                    <el-dropdown-item command="all-template">
+                    <el-dropdown-item :command="COPY_COMMANDS.ALL_TEMPLATE">
                       {{ $t('i18nChecker.copyAllTemplate') || 'Шаблон для перевода (все)' }}
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -141,7 +141,7 @@
                   <template #default="{ row }">
                     <div class="i18n-files-list">
                       <el-tag
-                          v-for="file in (row.files || []).slice(0, 3)"
+                          v-for="file in getFilesSlice(row.files)"
                           :key="file"
                           size="small"
                           type="info"
@@ -149,8 +149,8 @@
                       >
                         {{ file }}
                       </el-tag>
-                      <span v-if="(row.files || []).length > 3" class="i18n-more-files">
-                        +{{ row.files.length - 3 }}
+                      <span v-if="getRemainingCount(row.files) > 0" class="i18n-more-files">
+                        +{{ getRemainingCount(row.files) }}
                       </span>
                     </div>
                   </template>
@@ -206,10 +206,10 @@
                 </el-button>
                 <template #dropdown>
                   <el-dropdown-menu>
-                    <el-dropdown-item command="filtered">
+                    <el-dropdown-item :command="COPY_COMMANDS.FILTERED">
                       {{ $t('i18nChecker.copyFilteredKeys') || 'Отфильтрованные ключи' }}
                     </el-dropdown-item>
-                    <el-dropdown-item command="all">
+                    <el-dropdown-item :command="COPY_COMMANDS.ALL">
                       {{ $t('i18nChecker.copyAllKeys') || 'Все unused ключи' }}
                     </el-dropdown-item>
                   </el-dropdown-menu>
@@ -221,7 +221,7 @@
             <div class="i18n-unused-wrapper">
               <div class="i18n-unused-list">
                 <el-tag
-                    v-for="key in filteredUnused.slice(0, 500)"
+                    v-for="key in filteredUnused.slice(0, DISPLAY_LIMITS.unusedKeysLimit)"
                     :key="key"
                     class="i18n-unused-tag"
                     size="small"
@@ -230,8 +230,8 @@
                 >
                   <span v-html="highlightText(key, unusedSearch)"></span>
                 </el-tag>
-                <span v-if="filteredUnused.length > 500" class="i18n-more-unused">
-                  ... {{ filteredUnused.length - 500 }} ещё
+                <span v-if="filteredUnused.length > DISPLAY_LIMITS.unusedKeysLimit" class="i18n-more-unused">
+                  ... {{ filteredUnused.length - DISPLAY_LIMITS.unusedKeysLimit }} ещё
                 </span>
               </div>
             </div>
@@ -267,6 +267,10 @@ import I18nLangTabs from '@components/I18nChecker/components/shared/I18nLangTabs
 import I18nStatsGrid from '@components/I18nChecker/components/shared/I18nStatsGrid.vue';
 import { SCANNER_STATS_CONFIG } from '@components/I18nChecker/config/scannerStatsConfig.js';
 import { SCANNER_SECTIONS } from '@components/I18nChecker/config/sectionsConfig.js';
+import { DISPLAY_LIMITS, getFilesSlice, getRemainingCount } from '@components/I18nChecker/config/displayLimitsConfig.js';
+import { COPY_COMMANDS, isFilteredCommand, isTemplateCommand, isExactCommand } from '@components/I18nChecker/config/copyCommandsConfig.js';
+import { highlightText } from '@components/I18nChecker/utils/highlightUtils.js';
+import { copyToClipboard } from '@components/I18nChecker/utils/clipboardUtils.js';
 
 const { t } = useI18n();
 
@@ -281,7 +285,7 @@ defineEmits(['scan']);
 const activeLang = ref(null);
 const expandedSections = ref([...SCANNER_SECTIONS]);
 
-// 🔥 Поиск и фильтры
+//  Поиск и фильтры
 const missingSearch = ref('');
 const missingFileFilter = ref('');
 const unusedSearch = ref('');
@@ -354,64 +358,37 @@ const filteredUnused = computed(() => {
   );
 });
 
-// 🔥 Подсветка найденного текста
-const highlightText = (text, query) => {
-  if (!query || !query.trim()) return text;
-  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const regex = new RegExp(`(${escaped})`, 'gi');
-  return text.replace(regex, '<mark class="i18n-highlight">$1</mark>');
-};
-
 // 🔥 Копирование missing ключей
-const copyMissing = (command) => {
-  const isFiltered = command.startsWith('filtered');
-  const isTemplate = command.endsWith('template');
+const copyMissing = async (command) => {
+  const filtered = isFilteredCommand(command);
+  const template = isTemplateCommand(command);
 
-  const items = isFiltered ? filteredMissing.value : currentMissing.value;
+  const items = filtered ? filteredMissing.value : currentMissing.value;
 
-  let text;
-  if (isTemplate) {
-    text = items.map(item => `"${item.key}": ""`).join('\n');
-  } else {
-    text = items.map(item => item.key).join('\n');
-  }
+  const text = template
+      ? items.map(item => `"${item.key}": ""`).join('\n')
+      : items.map(item => item.key).join('\n');
 
-  copyToClipboard(text, items.length);
+  const success = await copyToClipboard(text);
+  ElMessage.success(
+      success
+          ? `${t('i18nChecker.copiedCount') || 'Скопировано'}: ${items.length}`
+          : t('i18nChecker.copyFailed') || 'Не удалось скопировать'
+  );
 };
 
 // 🔥 Копирование unused ключей
-const copyUnused = (command) => {
-  const isFiltered = command === 'filtered';
-  const keys = isFiltered ? filteredUnused.value : currentUnused.value;
+const copyUnused = async (command) => {
+  const filtered = isExactCommand(command, COPY_COMMANDS.FILTERED);
+  const keys = filtered ? filteredUnused.value : currentUnused.value;
   const text = keys.join('\n');
 
-  copyToClipboard(text, keys.length);
-};
-
-// 🔥 Общая функция копирования
-const copyToClipboard = async (text, count) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    ElMessage.success(
-        (t('i18nChecker.copiedCount') || 'Скопировано') + `: ${count}`
-    );
-  } catch (err) {
-    const textarea = document.createElement('textarea');
-    textarea.value = text;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    try {
-      document.execCommand('copy');
-      ElMessage.success(
-          (t('i18nChecker.copiedCount') || 'Скопировано') + `: ${count}`
-      );
-    } catch (e) {
-      ElMessage.error(t('i18nChecker.copyFailed') || 'Не удалось скопировать');
-    }
-    document.body.removeChild(textarea);
-  }
+  const success = await copyToClipboard(text);
+  ElMessage.success(
+      success
+          ? `${t('i18nChecker.copiedCount') || 'Скопировано'}: ${keys.length}`
+          : t('i18nChecker.copyFailed') || 'Не удалось скопировать'
+  );
 };
 
 // 🔥 Статистика для shared компонента (конфиг + маппинг)

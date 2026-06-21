@@ -118,7 +118,7 @@
                 <template #default="{ row }">
                   <div class="i18n-files-list">
                     <el-tag
-                        v-for="file in (row.usedIn || []).slice(0, 2)"
+                        v-for="file in getFilesSlice(row.usedIn, DISPLAY_LIMITS.usedInFilesLimit)"
                         :key="file"
                         size="small"
                         type="info"
@@ -151,7 +151,7 @@
           <div class="i18n-unused-wrapper">
             <div class="i18n-unused-list">
               <el-tag
-                  v-for="key in report.flatKeys.slice(0, 200)"
+                  v-for="key in report.flatKeys.slice(0, DISPLAY_LIMITS.flatKeysLimit)"
                   :key="key"
                   class="i18n-unused-tag"
                   size="small"
@@ -160,8 +160,8 @@
               >
                 {{ key }}
               </el-tag>
-              <span v-if="report.flatKeys.length > 200" class="i18n-more-unused">
-                ... {{ report.flatKeys.length - 200 }} ещё
+              <span v-if="report.flatKeys.length > DISPLAY_LIMITS.flatKeysLimit" class="i18n-more-unused">
+                ... {{ report.flatKeys.length - DISPLAY_LIMITS.flatKeysLimit }} ещё
               </span>
             </div>
           </div>
@@ -196,6 +196,7 @@ import Icon from '@components/Icon/Icon.vue';
 import I18nStatsGrid from '@components/I18nChecker/components/shared/I18nStatsGrid.vue';
 import { VALIDATOR_STATS_CONFIG } from '@components/I18nChecker/config/validatorStatsConfig.js';
 import { VALIDATOR_SECTIONS } from '@components/I18nChecker/config/sectionsConfig.js';
+import { DISPLAY_LIMITS, getFilesSlice } from '@components/I18nChecker/config/displayLimitsConfig.js';
 
 const { t } = useI18n();
 
@@ -209,7 +210,7 @@ defineEmits(['validate']);
 
 const expandedSections = ref([...VALIDATOR_SECTIONS]);
 
-// 🔥 Статистика для shared компонента (конфиг + маппинг)
+//  Статистика для shared компонента (конфиг + маппинг)
 const validatorStats = computed(() => {
   if (!props.report?.summary) return [];
 
