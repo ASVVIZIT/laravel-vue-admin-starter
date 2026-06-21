@@ -35,24 +35,10 @@
     <div v-if="report" class="i18n-scan-results">
 
       <!-- 🔥 ТАБЫ ЯЗЫКОВ -->
-      <div class="i18n-lang-tabs">
-        <button
-            v-for="(stats, lang) in (report.summary?.languages || {})"
-            :key="lang"
-            :class="['i18n-lang-tab', { 'i18n-lang-tab-active': activeLang === lang }]"
-            @click="activeLang = lang"
-        >
-          <span class="i18n-lang-flag">{{ getFlagEmoji(lang) }}</span>
-          <span class="i18n-lang-name">{{ lang.toUpperCase() }}</span>
-          <span class="i18n-lang-coverage" :class="{ 'i18n-lang-coverage-bad': stats.missing > 0 }">
-            {{ stats.coverage || '0%' }}
-          </span>
-          <span class="i18n-lang-stats">
-            <span class="i18n-lang-missing">−{{ stats.missing || 0 }}</span>
-            <span class="i18n-lang-unused">~{{ stats.unused || 0 }}</span>
-          </span>
-        </button>
-      </div>
+      <I18nLangTabs
+          :languages="report.summary?.languages || {}"
+          v-model="activeLang"
+      />
 
       <!-- 🔥 КОНТЕНТ АКТИВНОГО ЯЗЫКА -->
       <div v-if="activeLang" class="i18n-lang-content">
@@ -314,6 +300,7 @@ import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import Icon from '@components/Icon/Icon.vue';
+import I18nLangTabs from '@components/I18nChecker/components/shared/I18nLangTabs.vue';
 
 const { t } = useI18n();
 
@@ -459,16 +446,6 @@ const copyToClipboard = async (text, count) => {
     }
     document.body.removeChild(textarea);
   }
-};
-
-const getFlagEmoji = (lang) => {
-  const flags = {
-    'ru': '🇷🇺',
-    'en': '🇬🇧',
-    'zh-cn': '🇨🇳',
-    'zh': '🇨🇳'
-  };
-  return flags[lang] || '🌍';
 };
 </script>
 
