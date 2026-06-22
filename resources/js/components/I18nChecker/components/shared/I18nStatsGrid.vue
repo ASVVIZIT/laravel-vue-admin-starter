@@ -1,11 +1,6 @@
 <template>
   <div class="i18n-stats-grid">
-    <div
-        v-for="stat in stats"
-        :key="stat.label"
-        class="i18n-stat-card"
-        :class="stat.class"
-    >
+    <div v-for="stat in stats" :key="stat.label" class="i18n-stat-card" :class="stat.class">
       <div class="i18n-stat-icon">{{ stat.icon }}</div>
       <div class="i18n-stat-info">
         <div class="i18n-stat-value">{{ stat.value }}</div>
@@ -18,17 +13,14 @@
 
 <script setup>
 defineProps({
-  stats: {
-    type: Array,
-    required: true
-  }
+  stats: { type: Array, required: true }
 });
 </script>
 
 <style lang="scss" scoped>
 .i18n-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
   gap: 4px;
   margin-bottom: 4px;
 
@@ -49,24 +41,9 @@ defineProps({
 
     .i18n-stat-info {
       flex: 1;
-
-      .i18n-stat-value {
-        font-size: 18px;
-        font-weight: 700;
-        color: #303133;
-      }
-
-      .i18n-stat-label {
-        font-size: 10px;
-        color: #909399;
-        margin-top: 2px;
-      }
-
-      .i18n-stat-detail {
-        font-size: 10px;
-        color: #c0c4cc;
-        margin-top: 2px;
-      }
+      .i18n-stat-value { font-size: 18px; font-weight: 700; color: #303133; }
+      .i18n-stat-label { font-size: 10px; color: #909399; margin-top: 2px; }
+      .i18n-stat-detail { font-size: 10px; color: #c0c4cc; margin-top: 2px; }
     }
   }
 }

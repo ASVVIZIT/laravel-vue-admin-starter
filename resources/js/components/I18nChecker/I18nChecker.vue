@@ -1,13 +1,22 @@
 <template>
   <div class="i18n-checker">
     <div class="i18n-page-header">
-      <h1 class="i18n-page-title">
-        <Icon class-name="translate" />
-        {{ $t('i18nChecker.title') || 'Проверка переводов i18n' }}
-      </h1>
-      <p class="i18n-page-subtitle">
-        {{ $t('i18nChecker.subtitle') || 'Проверка и сканирование переводов' }}
-      </p>
+      <div class="i18n-page-header-left">
+        <h1 class="i18n-page-title">
+          <I18nIcon name="i18n.title" />
+          {{ $t('i18nChecker.title') || 'Проверка переводов i18n' }}
+        </h1>
+        <p class="i18n-page-subtitle">
+          {{ $t('i18nChecker.subtitle') || 'Проверка и сканирование переводов' }}
+        </p>
+      </div>
+
+      <div class="i18n-page-header-right">
+        <el-button size="small" @click="showSettings = true">
+          <I18nIcon name="settings" />
+          {{ $t('i18nChecker.settings.open') || 'Настройки' }}
+        </el-button>
+      </div>
     </div>
 
     <div class="i18n-mode-switcher">
@@ -15,21 +24,21 @@
           :class="['i18n-mode-btn', { 'i18n-mode-active': currentMode === 'simple' }]"
           @click="switchMode('simple')"
       >
-        <Icon class-name="check-circle" />
+        <I18nIcon name="i18n.simpleMode" />
         <span>{{ $t('i18nChecker.simpleMode') || 'Простая проверка' }}</span>
       </button>
       <button
           :class="['i18n-mode-btn', { 'i18n-mode-active': currentMode === 'scanner' }]"
           @click="switchMode('scanner')"
       >
-        <Icon class-name="search" />
+        <I18nIcon name="i18n.scannerMode" />
         <span>{{ $t('i18nChecker.scannerMode') || 'Сканер кода' }}</span>
       </button>
       <button
           :class="['i18n-mode-btn', { 'i18n-mode-active': currentMode === 'validator' }]"
           @click="switchMode('validator')"
       >
-        <Icon class-name="warning" />
+        <I18nIcon name="i18n.validatorMode" />
         <span>{{ $t('i18nChecker.validatorMode') || 'Проверка путей' }}</span>
       </button>
     </div>
@@ -55,15 +64,21 @@
           @validate="runValidator"
       />
     </div>
+
+    <I18nSettingsModal v-model="showSettings" />
   </div>
 </template>
 
 <script setup>
-import Icon from '@components/Icon/Icon.vue';
+import { ref } from 'vue';
+import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue';
 import I18nCheckerSimpleMode from '@components/I18nChecker/components/I18nCheckerSimpleMode.vue';
 import I18nScannerMode from '@components/I18nChecker/components/I18nScannerMode.vue';
 import I18nValidatorMode from '@components/I18nChecker/components/I18nValidatorMode.vue';
+import I18nSettingsModal from '@components/I18nChecker/components/settings/modals/I18nSettingsModal.vue';
 import { useI18nChecker } from '@components/I18nChecker/composables/useI18nChecker.js';
+
+const showSettings = ref(false);
 
 const {
   currentMode,
@@ -87,7 +102,15 @@ const {
 }
 
 .i18n-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 4px;
+  gap: 16px;
+}
+
+.i18n-page-header-left {
+  flex: 1;
 
   .i18n-page-title {
     font-size: 20px;
@@ -97,11 +120,6 @@ const {
     display: flex;
     align-items: center;
     gap: 4px;
-
-    .bi {
-      font-size: 24px;
-      color: #1890ff;
-    }
   }
 
   .i18n-page-subtitle {
@@ -109,6 +127,12 @@ const {
     color: #909399;
     margin: 0;
   }
+}
+
+.i18n-page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .i18n-mode-switcher {

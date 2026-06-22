@@ -1,7 +1,3 @@
-/**
- * Composable для управления состоянием I18n Checker
- * Выносит бизнес-логику из UI компонентов
- */
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
@@ -12,19 +8,14 @@ export function useI18nChecker() {
 
     const currentMode = ref('simple');
 
-    // Scanner state
     const scannerLoading = ref(false);
     const scannerReport = ref(null);
     const scannerError = ref(null);
 
-    // Validator state
     const validatorLoading = ref(false);
     const validatorReport = ref(null);
     const validatorError = ref(null);
 
-    /**
-     * Запустить сканер кода
-     */
     const runScanner = async () => {
         scannerLoading.value = true;
         scannerError.value = null;
@@ -47,9 +38,6 @@ export function useI18nChecker() {
         }
     };
 
-    /**
-     * Запустить валидатор путей
-     */
     const runValidator = async () => {
         validatorLoading.value = true;
         validatorError.value = null;
@@ -72,13 +60,9 @@ export function useI18nChecker() {
         }
     };
 
-    /**
-     * Переключить режим
-     */
     const switchMode = (mode) => {
         currentMode.value = mode;
 
-        // Автозапуск при первом переключении
         if (mode === 'scanner' && !scannerReport.value && !scannerError.value) {
             runScanner();
         } else if (mode === 'validator' && !validatorReport.value && !validatorError.value) {
@@ -89,14 +73,10 @@ export function useI18nChecker() {
     return {
         currentMode,
         switchMode,
-
-        // Scanner
         scannerLoading,
         scannerReport,
         scannerError,
         runScanner,
-
-        // Validator
         validatorLoading,
         validatorReport,
         validatorError,
