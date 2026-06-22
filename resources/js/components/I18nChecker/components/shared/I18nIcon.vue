@@ -1,10 +1,13 @@
 <template>
+  <!-- Bootstrap Icons -->
   <i
       v-if="resolvedSource === ICON_SOURCES.BOOTSTRAP"
       :class="bootstrapClasses"
       :style="iconStyle"
       aria-hidden="true"
   ></i>
+
+  <!-- Fenix SVG Icons -->
   <component
       v-else-if="resolvedSource === ICON_SOURCES.FENIX && fenixIcon"
       :is="fenixIcon"
@@ -13,6 +16,16 @@
       :class="['i18n-custom-icon', customClass]"
       v-bind="$attrs"
   />
+
+  <!-- Fallback: если fenix запрошен, но не найден → bootstrap -->
+  <i
+      v-else-if="resolvedSource === ICON_SOURCES.FENIX && !fenixIcon"
+      :class="['bi', `bi-${bootstrapFallbackName}`, 'i18n-custom-icon', customClass]"
+      :style="iconStyle"
+      aria-hidden="true"
+  ></i>
+
+  <!-- Custom (локальные SVG модуля) -->
   <i
       v-else
       :class="['bi', `bi-${resolvedName}`, 'i18n-custom-icon', customClass]"
@@ -46,19 +59,75 @@ const props = defineProps({
 
 const iconConfig = computed(() => getIconConfig(props.name));
 
+// 🔥 ИСПРАВЛЕННЫЙ ПРИОРИТЕТ: prop > settings > config > default
 const resolvedSource = computed(() => {
   if (props.forceBootstrap) return ICON_SOURCES.BOOTSTRAP;
+
+  const userSource = settingsSource.value;
+  if (userSource === ICON_SOURCES.FENIX) return ICON_SOURCES.FENIX;
+  if (userSource === ICON_SOURCES.CUSTOM) return ICON_SOURCES.CUSTOM;
+
   const configSource = iconConfig.value?.source;
-  return configSource || settingsSource.value || ICON_SOURCES.BOOTSTRAP;
+  if (configSource === ICON_SOURCES.FENIX) return ICON_SOURCES.FENIX;
+
+  return ICON_SOURCES.BOOTSTRAP;
 });
 
 const resolvedName = computed(() => getIconRealName(props.name));
 
+// 🔥 ИСПРАВЛЕНО: добавлен маппинг для стандартных иконок модуля
+const bootstrapFallbackName = computed(() => {
+  const iconMap = {
+    // Соцсети (Fenix)
+    'Telegram': 'send',
+    'Vk': 'chat',
+    'WhatsApp': 'chat-dots',
+    'YouTube': 'play-circle',
+    'Instagram': 'camera',
+    'Twitter': 'chat-square-text',
+    'Facebook': 'chat-fill',
+    'TikTok': 'music-note',
+    'Pinterest': 'pin',
+    'LinkedIn': 'briefcase',
+    // Карты (Fenix)
+    '2gis': 'geo-alt',
+    'GoogleMaps': 'geo-alt',
+    'YandexMaps': 'geo-alt',
+    // 🔥 Стандартные иконки модуля I18nChecker
+    'search': 'search',
+    'settings': 'gear',
+    'key': 'key',
+    'refresh': 'arrow-clockwise',
+    'export': 'download',
+    'copy': 'clipboard',
+    'missing': 'exclamation-circle',
+    'success': 'check-circle',
+    'warning': 'exclamation-triangle',
+    'info': 'info-circle',
+    'close': 'x',
+    // Заголовок и режимы
+    'i18n.title': 'translate',
+    'i18n.simpleMode': 'check-circle',
+    'i18n.scannerMode': 'search',
+    'i18n.validatorMode': 'exclamation-triangle',
+  };
+
+  // 🔥 Если не найдено в маппинге → возвращаем само имя (для Bootstrap)
+  return iconMap[resolvedName.value] || resolvedName.value;
+});
+
+// 🔥 ИСПРАВЛЕННЫЙ ПРИОРИТЕТ: prop > settings > config > default
 const resolvedSize = computed(() => {
   if (props.size) return props.size;
+
+  if (settingsSize.value && settingsSize.value !== ICON_DEFAULTS.size) {
+    return settingsSize.value;
+  }
+
   const configSize = getIconSize(props.name);
   if (configSize && configSize !== ICON_DEFAULTS.size) return configSize;
-  return settingsSize.value || ICON_DEFAULTS.size;
+
+  return ICON_DEFAULTS.size;
 });
 
 const resolvedColor = computed(() => {
@@ -68,9 +137,11 @@ const resolvedColor = computed(() => {
 
 const fenixIcon = computed(() => {
   if (resolvedSource.value !== ICON_SOURCES.FENIX) return null;
+
   const fenixName = resolvedName.value.startsWith('Fenix')
       ? resolvedName.value
       : `Fenix${resolvedName.value.charAt(0).toUpperCase() + resolvedName.value.slice(1)}`;
+
   const icon = iconsStore.getIconByName(fenixName);
   if (!icon) {
     console.warn(`[I18nIcon] Fenix icon "${fenixName}" not found, fallback to Bootstrap`);

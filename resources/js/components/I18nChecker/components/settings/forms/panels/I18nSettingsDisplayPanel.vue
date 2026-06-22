@@ -16,36 +16,39 @@
       </el-form-item>
       <el-form-item label="Макс. unused ключей" class="compact-item">
         <el-input-number v-model="localData.maxUnusedKeys" :min="50" :max="2000" :step="50" controls-position="right" class="full-width compact-input" />
+        <div class="form-tip">Сколько unused ключей отображать в списке</div>
       </el-form-item>
       <el-form-item label="Макс. flat ключей" class="compact-item">
         <el-input-number v-model="localData.maxFlatKeys" :min="50" :max="1000" :step="50" controls-position="right" class="full-width compact-input" />
+        <div class="form-tip">Сколько flat ключей отображать в списке</div>
       </el-form-item>
 
       <el-divider content-position="left" class="compact-divider">Вид</el-divider>
       <el-form-item label="Компактный режим" class="compact-item">
         <el-switch v-model="localData.compactMode" :active-value="true" :inactive-value="false" />
+        <div class="form-tip">Уменьшает отступы и padding для более плотного отображения</div>
       </el-form-item>
     </el-form>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSettingsStore.js'
 import { I18N_SETTINGS_DEFAULTS_CONFIG } from '@components/I18nChecker/config/i18nSettingsDefaultsConfig.js'
+import { storeToRefs } from 'pinia'
 import { deepClone } from '@components/I18nChecker/utils/i18nSettingsHelpersUtils.js'
 
-const props = defineProps({
-  modelValue: { type: Object, default: () => ({}) }
-})
+const settingsStore = useI18nSettingsStore()
+const { displaySettings } = storeToRefs(settingsStore)
 
-const localData = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display))
+const localData = ref(deepClone(displaySettings.value))
 
-onMounted(() => {
-  if (props.modelValue && Object.keys(props.modelValue).length > 0) {
-    localData.value = { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display), ...props.modelValue }
-  }
-})
+watch(displaySettings, (newVal) => {
+  localData.value = deepClone(newVal)
+}, { deep: true })
 
+// 🔥 ИСПРАВЛЕНО: используем I18N_SETTINGS_DEFAULTS_CONFIG вместо $state()
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display)
 }

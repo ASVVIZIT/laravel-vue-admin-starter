@@ -5,18 +5,39 @@ import { deepClone } from '@components/I18nChecker/utils/i18nSettingsHelpersUtil
 
 const STORAGE_KEY = 'i18n-checker-settings';
 
+// СИНХРОННАЯ ЗАГРУЗКА из localStorage при инициализации модуля
+const loadInitialSettings = () => {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            return {
+                icons: { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons), ...(parsed.icons || {}) },
+                display: { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display), ...(parsed.display || {}) },
+                behavior: { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior), ...(parsed.behavior || {}) },
+                meta: { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.meta), ...(parsed.meta || {}) },
+            };
+        }
+    } catch (err) {
+        console.error('[i18nSettingsStore] Initial load error:', err);
+    }
+    return null;
+};
+
+const initialSettings = loadInitialSettings();
+
 export const useI18nSettingsStore = defineStore('i18n-settings', () => {
     // ========================================================================
-    // STATE
+    // STATE — инициализируется СРАЗУ из localStorage
     // ========================================================================
-    const iconsSettings = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons));
-    const displaySettings = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display));
-    const behaviorSettings = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior));
-    const metaSettings = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.meta));
+    const iconsSettings = ref(initialSettings?.icons || deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons));
+    const displaySettings = ref(initialSettings?.display || deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display));
+    const behaviorSettings = ref(initialSettings?.behavior || deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior));
+    const metaSettings = ref(initialSettings?.meta || deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.meta));
 
     const loading = ref(false);
     const error = ref(null);
-    const initialized = ref(false);
+    const initialized = ref(true); // 🔥 Сразу true — загрузили синхронно
 
     // ========================================================================
     // COMPUTED
@@ -29,100 +50,49 @@ export const useI18nSettingsStore = defineStore('i18n-settings', () => {
     }));
 
     // ========================================================================
-    // LOCAL STORAGE
+    // ACTIONS
     // ========================================================================
-    const loadFromStorage = () => {
-        loading.value = true;
-        error.value = null;
-        try {
-            const stored = localStorage.getItem(STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (parsed.icons) iconsSettings.value = { ...iconsSettings.value, ...parsed.icons };
-                if (parsed.display) displaySettings.value = { ...displaySettings.value, ...parsed.display };
-                if (parsed.behavior) behaviorSettings.value = { ...behaviorSettings.value, ...parsed.behavior };
-                if (parsed.meta) metaSettings.value = { ...metaSettings.value, ...parsed.meta };
-            }
-            initialized.value = true;
-            return { success: true };
-        } catch (err) {
-            error.value = 'Не удалось загрузить настройки';
-            console.error('[i18nSettingsStore] Load error:', err);
-            return { success: false, message: error.value };
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    const saveToStorage = (settings) => {
-        loading.value = true;
+    const saveToStorage = () => {
         try {
             const payload = {
-                icons: settings?.icons || iconsSettings.value,
-                display: settings?.display || displaySettings.value,
-                behavior: settings?.behavior || behaviorSettings.value,
-                meta: settings?.meta || metaSettings.value,
+                icons: iconsSettings.value,
+                display: displaySettings.value,
+                behavior: behaviorSettings.value,
+                meta: metaSettings.value,
             };
             localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
             return { success: true };
         } catch (err) {
             error.value = 'Не удалось сохранить настройки';
             console.error('[i18nSettingsStore] Save error:', err);
-            return { success: false, message: error.value };
-        } finally {
-            loading.value = false;
+            return { success: false, message: err.message };
         }
     };
 
-    // ========================================================================
-    // ACTIONS
-    // ========================================================================
-    const updateSettingsStore = async (settings) => {
-        loading.value = true;
+    const updateSettingsStore = (settings) => {
         try {
             if (settings.icons) iconsSettings.value = { ...iconsSettings.value, ...settings.icons };
             if (settings.display) displaySettings.value = { ...displaySettings.value, ...settings.display };
             if (settings.behavior) behaviorSettings.value = { ...behaviorSettings.value, ...settings.behavior };
             if (settings.meta) metaSettings.value = { ...metaSettings.value, ...settings.meta };
-
-            const result = saveToStorage();
-            return result;
+            return saveToStorage();
         } catch (err) {
             error.value = 'Не удалось обновить настройки';
             console.error('[i18nSettingsStore] Update error:', err);
-            return { success: false, message: error.value };
-        } finally {
-            loading.value = false;
+            return { success: false, message: err.message };
         }
     };
 
-    const resetSettingsStore = async () => {
-        loading.value = true;
+    const resetSettingsStore = () => {
         try {
             iconsSettings.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons);
             displaySettings.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display);
             behaviorSettings.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior);
             metaSettings.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.meta);
-
-            const result = saveToStorage();
-            if (result.success) {
-                return { success: true, message: 'Настройки сброшены' };
-            }
-            return { success: false, message: result.message || 'Ошибка сброса' };
+            return saveToStorage();
         } catch (err) {
             console.error('[i18nSettingsStore] Reset error:', err);
-            return { success: false, message: 'Не удалось сбросить настройки' };
-        } finally {
-            loading.value = false;
-        }
-    };
-
-    // ========================================================================
-    // INIT
-    // ========================================================================
-    const init = () => {
-        if (!initialized.value) {
-            loadFromStorage();
+            return { success: false, message: err.message };
         }
     };
 
@@ -135,11 +105,9 @@ export const useI18nSettingsStore = defineStore('i18n-settings', () => {
         error,
         initialized,
         settingsDebugSnapshot,
-        loadFromStorage,
         saveToStorage,
         updateSettingsStore,
         resetSettingsStore,
-        init,
     };
 });
 

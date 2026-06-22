@@ -5,9 +5,7 @@
         <I18nIcon name="warning" />
         {{ loading ? ($t('i18nChecker.validating') || 'Проверка...') : ($t('i18nChecker.startValidation') || 'Проверить пути') }}
       </el-button>
-      <span class="i18n-validate-hint">
-        {{ $t('i18nChecker.validateHint') || 'Найдёт ключи с неправильной вложенностью' }}
-      </span>
+      <span class="i18n-validate-hint">{{ $t('i18nChecker.validateHint') || 'Найдёт ключи с неправильной вложенностью' }}</span>
     </div>
 
     <div v-if="error && !report" class="i18n-error-block">
@@ -28,8 +26,16 @@
             </div>
           </template>
 
+          <!-- 🔥 ПРИМЕНЕНЫ: tableHeight, fontSize, compactMode -->
           <div class="i18n-table-wrapper">
-            <el-table :data="report.duplicates" stripe size="small" height="350" style="width: 100%;">
+            <el-table
+                :data="report.duplicates"
+                stripe
+                size="small"
+                :height="tableHeight"
+                :style="{ width: '100%', fontSize: fontSize + 'px' }"
+                :class="{ 'i18n-compact-mode': compactMode }"
+            >
               <el-table-column prop="key" :label="$t('i18nChecker.colKey') || 'Ключ'" width="200">
                 <template #default="{ row }"><code class="i18n-key-code">{{ row.key }}</code></template>
               </el-table-column>
@@ -53,8 +59,16 @@
             </div>
           </template>
 
+          <!-- 🔥 ПРИМЕНЕНЫ: tableHeight, fontSize, compactMode -->
           <div class="i18n-table-wrapper">
-            <el-table :data="report.wrongPaths" stripe size="small" height="350" style="width: 100%;">
+            <el-table
+                :data="report.wrongPaths"
+                stripe
+                size="small"
+                :height="tableHeight"
+                :style="{ width: '100%', fontSize: fontSize + 'px' }"
+                :class="{ 'i18n-compact-mode': compactMode }"
+            >
               <el-table-column prop="wrongPath" :label="$t('i18nChecker.wrongPath') || 'Неправильный путь'" width="280">
                 <template #default="{ row }"><code class="i18n-key-code i18n-key-code-error">{{ row.wrongPath }}</code></template>
               </el-table-column>
@@ -81,10 +95,11 @@
             </div>
           </template>
 
+          <!-- 🔥 ПРИМЕНЕНО: maxFlatKeys -->
           <div class="i18n-unused-wrapper">
             <div class="i18n-unused-list">
-              <el-tag v-for="key in report.flatKeys.slice(0, 200)" :key="key" class="i18n-unused-tag" size="small" type="warning" effect="plain">{{ key }}</el-tag>
-              <span v-if="report.flatKeys.length > 200" class="i18n-more-unused">... {{ report.flatKeys.length - 200 }} ещё</span>
+              <el-tag v-for="key in report.flatKeys.slice(0, maxFlatKeys)" :key="key" class="i18n-unused-tag" size="small" type="warning" effect="plain">{{ key }}</el-tag>
+              <span v-if="report.flatKeys.length > maxFlatKeys" class="i18n-more-unused">... {{ report.flatKeys.length - maxFlatKeys }} ещё</span>
             </div>
           </div>
         </el-collapse-item>
@@ -110,8 +125,12 @@ import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue';
 import I18nStatsGrid from '@components/I18nChecker/components/shared/I18nStatsGrid.vue';
 import { VALIDATOR_STATS_CONFIG } from '@components/I18nChecker/config/validatorStatsConfig.js';
 import { VALIDATOR_SECTIONS } from '@components/I18nChecker/config/sectionsConfig.js';
+import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
 
 const { t } = useI18n();
+
+// 🔥 ПРИМЕНЕНЫ настройки
+const { tableHeight, fontSize, compactMode, maxFlatKeys } = useI18nSettings();
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -137,49 +156,22 @@ const validatorStats = computed(() => {
 
 <style lang="scss" scoped>
 .i18n-validator-mode { background: #fff; border-radius: 6px; padding: 4px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06); }
-
 .i18n-validate-control { display: flex; align-items: center; gap: 4px; padding: 4px; border-bottom: 1px solid #ebeef5; .i18n-validate-hint { color: #909399; font-size: 11px; } }
-
-.i18n-error-block { display: flex; align-items: center; gap: 4px; padding: 4px; margin: 4px 0; background: #fff1f0; border: 1px solid #ffccc7; border-radius: 3px; color: #cf1322; p { margin: 0; font-size: 9px; } }
-
+.i18n-error-block { display: flex; align-items: center; gap: 4px; padding: 4px; margin: 4px 0; background: #fff1f0; border: 1px solid #ffccc7; border-radius: 3px; color: #cf1322; .bi { font-size: 12px; color: #ff4d4f; } p { margin: 0; font-size: 9px; } }
 .i18n-validate-results { margin-top: 4px; }
+.i18n-validate-empty { text-align: center; padding: 10px; color: #909399; .bi { font-size: 28px; margin-bottom: 4px; color: #c0c4cc; display: block; } p { margin: 0; font-size: 10px; } }
 
-.i18n-validate-empty { text-align: center; padding: 10px; color: #909399; p { margin: 0; font-size: 10px; } }
+.i18n-collapse { border: none; :deep(.el-collapse-item__header) { background: transparent; border-bottom: none; height: auto; padding: 0; line-height: normal; } :deep(.el-collapse-item__wrap) { border-bottom: none; } :deep(.el-collapse-item__content) { padding: 0; } :deep(.el-collapse-item__arrow) { margin-right: 4px; } }
+.i18n-collapse-header { display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%; .bi { font-size: 10px; } &.i18n-collapse-header-danger { background: #fff1f0; color: #cf1322; border-left: 2px solid #ff4d4f; &:hover { background: #ffeded; } } &.i18n-collapse-header-warning { background: #fffbe6; color: #ad6800; border-left: 2px solid #faad14; &:hover { background: #fff8d4; } } }
 
-.i18n-collapse {
-  border: none;
-  :deep(.el-collapse-item__header) { background: transparent; border-bottom: none; height: auto; padding: 0; line-height: normal; }
-  :deep(.el-collapse-item__wrap) { border-bottom: none; }
-  :deep(.el-collapse-item__content) { padding: 0; }
-  :deep(.el-collapse-item__arrow) { margin-right: 4px; }
-}
-
-.i18n-collapse-header {
-  display: flex; align-items: center; gap: 4px; padding: 4px 6px; border-radius: 3px; font-size: 9px; font-weight: 600; cursor: pointer; transition: background 0.2s; width: 100%;
-  &.i18n-collapse-header-danger { background: #fff1f0; color: #cf1322; border-left: 2px solid #ff4d4f; &:hover { background: #ffeded; } }
-  &.i18n-collapse-header-warning { background: #fffbe6; color: #ad6800; border-left: 2px solid #faad14; &:hover { background: #fff8d4; } }
-}
-
-.i18n-table-wrapper {
-  background: #fff; border-radius: 3px; overflow: hidden; border: 1px solid #ebeef5; margin-top: 4px;
-  :deep(.el-table) {
-    .el-table__header th { background: #fafafa !important; font-weight: 600; font-size: 9px; padding: 4px 0; }
-    .el-table__row td { padding: 4px 0; font-size: 9px; }
-  }
-}
-
-.i18n-key-code {
-  background: #f5f7fa; padding: 2px 4px; border-radius: 2px; font-family: 'Consolas', 'Monaco', monospace; font-size: 8px; color: #d4380d; word-break: break-all;
-  &.i18n-key-code-error { background: #fff1f0; color: #cf1322; text-decoration: line-through; }
-  &.i18n-key-code-success { background: #f6ffed; color: #52c41a; }
-}
-
+.i18n-table-wrapper { background: #fff; border-radius: 3px; overflow: hidden; border: 1px solid #ebeef5; margin-top: 4px; :deep(.el-table) { .el-table__header th { background: #fafafa !important; font-weight: 600; font-size: 9px; padding: 4px 0; } .el-table__row td { padding: 4px 0; font-size: 9px; } } }
+.i18n-key-code { background: #f5f7fa; padding: 2px 4px; border-radius: 2px; font-family: 'Consolas', 'Monaco', monospace; font-size: 8px; color: #d4380d; word-break: break-all; &.i18n-key-code-error { background: #fff1f0; color: #cf1322; text-decoration: line-through; } &.i18n-key-code-success { background: #f6ffed; color: #52c41a; } }
 .i18n-paths-list { display: flex; flex-wrap: wrap; gap: 4px; }
 .i18n-files-list { display: flex; flex-wrap: wrap; gap: 4px; }
-
 .i18n-unused-wrapper { background: #fff; border-radius: 3px; padding: 4px; border: 1px solid #ebeef5; max-height: 250px; overflow-y: auto; margin-top: 4px; }
-
 .i18n-unused-list { display: flex; flex-wrap: wrap; gap: 4px; .i18n-unused-tag { font-family: 'Consolas', 'Monaco', monospace; font-size: 8px; } .i18n-more-unused { color: #909399; font-size: 10px; align-self: center; } }
+.i18n-no-issues { text-align: center; padding: 10px; color: #52c41a; .bi { font-size: 20px; display: block; margin-bottom: 4px; } p { margin: 0; font-size: 10px; } }
 
-.i18n-no-issues { text-align: center; padding: 10px; color: #52c41a; p { margin: 0; font-size: 10px; } }
+/* 🔥 Компактный режим */
+.i18n-compact-mode { :deep(.el-table__row td) { padding: 2px 0 !important; } :deep(.el-table__header th) { padding: 2px 0 !important; } }
 </style>

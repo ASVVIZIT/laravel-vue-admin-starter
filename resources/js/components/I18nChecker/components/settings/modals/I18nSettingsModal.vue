@@ -94,11 +94,11 @@ const handleCancelled = () => {};
 
 <style scoped>
 .i18n-settings-modal :deep(.el-dialog__body) {
-  padding: 10px;
+  padding: 20px;
 }
 
 .i18n-settings-modal :deep(.el-dialog__footer) {
-  padding: 8px 10px;
+  padding: 12px 20px;
   border-top: 1px solid #ebeef5;
 }
 </style>

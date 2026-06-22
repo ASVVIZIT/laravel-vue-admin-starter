@@ -1,47 +1,51 @@
 import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSettingsStore.js';
 
 export function useI18nSettings() {
     const settingsStore = useI18nSettingsStore();
 
-    // Инициализация при первом вызове
-    if (!settingsStore.initialized) {
-        settingsStore.loadFromStorage();
-    }
+    // storeToRefs — делает refs реактивными для внешних computed
+    const {
+        iconsSettings,
+        displaySettings,
+        behaviorSettings,
+        metaSettings
+    } = storeToRefs(settingsStore);
 
     // ========================================================================
-    // 🔥 ОБЪЕКТЫ ЦЕЛИКОМ (для тех, кому нужны все поля сразу)
+    // ОБЪЕКТЫ ЦЕЛИКОМ
     // ========================================================================
-    const icons = computed(() => settingsStore.iconsSettings || {});
-    const display = computed(() => settingsStore.displaySettings || {});
-    const behavior = computed(() => settingsStore.behaviorSettings || {});
-    const meta = computed(() => settingsStore.metaSettings || {});
+    const icons = computed(() => iconsSettings.value);
+    const display = computed(() => displaySettings.value);
+    const behavior = computed(() => behaviorSettings.value);
+    const meta = computed(() => metaSettings.value);
 
     // ========================================================================
-    // 🔥 ОТДЕЛЬНЫЕ ПОЛЯ (для точечного использования)
+    // ОТДЕЛЬНЫЕ ПОЛЯ — все РЕАКТИВНЫЕ через storeToRefs
     // ========================================================================
 
     // Icons
-    const iconSource = computed(() => settingsStore.iconsSettings?.source || 'bootstrap');
-    const iconSize = computed(() => settingsStore.iconsSettings?.size || 20);
-    const iconColor = computed(() => settingsStore.iconsSettings?.color || 'currentColor');
-    const showLabels = computed(() => settingsStore.iconsSettings?.showLabels ?? true);
+    const iconSource = computed(() => iconsSettings.value?.source || 'bootstrap');
+    const iconSize = computed(() => iconsSettings.value?.size || 20);
+    const iconColor = computed(() => iconsSettings.value?.color || 'currentColor');
+    const showLabels = computed(() => iconsSettings.value?.showLabels ?? true);
 
     // Display
-    const tableHeight = computed(() => settingsStore.displaySettings?.tableHeight || 350);
-    const maxFilesPerRow = computed(() => settingsStore.displaySettings?.maxFilesPerRow || 3);
-    const maxUnusedKeys = computed(() => settingsStore.displaySettings?.maxUnusedKeys || 500);
-    const maxFlatKeys = computed(() => settingsStore.displaySettings?.maxFlatKeys || 200);
-    const fontSize = computed(() => settingsStore.displaySettings?.fontSize || 13);
-    const compactMode = computed(() => settingsStore.displaySettings?.compactMode || false);
+    const tableHeight = computed(() => displaySettings.value?.tableHeight || 350);
+    const maxFilesPerRow = computed(() => displaySettings.value?.maxFilesPerRow || 3);
+    const maxUnusedKeys = computed(() => displaySettings.value?.maxUnusedKeys || 500);
+    const maxFlatKeys = computed(() => displaySettings.value?.maxFlatKeys || 200);
+    const fontSize = computed(() => displaySettings.value?.fontSize || 13);
+    const compactMode = computed(() => displaySettings.value?.compactMode || false);
 
     // Behavior
-    const autoRunScanner = computed(() => settingsStore.behaviorSettings?.autoRunScanner || false);
-    const autoRunValidator = computed(() => settingsStore.behaviorSettings?.autoRunValidator || false);
-    const cacheResults = computed(() => settingsStore.behaviorSettings?.cacheResults ?? true);
-    const cacheTTL = computed(() => settingsStore.behaviorSettings?.cacheTTL || 300);
-    const confirmBeforeExport = computed(() => settingsStore.behaviorSettings?.confirmBeforeExport ?? true);
-    const highlightSearch = computed(() => settingsStore.behaviorSettings?.highlightSearch ?? true);
+    const autoRunScanner = computed(() => behaviorSettings.value?.autoRunScanner || false);
+    const autoRunValidator = computed(() => behaviorSettings.value?.autoRunValidator || false);
+    const cacheResults = computed(() => behaviorSettings.value?.cacheResults ?? true);
+    const cacheTTL = computed(() => behaviorSettings.value?.cacheTTL || 300);
+    const confirmBeforeExport = computed(() => behaviorSettings.value?.confirmBeforeExport ?? true);
+    const highlightSearch = computed(() => behaviorSettings.value?.highlightSearch ?? true);
 
     return {
         // Объекты целиком

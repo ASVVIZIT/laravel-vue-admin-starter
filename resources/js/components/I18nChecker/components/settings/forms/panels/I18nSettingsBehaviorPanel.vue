@@ -4,9 +4,11 @@
       <el-divider content-position="left" class="compact-divider">Автозапуск</el-divider>
       <el-form-item label="Автозапуск сканера" class="compact-item">
         <el-switch v-model="localData.autoRunScanner" :active-value="true" :inactive-value="false" />
+        <div class="form-tip">Автоматически запускать сканер при переключении в режим</div>
       </el-form-item>
       <el-form-item label="Автозапуск валидатора" class="compact-item">
         <el-switch v-model="localData.autoRunValidator" :active-value="true" :inactive-value="false" />
+        <div class="form-tip">Автоматически запускать валидатор при переключении в режим</div>
       </el-form-item>
 
       <el-divider content-position="left" class="compact-divider">Кэширование</el-divider>
@@ -15,6 +17,7 @@
       </el-form-item>
       <el-form-item v-if="localData.cacheResults" label="Время жизни кэша (сек)" class="compact-item">
         <el-input-number v-model="localData.cacheTTL" :min="60" :max="3600" :step="60" controls-position="right" class="full-width compact-input" />
+        <div class="form-tip">Через сколько секунд кэш будет считаться устаревшим</div>
       </el-form-item>
 
       <el-divider content-position="left" class="compact-divider">Интерфейс</el-divider>
@@ -23,28 +26,29 @@
       </el-form-item>
       <el-form-item label="Подсвечивать результаты поиска" class="compact-item">
         <el-switch v-model="localData.highlightSearch" :active-value="true" :inactive-value="false" />
+        <div class="form-tip">Подсвечивать найденный текст в таблицах жёлтым</div>
       </el-form-item>
     </el-form>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSettingsStore.js'
 import { I18N_SETTINGS_DEFAULTS_CONFIG } from '@components/I18nChecker/config/i18nSettingsDefaultsConfig.js'
+import { storeToRefs } from 'pinia'
 import { deepClone } from '@components/I18nChecker/utils/i18nSettingsHelpersUtils.js'
 
-const props = defineProps({
-  modelValue: { type: Object, default: () => ({}) }
-})
+const settingsStore = useI18nSettingsStore()
+const { behaviorSettings } = storeToRefs(settingsStore)
 
-const localData = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior))
+const localData = ref(deepClone(behaviorSettings.value))
 
-onMounted(() => {
-  if (props.modelValue && Object.keys(props.modelValue).length > 0) {
-    localData.value = { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior), ...props.modelValue }
-  }
-})
+watch(behaviorSettings, (newVal) => {
+  localData.value = deepClone(newVal)
+}, { deep: true })
 
+// 🔥 ИСПРАВЛЕНО: используем I18N_SETTINGS_DEFAULTS_CONFIG вместо $state()
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior)
 }

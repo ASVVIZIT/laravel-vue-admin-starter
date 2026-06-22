@@ -26,7 +26,6 @@
       </el-form-item>
     </el-form>
 
-    <!-- 🔥 ПРЕВЬЮ ЧЕРЕЗ I18nIcon — обновляется в реальном времени -->
     <div class="icons-preview-section">
       <div class="preview-header">
         <h4>Предпросмотр иконок</h4>
@@ -54,28 +53,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue'
 import { ICONS } from '@components/I18nChecker/config/iconsConfig.js'
 import { I18N_SETTINGS_DEFAULTS_CONFIG } from '@components/I18nChecker/config/i18nSettingsDefaultsConfig.js'
+import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSettingsStore.js'
+import { storeToRefs } from 'pinia'
 import { deepClone } from '@components/I18nChecker/utils/i18nSettingsHelpersUtils.js'
 
-const props = defineProps({
-  modelValue: { type: Object, default: () => ({}) }
-})
+const settingsStore = useI18nSettingsStore()
+const { iconsSettings } = storeToRefs(settingsStore)
 
-const localData = ref(deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons))
+// 🔥 localData синхронизируется с store
+const localData = ref(deepClone(iconsSettings.value))
+
+// 🔥 Следим за store → обновляем localData
+watch(iconsSettings, (newVal) => {
+  localData.value = deepClone(newVal)
+}, { deep: true })
 
 const previewIcons = computed(() => {
   return Object.entries(ICONS).map(([key]) => ({ key }))
 })
 
-onMounted(() => {
-  if (props.modelValue && Object.keys(props.modelValue).length > 0) {
-    localData.value = { ...deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons), ...props.modelValue }
-  }
-})
-
+// 🔥 ИСПРАВЛЕНО: используем I18N_SETTINGS_DEFAULTS_CONFIG вместо $state()
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons)
 }
@@ -102,7 +103,7 @@ defineExpose({ localData, resetToDefaults })
 .icons-grid::-webkit-scrollbar { width: 4px; }
 .icons-grid::-webkit-scrollbar-track { background: transparent; }
 .icons-grid::-webkit-scrollbar-thumb { background: #dcdfe6; border-radius: 2px; }
-.icon-preview-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; background: #fff; border: 1px solid #ebeef5; border-radius: 4px; cursor: pointer; transition: all 0.2s; min-height: 60px; justify-content: center; }
+.icon-preview-item { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 4px; background: #fff; border: 1px solid #ebeef5; border-radius: 4px; transition: all 0.2s; min-height: 60px; justify-content: center; }
 .icon-preview-item:hover { border-color: #409eff; background: #ecf5ff; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08); }
 .icon-display { display: flex; align-items: center; justify-content: center; width: 100%; height: 32px; }
 .icon-label { font-size: 9px; color: #606266; text-align: center; word-break: break-all; line-height: 1.2; max-width: 100%; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }

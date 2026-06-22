@@ -35,7 +35,7 @@
 
     <el-dialog
         v-model="dialogVisible"
-        :title="$t('permission.editPermissionForForm') + ' - ' + currentRole.name"
+        :title="$t('permission.actions.editPermissionForForm') + ' - ' + currentRole.name"
     >
       <div v-loading="dialogLoading" class="form-container">
         <div class="permissions-container">

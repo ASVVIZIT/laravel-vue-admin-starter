@@ -2,13 +2,7 @@
   <div class="i18n-checker-simple">
     <div class="i18n-control-bar">
       <el-radio-group v-model="selectedLang" size="small" @change="runCheck">
-        <el-radio-button
-            v-for="lang in LANGUAGE_OPTIONS"
-            :key="lang.value"
-            :label="lang.value"
-        >
-          {{ lang.label }}
-        </el-radio-button>
+        <el-radio-button v-for="lang in LANGUAGE_OPTIONS" :key="lang.value" :label="lang.value">{{ lang.label }}</el-radio-button>
       </el-radio-group>
 
       <el-select v-model="selectedCategory" size="small" style="width: 160px;">
@@ -17,24 +11,11 @@
       </el-select>
 
       <el-select v-model="selectedStatus" size="small" style="width: 140px;">
-        <el-option
-            v-for="opt in STATUS_OPTIONS"
-            :key="opt.value"
-            :label="$t(opt.labelKey)"
-            :value="opt.value"
-        />
+        <el-option v-for="opt in STATUS_OPTIONS" :key="opt.value" :label="$t(opt.labelKey)" :value="opt.value" />
       </el-select>
 
-      <el-input
-          v-model="searchQuery"
-          :placeholder="$t('i18nChecker.search')"
-          size="small"
-          clearable
-          style="width: 180px;"
-      >
-        <template #prefix>
-          <I18nIcon name="search" />
-        </template>
+      <el-input v-model="searchQuery" :placeholder="$t('i18nChecker.search')" size="small" clearable style="width: 180px;">
+        <template #prefix><I18nIcon name="search" /></template>
       </el-input>
 
       <div class="i18n-spacer" />
@@ -64,44 +45,30 @@
         <span class="i18n-stat-value">{{ results.stats.missing }}</span>
         <span class="i18n-stat-percent">{{ percentMissing }}%</span>
       </div>
-
       <div class="i18n-progress-bar">
         <div class="i18n-progress-fill" :style="{ width: percentFound + '%' }" />
       </div>
     </div>
 
     <div class="i18n-categories-row">
-      <div
-          v-for="(stat, cat) in results.stats.byCategory"
-          :key="cat"
-          class="i18n-category-chip"
-          :class="{ 'i18n-has-missing': stat.missing > 0 }"
-          :title="`${cat}: ${stat.found}/${stat.total}`"
-      >
+      <div v-for="(stat, cat) in results.stats.byCategory" :key="cat" class="i18n-category-chip" :class="{ 'i18n-has-missing': stat.missing > 0 }" :title="`${cat}: ${stat.found}/${stat.total}`">
         <span class="i18n-cat-name">{{ cat }}</span>
         <span class="i18n-cat-count">{{ stat.found }}/{{ stat.total }}</span>
       </div>
     </div>
 
+    <!-- 🔥 ПРИМЕНЕНЫ: tableHeight, fontSize, compactMode -->
     <div class="i18n-table-wrapper">
       <el-table
           :data="filteredResults"
           stripe
           size="small"
-          height="350"
-          style="width: 100%;"
+          :height="tableHeight"
+          :style="{ width: '100%', fontSize: fontSize + 'px' }"
+          :class="{ 'i18n-compact-mode': compactMode }"
           :row-class-name="tableRowClassName"
       >
-        <el-table-column
-            v-for="col in SIMPLE_TABLE_COLUMNS"
-            :key="col.prop || col.labelKey"
-            :prop="col.prop"
-            :label="col.labelKey ? $t(col.labelKey) : ''"
-            :width="col.width"
-            :min-width="col.minWidth"
-            :align="col.align"
-            :fixed="col.fixed"
-        >
+        <el-table-column v-for="col in SIMPLE_TABLE_COLUMNS" :key="col.prop || col.labelKey" :prop="col.prop" :label="col.labelKey ? $t(col.labelKey) : ''" :width="col.width" :min-width="col.minWidth" :align="col.align" :fixed="col.fixed">
           <template #default="{ row }" v-if="col.type === 'code'">
             <code class="i18n-key-code">{{ row[col.prop] }}</code>
           </template>
@@ -109,9 +76,7 @@
             <el-tag size="small" effect="plain">{{ row[col.prop] }}</el-tag>
           </template>
           <template #default="{ row }" v-else-if="col.type === 'priority'">
-            <el-tag :type="getPriorityType(row[col.prop])" size="small" effect="dark">
-              {{ priorityLabel(row[col.prop]) }}
-            </el-tag>
+            <el-tag :type="getPriorityType(row[col.prop])" size="small" effect="dark">{{ priorityLabel(row[col.prop]) }}</el-tag>
           </template>
           <template #default="{ row }" v-else-if="col.type === 'translation'">
             <span v-if="row[col.prop]" class="i18n-translation-value">{{ row[col.prop] }}</span>
@@ -138,15 +103,19 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue';
 import { keysToCheck, getCategories, checkTranslations, exportMissingAsJS } from '@components/I18nChecker/utils/i18nChecker.js';
 import { getPriorityType, getPriorityLabelKey } from '@components/I18nChecker/config/prioritiesConfig.js';
 import { SIMPLE_TABLE_COLUMNS } from '@components/I18nChecker/config/tableColumnsConfig.js';
 import { STATUS_OPTIONS, FILTER_DEFAULTS } from '@components/I18nChecker/config/filtersConfig.js';
 import { LANGUAGE_OPTIONS } from '@components/I18nChecker/config/languagesConfig.js';
+import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
 
 const { t, locale } = useI18n();
+
+// 🔥 ПРИМЕНЕНЫ настройки
+const { tableHeight, fontSize, compactMode, confirmBeforeExport } = useI18nSettings();
 
 const selectedLang = ref(FILTER_DEFAULTS.lang);
 const selectedCategory = ref(FILTER_DEFAULTS.category);
@@ -168,23 +137,12 @@ const allResults = computed(() => [
 
 const filteredResults = computed(() => {
   let filtered = allResults.value;
-
-  if (selectedCategory.value !== 'all') {
-    filtered = filtered.filter(r => r.category === selectedCategory.value);
-  }
-
-  if (selectedStatus.value !== 'all') {
-    filtered = filtered.filter(r => r.status === selectedStatus.value);
-  }
-
+  if (selectedCategory.value !== 'all') filtered = filtered.filter(r => r.category === selectedCategory.value);
+  if (selectedStatus.value !== 'all') filtered = filtered.filter(r => r.status === selectedStatus.value);
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
-    filtered = filtered.filter(r =>
-        r.key.toLowerCase().includes(query) ||
-        (r.value && r.value.toLowerCase().includes(query))
-    );
+    filtered = filtered.filter(r => r.key.toLowerCase().includes(query) || (r.value && r.value.toLowerCase().includes(query)));
   }
-
   return filtered;
 });
 
@@ -203,13 +161,26 @@ const runCheck = () => {
 };
 
 const priorityLabel = (priority) => t(getPriorityLabelKey(priority));
-
 const tableRowClassName = ({ row }) => row.value ? 'i18n-row-found' : 'i18n-row-missing';
 
-const exportMissing = () => {
+// 🔥 ПРИМЕНЕНО: confirmBeforeExport
+const exportMissing = async () => {
   if (results.value.missing.length === 0) {
     ElMessage.success(t('i18nChecker.noMissing'));
     return;
+  }
+
+  // 🔥 Подтверждение перед экспортом
+  if (confirmBeforeExport.value) {
+    try {
+      await ElMessageBox.confirm(
+          `${t('i18nChecker.confirmExport') || 'Экспортировать'} ${results.value.missing.length} ${t('i18nChecker.missing') || 'ключей'}?`,
+          t('i18nChecker.exportMissing') || 'Экспорт',
+          { confirmButtonText: t('i18nChecker.confirm') || 'OK', cancelButtonText: t('i18nChecker.cancel') || 'Отмена', type: 'info' }
+      );
+    } catch {
+      return; // Пользователь отменил
+    }
   }
 
   const jsCode = exportMissingAsJS(results.value.missing, selectedLang.value);
@@ -220,152 +191,24 @@ const exportMissing = () => {
   a.download = `missing-keys-${selectedLang.value}.js`;
   a.click();
   URL.revokeObjectURL(url);
-
   ElMessage.success(t('i18nChecker.exported'));
 };
 
-onMounted(() => {
-  runCheck();
-});
+onMounted(() => { runCheck(); });
 </script>
 
 <style lang="scss" scoped>
-.i18n-checker-simple {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  height: 100%;
-}
-
-.i18n-control-bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  flex-wrap: wrap;
-
-  .i18n-spacer { flex: 1; }
-}
-
-.i18n-stats-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-
-  .i18n-stat-chip {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: #f5f7fa;
-    border-radius: 4px;
-    font-size: 13px;
-
-    .i18n-stat-label { color: #909399; }
-    .i18n-stat-value { font-weight: 700; color: #303133; font-size: 15px; }
-    .i18n-stat-percent { font-size: 12px; color: #909399; margin-left: 2px; }
-
-    &.i18n-stat-found { background: #f0f9ff; .i18n-stat-value { color: #52c41a; } }
-    &.i18n-stat-missing { background: #fff1f0; .i18n-stat-value { color: #ff4d4f; } }
-  }
-
-  .i18n-progress-bar {
-    flex: 1;
-    height: 8px;
-    background: #f0f0f0;
-    border-radius: 4px;
-    overflow: hidden;
-    min-width: 100px;
-
-    .i18n-progress-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #52c41a, #73d13d);
-      transition: width 0.5s ease;
-      border-radius: 4px;
-    }
-  }
-}
-
-.i18n-categories-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding: 4px 10px;
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-
-  .i18n-category-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    background: #f5f7fa;
-    border-radius: 4px;
-    font-size: 12px;
-    border-left: 3px solid #52c41a;
-    cursor: default;
-    transition: all 0.2s;
-
-    &:hover { background: #ecf5ff; transform: translateY(-1px); }
-    &.i18n-has-missing { border-left-color: #ff4d4f; background: #fff1f0; }
-
-    .i18n-cat-name { font-weight: 600; color: #303133; }
-    .i18n-cat-count { color: #909399; font-size: 11px; }
-  }
-}
-
-.i18n-table-wrapper {
-  background: #fff;
-  border-radius: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  overflow: hidden;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-
-  .i18n-table-footer {
-    padding: 4px 10px;
-    background: #fafafa;
-    border-top: 1px solid #ebeef5;
-    font-size: 12px;
-    color: #909399;
-    text-align: right;
-  }
-}
-
-.i18n-key-code {
-  background: #f5f7fa;
-  padding: 2px 4px;
-  border-radius: 3px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 11px;
-  color: #d4380d;
-  word-break: break-all;
-}
-
+.i18n-checker-simple { display: flex; flex-direction: column; gap: 4px; height: 100%; }
+.i18n-control-bar { display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); flex-wrap: wrap; .i18n-spacer { flex: 1; } }
+.i18n-stats-row { display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); .i18n-stat-chip { display: flex; align-items: center; gap: 4px; padding: 4px 10px; background: #f5f7fa; border-radius: 4px; font-size: 13px; .i18n-stat-label { color: #909399; } .i18n-stat-value { font-weight: 700; color: #303133; font-size: 15px; } .i18n-stat-percent { font-size: 12px; color: #909399; margin-left: 2px; } &.i18n-stat-found { background: #f0f9ff; .i18n-stat-value { color: #52c41a; } } &.i18n-stat-missing { background: #fff1f0; .i18n-stat-value { color: #ff4d4f; } } } .i18n-progress-bar { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; min-width: 100px; .i18n-progress-fill { height: 100%; background: linear-gradient(90deg, #52c41a, #73d13d); transition: width 0.5s ease; border-radius: 4px; } } }
+.i18n-categories-row { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 10px; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); .i18n-category-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: #f5f7fa; border-radius: 4px; font-size: 12px; border-left: 3px solid #52c41a; cursor: default; transition: all 0.2s; &:hover { background: #ecf5ff; transform: translateY(-1px); } &.i18n-has-missing { border-left-color: #ff4d4f; background: #fff1f0; } .i18n-cat-name { font-weight: 600; color: #303133; } .i18n-cat-count { color: #909399; font-size: 11px; } } }
+.i18n-table-wrapper { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); overflow: hidden; flex: 1; display: flex; flex-direction: column; .i18n-table-footer { padding: 4px 10px; background: #fafafa; border-top: 1px solid #ebeef5; font-size: 12px; color: #909399; text-align: right; } }
+.i18n-key-code { background: #f5f7fa; padding: 2px 4px; border-radius: 3px; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; color: #d4380d; word-break: break-all; }
 .i18n-translation-value { color: #303133; font-size: 13px; }
+.i18n-translation-missing { color: #ff4d4f; display: inline-flex; align-items: center; gap: 4px; font-style: italic; font-size: 12px; }
 
-.i18n-translation-missing {
-  color: #ff4d4f;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-style: italic;
-  font-size: 12px;
-}
+/* 🔥 Компактный режим */
+.i18n-compact-mode { :deep(.el-table__row td) { padding: 2px 0 !important; } :deep(.el-table__header th) { padding: 2px 0 !important; } }
 
-:deep(.el-table) {
-  .i18n-row-found td { background-color: #f6ffed !important; }
-  .i18n-row-missing td { background-color: #fff1f0 !important; }
-  .el-table__header th { background: #fafafa !important; font-weight: 600; font-size: 13px; padding: 4px 0; }
-  .el-table__row td { padding: 4px 0; font-size: 13px; }
-}
+:deep(.el-table) { .i18n-row-found td { background-color: #f6ffed !important; } .i18n-row-missing td { background-color: #fff1f0 !important; } .el-table__header th { background: #fafafa !important; font-weight: 600; font-size: 13px; padding: 4px 0; } .el-table__row td { padding: 4px 0; font-size: 13px; } }
 </style>
