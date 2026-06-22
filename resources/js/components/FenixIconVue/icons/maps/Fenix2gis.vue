@@ -8,8 +8,8 @@
       y="0px"
       viewBox="0 0 1000 325.8"
       style="enable-background:new 0 0 1000 325.8;"
-      :width="props.width || 48"
-      :height="props.height || 24"
+      :width="computedWidth"
+      :height="computedHeight"
       preserveAspectRatio="xMidYMid meet"
   >
     <defs>
@@ -28,6 +28,7 @@
         C66.2,0.8,73.4,0.4,80.5,0.2"/>
     </mask>
     <g mask="url(#iconLogo_svg__a_00000160876812373449314350000007244229659938221983_)">
+      <!--  Бренд-цвета 2GIS (НЕ МЕНЯЮТСЯ) -->
       <path fill="#19AA1E" d="M0,0h323.9v325.8H0V0z"/>
       <path fill="#FFB919" d="M0,0h323.9v106.9L0,56V0z"/>
       <path fill="#82D714" d="M0,290.1l323.9-50.9v86.5H0V290.1z"/>
@@ -50,6 +51,8 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+
 const props = defineProps({
   width: {
     type: [Number, String],
@@ -62,7 +65,28 @@ const props = defineProps({
   size: {
     type: [Number, String],
     default: null  // Для обратной совместимости
+  },
+  color: {
+    type: String,
+    default: 'currentColor'
+  },
+  useGradients: {
+    type: Boolean,
+    default: false
   }
+})
+
+//  Бренд-логотип 2GIS НЕ МЕНЯЕТ ЦВЕТА
+// useGradients и color игнорируются для сохранения узнаваемости бренда
+
+const computedWidth = computed(() => {
+  if (props.size) return Number(props.size) * 2 // 2GIS шире чем высота
+  return Number(props.width)
+})
+
+const computedHeight = computed(() => {
+  if (props.size) return Number(props.size)
+  return Number(props.height)
 })
 </script>
 
@@ -72,3 +96,11 @@ export default {
   inheritAttrs: false
 }
 </script>
+
+<style scoped>
+svg {
+  display: inline-block;
+  vertical-align: middle;
+  fill: v-bind(color);
+}
+</style>

@@ -3,7 +3,6 @@
  * I18N SETTINGS DEFAULTS CONFIG — КОНФИГУРАЦИЯ ПО УМОЛЧАНИЮ
  * ============================================================================
  */
-
 export const I18N_SETTINGS_DEFAULTS_CONFIG = {
     meta: {
         layout: 'horizontal',
@@ -15,6 +14,7 @@ export const I18N_SETTINGS_DEFAULTS_CONFIG = {
         size: 20,
         color: 'currentColor',
         showLabels: true,
+        useGradients: false,
     },
     display: {
         tableHeight: 350,

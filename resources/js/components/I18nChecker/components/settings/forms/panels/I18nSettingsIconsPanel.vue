@@ -24,6 +24,12 @@
       <el-form-item label="Показывать подписи в превью" class="compact-item">
         <el-switch v-model="localData.showLabels" :active-value="true" :inactive-value="false" />
       </el-form-item>
+
+      <!-- НОВАЯ НАСТРОЙКА -->
+      <el-form-item label="Использовать градиенты" class="compact-item">
+        <el-switch v-model="localData.useGradients" :active-value="true" :inactive-value="false" />
+        <div class="form-tip">Применять градиенты к SVG иконкам (Fenix/Custom)</div>
+      </el-form-item>
     </el-form>
 
     <div class="icons-preview-section">
@@ -64,10 +70,8 @@ import { deepClone } from '@components/I18nChecker/utils/i18nSettingsHelpersUtil
 const settingsStore = useI18nSettingsStore()
 const { iconsSettings } = storeToRefs(settingsStore)
 
-// 🔥 localData синхронизируется с store
 const localData = ref(deepClone(iconsSettings.value))
 
-// 🔥 Следим за store → обновляем localData
 watch(iconsSettings, (newVal) => {
   localData.value = deepClone(newVal)
 }, { deep: true })
@@ -76,7 +80,6 @@ const previewIcons = computed(() => {
   return Object.entries(ICONS).map(([key]) => ({ key }))
 })
 
-// 🔥 ИСПРАВЛЕНО: используем I18N_SETTINGS_DEFAULTS_CONFIG вместо $state()
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.icons)
 }

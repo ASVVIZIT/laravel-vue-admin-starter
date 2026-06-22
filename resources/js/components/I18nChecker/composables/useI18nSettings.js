@@ -5,7 +5,6 @@ import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSetting
 export function useI18nSettings() {
     const settingsStore = useI18nSettingsStore();
 
-    // storeToRefs — делает refs реактивными для внешних computed
     const {
         iconsSettings,
         displaySettings,
@@ -13,23 +12,17 @@ export function useI18nSettings() {
         metaSettings
     } = storeToRefs(settingsStore);
 
-    // ========================================================================
-    // ОБЪЕКТЫ ЦЕЛИКОМ
-    // ========================================================================
     const icons = computed(() => iconsSettings.value);
     const display = computed(() => displaySettings.value);
     const behavior = computed(() => behaviorSettings.value);
     const meta = computed(() => metaSettings.value);
-
-    // ========================================================================
-    // ОТДЕЛЬНЫЕ ПОЛЯ — все РЕАКТИВНЫЕ через storeToRefs
-    // ========================================================================
 
     // Icons
     const iconSource = computed(() => iconsSettings.value?.source || 'bootstrap');
     const iconSize = computed(() => iconsSettings.value?.size || 20);
     const iconColor = computed(() => iconsSettings.value?.color || 'currentColor');
     const showLabels = computed(() => iconsSettings.value?.showLabels ?? true);
+    const useGradients = computed(() => iconsSettings.value?.useGradients ?? false); // 🔥 НОВОЕ
 
     // Display
     const tableHeight = computed(() => displaySettings.value?.tableHeight || 350);
@@ -48,32 +41,9 @@ export function useI18nSettings() {
     const highlightSearch = computed(() => behaviorSettings.value?.highlightSearch ?? true);
 
     return {
-        // Объекты целиком
-        icons,
-        display,
-        behavior,
-        meta,
-
-        // Icons
-        iconSource,
-        iconSize,
-        iconColor,
-        showLabels,
-
-        // Display
-        tableHeight,
-        maxFilesPerRow,
-        maxUnusedKeys,
-        maxFlatKeys,
-        fontSize,
-        compactMode,
-
-        // Behavior
-        autoRunScanner,
-        autoRunValidator,
-        cacheResults,
-        cacheTTL,
-        confirmBeforeExport,
-        highlightSearch
+        icons, display, behavior, meta,
+        iconSource, iconSize, iconColor, showLabels, useGradients,
+        tableHeight, maxFilesPerRow, maxUnusedKeys, maxFlatKeys, fontSize, compactMode,
+        autoRunScanner, autoRunValidator, cacheResults, cacheTTL, confirmBeforeExport, highlightSearch
     };
 }

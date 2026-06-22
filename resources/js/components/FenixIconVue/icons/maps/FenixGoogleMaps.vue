@@ -18,6 +18,7 @@
       <use xlink:href="#a"></use>
     </clipPath>
     <g clip-path="url(#b)">
+      <!--  БРЕНД-ЦВЕТА GOOGLE MAPS (НЕ МЕНЯЮТСЯ) -->
       <path fill="#35a85b" d="M0 512V0h512z"/>
       <path fill="#5881ca" d="M256 288L32 512h448z"/>
       <path fill="#c1c0be" d="M288 256L512 32v448z"/>
@@ -30,6 +31,11 @@
 </template>
 
 <script setup>
+/**
+ *  Бренд-логотип Google Maps
+ * Цвета НЕ меняются через props color/useGradients
+ * для сохранения узнаваемости бренда
+ */
 const props = defineProps({
   size: {
     type: [Number, String],
@@ -38,6 +44,10 @@ const props = defineProps({
   color: {
     type: String,
     default: 'currentColor'
+  },
+  useGradients: {
+    type: Boolean,
+    default: false
   }
 })
 </script>
@@ -48,3 +58,11 @@ export default {
   inheritAttrs: false
 }
 </script>
+
+<style scoped>
+svg {
+  display: inline-block;
+  vertical-align: middle;
+  fill: v-bind(color);
+}
+</style>
