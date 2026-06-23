@@ -1,5 +1,5 @@
 <template>
-  <!-- Bootstrap Icons -->
+  <!-- Режим 1: Bootstrap Icons -->
   <i
       v-if="resolvedSource === ICON_SOURCES.BOOTSTRAP"
       :class="bootstrapClasses"
@@ -7,17 +7,18 @@
       aria-hidden="true"
   ></i>
 
-  <!-- Fenix SVG Icons -->
+  <!-- Режим 2: Fenix SVG Icons -->
   <component
       v-else-if="resolvedSource === ICON_SOURCES.FENIX && fenixIcon"
       :is="fenixIcon"
       :size="resolvedSize"
       :color="resolvedColor"
+      :use-gradients="useGradients"
       :class="['i18n-custom-icon', customClass]"
       v-bind="$attrs"
   />
 
-  <!-- Custom SVG Icons -->
+  <!-- Режим 3: Custom SVG Icons (с fallback на Fenix) -->
   <component
       v-else-if="resolvedSource === ICON_SOURCES.CUSTOM && customIcon"
       :is="customIcon"
@@ -28,7 +29,7 @@
       v-bind="$attrs"
   />
 
-  <!-- Fallback на Bootstrap если fenix/custom не найдены -->
+  <!-- Fallback на Bootstrap если иконка не найдена ни в одном источнике -->
   <i
       v-else
       :class="['i18n-custom-icon', 'bi', `bi-${getBootstrapName(resolvedName)}`, customClass]"
@@ -42,6 +43,7 @@ import { computed } from 'vue';
 import { useFenixIconsStore } from '@components/FenixIconVue/store/fenixIconsStore.js';
 import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
 import { getCustomIcon } from '@components/I18nChecker/components/icons/customIconsRegistry.js';
+import { getBootstrapName } from '@components/I18nChecker/config/iconMapping.js';
 import {
   ICON_SOURCES,
   ICON_DEFAULTS,
@@ -69,78 +71,24 @@ const props = defineProps({
 const iconConfig = computed(() => getIconConfig(props.name));
 
 // ========================================================================
-// 🔥 МАППИНГ: Custom/Fenix имя → Bootstrap имя
-// Используется когда source = bootstrap
-// ========================================================================
-const CUSTOM_TO_BOOTSTRAP = {
-  'Translate': 'translate',
-  'Key': 'key',
-  'CheckCircle': 'check-circle',
-  'ExclamationCircle': 'exclamation-circle',
-  'Gear': 'gear',
-  'Search': 'search',
-  'Warning': 'exclamation-triangle',
-  'Close': 'x',
-  'Refresh': 'arrow-clockwise',
-  'Export': 'download',
-  'Copy': 'clipboard',
-  'Info': 'info-circle',
-  'Success': 'check-circle',
-  'Missing': 'exclamation-circle',
-};
-
-const FENIX_TO_BOOTSTRAP = {
-  'Telegram': 'send',
-  'Vk': 'chat',
-  'WhatsApp': 'chat-dots',
-  'YouTube': 'play-circle',
-  'Instagram': 'camera',
-  'Twitter': 'chat-square-text',
-  'Facebook': 'chat-fill',
-  'TikTok': 'music-note',
-  'Pinterest': 'pin',
-  'LinkedIn': 'briefcase',
-  '2gis': 'geo-alt',
-  'GoogleMaps': 'geo-alt',
-  'YandexMaps': 'geo-alt',
-  'Search': 'search',
-  'Warning': 'exclamation-triangle',
-  'Default': 'circle',
-};
-
-const getBootstrapName = (name) => {
-  return CUSTOM_TO_BOOTSTRAP[name] || FENIX_TO_BOOTSTRAP[name] || name;
-};
-
-// ========================================================================
-// 🔥 ПРИОРИТЕТ ИСТОЧНИКА: prop > НАСТРОЙКИ > default
-// Config больше НЕ перебивает настройки пользователя!
+// ПРИОРИТЕТ ИСТОЧНИКА: prop > НАСТРОЙКИ > default
 // ========================================================================
 const resolvedSource = computed(() => {
-  // 1. Принудительный bootstrap
   if (props.forceBootstrap) return ICON_SOURCES.BOOTSTRAP;
-
-  // 2. 🔥 Настройки пользователя ВСЕГДА побеждают
   if (settingsSource.value) return settingsSource.value;
-
-  // 3. Дефолт
   return ICON_SOURCES.BOOTSTRAP;
 });
 
 // ========================================================================
-// 🔥 ИМЯ ИКОНКИ зависит от источника
-// Bootstrap → bootstrap имя (translate, check-circle)
-// Custom/Fenix → config имя (Translate, CheckCircle)
+// ИМЯ ИКОНКИ зависит от источника
 // ========================================================================
 const resolvedName = computed(() => {
   const configName = getIconRealName(props.name);
 
   if (resolvedSource.value === ICON_SOURCES.BOOTSTRAP) {
-    // Для bootstrap маппим на bootstrap-имя
     return getBootstrapName(configName);
   }
 
-  // Для fenix/custom используем имя из конфига
   return configName;
 });
 
@@ -183,17 +131,33 @@ const fenixIcon = computed(() => {
 });
 
 // ========================================================================
-// CUSTOM ИКОНКА
+// 🔥 CUSTOM ИКОНКА С ТРЁХУРОВНЕВЫМ FALLBACK
+// ========================================================================
+// Приоритет: Custom → Fenix → Bootstrap (через template v-else)
 // ========================================================================
 const customIcon = computed(() => {
   if (resolvedSource.value !== ICON_SOURCES.CUSTOM) return null;
   const configName = getIconRealName(props.name);
-  const icon = getCustomIcon(configName);
-  if (!icon) {
-    console.warn(`[I18nIcon] Custom icon "${configName}" not found, fallback to Bootstrap`);
-    return null;
+
+  // 🔥 УРОВЕНЬ 1: Ищем в Custom registry
+  const custom = getCustomIcon(configName);
+  if (custom) {
+    return custom;
   }
-  return icon;
+
+  // 🔥 УРОВЕНЬ 2: Custom не найден → пробуем Fenix
+  const fenixName = configName.startsWith('Fenix')
+      ? configName
+      : `Fenix${configName.charAt(0).toUpperCase() + configName.slice(1)}`;
+  const fenix = iconsStore.getIconByName(fenixName);
+  if (fenix) {
+    console.info(`[I18nIcon] Custom "${configName}" not found, using Fenix "${fenixName}"`);
+    return fenix;
+  }
+
+  // 🔥 УРОВЕНЬ 3: Ни Custom, ни Fenix нет → fallback на Bootstrap (через v-else)
+  console.warn(`[I18nIcon] Icon "${configName}" not found in Custom/Fenix, fallback to Bootstrap`);
+  return null;
 });
 
 // ========================================================================

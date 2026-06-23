@@ -10,31 +10,39 @@ export const ICON_DEFAULTS = {
     color: 'currentColor'
 };
 
+/**
+ * ============================================================================
+ * КОНФИГ ИКОНОК — ЕДИНСТВЕННЫЙ источник истины
+ * ============================================================================
+ * Все иконки модуля I18nChecker используют Fenix источник.
+ * Если Fenix иконка не найдена — fallback на Bootstrap через iconMapping.js
+ * ============================================================================
+ */
 export const ICONS = {
-    // Заголовок и режимы — CUSTOM
-    'i18n.title': { source: 'custom', name: 'Translate', size: 24 },
-    'i18n.simpleMode': { source: 'custom', name: 'CheckCircle', size: 20 },
-    'i18n.scannerMode': { source: 'custom', name: 'Search', size: 20 },
-    'i18n.validatorMode': { source: 'fenix', name: 'Warning', size: 20 },
+    // Заголовок и режимы
+    'i18n.title':         { source: 'fenix', name: 'Translate', size: 24 },
+    'i18n.simpleMode':    { source: 'fenix', name: 'Check',     size: 20 },
+    'i18n.scannerMode':   { source: 'fenix', name: 'Scan',      size: 20 },
+    'i18n.validatorMode': { source: 'fenix', name: 'Warning',   size: 20 },
 
-    // Действия — CUSTOM
-    'search': { source: 'custom', name: 'Search', size: 16 },
-    'refresh': { source: 'bootstrap', name: 'arrow-clockwise', size: 16 },
-    'export': { source: 'bootstrap', name: 'download', size: 16 },
-    'copy': { source: 'bootstrap', name: 'clipboard', size: 16 },
+    // Действия
+    'search':  { source: 'fenix', name: 'Scan',    size: 16 },
+    'refresh': { source: 'fenix', name: 'Refresh', size: 16 },
+    'export':  { source: 'fenix', name: 'Export',  size: 16 },
+    'copy':    { source: 'fenix', name: 'Copy',    size: 16 },
 
-    // Статусы — CUSTOM
-    'missing': { source: 'custom', name: 'ExclamationCircle', size: 16 },
-    'success': { source: 'custom', name: 'CheckCircle', size: 20 },
+    // Статусы
+    'missing': { source: 'fenix', name: 'Missing', size: 16 },
+    'success': { source: 'fenix', name: 'Success', size: 20 },
     'warning': { source: 'fenix', name: 'Warning', size: 16 },
-    'info': { source: 'bootstrap', name: 'info-circle', size: 16 },
+    'info':    { source: 'fenix', name: 'Info',    size: 16 },
 
-    // Специфичные для модуля — CUSTOM
-    'key': { source: 'custom', name: 'Key', size: 16 },
+    // Специфичные для модуля
+    'key': { source: 'fenix', name: 'Key', size: 16 },
 
     // Настройки и действия
-    'settings': { source: 'custom', name: 'Gear', size: 16 },
-    'close': { source: 'bootstrap', name: 'x', size: 16 }
+    'settings': { source: 'fenix', name: 'Settings', size: 16 },
+    'close':    { source: 'fenix', name: 'Close',    size: 16 }
 };
 
 export const getIconConfig = (name) => {

@@ -1,32 +1,32 @@
 <template>
   <div class="settings-panel">
     <el-form label-position="top" size="small" class="compact-form">
-      <el-divider content-position="left" class="compact-divider">Таблицы</el-divider>
-      <el-form-item label="Высота таблицы (px)" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.display.tablesTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.display.tableHeight')" class="compact-item">
         <el-input-number v-model="localData.tableHeight" :min="200" :max="800" :step="50" controls-position="right" class="full-width compact-input" />
       </el-form-item>
-      <el-form-item label="Размер шрифта (px)" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.display.fontSize')" class="compact-item">
         <el-input-number v-model="localData.fontSize" :min="10" :max="18" :step="1" controls-position="right" class="full-width compact-input" />
       </el-form-item>
 
-      <el-divider content-position="left" class="compact-divider">Лимиты отображения</el-divider>
-      <el-form-item label="Макс. файлов в строке" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.display.limitsTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.display.maxFilesPerRow')" class="compact-item">
         <el-input-number v-model="localData.maxFilesPerRow" :min="1" :max="10" :step="1" controls-position="right" class="full-width compact-input" />
-        <div class="form-tip">Сколько файлов показывать в одной строке таблицы</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.display.maxFilesPerRowTip') }}</div>
       </el-form-item>
-      <el-form-item label="Макс. unused ключей" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.display.maxUnusedKeys')" class="compact-item">
         <el-input-number v-model="localData.maxUnusedKeys" :min="50" :max="2000" :step="50" controls-position="right" class="full-width compact-input" />
-        <div class="form-tip">Сколько unused ключей отображать в списке</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.display.maxUnusedKeysTip') }}</div>
       </el-form-item>
-      <el-form-item label="Макс. flat ключей" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.display.maxFlatKeys')" class="compact-item">
         <el-input-number v-model="localData.maxFlatKeys" :min="50" :max="1000" :step="50" controls-position="right" class="full-width compact-input" />
-        <div class="form-tip">Сколько flat ключей отображать в списке</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.display.maxFlatKeysTip') }}</div>
       </el-form-item>
 
-      <el-divider content-position="left" class="compact-divider">Вид</el-divider>
-      <el-form-item label="Компактный режим" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.display.appearanceTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.display.compactMode')" class="compact-item">
         <el-switch v-model="localData.compactMode" :active-value="true" :inactive-value="false" />
-        <div class="form-tip">Уменьшает отступы и padding для более плотного отображения</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.display.compactModeTip') }}</div>
       </el-form-item>
     </el-form>
   </div>
@@ -48,7 +48,6 @@ watch(displaySettings, (newVal) => {
   localData.value = deepClone(newVal)
 }, { deep: true })
 
-// 🔥 ИСПРАВЛЕНО: используем I18N_SETTINGS_DEFAULTS_CONFIG вместо $state()
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.display)
 }

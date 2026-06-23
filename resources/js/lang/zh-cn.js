@@ -831,6 +831,7 @@ export default {
 
      // === 页面样式设置 ===
     "settings": {
+      // === 通用 ===
       "title": "I18nChecker 模块设置",
       "open": "设置",
       "cancel": "取消",
@@ -841,35 +842,75 @@ export default {
       "saved": "设置已保存",
       "resetDone": "设置已重置",
       "saveFailed": "保存设置失败",
-      "configureTabs": "配置表单显示",
-      "tabsLayout": "选项卡布局",
-      "horizontal": "↔ 水平",
-      "vertical": "↕ 垂直",
-      "visibleTabs": "可见选项卡",
-      "icons": "图标",
-      "display": "显示",
-      "behavior": "行为",
-      "iconSource": "图标来源",
-      "iconSize": "图标大小",
-      "iconColor": "颜色",
-      "showLabels": "显示标签",
-      "iconsPreview": "图标预览",
-      "iconsCount": "个图标",
-      "tableHeight": "表格高度",
-      "fontSize": "字体大小",
-      "maxFilesPerRow": "每行最大文件数",
-      "maxUnusedKeys": "最大未使用键数",
-      "maxFlatKeys": "最大扁平键数",
-      "compactMode": "紧凑模式（减少间距）",
-      "autoActions": "自动操作",
-      "autoRunScanner": "打开模式时自动运行扫描器",
-      "autoRunValidator": "打开模式时自动运行验证器",
-      "cache": "缓存",
-      "cacheResults": "缓存扫描结果",
-      "cacheTTL": "缓存有效期（秒）",
-      "ui": "界面",
-      "confirmBeforeExport": "导出前确认",
-      "highlightSearch": "高亮搜索结果"
+
+      // === 元数据（表单设置） ===
+      "meta": {
+        "toggle": "配置表单显示",
+        "layout": "标签页布局",
+        "layoutHorizontal": "↔ 水平",
+        "layoutVertical": "↕ 垂直",
+        "visibleTabs": "可见标签页",
+        "tabIcons": "🎨 图标",
+        "tabDisplay": "📊 显示",
+        "tabBehavior": "⚙️ 行为"
+      },
+
+      // === 图标 ===
+      "icons": {
+        "title": "图标",
+        "sourceTitle": "图标来源",
+        "iconType": "图标类型",
+        "iconTypeTip": "模块图标加载的来源",
+        "bootstrapOption": "🅱️ Bootstrap 图标",
+        "fenixOption": "🦊 Fenix SVG",
+        "customOption": "🎨 自定义",
+        "sizeColorTitle": "大小和颜色",
+        "iconSize": "图标大小（px）",
+        "iconColor": "图标颜色",
+        "iconColorTip": "当前值：",
+        "displayTitle": "显示",
+        "showLabels": "在预览中显示标签",
+        "useGradients": "使用渐变",
+        "useGradientsTip": "将渐变应用于 SVG 图标（Fenix/自定义）",
+        "previewTitle": "图标预览",
+        "previewCount": "个图标"
+      },
+
+      // === 显示 ===
+      "display": {
+        "title": "显示",
+        "tablesTitle": "表格",
+        "tableHeight": "表格高度（px）",
+        "fontSize": "字体大小（px）",
+        "limitsTitle": "显示限制",
+        "maxFilesPerRow": "每行最多文件数",
+        "maxFilesPerRowTip": "表格每行显示多少个文件",
+        "maxUnusedKeys": "最多未使用键数",
+        "maxUnusedKeysTip": "列表中显示多少个未使用键",
+        "maxFlatKeys": "最多平铺键数",
+        "maxFlatKeysTip": "列表中显示多少个平铺键",
+        "appearanceTitle": "外观",
+        "compactMode": "紧凑模式",
+        "compactModeTip": "减少边距和内边距，使显示更紧凑"
+      },
+
+      // === 行为 ===
+      "behavior": {
+        "title": "行为",
+        "autoRunTitle": "自动运行",
+        "autoRunScanner": "自动运行扫描器",
+        "autoRunScannerTip": "切换到模式时自动启动扫描器",
+        "autoRunValidator": "自动运行验证器",
+        "autoRunValidatorTip": "切换到模式时自动启动验证器",
+        "cacheTitle": "缓存",
+        "cacheResults": "缓存结果",
+        "cacheTTL": "缓存有效期（秒）",
+        "cacheTTLTip": "多少秒后缓存将被视为过期",
+        "uiTitle": "界面",
+        "confirmExport": "导出前确认",
+        "highlightSearch": "高亮搜索结果",
+        "highlightSearchTip": "用黄色高亮表格中找到的文本"
+      }
     }
   },
 

@@ -4,22 +4,22 @@
       <div class="meta-panel">
         <el-button type="text" size="small" @click="showMetaSettings = !showMetaSettings" class="meta-toggle">
           <el-icon><Setting /></el-icon>
-          Настроить отображение формы
+          {{ $t('i18nChecker.settings.meta.toggle') }}
         </el-button>
         <el-collapse-transition>
           <div v-if="showMetaSettings" class="meta-settings">
             <el-form size="small" label-position="top">
               <el-row :gutter="12">
                 <el-col :span="8">
-                  <el-form-item label="Расположение табов">
+                  <el-form-item :label="$t('i18nChecker.settings.meta.layout')">
                     <el-select v-model="metaForm.layout" size="small">
-                      <el-option label="↔ Горизонтально" value="horizontal" />
-                      <el-option label="↕ Вертикально" value="vertical" />
+                      <el-option :label="$t('i18nChecker.settings.meta.layoutHorizontal')" value="horizontal" />
+                      <el-option :label="$t('i18nChecker.settings.meta.layoutVertical')" value="vertical" />
                     </el-select>
                   </el-form-item>
                 </el-col>
                 <el-col :span="16">
-                  <el-form-item label="Видимые табы">
+                  <el-form-item :label="$t('i18nChecker.settings.meta.visibleTabs')">
                     <div class="tabs-order-list">
                       <div
                           v-for="tab in allTabs"
@@ -67,7 +67,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Setting, Check, Close } from '@element-plus/icons-vue'
 import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSettingsStore.js'
 import { storeToRefs } from 'pinia'
@@ -78,6 +79,7 @@ import I18nSettingsDisplayPanel from './forms/panels/I18nSettingsDisplayPanel.vu
 import I18nSettingsBehaviorPanel from './forms/panels/I18nSettingsBehaviorPanel.vue'
 
 const emit = defineEmits(['saved', 'cancelled'])
+const { t } = useI18n()
 
 const settingsStore = useI18nSettingsStore()
 const { metaSettings } = storeToRefs(settingsStore)
@@ -87,15 +89,15 @@ const showMetaSettings = ref(false)
 const panels = ref([])
 const activeTab = ref('icons')
 
-const allTabs = [
-  { key: 'icons', label: '🎨 Иконки', component: I18nSettingsIconsPanel },
-  { key: 'display', label: '📊 Отображение', component: I18nSettingsDisplayPanel },
-  { key: 'behavior', label: '⚙️ Поведение', component: I18nSettingsBehaviorPanel },
-]
+// 🔥 Используем переводы для названий табов
+const allTabs = computed(() => [
+  { key: 'icons', label: t('i18nChecker.settings.meta.tabIcons'), component: I18nSettingsIconsPanel },
+  { key: 'display', label: t('i18nChecker.settings.meta.tabDisplay'), component: I18nSettingsDisplayPanel },
+  { key: 'behavior', label: t('i18nChecker.settings.meta.tabBehavior'), component: I18nSettingsBehaviorPanel },
+])
 
 const metaForm = ref(deepClone(metaSettings.value))
 
-// 🔥 Синхронизация с store
 watch(metaSettings, (newVal) => {
   metaForm.value = deepClone(newVal)
 }, { deep: true })
@@ -103,7 +105,7 @@ watch(metaSettings, (newVal) => {
 const visibleTabs = computed(() => {
   return metaForm.value.tabs_order
       .filter(key => metaForm.value.visible_tabs.includes(key))
-      .map(key => allTabs.find(t => t.key === key))
+      .map(key => allTabs.value.find(t => t.key === key))
       .filter(Boolean)
 })
 

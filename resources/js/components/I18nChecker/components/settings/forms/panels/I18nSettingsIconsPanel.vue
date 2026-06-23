@@ -1,41 +1,40 @@
 <template>
   <div class="settings-panel">
     <el-form label-position="top" size="small" class="compact-form">
-      <el-divider content-position="left" class="compact-divider">Источник иконок</el-divider>
-      <el-form-item label="Тип иконок" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.icons.sourceTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.icons.iconType')" class="compact-item">
         <el-select v-model="localData.source" class="full-width compact-select" size="small">
-          <el-option label="🅱️ Bootstrap Icons" value="bootstrap" />
-          <el-option label="🦊 Fenix SVG" value="fenix" />
-          <el-option label="🎨 Custom" value="custom" />
+          <el-option :label="$t('i18nChecker.settings.icons.bootstrapOption')" value="bootstrap" />
+          <el-option :label="$t('i18nChecker.settings.icons.fenixOption')" value="fenix" />
+          <el-option :label="$t('i18nChecker.settings.icons.customOption')" value="custom" />
         </el-select>
-        <div class="form-tip">Источник из которого будут браться иконки модуля</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.icons.iconTypeTip') }}</div>
       </el-form-item>
 
-      <el-divider content-position="left" class="compact-divider">Размер и цвет</el-divider>
-      <el-form-item label="Размер иконок (px)" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.icons.sizeColorTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.icons.iconSize')" class="compact-item">
         <el-input-number v-model="localData.size" :min="12" :max="48" :step="2" controls-position="right" class="full-width compact-input" />
       </el-form-item>
-      <el-form-item label="Цвет иконок" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.icons.iconColor')" class="compact-item">
         <el-color-picker v-model="localData.color" show-alpha size="small" />
-        <div class="form-tip">Текущее значение: <code>{{ localData.color }}</code></div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.icons.iconColorTip') }} <code>{{ localData.color }}</code></div>
       </el-form-item>
 
-      <el-divider content-position="left" class="compact-divider">Отображение</el-divider>
-      <el-form-item label="Показывать подписи в превью" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.icons.displayTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.icons.showLabels')" class="compact-item">
         <el-switch v-model="localData.showLabels" :active-value="true" :inactive-value="false" />
       </el-form-item>
 
-      <!-- НОВАЯ НАСТРОЙКА -->
-      <el-form-item label="Использовать градиенты" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.icons.useGradients')" class="compact-item">
         <el-switch v-model="localData.useGradients" :active-value="true" :inactive-value="false" />
-        <div class="form-tip">Применять градиенты к SVG иконкам (Fenix/Custom)</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.icons.useGradientsTip') }}</div>
       </el-form-item>
     </el-form>
 
     <div class="icons-preview-section">
       <div class="preview-header">
-        <h4>Предпросмотр иконок</h4>
-        <span class="preview-count">{{ previewIcons.length }} иконок</span>
+        <h4>{{ $t('i18nChecker.settings.icons.previewTitle') }}</h4>
+        <span class="preview-count">{{ previewIcons.length }} {{ $t('i18nChecker.settings.icons.previewCount') }}</span>
       </div>
       <div class="icons-grid">
         <div
@@ -49,6 +48,7 @@
                 :name="icon.key"
                 :size="localData.size"
                 :color="localData.color === 'currentColor' ? undefined : localData.color"
+                :use-gradients="localData.useGradients"
             />
           </div>
           <div v-if="localData.showLabels" class="icon-label">{{ icon.key }}</div>

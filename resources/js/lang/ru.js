@@ -846,7 +846,9 @@ export default {
         "detailedResults": "Детальные результаты",
 
         // === Настройки (Settings) ===
+        // 🔍 I18N CHECKER — Настройки (Settings)
         "settings": {
+            // === Общие ===
             "title": "Настройки модуля I18nChecker",
             "open": "Настройки",
             "cancel": "Отмена",
@@ -857,35 +859,75 @@ export default {
             "saved": "Настройки сохранены",
             "resetDone": "Настройки сброшены",
             "saveFailed": "Не удалось сохранить настройки",
-            "configureTabs": "Настроить отображение формы",
-            "tabsLayout": "Расположение табов",
-            "horizontal": "↔ Горизонтально",
-            "vertical": "↕ Вертикально",
-            "visibleTabs": "Видимые табы",
-            "icons": "Иконки",
-            "display": "Отображение",
-            "behavior": "Поведение",
-            "iconSource": "Источник иконок",
-            "iconSize": "Размер иконок",
-            "iconColor": "Цвет",
-            "showLabels": "Показывать подписи",
-            "iconsPreview": "Предпросмотр иконок",
-            "iconsCount": "иконок",
-            "tableHeight": "Высота таблицы",
-            "fontSize": "Размер шрифта",
-            "maxFilesPerRow": "Макс. файлов в строке",
-            "maxUnusedKeys": "Макс. unused ключей",
-            "maxFlatKeys": "Макс. flat ключей",
-            "compactMode": "Компактный режим (меньше отступов)",
-            "autoActions": "Автоматические действия",
-            "autoRunScanner": "Автозапуск сканера при открытии режима",
-            "autoRunValidator": "Автозапуск валидатора при открытии режима",
-            "cache": "Кэширование",
-            "cacheResults": "Кэшировать результаты сканирования",
-            "cacheTTL": "Время жизни кэша (сек)",
-            "ui": "Интерфейс",
-            "confirmBeforeExport": "Подтверждать перед экспортом",
-            "highlightSearch": "Подсвечивать результаты поиска"
+
+            // === Meta (настройки формы) ===
+            "meta": {
+                "toggle": "Настроить отображение формы",
+                "layout": "Расположение табов",
+                "layoutHorizontal": "↔ Горизонтально",
+                "layoutVertical": "↕ Вертикально",
+                "visibleTabs": "Видимые табы",
+                "tabIcons": "🎨 Иконки",
+                "tabDisplay": "📊 Отображение",
+                "tabBehavior": "⚙️ Поведение"
+            },
+
+            // === Icons (Иконки) ===
+            "icons": {
+                "title": "Иконки",
+                "sourceTitle": "Источник иконок",
+                "iconType": "Тип иконок",
+                "iconTypeTip": "Источник из которого будут браться иконки модуля",
+                "bootstrapOption": "🅱️ Bootstrap Icons",
+                "fenixOption": "🦊 Fenix SVG",
+                "customOption": "🎨 Custom",
+                "sizeColorTitle": "Размер и цвет",
+                "iconSize": "Размер иконок (px)",
+                "iconColor": "Цвет иконок",
+                "iconColorTip": "Текущее значение:",
+                "displayTitle": "Отображение",
+                "showLabels": "Показывать подписи в превью",
+                "useGradients": "Использовать градиенты",
+                "useGradientsTip": "Применять градиенты к SVG иконкам (Fenix/Custom)",
+                "previewTitle": "Предпросмотр иконок",
+                "previewCount": "иконок"
+            },
+
+            // === Display (Отображение) ===
+            "display": {
+                "title": "Отображение",
+                "tablesTitle": "Таблицы",
+                "tableHeight": "Высота таблицы (px)",
+                "fontSize": "Размер шрифта (px)",
+                "limitsTitle": "Лимиты отображения",
+                "maxFilesPerRow": "Макс. файлов в строке",
+                "maxFilesPerRowTip": "Сколько файлов показывать в одной строке таблицы",
+                "maxUnusedKeys": "Макс. unused ключей",
+                "maxUnusedKeysTip": "Сколько unused ключей отображать в списке",
+                "maxFlatKeys": "Макс. flat ключей",
+                "maxFlatKeysTip": "Сколько flat ключей отображать в списке",
+                "appearanceTitle": "Вид",
+                "compactMode": "Компактный режим",
+                "compactModeTip": "Уменьшает отступы и padding для более плотного отображения"
+            },
+
+            // === Behavior (Поведение) ===
+            "behavior": {
+                "title": "Поведение",
+                "autoRunTitle": "Автозапуск",
+                "autoRunScanner": "Автозапуск сканера",
+                "autoRunScannerTip": "Автоматически запускать сканер при переключении в режим",
+                "autoRunValidator": "Автозапуск валидатора",
+                "autoRunValidatorTip": "Автоматически запускать валидатор при переключении в режим",
+                "cacheTitle": "Кэширование",
+                "cacheResults": "Кэшировать результаты",
+                "cacheTTL": "Время жизни кэша (сек)",
+                "cacheTTLTip": "Через сколько секунд кэш будет считаться устаревшим",
+                "uiTitle": "Интерфейс",
+                "confirmExport": "Подтверждение перед экспортом",
+                "highlightSearch": "Подсвечивать результаты поиска",
+                "highlightSearchTip": "Подсвечивать найденный текст в таблицах жёлтым"
+            }
         }
     },
 

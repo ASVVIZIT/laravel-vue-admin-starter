@@ -1,32 +1,32 @@
 <template>
   <div class="settings-panel">
     <el-form label-position="top" size="small" class="compact-form">
-      <el-divider content-position="left" class="compact-divider">Автозапуск</el-divider>
-      <el-form-item label="Автозапуск сканера" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.behavior.autoRunTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.behavior.autoRunScanner')" class="compact-item">
         <el-switch v-model="localData.autoRunScanner" :active-value="true" :inactive-value="false" />
-        <div class="form-tip">Автоматически запускать сканер при переключении в режим</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.autoRunScannerTip') }}</div>
       </el-form-item>
-      <el-form-item label="Автозапуск валидатора" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.behavior.autoRunValidator')" class="compact-item">
         <el-switch v-model="localData.autoRunValidator" :active-value="true" :inactive-value="false" />
-        <div class="form-tip">Автоматически запускать валидатор при переключении в режим</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.autoRunValidatorTip') }}</div>
       </el-form-item>
 
-      <el-divider content-position="left" class="compact-divider">Кэширование</el-divider>
-      <el-form-item label="Кэшировать результаты" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.behavior.cacheTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.behavior.cacheResults')" class="compact-item">
         <el-switch v-model="localData.cacheResults" :active-value="true" :inactive-value="false" />
       </el-form-item>
-      <el-form-item v-if="localData.cacheResults" label="Время жизни кэша (сек)" class="compact-item">
+      <el-form-item v-if="localData.cacheResults" :label="$t('i18nChecker.settings.behavior.cacheTTL')" class="compact-item">
         <el-input-number v-model="localData.cacheTTL" :min="60" :max="3600" :step="60" controls-position="right" class="full-width compact-input" />
-        <div class="form-tip">Через сколько секунд кэш будет считаться устаревшим</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.cacheTTLTip') }}</div>
       </el-form-item>
 
-      <el-divider content-position="left" class="compact-divider">Интерфейс</el-divider>
-      <el-form-item label="Подтверждение перед экспортом" class="compact-item">
+      <el-divider content-position="left" class="compact-divider">{{ $t('i18nChecker.settings.behavior.uiTitle') }}</el-divider>
+      <el-form-item :label="$t('i18nChecker.settings.behavior.confirmExport')" class="compact-item">
         <el-switch v-model="localData.confirmBeforeExport" :active-value="true" :inactive-value="false" />
       </el-form-item>
-      <el-form-item label="Подсвечивать результаты поиска" class="compact-item">
+      <el-form-item :label="$t('i18nChecker.settings.behavior.highlightSearch')" class="compact-item">
         <el-switch v-model="localData.highlightSearch" :active-value="true" :inactive-value="false" />
-        <div class="form-tip">Подсвечивать найденный текст в таблицах жёлтым</div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.highlightSearchTip') }}</div>
       </el-form-item>
     </el-form>
   </div>
@@ -48,7 +48,6 @@ watch(behaviorSettings, (newVal) => {
   localData.value = deepClone(newVal)
 }, { deep: true })
 
-// 🔥 ИСПРАВЛЕНО: используем I18N_SETTINGS_DEFAULTS_CONFIG вместо $state()
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior)
 }

@@ -833,6 +833,7 @@ export default {
 
     // === Settings ===
     "settings": {
+      // === General ===
       "title": "I18nChecker Module Settings",
       "open": "Settings",
       "cancel": "Cancel",
@@ -843,35 +844,75 @@ export default {
       "saved": "Settings saved",
       "resetDone": "Settings reset",
       "saveFailed": "Failed to save settings",
-      "configureTabs": "Configure form display",
-      "tabsLayout": "Tabs layout",
-      "horizontal": "↔ Horizontal",
-      "vertical": "↕ Vertical",
-      "visibleTabs": "Visible tabs",
-      "icons": "Icons",
-      "display": "Display",
-      "behavior": "Behavior",
-      "iconSource": "Icon source",
-      "iconSize": "Icon size",
-      "iconColor": "Color",
-      "showLabels": "Show labels",
-      "iconsPreview": "Icons preview",
-      "iconsCount": "icons",
-      "tableHeight": "Table height",
-      "fontSize": "Font size",
-      "maxFilesPerRow": "Max files per row",
-      "maxUnusedKeys": "Max unused keys",
-      "maxFlatKeys": "Max flat keys",
-      "compactMode": "Compact mode (less spacing)",
-      "autoActions": "Automatic actions",
-      "autoRunScanner": "Auto-run scanner when opening mode",
-      "autoRunValidator": "Auto-run validator when opening mode",
-      "cache": "Caching",
-      "cacheResults": "Cache scan results",
-      "cacheTTL": "Cache TTL (seconds)",
-      "ui": "Interface",
-      "confirmBeforeExport": "Confirm before export",
-      "highlightSearch": "Highlight search results"
+
+      // === Meta (form settings) ===
+      "meta": {
+        "toggle": "Configure form display",
+        "layout": "Tabs layout",
+        "layoutHorizontal": "↔ Horizontal",
+        "layoutVertical": "↕ Vertical",
+        "visibleTabs": "Visible tabs",
+        "tabIcons": "🎨 Icons",
+        "tabDisplay": "📊 Display",
+        "tabBehavior": "⚙️ Behavior"
+      },
+
+      // === Icons ===
+      "icons": {
+        "title": "Icons",
+        "sourceTitle": "Icon source",
+        "iconType": "Icon type",
+        "iconTypeTip": "Source from which module icons will be loaded",
+        "bootstrapOption": "🅱️ Bootstrap Icons",
+        "fenixOption": "🦊 Fenix SVG",
+        "customOption": "🎨 Custom",
+        "sizeColorTitle": "Size and color",
+        "iconSize": "Icon size (px)",
+        "iconColor": "Icon color",
+        "iconColorTip": "Current value:",
+        "displayTitle": "Display",
+        "showLabels": "Show labels in preview",
+        "useGradients": "Use gradients",
+        "useGradientsTip": "Apply gradients to SVG icons (Fenix/Custom)",
+        "previewTitle": "Icons preview",
+        "previewCount": "icons"
+      },
+
+      // === Display ===
+      "display": {
+        "title": "Display",
+        "tablesTitle": "Tables",
+        "tableHeight": "Table height (px)",
+        "fontSize": "Font size (px)",
+        "limitsTitle": "Display limits",
+        "maxFilesPerRow": "Max. files per row",
+        "maxFilesPerRowTip": "How many files to show in one table row",
+        "maxUnusedKeys": "Max. unused keys",
+        "maxUnusedKeysTip": "How many unused keys to display in the list",
+        "maxFlatKeys": "Max. flat keys",
+        "maxFlatKeysTip": "How many flat keys to display in the list",
+        "appearanceTitle": "Appearance",
+        "compactMode": "Compact mode",
+        "compactModeTip": "Reduces margins and padding for denser display"
+      },
+
+      // === Behavior ===
+      "behavior": {
+        "title": "Behavior",
+        "autoRunTitle": "Auto-run",
+        "autoRunScanner": "Auto-run scanner",
+        "autoRunScannerTip": "Automatically start scanner when switching to mode",
+        "autoRunValidator": "Auto-run validator",
+        "autoRunValidatorTip": "Automatically start validator when switching to mode",
+        "cacheTitle": "Caching",
+        "cacheResults": "Cache results",
+        "cacheTTL": "Cache lifetime (sec)",
+        "cacheTTLTip": "After how many seconds the cache will be considered stale",
+        "uiTitle": "Interface",
+        "confirmExport": "Confirm before export",
+        "highlightSearch": "Highlight search results",
+        "highlightSearchTip": "Highlight found text in tables with yellow"
+      }
     }
   },
 
