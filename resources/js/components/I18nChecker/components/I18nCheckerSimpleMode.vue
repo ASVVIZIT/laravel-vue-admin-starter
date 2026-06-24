@@ -69,8 +69,9 @@
           :row-class-name="tableRowClassName"
       >
         <el-table-column v-for="col in SIMPLE_TABLE_COLUMNS" :key="col.prop || col.labelKey" :prop="col.prop" :label="col.labelKey ? $t(col.labelKey) : ''" :width="col.width" :min-width="col.minWidth" :align="col.align" :fixed="col.fixed">
+          <!-- 🔥 КОЛОНКА КОДА — С ПОДСВЕТКОЙ -->
           <template #default="{ row }" v-if="col.type === 'code'">
-            <code class="i18n-key-code">{{ row[col.prop] }}</code>
+            <code class="i18n-key-code" v-html="highlightSearch ? highlightText(row[col.prop], searchQuery) : row[col.prop]"></code>
           </template>
           <template #default="{ row }" v-else-if="col.type === 'tag'">
             <el-tag size="small" effect="plain">{{ row[col.prop] }}</el-tag>
@@ -78,8 +79,9 @@
           <template #default="{ row }" v-else-if="col.type === 'priority'">
             <el-tag :type="getPriorityType(row[col.prop])" size="small" effect="dark">{{ priorityLabel(row[col.prop]) }}</el-tag>
           </template>
+          <!-- 🔥 КОЛОНКА ПЕРЕВОДА — С ПОДСВЕТКОЙ -->
           <template #default="{ row }" v-else-if="col.type === 'translation'">
-            <span v-if="row[col.prop]" class="i18n-translation-value">{{ row[col.prop] }}</span>
+            <span v-if="row[col.prop]" class="i18n-translation-value" v-html="highlightSearch ? highlightText(row[col.prop], searchQuery) : row[col.prop]"></span>
             <span v-else class="i18n-translation-missing">
               <I18nIcon name="missing" />
               {{ $t('i18nChecker.notTranslated') }}
@@ -111,11 +113,12 @@ import { SIMPLE_TABLE_COLUMNS } from '@components/I18nChecker/config/tableColumn
 import { STATUS_OPTIONS, FILTER_DEFAULTS } from '@components/I18nChecker/config/filtersConfig.js';
 import { LANGUAGE_OPTIONS } from '@components/I18nChecker/config/languagesConfig.js';
 import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
+import { highlightText } from '@components/I18nChecker/utils/highlightUtils.js';
 
 const { t, locale } = useI18n();
 
 // 🔥 ПРИМЕНЕНЫ настройки
-const { tableHeight, fontSize, compactMode, confirmBeforeExport } = useI18nSettings();
+const { tableHeight, fontSize, compactMode, confirmBeforeExport, highlightSearch } = useI18nSettings();
 
 const selectedLang = ref(FILTER_DEFAULTS.lang);
 const selectedCategory = ref(FILTER_DEFAULTS.category);
@@ -163,14 +166,12 @@ const runCheck = () => {
 const priorityLabel = (priority) => t(getPriorityLabelKey(priority));
 const tableRowClassName = ({ row }) => row.value ? 'i18n-row-found' : 'i18n-row-missing';
 
-// 🔥 ПРИМЕНЕНО: confirmBeforeExport
 const exportMissing = async () => {
   if (results.value.missing.length === 0) {
     ElMessage.success(t('i18nChecker.noMissing'));
     return;
   }
 
-  // 🔥 Подтверждение перед экспортом
   if (confirmBeforeExport.value) {
     try {
       await ElMessageBox.confirm(
@@ -179,7 +180,7 @@ const exportMissing = async () => {
           { confirmButtonText: t('i18nChecker.confirm') || 'OK', cancelButtonText: t('i18nChecker.cancel') || 'Отмена', type: 'info' }
       );
     } catch {
-      return; // Пользователь отменил
+      return;
     }
   }
 
@@ -206,6 +207,9 @@ onMounted(() => { runCheck(); });
 .i18n-key-code { background: #f5f7fa; padding: 2px 4px; border-radius: 3px; font-family: 'Consolas', 'Monaco', monospace; font-size: 11px; color: #d4380d; word-break: break-all; }
 .i18n-translation-value { color: #303133; font-size: 13px; }
 .i18n-translation-missing { color: #ff4d4f; display: inline-flex; align-items: center; gap: 4px; font-style: italic; font-size: 12px; }
+
+/* 🔥 Подсветка поиска */
+:deep(.i18n-highlight) { background: #fff3b0; color: #d4380d; padding: 0 2px; border-radius: 2px; font-weight: 600; }
 
 /* 🔥 Компактный режим */
 .i18n-compact-mode { :deep(.el-table__row td) { padding: 2px 0 !important; } :deep(.el-table__header th) { padding: 2px 0 !important; } }
