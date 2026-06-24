@@ -1,12 +1,15 @@
 <template>
   <el-dialog
-      :model-value="modelValue"
-      @update:model-value="$emit('update:modelValue', $event)"
+      v-show="internalVisible"
+      :model-value="internalVisible"
+      @update:model-value="handleUpdateModelValue"
       width="700px"
-      :close-on-click-modal="false"
+      :close-on-click-modal="true"
+      :close-on-press-escape="true"
+      :append-to-body="true"
+      :destroy-on-close="false"
       class="i18n-settings-modal"
   >
-    <!-- 🔥 ШАПКА: заголовок + переключатель языка -->
     <template #header>
       <div class="i18n-settings-modal-header">
         <div class="i18n-settings-modal-title">
@@ -34,7 +37,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { ElNotification } from 'element-plus';
 import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue';
 import I18nLangSwitcher from '@components/I18nChecker/components/shared/I18nLangSwitcher.vue';
@@ -48,8 +51,19 @@ const emit = defineEmits(['update:modelValue']);
 
 const formRef = ref(null);
 const loading = ref(false);
+const internalVisible = ref(props.modelValue);
+
+watch(() => props.modelValue, (newVal) => {
+  internalVisible.value = newVal;
+});
+
+const handleUpdateModelValue = (value) => {
+  internalVisible.value = value;
+  emit('update:modelValue', value);
+};
 
 const close = () => {
+  internalVisible.value = false;
   emit('update:modelValue', false);
 };
 

@@ -1,4 +1,4 @@
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { scanI18n, validateI18nPaths } from '@components/I18nChecker/api/i18n.js';
@@ -20,17 +20,57 @@ export function useI18nChecker() {
     const validatorError = ref(null);
     const validatorCacheTime = ref(0);
 
-    // 🔥 Проверка валидности кэша
-    const isCacheValid = (cacheTime) => {
-        if (!cacheResults.value) return false;
-        const now = Date.now();
-        return (now - cacheTime) < (cacheTTL.value * 1000);
+    // ========================================================================
+    // 🔥 СТАТУС КЭША: fresh / used / expired
+    // ========================================================================
+    const getCacheStatus = (cacheTime, hasData) => {
+        if (!hasData) return null;
+        if (!cacheResults.value) return 'fresh';
+        const age = Date.now() - cacheTime;
+        const ttl = cacheTTL.value * 1000;
+        if (age < ttl) return 'used';
+        return 'expired';
     };
 
+    const scannerCacheStatus = computed(() =>
+        getCacheStatus(scannerCacheTime.value, !!scannerReport.value)
+    );
+
+    const validatorCacheStatus = computed(() =>
+        getCacheStatus(validatorCacheTime.value, !!validatorReport.value)
+    );
+
+    // Текст статуса кэша (для UI)
+    const scannerCacheLabel = computed(() => {
+        const map = {
+            'fresh': t('i18nChecker.settings.behavior.cacheFresh') || 'Актуальные данные',
+            'used': t('i18nChecker.settings.behavior.cacheUsed') || 'Из кэша',
+            'expired': t('i18nChecker.settings.behavior.cacheExpired') || 'Кэш устарел',
+        };
+        return map[scannerCacheStatus.value] || '';
+    });
+
+    const validatorCacheLabel = computed(() => {
+        const map = {
+            'fresh': t('i18nChecker.settings.behavior.cacheFresh') || 'Актуальные данные',
+            'used': t('i18nChecker.settings.behavior.cacheUsed') || 'Из кэша',
+            'expired': t('i18nChecker.settings.behavior.cacheExpired') || 'Кэш устарел',
+        };
+        return map[validatorCacheStatus.value] || '';
+    });
+
+    // Проверка валидности кэша
+    const isCacheValid = (cacheTime) => {
+        if (!cacheResults.value) return false;
+        return (Date.now() - cacheTime) < (cacheTTL.value * 1000);
+    };
+
+    // ========================================================================
+    // СКАНЕР
+    // ========================================================================
     const runScanner = async () => {
-        // 🔥 Проверка кэша
         if (isCacheValid(scannerCacheTime.value) && scannerReport.value) {
-            ElMessage.info(t('i18nChecker.cacheUsed') || 'Используются кэшированные данные');
+            ElMessage.info(t('i18nChecker.settings.behavior.cacheUsed') || 'Из кэша');
             return;
         }
 
@@ -55,10 +95,12 @@ export function useI18nChecker() {
         }
     };
 
+    // ========================================================================
+    // ВАЛИДАТОР
+    // ========================================================================
     const runValidator = async () => {
-        // 🔥 Проверка кэша
         if (isCacheValid(validatorCacheTime.value) && validatorReport.value) {
-            ElMessage.info(t('i18nChecker.cacheUsed') || 'Используются кэшированные данные');
+            ElMessage.info(t('i18nChecker.settings.behavior.cacheUsed') || 'Из кэша');
             return;
         }
 
@@ -83,11 +125,28 @@ export function useI18nChecker() {
         }
     };
 
+    // ========================================================================
+    // ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+    // ========================================================================
     const switchMode = (mode) => {
         currentMode.value = mode;
     };
 
-    // 🔥 Автозапуск режимов при переключении
+    // 🔥 ОТЛАДКА — watch ВСЕГДА срабатывает
+    watch(scannerCacheStatus, (newStatus, oldStatus) => {
+        console.log('[Cache] Scanner status changed:', oldStatus, '→', newStatus, {
+            cacheTime: scannerCacheTime.value,
+            hasData: !!scannerReport.value,
+            cacheResults: cacheResults.value,
+            cacheTTL: cacheTTL.value,
+            age: scannerCacheTime.value ? Date.now() - scannerCacheTime.value : 'N/A'
+        });
+    }, { immediate: true });  // ← immediate: true → вызовется сразу при создании
+
+    watch(validatorCacheStatus, (newStatus, oldStatus) => {
+        console.log('[Cache] Validator status changed:', oldStatus, '→', newStatus);
+    }, { immediate: true });
+
     watch(currentMode, (newMode) => {
         if (newMode === 'scanner' && autoRunScanner.value && !scannerReport.value && !scannerError.value) {
             runScanner();
@@ -102,10 +161,14 @@ export function useI18nChecker() {
         scannerLoading,
         scannerReport,
         scannerError,
+        scannerCacheStatus,
+        scannerCacheLabel,
         runScanner,
         validatorLoading,
         validatorReport,
         validatorError,
+        validatorCacheStatus,
+        validatorCacheLabel,
         runValidator
     };
 }

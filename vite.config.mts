@@ -483,9 +483,9 @@ export default defineConfig(function({ mode }) {
             esbuild: isFastBuild || isDevBuild ? undefined : undefined,
             terserOptions: isSizeBuild ? {
                 compress: {
-                    drop_console: true,
-                    drop_debugger: true,
-                    pure_funcs: ['console.log', 'console.info', 'console.warn'],
+                    drop_console: false,
+                    drop_debugger: false,
+                    //pure_funcs: ['console.log', 'console.info', 'console.warn'],
                     passes: 2
                 }
             } : undefined,
