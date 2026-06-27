@@ -31,6 +31,7 @@ export const I18N_SETTINGS_DEFAULTS_CONFIG = {
         cacheTTL: 300,
         confirmBeforeExport: true,
         highlightSearch: true,
+        highlightColor: '#fff3b0',
     },
 }
 

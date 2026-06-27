@@ -26,7 +26,26 @@
       </el-form-item>
       <el-form-item :label="$t('i18nChecker.settings.behavior.highlightSearch')" class="compact-item">
         <el-switch v-model="localData.highlightSearch" :active-value="true" :inactive-value="false" />
-        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.highlightSearchTip') }}</div>
+      </el-form-item>
+
+      <!-- 🔥 НОВОЕ: Цвет подсветки -->
+      <el-form-item v-if="localData.highlightSearch" :label="$t('i18nChecker.settings.behavior.highlightColor')" class="compact-item">
+        <div class="highlight-color-wrapper">
+          <el-color-picker v-model="localData.highlightColor" size="small" />
+          <div class="highlight-preview">
+            <span
+                class="highlight-preview-text"
+                :style="{
+                  backgroundColor: localData.highlightColor,
+                  color: getContrastColor(localData.highlightColor),
+                  borderBottom: `2px solid ${localData.highlightColor}`
+                }"
+            >
+              {{ $t('i18nChecker.settings.behavior.highlightPreview') || 'Пример' }}
+            </span>
+          </div>
+        </div>
+        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.highlightColorTip') || 'Цвет автоматически подбирает контрастный текст' }}</div>
       </el-form-item>
     </el-form>
   </div>
@@ -38,6 +57,7 @@ import { useI18nSettingsStore } from '@components/I18nChecker/stores/i18nSetting
 import { I18N_SETTINGS_DEFAULTS_CONFIG } from '@components/I18nChecker/config/i18nSettingsDefaultsConfig.js'
 import { storeToRefs } from 'pinia'
 import { deepClone } from '@components/I18nChecker/utils/i18nSettingsHelpersUtils.js'
+import { getContrastTextColor } from '@components/I18nChecker/utils/highlightUtils.js'
 
 const settingsStore = useI18nSettingsStore()
 const { behaviorSettings } = storeToRefs(settingsStore)
@@ -47,6 +67,8 @@ const localData = ref(deepClone(behaviorSettings.value))
 watch(behaviorSettings, (newVal) => {
   localData.value = deepClone(newVal)
 }, { deep: true })
+
+const getContrastColor = (hex) => getContrastTextColor(hex)
 
 const resetToDefaults = () => {
   localData.value = deepClone(I18N_SETTINGS_DEFAULTS_CONFIG.behavior)
@@ -64,4 +86,23 @@ defineExpose({ localData, resetToDefaults })
 :deep(.compact-input) { width: 100%; --el-input-height: 28px; --el-input-font-size: 12px; }
 .form-tip { font-size: 10px; color: #909399; margin-top: 4px; line-height: 1.3; }
 .full-width { width: 100%; }
+
+.highlight-color-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.highlight-preview {
+  padding: 2px 4px;
+  background: #f5f7fa;
+  border-radius: 3px;
+}
+
+.highlight-preview-text {
+  padding: 0 1px;
+  border-radius: 1px;
+  font-weight: 600;
+  font-size: 11px;
+}
 </style>

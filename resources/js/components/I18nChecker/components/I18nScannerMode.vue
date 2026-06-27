@@ -26,19 +26,35 @@
         <I18nStatsGrid :stats="scannerStats" />
 
         <el-collapse v-model="expandedSections" class="i18n-collapse">
+          <!-- 🔥 MISSING -->
           <el-collapse-item v-if="currentMissing && currentMissing.length > 0" name="missing">
             <template #title>
               <div class="i18n-collapse-header i18n-collapse-header-danger">
                 <I18nIcon name="missing" />
                 <span>{{ $t('i18nChecker.missingIn') || 'Отсутствуют в' }} {{ activeLang.toUpperCase() }}</span>
-                <el-tag type="danger" size="small" effect="dark">{{ currentMissing.length }}</el-tag>
+                <el-tag type="danger" size="small" effect="dark">{{ filteredMissing.length }}</el-tag>
               </div>
             </template>
 
             <div class="i18n-search-panel">
-              <el-input v-model="missingSearch" :placeholder="$t('i18nChecker.searchKey') || 'Поиск по ключу...'" size="small" clearable class="i18n-search-input">
+              <el-input
+                  v-model="missingSearch"
+                  :placeholder="$t('i18nChecker.searchKey') || 'Поиск по ключу...'"
+                  size="small"
+                  clearable
+                  class="i18n-search-input"
+              >
                 <template #prefix><I18nIcon name="search" /></template>
               </el-input>
+
+              <el-tooltip :content="$t('i18nChecker.searchInFiles') || 'Искать также в файлах'" placement="top">
+                <el-checkbox
+                    v-model="searchInFilesMissing"
+                    size="small"
+                    class="i18n-search-toggle"
+                    :label="$t('i18nChecker.files') || 'Файлы'"
+                />
+              </el-tooltip>
 
               <el-select v-model="missingFileFilter" :placeholder="$t('i18nChecker.allFiles') || 'Все файлы'" size="small" clearable class="i18n-file-filter">
                 <el-option v-for="file in availableFiles" :key="file" :label="file" :value="file" />
@@ -63,7 +79,6 @@
               </el-dropdown>
             </div>
 
-            <!-- 🔥 ПРИМЕНЕНЫ: tableHeight, fontSize, compactMode, maxFilesPerRow, highlightSearch -->
             <div class="i18n-table-wrapper">
               <el-table
                   :data="filteredMissing"
@@ -75,13 +90,15 @@
               >
                 <el-table-column prop="key" :label="$t('i18nChecker.colKey') || 'Ключ'" width="320" fixed>
                   <template #default="{ row }">
-                    <code class="i18n-key-code" v-html="highlightSearch ? highlightText(row.key, missingSearch) : row.key"></code>
+                    <code class="i18n-key-code" v-html="highlightSearch ? highlightText(row.key, missingSearch, highlightColor) : row.key"></code>
                   </template>
                 </el-table-column>
                 <el-table-column :label="$t('i18nChecker.files') || 'Файлы'" min-width="180">
                   <template #default="{ row }">
                     <div class="i18n-files-list">
-                      <el-tag v-for="file in getFilesSlice(row.files, maxFilesPerRow)" :key="file" size="small" type="info" effect="plain">{{ file }}</el-tag>
+                      <el-tag v-for="file in getFilesSlice(row.files, maxFilesPerRow)" :key="file" size="small" type="info" effect="plain">
+                        <span v-html="highlightSearch && searchInFilesMissing ? highlightText(file, missingSearch, highlightColor) : file"></span>
+                      </el-tag>
                       <span v-if="getRemainingCount(row.files, maxFilesPerRow) > 0" class="i18n-more-files">+{{ getRemainingCount(row.files, maxFilesPerRow) }}</span>
                     </div>
                   </template>
@@ -95,17 +112,24 @@
             </div>
           </el-collapse-item>
 
+          <!-- 🔥 UNUSED (без переключателя - нет файлов) -->
           <el-collapse-item v-if="currentUnused && currentUnused.length > 0" name="unused">
             <template #title>
               <div class="i18n-collapse-header i18n-collapse-header-warning">
                 <I18nIcon name="warning" />
                 <span>{{ $t('i18nChecker.unusedIn') || 'Не используются в' }} {{ activeLang.toUpperCase() }}</span>
-                <el-tag type="warning" size="small" effect="dark">{{ currentUnused.length }}</el-tag>
+                <el-tag type="warning" size="small" effect="dark">{{ filteredUnused.length }}</el-tag>
               </div>
             </template>
 
             <div class="i18n-search-panel">
-              <el-input v-model="unusedSearch" :placeholder="$t('i18nChecker.searchKey') || 'Поиск по ключу...'" size="small" clearable class="i18n-search-input">
+              <el-input
+                  v-model="unusedSearch"
+                  :placeholder="$t('i18nChecker.searchKey') || 'Поиск по ключу...'"
+                  size="small"
+                  clearable
+                  class="i18n-search-input"
+              >
                 <template #prefix><I18nIcon name="search" /></template>
               </el-input>
 
@@ -126,11 +150,10 @@
               </el-dropdown>
             </div>
 
-            <!-- 🔥 ПРИМЕНЕНЫ: maxUnusedKeys, highlightSearch -->
             <div class="i18n-unused-wrapper">
               <div class="i18n-unused-list">
                 <el-tag v-for="key in filteredUnused.slice(0, maxUnusedKeys)" :key="key" class="i18n-unused-tag" size="small" type="info" effect="plain">
-                  <span v-html="highlightSearch ? highlightText(key, unusedSearch) : key"></span>
+                  <span v-html="highlightSearch ? highlightText(key, unusedSearch, highlightColor) : key"></span>
                 </el-tag>
                 <span v-if="filteredUnused.length > maxUnusedKeys" class="i18n-more-unused">... {{ filteredUnused.length - maxUnusedKeys }} ещё</span>
               </div>
@@ -169,8 +192,7 @@ import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSett
 
 const { t } = useI18n();
 
-// 🔥 ПРИМЕНЕНЫ настройки
-const { tableHeight, fontSize, compactMode, maxFilesPerRow, maxUnusedKeys, highlightSearch } = useI18nSettings();
+const { tableHeight, fontSize, compactMode, maxFilesPerRow, maxUnusedKeys, highlightSearch, highlightColor } = useI18nSettings();
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -183,6 +205,7 @@ defineEmits(['scan']);
 const activeLang = ref(null);
 const expandedSections = ref([...SCANNER_SECTIONS]);
 const missingSearch = ref('');
+const searchInFilesMissing = ref(false); // 🔥 НОВОЕ
 const missingFileFilter = ref('');
 const unusedSearch = ref('');
 
@@ -193,8 +216,10 @@ watch(() => props.report, (newReport) => {
   }
 }, { immediate: true });
 
+// 🔥 Сброс при смене языка
 watch(activeLang, () => {
   missingSearch.value = '';
+  searchInFilesMissing.value = false; // 🔥 Сброс
   missingFileFilter.value = '';
   unusedSearch.value = '';
 });
@@ -215,15 +240,27 @@ const availableFiles = computed(() => {
   return Array.from(files).sort();
 });
 
+// 🔥 Фильтрация с учётом поиска по файлам
 const filteredMissing = computed(() => {
   let result = currentMissing.value;
+
   if (missingSearch.value.trim()) {
     const query = missingSearch.value.toLowerCase();
-    result = result.filter(item => item.key.toLowerCase().includes(query));
+
+    if (searchInFilesMissing.value) {
+      result = result.filter(item =>
+          item.key.toLowerCase().includes(query) ||
+          (item.files || []).some(file => file.toLowerCase().includes(query))
+      );
+    } else {
+      result = result.filter(item => item.key.toLowerCase().includes(query));
+    }
   }
+
   if (missingFileFilter.value) {
     result = result.filter(item => (item.files || []).includes(missingFileFilter.value));
   }
+
   return result;
 });
 
@@ -275,7 +312,16 @@ const scannerStats = computed(() => {
 
 .i18n-search-panel { display: flex; align-items: center; gap: 4px; padding: 4px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 3px; margin: 4px 0; .i18n-search-input { width: 200px; } .i18n-file-filter { width: 220px; } .i18n-spacer { flex: 1; } .i18n-search-count { font-size: 9px; color: #909399; padding: 0 4px; white-space: nowrap; } }
 
-:deep(.i18n-highlight) { background: #fff3b0; color: #d4380d; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+/* 🔥 Стили для переключателя */
+.i18n-search-toggle {
+  margin-left: 4px;
+  :deep(.el-checkbox__label) {
+    font-size: 10px;
+    color: #606266;
+  }
+}
+
+:deep(.i18n-highlight) { font-weight: 600; }
 
 .i18n-table-wrapper { background: #fff; border-radius: 3px; overflow: hidden; border: 1px solid #ebeef5; margin-top: 4px; :deep(.el-table) { .el-table__header th { background: #fafafa !important; font-weight: 600; font-size: 9px; padding: 4px 0; } .el-table__row td { padding: 4px 0; font-size: 9px; } } }
 .i18n-key-code { background: #f5f7fa; padding: 2px 4px; border-radius: 2px; font-family: 'Consolas', 'Monaco', monospace; font-size: 8px; color: #d4380d; word-break: break-all; }
@@ -284,6 +330,5 @@ const scannerStats = computed(() => {
 .i18n-unused-list { display: flex; flex-wrap: wrap; gap: 4px; .i18n-unused-tag { font-family: 'Consolas', 'Monaco', monospace; font-size: 8px; } .i18n-more-unused { color: #909399; font-size: 8px; align-self: center; } }
 .i18n-no-issues { text-align: center; padding: 10px; color: #52c41a; .bi { font-size: 20px; display: block; margin-bottom: 4px; } p { margin: 0; font-size: 10px; } }
 
-/* 🔥 Компактный режим */
 .i18n-compact-mode { :deep(.el-table__row td) { padding: 2px 0 !important; } :deep(.el-table__header th) { padding: 2px 0 !important; } .i18n-search-panel { padding: 2px; margin: 2px 0; } .i18n-collapse-header { padding: 2px 6px; } }
 </style>

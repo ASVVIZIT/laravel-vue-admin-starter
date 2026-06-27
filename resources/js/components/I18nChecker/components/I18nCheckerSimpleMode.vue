@@ -57,7 +57,6 @@
       </div>
     </div>
 
-    <!-- 🔥 ПРИМЕНЕНЫ: tableHeight, fontSize, compactMode -->
     <div class="i18n-table-wrapper">
       <el-table
           :data="filteredResults"
@@ -69,9 +68,8 @@
           :row-class-name="tableRowClassName"
       >
         <el-table-column v-for="col in SIMPLE_TABLE_COLUMNS" :key="col.prop || col.labelKey" :prop="col.prop" :label="col.labelKey ? $t(col.labelKey) : ''" :width="col.width" :min-width="col.minWidth" :align="col.align" :fixed="col.fixed">
-          <!-- 🔥 КОЛОНКА КОДА — С ПОДСВЕТКОЙ -->
           <template #default="{ row }" v-if="col.type === 'code'">
-            <code class="i18n-key-code" v-html="highlightSearch ? highlightText(row[col.prop], searchQuery) : row[col.prop]"></code>
+            <code class="i18n-key-code" v-html="highlightSearch ? highlightText(row[col.prop], searchQuery, highlightColor) : row[col.prop]"></code>
           </template>
           <template #default="{ row }" v-else-if="col.type === 'tag'">
             <el-tag size="small" effect="plain">{{ row[col.prop] }}</el-tag>
@@ -79,9 +77,8 @@
           <template #default="{ row }" v-else-if="col.type === 'priority'">
             <el-tag :type="getPriorityType(row[col.prop])" size="small" effect="dark">{{ priorityLabel(row[col.prop]) }}</el-tag>
           </template>
-          <!-- 🔥 КОЛОНКА ПЕРЕВОДА — С ПОДСВЕТКОЙ -->
           <template #default="{ row }" v-else-if="col.type === 'translation'">
-            <span v-if="row[col.prop]" class="i18n-translation-value" v-html="highlightSearch ? highlightText(row[col.prop], searchQuery) : row[col.prop]"></span>
+            <span v-if="row[col.prop]" class="i18n-translation-value" v-html="highlightSearch ? highlightText(row[col.prop], searchQuery, highlightColor) : row[col.prop]"></span>
             <span v-else class="i18n-translation-missing">
               <I18nIcon name="missing" />
               {{ $t('i18nChecker.notTranslated') }}
@@ -117,8 +114,7 @@ import { highlightText } from '@components/I18nChecker/utils/highlightUtils.js';
 
 const { t, locale } = useI18n();
 
-// 🔥 ПРИМЕНЕНЫ настройки
-const { tableHeight, fontSize, compactMode, confirmBeforeExport, highlightSearch } = useI18nSettings();
+const { tableHeight, fontSize, compactMode, confirmBeforeExport, highlightSearch, highlightColor } = useI18nSettings();
 
 const selectedLang = ref(FILTER_DEFAULTS.lang);
 const selectedCategory = ref(FILTER_DEFAULTS.category);
@@ -208,10 +204,8 @@ onMounted(() => { runCheck(); });
 .i18n-translation-value { color: #303133; font-size: 13px; }
 .i18n-translation-missing { color: #ff4d4f; display: inline-flex; align-items: center; gap: 4px; font-style: italic; font-size: 12px; }
 
-/* 🔥 Подсветка поиска */
-:deep(.i18n-highlight) { background: #fff3b0; color: #d4380d; padding: 0 2px; border-radius: 2px; font-weight: 600; }
+:deep(.i18n-highlight) { font-weight: 600; }
 
-/* 🔥 Компактный режим */
 .i18n-compact-mode { :deep(.el-table__row td) { padding: 2px 0 !important; } :deep(.el-table__header th) { padding: 2px 0 !important; } }
 
 :deep(.el-table) { .i18n-row-found td { background-color: #f6ffed !important; } .i18n-row-missing td { background-color: #fff1f0 !important; } .el-table__header th { background: #fafafa !important; font-weight: 600; font-size: 13px; padding: 4px 0; } .el-table__row td { padding: 4px 0; font-size: 13px; } }

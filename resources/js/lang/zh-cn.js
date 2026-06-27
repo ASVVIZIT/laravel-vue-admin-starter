@@ -912,7 +912,11 @@ export default {
         "uiTitle": "界面",
         "confirmExport": "导出前确认",
         "highlightSearch": "高亮搜索结果",
-        "highlightSearchTip": "用黄色高亮表格中找到的文本"
+        "highlightSearchTip": "在表格中高亮找到的文本",
+        "highlightColor": "高亮颜色",
+        "highlightColorTip": "颜色自动选择对比文本",
+        "highlightPreview": "预览",
+        "confirm": "确认"
       }
     }
   },

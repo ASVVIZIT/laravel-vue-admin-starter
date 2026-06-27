@@ -914,7 +914,11 @@ export default {
         "uiTitle": "Interface",
         "confirmExport": "Confirm before export",
         "highlightSearch": "Highlight search results",
-        "highlightSearchTip": "Highlight found text in tables with yellow"
+        "highlightSearchTip": "Highlight found text in tables",
+        "highlightColor": "Highlight color",
+        "highlightColorTip": "Color automatically picks contrasting text",
+        "highlightPreview": "Preview",
+        "confirm": "Confirm"
       }
     }
   },

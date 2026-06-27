@@ -22,7 +22,7 @@ export function useI18nSettings() {
     const iconSize = computed(() => iconsSettings.value?.size || 20);
     const iconColor = computed(() => iconsSettings.value?.color || 'currentColor');
     const showLabels = computed(() => iconsSettings.value?.showLabels ?? true);
-    const useGradients = computed(() => iconsSettings.value?.useGradients ?? false); // 🔥 НОВОЕ
+    const useGradients = computed(() => iconsSettings.value?.useGradients ?? false);
 
     // Display
     const tableHeight = computed(() => displaySettings.value?.tableHeight || 350);
@@ -39,11 +39,13 @@ export function useI18nSettings() {
     const cacheTTL = computed(() => behaviorSettings.value?.cacheTTL || 300);
     const confirmBeforeExport = computed(() => behaviorSettings.value?.confirmBeforeExport ?? true);
     const highlightSearch = computed(() => behaviorSettings.value?.highlightSearch ?? true);
+    const highlightColor = computed(() => behaviorSettings.value?.highlightColor || '#fff3b0'); // 🔥 НОВОЕ
 
     return {
         icons, display, behavior, meta,
         iconSource, iconSize, iconColor, showLabels, useGradients,
         tableHeight, maxFilesPerRow, maxUnusedKeys, maxFlatKeys, fontSize, compactMode,
-        autoRunScanner, autoRunValidator, cacheResults, cacheTTL, confirmBeforeExport, highlightSearch
+        autoRunScanner, autoRunValidator, cacheResults, cacheTTL, confirmBeforeExport,
+        highlightSearch, highlightColor
     };
 }

@@ -929,7 +929,11 @@ export default {
                 "uiTitle": "Интерфейс",
                 "confirmExport": "Подтверждение перед экспортом",
                 "highlightSearch": "Подсвечивать результаты поиска",
-                "highlightSearchTip": "Подсвечивать найденный текст в таблицах жёлтым"
+                "highlightSearchTip": "Подсвечивать найденный текст в таблицах",
+                "highlightColor": "Цвет подсветки",
+                "highlightColorTip": "Цвет автоматически подбирает контрастный текст",
+                "highlightPreview": "Пример",
+                "confirm": "Подтвердить"
             }
         }
     },
