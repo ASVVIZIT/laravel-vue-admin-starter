@@ -39,13 +39,14 @@ export function useI18nSettings() {
     const cacheTTL = computed(() => behaviorSettings.value?.cacheTTL || 300);
     const confirmBeforeExport = computed(() => behaviorSettings.value?.confirmBeforeExport ?? true);
     const highlightSearch = computed(() => behaviorSettings.value?.highlightSearch ?? true);
-    const highlightColor = computed(() => behaviorSettings.value?.highlightColor || '#fff3b0'); // 🔥 НОВОЕ
+    const highlightColor = computed(() => behaviorSettings.value?.highlightColor || '#fff3b0');
+    const preserveSearch = computed(() => behaviorSettings.value?.preserveSearch ?? true);
 
     return {
         icons, display, behavior, meta,
         iconSource, iconSize, iconColor, showLabels, useGradients,
         tableHeight, maxFilesPerRow, maxUnusedKeys, maxFlatKeys, fontSize, compactMode,
         autoRunScanner, autoRunValidator, cacheResults, cacheTTL, confirmBeforeExport,
-        highlightSearch, highlightColor
+        highlightSearch, highlightColor, preserveSearch
     };
 }

@@ -5,7 +5,7 @@ namespace Database\Seeders\SmartLight;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use App\Models\Acl; // ✅ Импортируем класс с константами
+use App\Models\Acl;
 
 /**
  * ============================================================================
@@ -13,8 +13,8 @@ use App\Models\Acl; // ✅ Импортируем класс с констант
  * ============================================================================
  * 📁 Путь: database/seeders/SmartLight/SmartLightPermissionsSeeder.php
  * ✅ Permissions: Только константы из App\Models\Acl
- * ✅ Roles: Только константы из App\Models\Acl (без выдумок!)
- * ✅ Idempotent: Безопасный повторный запуск
+ * ✅ Roles: Только константы из App\Models\Acl
+ * ✅ Idempotent: Безопасный повторный запуск (используем givePermissionTo)
  * ============================================================================
  */
 
@@ -24,9 +24,9 @@ class SmartLightPermissionsSeeder extends Seeder
     {
         // ===== 1. СОЗДАЁМ ПРАВА (используем ТОЛЬКО константы из Acl) =====
         $smartLightPermissions = [
-            Acl::PERMISSION_VIEW_SMART_LIGHT,           // 'view smart light'
-            Acl::PERMISSION_MANAGE_SMART_LIGHT,         // 'manage smart light'
-            Acl::PERMISSION_MANAGE_OWN_SMART_LIGHT,     // 'manage own smart light'
+            Acl::PERMISSION_VIEW_SMART_LIGHT,
+            Acl::PERMISSION_MANAGE_SMART_LIGHT,
+            Acl::PERMISSION_MANAGE_OWN_SMART_LIGHT,
         ];
 
         foreach ($smartLightPermissions as $permissionName) {
@@ -39,8 +39,7 @@ class SmartLightPermissionsSeeder extends Seeder
             );
         }
 
-        // ===== 2. ПОЛУЧАЕМ РОЛИ (используем ТОЛЬКО константы из Acl) =====
-        // Важно: в Acl ROLE_SUPER_ADMIN = 'superadmin' (без дефиса!)
+        // ===== 2. ПОЛУЧАЕМ РОЛИ =====
         $roles = [
             Acl::ROLE_SUPER_ADMIN => Role::findByName(Acl::ROLE_SUPER_ADMIN, 'web'),
             Acl::ROLE_ADMIN       => Role::findByName(Acl::ROLE_ADMIN, 'web'),
@@ -48,50 +47,43 @@ class SmartLightPermissionsSeeder extends Seeder
             Acl::ROLE_USER        => Role::findByName(Acl::ROLE_USER, 'web'),
         ];
 
-        // ===== 3. НАЗНАЧАЕМ ПРАВА РОЛЯМ (логика доступа) =====
+        // ===== 3. НАЗНАЧАЕМ ПРАВА РОЛЯМ (ИСПОЛЬЗУЕМ givePermissionTo, ЧТОБЫ НЕ СТИРАТЬ ДРУГИЕ ПРАВА!) =====
 
-        // 👑 SuperAdmin: все права системы (включая SmartLight)
+        // 👑 SuperAdmin: все права системы
         if ($roles[Acl::ROLE_SUPER_ADMIN]) {
-            $roles[Acl::ROLE_SUPER_ADMIN]->syncPermissions(Permission::all());
+            $roles[Acl::ROLE_SUPER_ADMIN]->givePermissionTo(Permission::all());
         }
 
-        // 👨‍💼 Admin: полный доступ к SmartLight (все устройства)
+        // 👨‍💼 Admin: добавляем права SmartLight к уже существующим
         if ($roles[Acl::ROLE_ADMIN]) {
-            $roles[Acl::ROLE_ADMIN]->syncPermissions([
+            $roles[Acl::ROLE_ADMIN]->givePermissionTo([
                 Acl::PERMISSION_VIEW_SMART_LIGHT,
                 Acl::PERMISSION_MANAGE_SMART_LIGHT,
             ]);
         }
 
-        // 👷 Manager: полный доступ к SmartLight (все устройства)
+        // 👷 Manager: добавляем права SmartLight к уже существующим
         if ($roles[Acl::ROLE_MANAGER]) {
-            $roles[Acl::ROLE_MANAGER]->syncPermissions([
+            $roles[Acl::ROLE_MANAGER]->givePermissionTo([
                 Acl::PERMISSION_VIEW_SMART_LIGHT,
                 Acl::PERMISSION_MANAGE_SMART_LIGHT,
             ]);
         }
 
-        // 👤 User: только просмотр + управление СВОИМИ устройствами
+        // 👤 User: добавляем права SmartLight к уже существующим
         if ($roles[Acl::ROLE_USER]) {
-            $roles[Acl::ROLE_USER]->syncPermissions([
+            $roles[Acl::ROLE_USER]->givePermissionTo([
                 Acl::PERMISSION_VIEW_SMART_LIGHT,
                 Acl::PERMISSION_MANAGE_OWN_SMART_LIGHT,
             ]);
         }
 
-        // 👁️ Visitor: только просмотр (опционально, если нужна такая роль)
-        // if ($roles[Acl::ROLE_VISITOR]) { ... }
-
-        // ===== 4. ВЫВОД СТАТИСТИКИ (реальные цифры из БД) =====
+        // ===== 4. ВЫВОД СТАТИСТИКИ =====
         $this->printStatistics();
     }
 
-    /**
-     * Вывод РЕАЛЬНОЙ статистики прав (не выдуманные цифры!)
-     */
     private function printStatistics(): void
     {
-        // Считаем права, которые относятся к SmartLight
         $smartLightPermissionCount = Permission::query()
             ->whereIn('name', [
                 Acl::PERMISSION_VIEW_SMART_LIGHT,
@@ -100,7 +92,6 @@ class SmartLightPermissionsSeeder extends Seeder
             ])
             ->count();
 
-        // Считаем роли, у которых есть права на SmartLight
         $roleCount = Role::query()
             ->whereHas('permissions', function ($query) {
                 $query->whereIn('name', [

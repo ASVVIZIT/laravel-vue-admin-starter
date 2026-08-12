@@ -1,24 +1,67 @@
 #app {
   .main-container {
     .el-button {
-     // height: 30px;
-     // padding: 0px 10px;
+      // height: 30px;
+      // padding: 0px 10px;
+
       &--custom {
         border-radius: 8px;
         padding: 2px 8px;
         transition: transform 0.2s ease;
+
         &:active {
           transform: scale(0.88);
         }
       }
-    }
-    .el-button {
-     // height: 30px;
-     // padding: 10px 10px;
-    }
-    .el-button+.el-button {
-      margin-left: 6px;
+
+      // 🔥 НОВЫЙ ТИП КНОПКИ: permission (фиолетовый для управления правами)
+      &--permission {
+        // Основные состояния
+        --el-button-bg-color: #8b5cf6;
+        --el-button-border-color: #8b5cf6;
+        --el-button-text-color: #ffffff;
+
+        // При наведении
+        --el-button-hover-bg-color: #7c3aed;
+        --el-button-hover-border-color: #7c3aed;
+        --el-button-hover-text-color: #ffffff;
+
+        // При нажатии
+        --el-button-active-bg-color: #6d28d9;
+        --el-button-active-border-color: #6d28d9;
+        --el-button-active-text-color: #ffffff;
+
+        // При отключении
+        --el-button-disabled-bg-color: #c4b5fd;
+        --el-button-disabled-border-color: #c4b5fd;
+        --el-button-disabled-text-color: #ffffff;
+
+        // Для варианта plain (прозрачный с цветной рамкой), если понадобится
+        &.is-plain {
+          --el-button-bg-color: #f5f3ff;
+          --el-button-border-color: #8b5cf6;
+          --el-button-text-color: #8b5cf6;
+          --el-button-hover-bg-color: #ede9fe;
+          --el-button-hover-border-color: #7c3aed;
+          --el-button-hover-text-color: #7c3aed;
+        }
+
+        // Для варианта text (только текст), если понадобится
+        &.is-text {
+          --el-button-text-color: #8b5cf6;
+          --el-button-hover-text-color: #7c3aed;
+          --el-button-active-text-color: #6d28d9;
+        }
+      }
     }
 
+    .el-button {
+      // height: 30px;
+      // padding: 10px 10px;
+    }
+
+    .el-button + .el-button {
+      // margin-left: 6px;
+    }
   }
 }

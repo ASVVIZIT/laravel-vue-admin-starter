@@ -8,7 +8,7 @@ import Layout from '@/layout/Layout.vue';
 import AuthLayout from '@/views/auth/Layout/AuthLayout.vue';
 
 import chartsRoutes from './modules/charts';
-import adminRoutes from './modules/admin';
+import adminRoutes from './modules/adminRoutes.js';
 import nestedRoutes from './modules/nested';
 import errorRoutes from './modules/error';
 import entityRoutes from './modules/entity';

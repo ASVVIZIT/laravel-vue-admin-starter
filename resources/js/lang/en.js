@@ -41,39 +41,41 @@ export default {
     "home": "Home"
   },
   "auth": {
-    "forgotPasswordTitle": "Forgot Password?",
+    "forgotPasswordTitle": "Forgot password?",
     "forgotPasswordSubtitle": "Enter your email and we'll send you a reset link",
-    "sendResetLink": "Send Reset Link",
-    "emailSent": "Email Sent!",
-    "checkEmail": "Check your email {email} for the reset link",
-    "resetLinkSent": "Reset link sent to your email",
+    "sendResetLink": "Send reset link",
+    "emailSent": "Email sent!",
+    "checkEmail": "Check your email",
+    "resetLinkSent": "If the account exists, you will receive an email",
+    "resetLinkSentGeneric": "If the account exists in our database, the owner will receive an email with password reset instructions.",
+    "resetLinkSentHint": "If you don't receive the email within a few minutes — check your Spam folder or make sure the email is correct.",
     "resetFailed": "Failed to send reset link",
-    "backToLogin": "Back to Login",
+    "backToLogin": "Back to login",
 
-    "resetPasswordTitle": "Reset Password",
-    "resetPasswordSubtitle": "Enter your new password",
-    "resetPassword": "Reset Password",
-    "passwordResetSuccess": "Password reset successfully",
-    "invalidResetLink": "Invalid or expired reset link",
+    "resetPasswordTitle": "Reset password",
+    "resetPasswordSubtitle": "Enter a new password",
+    "resetPassword": "Reset password",
+    "passwordResetSuccess": "Password successfully reset",
+    "invalidResetLink": "Invalid or expired link",
 
-    "registerTitle": "Create Account",
-    "registerSubtitle": "Fill in the form to create your account",
+    "registerTitle": "Create account",
+    "registerSubtitle": "Fill out the form to create an account",
     "register": "Register",
-    "registerSuccess": "Registration successful! Please check your email",
+    "registerSuccess": "Registration successful! Check your email",
     "registerFailed": "Registration failed",
-    "alreadyHaveAccount": "Already have an account? Login",
-    "agreeTerms": "I agree to the terms and conditions",
-    "mustAgreeTerms": "Please agree to the terms",
+    "alreadyHaveAccount": "Already have an account? Sign in",
+    "agreeTerms": "I agree to the terms of use",
+    "mustAgreeTerms": "Please accept the terms",
 
     "emailVerificationTitle": "Email Verification",
-    "emailVerificationSubtitle": "We've sent a verification link to your email",
-    "emailVerified": "Your email has been verified!",
-    "checkYourEmail": "Please check your email:",
-    "goToLogin": "Go to Login",
+    "emailVerificationSubtitle": "We sent a verification link to your email",
+    "emailVerified": "Your email is verified!",
+    "checkYourEmail": "Check your email:",
+    "goToLogin": "Go to login",
     "verificationResent": "Verification email resent",
-    "resendFailed": "Failed to resend verification email",
-    "resendVerification": "Resend Verification Email",
-    "resendCooldown": "Resend in {seconds}s",
+    "resendFailed": "Failed to send email",
+    "resendVerification": "Resend verification email",
+    "resendCooldown": "Retry in {seconds}s",
     "sending": "Sending...",
     "verifying": "Verifying...",
     "invalidVerificationLink": "Invalid verification link",
@@ -174,6 +176,7 @@ export default {
     }
   },
   "permission": {
+    "search": "Search permissions...",
     "actions": {
       "addRole": "Add Role Permission",
       "editPermission": "Edit Permissions",
@@ -183,11 +186,14 @@ export default {
       "cancel": "Cancel"
     },
     "messages": {
+      "unsavedChanges": "You have unsaved changes. Close without saving?",
+      "noPermissionsSelected": "No permissions selected. Continue?",
       "editPermissionForForm": "Edit permissions for",
       "switchRoles": "Switch roles",
       "tips": "In some cases, using v-role/v-permission is not suitable (e.g., Element Tab component or el-table-column). Use v-if with checkRole/checkPermission instead."
     },
     "errors": {
+      "noUserData": "User data not found",
       "cantEditAdmin": "Cannot edit permissions for administrator users"
     },
     "table": {
@@ -275,7 +281,12 @@ export default {
         "fields": {
           "role": { "title": "Role", "placeholder": "Select a role" },
           "name": { "title": "Name", "placeholder": "Your name" },
-          "email": { "title": "Email", "placeholder": "Your email" },
+          "email": {
+            "title": "Email",
+            "placeholder": "Your email",
+            "changeHint": "Changing email requires verification via your current email address",
+            "systemEmail": "System email - verification not required"
+          },
           "password": { "title": "Password", "placeholder": "Enter password" },
           "confirmPassword": { "title": "Confirm Password", "placeholder": "Must not match name or email" },
           "sex": { "title": "Gender", "placeholder": "" },
@@ -341,27 +352,55 @@ export default {
       "about_me": "About Me",
       "education": "Education",
       "skills": "Skills",
+      "emailStatus": "Email Status",
       "tabs": {
         "timeline": "Timeline",
         "account": "Account"
       },
       "elMessage": {
         "update": {
-          "success": { "message": "User information has been updated successfully" }
+          "success": { "message": "User information has been successfully updated" }
+        },
+        "reverify": {
+          "success": "Re-verification email sent to your inbox",
+          "error": "Error sending email"
         }
       },
       "fields": {
-        "role": { "title": "Role", "placeholder": "Select a role" },
+        "role": { "title": "Role", "placeholder": "Please select a role" },
         "name": { "title": "Name", "placeholder": "Your name" },
-        "email": { "title": "Email", "placeholder": "Your email" },
+        "email": {
+          "title": "Email",
+          "placeholder": "Your email",
+          "changeHint": "Changing email requires verification via your current email address",
+          "systemEmail": "System email - verification not required"
+        },
+        "email_verified": { "title": "Email Status" },
+        "email_reverified": { "title": "Last Re-verification" },
         "password": { "title": "Password", "placeholder": "Enter password" },
         "confirmPassword": { "title": "Confirm Password", "placeholder": "Must not match name or email" },
         "sex": { "title": "Gender", "placeholder": "" },
         "male": { "title": "Male", "placeholder": "" },
         "female": { "title": "Female", "placeholder": "" },
-        "age": { "title": "Age", "placeholder": "Birthdate not specified" },
-        "birthday": { "title": "Birthday", "placeholder": "Select birthdate" },
+        "age": { "title": "Age", "placeholder": "Birth date not specified" },
+        "birthday": { "title": "Birthday", "placeholder": "Select birth date" },
         "description": { "title": "Description", "placeholder": "Write about yourself..." }
+      },
+      "actions": {
+        "request_reverify": "Request Re-verification"
+      },
+      "emailChange": {
+        "title": "Change Email",
+        "currentEmail": "Current Email",
+        "newEmail": "New Email",
+        "changeButton": "Change",
+        "requestButton": "Request Change",
+        "successMessage": "Confirmation email sent to your current address",
+        "errorMessage": "Error requesting email change",
+        "cancelButton": "Cancel",
+        "confirmButton": "Confirm",
+        "infoText": "A confirmation link will be sent to your current email",
+        "sameAsCurrent": "New email must not be the same as current"
       }
     }
   },
@@ -665,6 +704,10 @@ export default {
     }
   },
   "common": {
+    "noData": "No data",
+    "items": "items",
+    "selected": "selected",
+    "warning": "Warning",
     "submitting": "Saving...",
     "required": "Required field",
     "view404": {
@@ -716,6 +759,62 @@ export default {
   },
   "roles_description_admin": "System administrator",
   "roles_description_superadmin": "Super administrator",
+
+  // 👥 USERS — account status management (ban/unban/restore)
+  "users": {
+    "listTitle": "User list",
+    "viewTitle": "View User",
+    "deletedAt": "Deleted at",
+    "status": {
+      "label": "Status",
+      "all": "All",
+      "active": "🟢 Active",
+      "banned": "🔴 Banned",
+      "trashed": "⚫ Deleted",
+      "unverified": "🟡 Unverified"
+    },
+    "actions": {
+      "ban": "Ban",
+      "unban": "Unban",
+      "restore": "Restore",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "permissions": "Permissions",
+      "cannotEditAdmin": "Cannot edit",
+      "adminEditHint": "Profile is accessible, permissions are protected",
+      "adminConfirmOld": "Confirm old email",
+      "adminConfirmNew": "Confirm new email",
+      "adminQuickActions": "Admin Actions",
+      "adminQuickActionsHint": "Confirm email change bypassing email delivery",
+      "confirmReason": "Confirmation reason",
+      "confirmReasonPlaceholder": "E.g., User lost access to old email, identity verified by passport"
+    },
+    "dialogs": {
+      "banConfirm": "Are you sure you want to ban user {name}?",
+      "banTitle": "Confirm ban",
+      "restoreConfirm": "Restore user {name}?",
+      "restoreTitle": "Confirm restore"
+    },
+    "messages": {
+      "banSuccess": "User has been banned",
+      "banError": "Ban error",
+      "unbanSuccess": "User has been unbanned",
+      "unbanError": "Unban error",
+      "restoreSuccess": "User has been restored",
+      "restoreError": "Restore error",
+      "adminConfirmSuccess": "Action completed successfully",
+      "adminConfirmError": "Action execution error"
+    },
+    "permissions": {
+      "tooltip": {
+        "role_view": "Inherited from role — View",
+        "role_manage": "Inherited from role — Manage",
+        "user_view": "Additional — View",
+        "user_manage": "Additional — Manage",
+      }
+    }
+  },
 
   // 🔍 I18N CHECKER
   "i18nChecker": {

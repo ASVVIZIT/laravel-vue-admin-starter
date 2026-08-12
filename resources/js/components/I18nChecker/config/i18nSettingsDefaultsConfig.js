@@ -32,6 +32,7 @@ export const I18N_SETTINGS_DEFAULTS_CONFIG = {
         confirmBeforeExport: true,
         highlightSearch: true,
         highlightColor: '#fff3b0',
+        preserveSearch: true,
     },
 }
 

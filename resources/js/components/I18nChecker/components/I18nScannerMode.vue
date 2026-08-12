@@ -52,8 +52,9 @@
                     v-model="searchInFilesMissing"
                     size="small"
                     class="i18n-search-toggle"
-                    :label="$t('i18nChecker.files') || 'Файлы'"
-                />
+                >
+                  <I18nIcon name="file" />
+                </el-checkbox>
               </el-tooltip>
 
               <el-select v-model="missingFileFilter" :placeholder="$t('i18nChecker.allFiles') || 'Все файлы'" size="small" clearable class="i18n-file-filter">
@@ -62,6 +63,12 @@
 
               <div class="i18n-spacer" />
               <span class="i18n-search-count">{{ filteredMissing.length }} / {{ currentMissing.length }}</span>
+
+              <el-tooltip v-if="hasSavedScannerSearches" :content="$t('i18nChecker.clearSavedSearches') || 'Очистить сохранённые запросы'" placement="top">
+                <el-button size="small" text type="info" @click="clearScannerSearches">
+                  <I18nIcon name="delete" />
+                </el-button>
+              </el-tooltip>
 
               <el-dropdown @command="copyMissing" trigger="click">
                 <el-button size="small" type="primary" plain>
@@ -112,7 +119,7 @@
             </div>
           </el-collapse-item>
 
-          <!-- 🔥 UNUSED (без переключателя - нет файлов) -->
+          <!-- 🔥 UNUSED -->
           <el-collapse-item v-if="currentUnused && currentUnused.length > 0" name="unused">
             <template #title>
               <div class="i18n-collapse-header i18n-collapse-header-warning">
@@ -189,10 +196,12 @@ import { COPY_COMMANDS, isFilteredCommand, isTemplateCommand, isExactCommand } f
 import { highlightText } from '@components/I18nChecker/utils/highlightUtils.js';
 import { copyToClipboard } from '@components/I18nChecker/utils/clipboardUtils.js';
 import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
+import { useI18nSearchPersistence } from '@components/I18nChecker/composables/useI18nSearchPersistence.js';
 
 const { t } = useI18n();
 
-const { tableHeight, fontSize, compactMode, maxFilesPerRow, maxUnusedKeys, highlightSearch, highlightColor } = useI18nSettings();
+const { tableHeight, fontSize, compactMode, maxFilesPerRow, maxUnusedKeys, highlightSearch, highlightColor, preserveSearch } = useI18nSettings();
+const { saveSearch, restoreSearch, restoreBoolean, clearModeSearches, hasModeSearches } = useI18nSearchPersistence();
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -204,25 +213,54 @@ defineEmits(['scan']);
 
 const activeLang = ref(null);
 const expandedSections = ref([...SCANNER_SECTIONS]);
-const missingSearch = ref('');
-const searchInFilesMissing = ref(false); // 🔥 НОВОЕ
-const missingFileFilter = ref('');
-const unusedSearch = ref('');
 
+// 🔥 ВОССТАНОВЛЕНИЕ из localStorage
+const missingSearch = ref(restoreSearch('scanner', 'missing', 'query', ''));
+const searchInFilesMissing = ref(restoreBoolean('scanner', 'missing', 'inFiles', false));
+const missingFileFilter = ref(restoreSearch('scanner', 'missing', 'fileFilter', ''));
+const unusedSearch = ref(restoreSearch('scanner', 'unused', 'query', ''));
+
+// 🔥 СОХРАНЕНИЕ в localStorage
+watch(missingSearch, (newVal) => {
+  if (preserveSearch.value) saveSearch('scanner', 'missing', 'query', newVal);
+});
+
+watch(searchInFilesMissing, (newVal) => {
+  if (preserveSearch.value) saveSearch('scanner', 'missing', 'inFiles', newVal);
+});
+
+watch(missingFileFilter, (newVal) => {
+  if (preserveSearch.value) saveSearch('scanner', 'missing', 'fileFilter', newVal);
+});
+
+watch(unusedSearch, (newVal) => {
+  if (preserveSearch.value) saveSearch('scanner', 'unused', 'query', newVal);
+});
+
+// 🔥 КРИТИЧНО: НЕ сбрасывать поиск при смене языка!
+// Убрали watch(activeLang) который сбрасывал missingSearch, unusedSearch и т.д.
+// Теперь поиск сохраняется при смене языка
 watch(() => props.report, (newReport) => {
   if (newReport?.summary?.languages) {
     const langs = Object.keys(newReport.summary.languages);
-    if (langs.length > 0 && !activeLang.value) activeLang.value = langs[0];
+    if (langs.length > 0 && !activeLang.value) {
+      activeLang.value = langs[0];
+    }
   }
 }, { immediate: true });
 
-// 🔥 Сброс при смене языка
-watch(activeLang, () => {
+// 🔥 Проверка наличия сохранённых запросов
+const hasSavedScannerSearches = computed(() => hasModeSearches('scanner'));
+
+// 🔥 Очистка всех сохранённых запросов режима
+const clearScannerSearches = () => {
+  clearModeSearches('scanner');
   missingSearch.value = '';
-  searchInFilesMissing.value = false; // 🔥 Сброс
+  searchInFilesMissing.value = false;
   missingFileFilter.value = '';
   unusedSearch.value = '';
-});
+  ElMessage.success(t('i18nChecker.savedSearchesCleared') || 'Сохранённые запросы очищены');
+};
 
 const currentMissing = computed(() => {
   if (!activeLang.value || !props.report?.missing) return [];
@@ -312,12 +350,14 @@ const scannerStats = computed(() => {
 
 .i18n-search-panel { display: flex; align-items: center; gap: 4px; padding: 4px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 3px; margin: 4px 0; .i18n-search-input { width: 200px; } .i18n-file-filter { width: 220px; } .i18n-spacer { flex: 1; } .i18n-search-count { font-size: 9px; color: #909399; padding: 0 4px; white-space: nowrap; } }
 
-/* 🔥 Стили для переключателя */
 .i18n-search-toggle {
   margin-left: 4px;
   :deep(.el-checkbox__label) {
     font-size: 10px;
     color: #606266;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
   }
 }
 

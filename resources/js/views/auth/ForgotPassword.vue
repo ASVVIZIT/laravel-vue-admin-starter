@@ -26,7 +26,8 @@
 
     <div v-if="sent" class="success-message">
       <Icon class-name="check-circle" />
-      <p>{{ $t('auth.checkEmail', { email: form.email }) || 'Проверьте вашу почту' }}</p>
+      <p class="success-text">{{ $t('auth.resetLinkSentGeneric') }}</p>
+      <p class="success-hint">{{ $t('auth.resetLinkSentHint') }}</p>
     </div>
 
     <div class="form-links">
@@ -72,12 +73,16 @@ const handleSubmit = async () => {
 
   loading.value = true
   try {
+    // 🔒 Отправляем запрос, но НЕ анализируем ответ (безопасность)
+    // Бэкенд всегда возвращает success, чтобы не раскрывать существование email
     await forgotPassword({ email: form.email })
-    sent.value = true
-    ElMessage.success(t('auth.resetLinkSent') || 'Ссылка отправлена')
   } catch (error) {
-    ElMessage.error(error?.response?.data?.message || t('auth.resetFailed') || 'Ошибка')
+    // 🔒 Даже при ошибке сети — показываем универсальное сообщение
+    console.warn('[ForgotPassword] Request failed:', error?.message)
   } finally {
+    // 🔒 ВСЕГДА показываем success-экран (не раскрываем существование email)
+    sent.value = true
+    ElMessage.success(t('auth.resetLinkSentGeneric'))
     loading.value = false
   }
 }
@@ -208,6 +213,17 @@ const goBack = () => router.push('/login')
   p {
     margin: 0;
     font-size: 13px;
+  }
+
+  .success-text {
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .success-hint {
+    font-size: 12px;
+    opacity: 0.8;
+    line-height: 1.4;
   }
 }
 

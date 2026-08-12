@@ -39,19 +39,20 @@ final class Acl
     const PERMISSION_VIEW_MENU_ZIP = 'view menu zip';
     const PERMISSION_VIEW_MENU_PDF = 'view menu pdf';
     const PERMISSION_VIEW_MENU_I18N = 'view menu i18n';
-
-    // ===== ПРАВА: Landing Builder =====
     const PERMISSION_VIEW_MENU_LANDING = 'view menu landing';
+    const PERMISSION_VIEW_MENU_TRAINING = 'view menu training';
+    const PERMISSION_VIEW_MENU_SMART_LIGHT = 'view menu smart light';
 
     // ===== ПРАВА: УПРАВЛЕНИЕ =====
     const PERMISSION_USER_MANAGE = 'manage user';
     const PERMISSION_USER_EDIT_MANAGE = 'manage user edit';
     const PERMISSION_USER_DELETE_MANAGE = 'manage user delete';
+    const PERMISSION_CONFIRM_EMAIL = 'confirm user email'; // Подтверждение email по кнопке
     const PERMISSION_ENTITY_MANAGE = 'manage entity';
     const PERMISSION_ARTICLE_MANAGE = 'manage article';
     const PERMISSION_PERMISSION_MANAGE = 'manage permission';
 
-    // ===== ПРАВА: Landing Builder
+    // ===== ПРАВА: LANDING BUILDER =====
     const PERMISSION_VIEW_LANDING = 'view landing';
     const PERMISSION_MANAGE_LANDING = 'manage landing';
 
@@ -71,6 +72,13 @@ final class Acl
     const PERMISSION_MANAGE_OWN_TRAINING = 'manage own training';
     const PERMISSION_VIEW_TRAINING_STATS = 'view training stats';
     const PERMISSION_SHARE_TRAINING = 'share training';
+    const PERMISSION_CREATE_TRAINING_LOG = 'create training log';
+
+    // ===== 🔥 УНИКАЛЬНЫЕ ПРАВА: ТОЛЬКО ДЛЯ SUPERADMIN =====
+    // Эти права НЕ выдаются обычному админу. Они определяют высший уровень доступа.
+    const PERMISSION_MANAGE_SUPERADMIN = 'manage superadmin';          // Создание/удаление других супер-админов
+    const PERMISSION_VIEW_SYSTEM_LOGS = 'view system logs';            // Просмотр системных логов и аудит-трейлов
+    const PERMISSION_MANAGE_SYSTEM_SETTINGS = 'manage system settings'; // Глобальные настройки сайта (режим обслуживания и т.д.)
 
     /**
      * Получить все права доступа (кроме исключённых)
@@ -81,8 +89,7 @@ final class Acl
             $class = new \ReflectionClass(__CLASS__);
             $constants = $class->getConstants();
             $permissions = Arr::where($constants, function($value, $key) use ($exclusives) {
-                return !in_array($value, $exclusives) &&
-                    (Str::startsWith($key, 'PERMISSION_') || Str::startsWith($key, 'SMARTLIGHT_'));
+                return !in_array($value, $exclusives) && Str::startsWith($key, 'PERMISSION_');
             });
 
             return array_values($permissions);

@@ -44,8 +44,10 @@ export default {
         "forgotPasswordSubtitle": "Введите email и мы отправим ссылку для сброса",
         "sendResetLink": "Отправить ссылку",
         "emailSent": "Письмо отправлено!",
-        "checkEmail": "Проверьте почту {email} для получения ссылки",
-        "resetLinkSent": "Ссылка для сброса отправлена на вашу почту",
+        "checkEmail": "Проверьте вашу почту",
+        "resetLinkSent": "Если аккаунт существует, вы получите письмо",
+        "resetLinkSentGeneric": "Если аккаунт существует в нашей базе данных, владелец получит письмо с инструкциями по сбросу пароля.",
+        "resetLinkSentHint": "Если письмо не пришло в течение нескольких минут — проверьте папку «Спам» или убедитесь, что email введён верно.",
         "resetFailed": "Не удалось отправить ссылку",
         "backToLogin": "Вернуться к входу",
 
@@ -179,6 +181,7 @@ export default {
         }
     },
     "permission": {
+        "search": "Поиск по разрешениям...",
         "actions": {
             "addRole": "Добавить разрешение для редактирования",
             "editPermission": "Разрешения",
@@ -187,11 +190,14 @@ export default {
             "cancel": "Отмена"
         },
         "messages": {
+            "unsavedChanges": "У вас есть несохраненные изменения. Закрыть без сохранения?",
+            "noPermissionsSelected": "Не выбрано ни одного разрешения. Продолжить?",
             "editPermissionForForm": "Изменить разрешения для",
             "switchRoles": "Поменяйтесь ролями",
             "tips": "В некоторых случаях он не подходит для использования v-role/v-permission, например, элемент Tab component или el-table-column и другие случаи асинхронного рендеринга dom, которые могут быть достигнуты только путем ручной настройки v-if с checkRole или/и checkPermission."
         },
         "errors": {
+            "noUserData": "Данные пользователя не найдены",
             "cantEditAdmin": "Невозможно изменить разрешения для пользователей с правами администратора"
         },
         "table": {
@@ -362,12 +368,23 @@ export default {
             "elMessage": {
                 "update": {
                     "success": { "message": "Информация о пользователе была успешно обновлена" }
+                },
+                "reverify": {
+                    "success": "Письмо для перепроверки отправлено на вашу почту",
+                    "error": "Ошибка отправки письма"
                 }
             },
             "fields": {
                 "role": { "title": "Роль", "placeholder": "Пожалуйста, выберите роль" },
                 "name": { "title": "Имя", "placeholder": "Ваше имя" },
-                "email": { "title": "Email", "placeholder": "Ваша почта" },
+                "email": {
+                    "title": "Email",
+                    "placeholder": "Ваша почта",
+                    "changeHint": "Для изменения email требуется подтверждение через текущую почту",
+                    "systemEmail": "Системный email - верификация не требуется"
+                },
+                "email_verified": { "title": "Статус Email" },
+                "email_reverified": { "title": "Последняя перепроверка" },
                 "password": { "title": "Пароль", "placeholder": "Введите пароль" },
                 "confirmPassword": { "title": "Подтвердить пароль", "placeholder": "Не должен совпадать с именем и почтой)" },
                 "sex": { "title": "Пол", "placeholder": "" },
@@ -376,6 +393,21 @@ export default {
                 "age": { "title": "Лет", "placeholder": "Дата рождения не указана" },
                 "birthday": { "title": "День рождения", "placeholder": "Выберите дату рождения" },
                 "description": { "title": "Описание", "placeholder": "Напишите о себе..." }
+            },
+            "actions": {
+                "request_reverify": "Запросить перепроверку"
+            },
+            "emailChange": {
+                "title": "Смена email",
+                "currentEmail": "Текущий email",
+                "newEmail": "Новый email",
+                "changeButton": "Изменить",
+                "requestButton": "Запросить смену",
+                "successMessage": "Письмо для подтверждения отправлено на текущий email",
+                "errorMessage": "Ошибка при запросе смены email",
+                "cancelButton": "Отмена",
+                "infoText": "На текущий email будет отправлена ссылка для подтверждения",
+                "sameAsCurrent": "Новый email не должен совпадать с текущим"
             }
         }
     },
@@ -679,8 +711,15 @@ export default {
         }
     },
     "common": {
+        "noData": "Нет данных",
+        "items": "шт.",
+        "selected": "выбрано",
+        "warning": "Предупреждение",
         "submitting": "Сохранение...",
         "required": "Обязательное поле",
+        "verified": "Подтвержден",
+        "unverified": "Не подтвержден",
+        "never": "Никогда",
         "view404": {
             "buttons": {
                 "back": "Назад",
@@ -730,6 +769,62 @@ export default {
     },
     "roles_description_admin": "Администратор системы",
     "roles_description_superadmin": "Суперадминистратор",
+
+    // 👥 ПОЛЬЗОВАТЕЛИ — управление статусами (ban/unban/restore)
+    "users": {
+        "listTitle": "Список пользователей",
+        "viewTitle": "Просмотр пользователя",
+        "deletedAt": "Удалён",
+        "status": {
+            "label": "Статус",
+            "all": "Все",
+            "active": "🟢 Активный",
+            "banned": "🔴 Забанен",
+            "trashed": "⚫ Удален",
+            "unverified": "🟡 Не подтвержден"
+        },
+        "actions": {
+            "ban": "Забанить",
+            "unban": "Разбанить",
+            "restore": "Восстановить",
+            "edit": "Редактировать",
+            "delete": "Удалить",
+            "view": "Посмотреть",
+            "permissions": "Права",
+            "cannotEditAdmin": "Нельзя редактировать",
+            "adminEditHint": "Профиль доступен, права защищены",
+            "adminConfirmOld": "Подтвердить старую почту",
+            "adminConfirmNew": "Подтвердить новую почту",
+            "adminQuickActions": "Действия администратора",
+            "adminQuickActionsHint": "Подтвердить смену email в обход отправки писем",
+            "confirmReason": "Причина подтверждения",
+            "confirmReasonPlaceholder": "Например: Пользователь потерял доступ к старой почте, личность подтверждена по паспорту"
+        },
+        "dialogs": {
+            "banConfirm": "Вы уверены, что хотите забанить пользователя {name}?",
+            "banTitle": "Подтверждение бана",
+            "restoreConfirm": "Восстановить пользователя {name}?",
+            "restoreTitle": "Подтверждение восстановления"
+        },
+        "messages": {
+            "banSuccess": "Пользователь забанен",
+            "banError": "Ошибка бана",
+            "unbanSuccess": "Пользователь разбанен",
+            "unbanError": "Ошибка разбана",
+            "restoreSuccess": "Пользователь восстановлен",
+            "restoreError": "Ошибка восстановления",
+            "adminConfirmSuccess": "Действие успешно выполнено",
+            "adminConfirmError": "Ошибка при выполнении действия"
+        },
+        "permissions": {
+            "tooltip": {
+                "role_view": "Унаследовано от роли — Просмотр (view)",
+                "role_manage": "Унаследовано от роли — Управление (manage)",
+                "user_view": "Дополнительные — Просмотр (view)",
+                "user_manage": "Дополнительные — Управление (manage)"
+            }
+        }
+    },
 
     // 🔍 I18N CHECKER (Сканер переводов) — ПОЛНЫЙ БЛОК
     "i18nChecker": {
@@ -957,4 +1052,28 @@ export default {
         "two": "二",
         "three": "三"
     },
+
+    // 💻 CONSOLE LOGS (Для отладки API запросов)
+    "console": {
+        "userResource": {
+            "fetchPermissions": "Запрос прав доступа для пользователя ID:",
+            "fetchPermissionsSuccess": "Успешно получены права:",
+            "fetchPermissionsError": "Ошибка при получении прав для пользователя ID:",
+            "updatePermissions": "Обновление прав для пользователя ID:",
+            "updatePermissionsSuccess": "Права успешно обновлены:",
+            "updatePermissionsError": "Ошибка при обновлении прав для пользователя ID:",
+            "banAttempt": "Попытка забанить пользователя ID:",
+            "banSuccess": "Пользователь ID успешно забанен:",
+            "banError": "Ошибка при бане пользователя ID:",
+            "unbanAttempt": "Попытка разбанить пользователя ID:",
+            "unbanSuccess": "Пользователь ID успешно разбанен:",
+            "unbanError": "Ошибка при разбане пользователя ID:",
+            "restoreAttempt": "Попытка восстановить пользователя ID:",
+            "restoreSuccess": "Пользователь ID успешно восстановлен:",
+            "restoreError": "Ошибка при восстановлении пользователя ID:",
+            "reverifyRequest": "Запрос письма для перепроверки email",
+            "reverifySuccess": "Письмо для перепроверки успешно запрошено:",
+            "reverifyError": "Ошибка при запросе перепроверки email:"
+        }
+    }
 };
