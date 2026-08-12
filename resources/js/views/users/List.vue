@@ -1,42 +1,21 @@
 <template>
   <el-card class="app-container">
-    <h2>Список пользователей</h2>
-    <div class="filter-container">
-      <el-input
-        v-model="filters.search"
+    <h2>{{ $t('users.listTitle') }}</h2>
+
+    <!-- 1. Фильтры -->
+    <UserFilters
+        v-model="filters"
+        :roles="roles"
+        :loading="loading"
         :size="store.size"
-        :placeholder="$t('table.user.form.fields.name.title') + '/' + $t('table.user.form.fields.email.title')"
-        clearable
-        class="filter-item search-filter-item"
-        @keyup.enter="handleSearchInput"/>
-        <el-select
-          v-model="filters.singleRole"
-          :size="store.size"
-          :placeholder="$t('table.user.form.fields.role.title')"
-          class="filter-item select-role-filter-item"
-          :loading="loading"
-          @change="handleSingleRoleSelect"
-          filterable
-          clearable
-        >
-          <el-option
-            v-for="item in roles"
-            :key="item"
-            :label="uppercaseFirst(item)"
-            :value="item"
-            :disabled="disabledRoles.includes(item)"
-          />
-        </el-select>
-      <el-button :size="store.size" class="filter-item" type="primary" :icon="Search" @click="handleFilter">
-        {{ t('table.general.search') }}
-      </el-button>
-      <el-button :size="store.size" class="filter-item" type="danger" :icon="Refresh" @click="resetFilters">
-        {{ t('table.general.filterReset') }}
-      </el-button>
-      <el-button :size="store.size" class="filter-item" type="success" :icon="Plus" @click="handleCreate">
-        {{ t('table.general.add') }}
-      </el-button>
-    </div>
+        @search="handleFilter"
+        @reset="resetFilters"
+        @create="handleCreate"
+        @status-change="handleStatusChange"
+        @role-change="handleSingleRoleSelect"
+    />
+
+    <!-- 2. Таблица -->
     <custom-table
         :size="store.size"
         :table-data="tableData"
@@ -59,16 +38,21 @@
       <template #header="{ column }">
         <div class="custom-header">
           <span>{{ column.label }}</span>
-          <el-icon class="filter-icon" @click="openFilter(column)">
-            <Filter />
-          </el-icon>
+          <el-icon class="filter-icon" @click="openFilter(column)"><Filter /></el-icon>
         </div>
       </template>
+
+      <template #status_type="{ row }">
+        <el-tag :type="getStatusTagType(getUserActionType(row))" effect="dark" :size="store.size">
+          {{ getStatusLabel(getUserActionType(row)) }}
+        </el-tag>
+      </template>
+
       <template #roles="{ row }">
         <el-tag
             v-for="role in row.roles"
             :key="role"
-            :type="roleConfig.getColor(role)"
+            :type="getRoleColor(role)"
             class="role-tag"
             effect="dark"
             :size="store.size"
@@ -76,922 +60,321 @@
           {{ role }}
         </el-tag>
       </template>
-      <template #table_options="scope">
-        <div v-if="!isAdmin(scope.row.roles)">
-          <el-button-group :size="store.size">
-            <el-button v-for="(action, index) in tableOption.item_actions"
-                       :key="index"
-                       :type="action.type || 'primary'"
-                       :round="action.round || false"
-                       @click="tableActions(action.name, scope.row)"
-                       :size="store.size"
-            >
-              <svg-item :el-svg-name="action.icon" :title="action.label"></svg-item>
-            </el-button>
-          </el-button-group>
-        </div>
-        <div v-else style="font-style: italic;font-weight: 300;">Нельзя редактировать</div>
+
+      <!-- 3. Действия таблицы -->
+      <template #table_options="{ row }">
+        <UserTableActions :row="row" :size="store.size" @action="tableActions" />
       </template>
     </custom-table>
-    <el-dialog
+
+    <!-- 4. Диалоги -->
+    <UserCreateDialog
         v-model="dialogFormVisible"
-        :title="$t('table.user.form.title.create')"
-        :width="store.size === 'small' ? '40%' : '60%'"
         :size="store.size"
+        :roles="roles"
+        @success="getList"
+    />
+
+    <UserPermissionsDialog
+        v-model="dialogPermissionVisible"
+        :user="currentUser"
+        :all-permissions="permissions"
+        :size="store.size"
+        @update:user="(val) => currentUser = val"
+        @success="getList"
+    />
+
+    <!-- 🔥 5. Модалка административного подтверждения email -->
+    <el-dialog
+        v-model="adminConfirmDialog.visible"
+        :title="adminConfirmDialog.title"
+        width="500px"
     >
-      <div v-loading="userCreating" class="form-container">
-        <el-form
-          ref="refUserForm"
-          status-icon
-          :rules="rules"
-          :model="newUser"
-          label-position="right"
-          label-width="170px"
-          style="max-width: 600px;"
-        >
-          <el-form-item :label="$t('table.user.form.fields.role.title')" prop="role">
-            <el-select
-              v-if="isAdmin(roles)"
-              :size="store.size"
-              v-model="newUser.role"
-              class="filter-item"
-              :placeholder="$t('table.user.form.fields.role.placeholder')"
-              filterable
-              clearable
-            >
-              <el-option v-for="item in roles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
-            </el-select>
-            <el-select
-              v-else-if="!isAdmin(roles)"
-              :size="store.size"
-              v-model="newUser.role"
-              class="filter-item" :placeholder="$t('table.form.fields.role.placeholder')"
-              filterable
-              clearable
-            >
-              <el-option v-for="item in nonAdminRoles" :key="item" :label="uppercaseFirst(item)" :value="item"/>
-            </el-select>
-          </el-form-item>
-          <el-form-item :label="$t('table.user.form.fields.name.title')" prop="name">
-            <el-input
-              v-model="newUser.name"
-              :size="store.size"
-              type="text"
-              :placeholder="$t('table.user.form.fields.name.placeholder')"
-              clearable
-            />
-          </el-form-item>
-          <el-form-item :label="$t('table.user.form.fields.email.title')" prop="email">
-            <el-input
-              v-model="newUser.email"
-              :size="store.size"
-              type="email"
-              :placeholder="$t('table.user.form.fields.email.placeholder')"
-              clearable
-            />
-          </el-form-item>
-          <el-form-item
-            :label="$t('table.user.form.fields.password.title')"
-            prop="password"
-            :validate-status="validationStatus"
-            :error="errorMessage"
-          >
-            <el-input
-              v-model="newUser.password"
-              :size="store.size"
-              type="password"
-              show-password
-              :placeholder="$t('table.user.form.fields.password.placeholder')"
-              clearable
-            />
-          </el-form-item>
-          <el-form-item
-            :label="$t('table.user.form.fields.confirmPassword.title')"
-            prop="confirmPassword"
-            :validate-status="validationStatus"
-            :error="errorMessage"
-          >
-            <el-input
-              v-model="newUser.confirmPassword"
-              :size="store.size"
-              type="password"
-              show-password
-              @change="checkPasswordMatch"
-              :placeholder="$t('table.user.form.fields.confirmPassword.placeholder')"
-              clearable
-            />
-          </el-form-item>
-          <el-form-item :label="$t('table.user.form.fields.sex.title')">
-            <el-radio-group v-model="newUser.sex">
-              <el-radio :size="store.size" :value="0">{{ $t('table.user.form.fields.male.title') }}</el-radio>
-              <el-radio :size="store.size" :value="1">{{ $t('table.user.form.fields.female.title') }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item :label="$t('table.user.form.fields.birthday.title')">
-            <el-date-picker
-              v-model="newUser.birthday_model"
-              :size="store.size"
-              type="datetime"
-              :placeholder="$t('table.user.form.fields.birthday.placeholder')"
-              :value-format="FormatDateTimeRef"
-              clearable
-            />
-          </el-form-item>
-          <el-form-item :label="$t('table.user.form.fields.description.title')">
-            <el-input
-              v-model="newUser.description"
-              :size="store.size"
-              maxlength="255"
-              :placeholder="$t('table.user.form.fields.description.placeholder')"
-              show-word-limit
+      <el-form label-width="140px">
+        <el-form-item label="Пользователь:">
+          <el-input :value="adminConfirmDialog.user?.name" disabled />
+        </el-form-item>
+        <el-form-item label="Новый email:">
+          <el-input :value="adminConfirmDialog.user?.pending_new_email" disabled />
+        </el-form-item>
+        <el-form-item :label="$t('users.actions.confirmReason') || 'Причина'">
+          <el-input
+              v-model="adminConfirmDialog.reason"
               type="textarea"
-              clearable
-            />
-          </el-form-item>
-        </el-form>
-        <div class="dialog-footer">
-          <el-button :size="store.size" @click="dialogFormVisible = false">
-            {{ t('table.general.cancel') }}
-          </el-button>
-          <el-button :size="store.size" type="primary" @click="createUser(refUserForm)">
-            {{ t('table.general.confirm') }}
-          </el-button>
-        </div>
-      </div>
-    </el-dialog>
-    <el-dialog :size="store.size" v-model="dialogPermissionVisible" :title="$t('permission.table.edit.user') + ' - ' + currentUser.name">
-      <div v-if="currentUser.name" v-loading="dialogPermissionLoading" class="form-container">
-        <div class="permissions-container">
-          <div class="block">
-            <el-form :size="store.size" :model="currentUser" label-width="80px" label-position="top">
-              <el-form-item :label="$t('permission.table.userPermissions.name.menu')">
-                <el-tree
-                  ref="refMenuPermissions"
-                  :size="store.size"
-                  :data="normalizedMenuPermissions"
-                  :default-checked-keys="permissionKeys(userMenuPermissions)"
-                  :props="permissionProps"
-                  show-checkbox
-                  node-key="id"
-                  class="permission-tree"
-                />
-              </el-form-item>
-            </el-form>
-          </div>
-          <div class="block">
-            <el-form :size="store.size" :model="currentUser" label-width="80px" label-position="top">
-              <el-form-item :label="$t('permission.table.userPermissions.name.permissions')">
-                <el-tree
-                  ref="refOtherPermissions"
-                  :size="store.size"
-                  :data="normalizedOtherPermissions"
-                  :default-checked-keys="permissionKeys(userOtherPermissions)"
-                  :props="permissionProps"
-                  show-checkbox
-                  node-key="id"
-                  class="permission-tree"
-                />
-              </el-form-item>
-            </el-form>
-          </div>
-          <div class="clear-left" />
-        </div>
-        <div style="text-align:right;">
-          <el-button :size="store.size" type="danger" @click="dialogPermissionVisible=false">
-            {{ t('permission.actions.cancel') }}
-          </el-button>
-          <el-button :size="store.size" type="primary" @click="confirmPermission">
-            {{ t('permission.actions.confirm') }}
-          </el-button>
-        </div>
-      </div>
+              :rows="3"
+              :placeholder="$t('users.actions.confirmReasonPlaceholder') || 'Укажите причину подтверждения...'"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="adminConfirmDialog.visible = false">{{ $t('form.button.cancel') || 'Отмена' }}</el-button>
+        <el-button type="primary" :loading="adminConfirmDialog.loading" @click="executeAdminConfirm">
+          {{ $t('form.button.confirm') || 'Подтвердить' }}
+        </el-button>
+      </template>
     </el-dialog>
   </el-card>
 </template>
+
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox, ElLoading, ElCard } from 'element-plus'
-import { Search, Plus, Refresh, Filter } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Filter } from '@element-plus/icons-vue'
+
+// Utils
+import { getUserActionType, getStatusTagType, getStatusLabel, getRoleColor, isAdmin } from '@/utils/userStatus'
+import { classifyPermissions } from '@/utils/permissionTree'
+import { calculateTableHeight } from '@/utils/tableHeight'
+
+// Components
 import CustomTable from '@/components/CustomTable.vue'
-import SvgItem from "@/components/Item/SvgItem.vue"
+import UserFilters from './components/UserFilters.vue'
+import UserTableActions from './components/UserTableActions.vue'
+import UserCreateDialog from './components/UserCreateDialog.vue'
+import UserPermissionsDialog from './components/UserPermissionsDialog.vue'
+
+// API & Store
 import UserResource from '@/api/user'
 import Resource from '@/api/resource'
-import checkPermission from '@/utils/permission'
-import { uppercaseFirst } from "@/utils"
-import createValidators from '@/utils/validators'
 import { appStore } from '@/store/appStore'
-import { userStore } from "@/store/userStore"
-import { useRouter } from 'vue-router'
-import dayjs from 'dayjs'
-import { debounce } from 'lodash-es'
+import checkPermission from '@/utils/permission'
 
-
-const FormatDateTime = 'YYYY-MM-DD HH:mm:ss';
-const FormatDateTimeRef = ref(FormatDateTime);
 const { t } = useI18n({ useScope: 'global' })
 const router = useRouter()
 const userResource = new UserResource()
 const permissionResource = new Resource('permissions')
 const store = appStore()
-const useUserStore = userStore()
 
-// Реактивные переменные
+// State
 const loading = ref(true)
 const tableData = ref([])
 const dialogFormVisible = ref(false)
 const dialogPermissionVisible = ref(false)
-const dialogPermissionLoading = ref(false)
-const currentUser = ref({
-  id: 0,
-  name: '',
-  permissions: {
-    role: [],
-    user: []
-  }
-})
-const userCreating = ref(false)
-const validationStatus = ref('')
-const errorMessage = ref('')
-const filters = ref({
-  search: '',
-  roles: [],
-  singleRole: ''
-})
-const pagination = reactive({
-  current_page: 1,
-  per_page: 10,
-  total: 0,
-  last_page: 1
-})
-const newUser = reactive({
-  role: 'user',
-  name: '',
-  email: '',
-  password: '',
-  confirmPassword: '',
-  sex: 0,
-  birthday_model: null,
-  description: ''
+const currentUser = ref({ id: 0, name: '', permissions: { role: [], user: [] } })
+const filters = ref({ search: '', roles: [], singleRole: '', status: 'all' })
+const pagination = reactive({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
+const permissions = ref([])
+const tableHeight = ref('calc(100vh - 300px)')
+
+// 🔥 State для админского подтверждения
+const adminConfirmDialog = reactive({
+  visible: false,
+  loading: false,
+  title: '',
+  actionType: '', // 'admin-confirm-old' или 'admin-confirm-new'
+  user: null,
+  reason: ''
 })
 
-// Валидатор подтверждения пароля
-const validateConfirmPassword = (rule, value, callback) => {
-  if (value !== newUser.password) {
-    callback(new Error(t('validation.rules.confirmPassword.mismatched')))
-  } else {
-    callback() // Автоматически установит статус 'success'
-  }
-}
+const roles = ['superadmin', 'admin', 'manager', 'editor', 'user', 'visitor']
+const per_pages = [5, 10, 30, 50, 100, 150, 200]
 
-const checkPasswordMatch = (value) => {
-  if (value.length > 6) {
-    validationStatus.value = 'success'
-    errorMessage.value = ''
-  } else {
-    validationStatus.value = 'error'
-    errorMessage.value = t('validation.general.minLength')
-  }
-}
-
-// Инициализируем валидаторы с доступом к форме
-const v = createValidators(newUser)
-
-// Каскадная валидация
-const complexValidator = (rule, value, callback) => {
-  if (value === 'admin') {
-    callback(new Error(t('validation.general.notNameAdmin') + ' ' + value))
-  } else {
-    v.minLength(2).validator(rule, value, callback)
-  }
-}
-
-// Правила валидации
-const rules = {
-  name: [
-    v.required(),
-    v.minLength(2),
-    { validator: complexValidator, trigger: 'change' } // не писать admin
-  ],
-  email: [v.required(), v.email()],
-  password: [
-    v.required(),
-    v.minLength(6),
-    v.notMatch('email', t('validation.general.passwordNotEmail')), // Пароль != email
-    v.notMatch('name', t('validation.general.passwordNotName'))    // Пароль != name
-  ],
-  confirmPassword: [
-    v.required(),
-    v.match('password', t('validation.general.matchPassword')) // Совпадение с паролем
-  ]
-}
-
-// Refs для элементов форм
-const refUserForm = ref(null)
-const refMenuPermissions = ref(null)
-const refOtherPermissions = ref(null)
-
-// Конфигурация ролей
-const roleConfig = ref({
-  // Все доступные роли
-  all: ['superadmin', 'admin', 'manager', 'editor', 'user', 'visitor'],
-  // Роли без админа (для ограничения действий)
-  nonAdmin: ['manager', 'editor', 'user', 'visitor'],
-  // Цвета для тегов
-  colors: {
-    superadmin: 'danger',
-    admin: 'danger',
-    manager: 'warning',
-    editor: 'primary',
-    user: 'success',
-    visitor: 'info'
-  },
-  // Метод получения цвета по роли
-  getColor(role) {
-    return this.colors[role] || 'info'
-  }
-})
-
-const roles = computed(() => roleConfig.value.all)
-const nonAdminRoles = computed(() => roleConfig.value.nonAdmin)
-const roleColors = computed(() => roleConfig.value.colors)
-const per_pages = ref([5, 10, 30, 50, 100, 150, 200])
-
-const tableOption = computed((user) => {
+// Table Config
+const tableOption = computed(() => {
   if (!checkPermission(['manage user'])) return {}
-  const actions = [];
-  if (checkPermission(['manage user edit'])) {
-    actions.push({
-      name: 'edit-item', type: 'primary', icon: 'EditPen', size: store.size, round: true
-    })
-  }
-  if (checkPermission(['manage user delete'])) {
-    actions.push({
-      name: 'delete-item', type: 'danger', icon: 'Delete', size: store.size, round: false, disabled: !checkPermission(['manage user delete'])
-    })
-  }
-
-  const actions_down = [];
-  if (checkPermission(['manage permission'])) {
-    actions_down.push({
-      name: 'edit-permission-item',
-      type: 'warning',
-      icon: 'Finished',
-      width: 100,
-      label: t('permission.actions.editPermission'),
-      size: store.size,
-      round: true
-    })
-  }
   return {
-    slot: true,
-    width: '200',
+    slot: false,
+    width: '280',
     label: t('table.general.actions'),
     fixed: 'right',
-    item_actions: actions,
-    item_actions_down: actions_down
+    item_actions: [],
+    item_actions_down: []
   }
 })
-
-// Метод фильтрации
-const filterRole = (value, row) => {
-  console.log('value ', value)
-  console.log('row ', row)
-  return row.roles.includes(value)
-}
 
 const basicColumn = computed(() => [
   { prop: 'id', label: t('table.user.columns.id'), width: '65', resizable: false, sortable: true, fixed: true },
   { prop: 'name', label: t('table.user.columns.name'), width: '130', sortable: true, fixed: true },
   { prop: 'email', label: t('table.user.columns.email'), sortable: true },
+  { prop: 'status_type', label: t('users.status.label'), width: '120', slot: true },
   {
-    prop: 'roles',
-    label: t('table.user.columns.role'),
-    width: '110',
-    slot: true,
-    columnKey: 'roles',
-    filters: roles.value.map(role => ({
-      text: role.toUpperCase(),
-      value: role,
-      style: { color: roleConfig.value.getColor(role) }
-    })),
+    prop: 'roles', label: t('table.user.columns.role'), width: '110', slot: true, columnKey: 'roles',
+    filters: roles.map(role => ({ text: role.toUpperCase(), value: role, style: { color: getRoleColor(role) } })),
     filterMethod: (value, row) => row.roles.includes(value),
     filterPlacement: 'bottom-end',
     filteredValue: allSelectedRoles.value
   },
 ])
 
-// Обработка ошибок
-const handleError = (error) => {
-  console.error('Error details:', {
-    url: error.config?.url,
-    status: error.response?.status,
-    data: error.response?.data
-  })
-  ElMessage.error(
-      error.response?.data?.message ||
-      error.message ||
-      'Ошибка загрузки данных'
-  )
-}
-
-// Остальные методы без изменений
-const handleSizeChange = (size) => {
-  pagination.per_page = size
-  pagination.current_page = 1
-  getList()
-}
-
-const handlePageChange = (newPage) => {
-  pagination.current_page = newPage
-  getList()
-}
-
-// Открытие фильтра
-const openFilter = (column) => {
-  const header = document.querySelector(`.${column.id}`)
-  const popper = header?.querySelector('.el-table-filter')
-  if (popper) {
-    const isHidden = popper.style.display === 'none'
-    popper.style.display = isHidden ? 'block' : 'none'
-  }
-}
-
-// Пример использования в тегах
-const roleTags = (roles) => roles.map(role => ({
-  role,
-  color: roleConfig.value.getColor(role)
-}))
-
-// Пример использования в условиях
-const isAdmin = (userRoles) =>
-    ['superadmin', 'admin'].some(role => userRoles.includes(role))
-
-// Методы фильтрации
-const handleSearchInput = debounce(() => {
-  getList()
-}, 500)
-
-// Добавляем вычисляемые свойства
 const allSelectedRoles = computed(() => {
-  const roles = []
-  if (filters.value.singleRole) roles.push(filters.value.singleRole)
-  roles.push(...filters.value.roles)
-  console.log('roles ', roles)
-  return [...new Set(roles)]
+  const r = []
+  if (filters.value.singleRole) r.push(filters.value.singleRole)
+  r.push(...filters.value.roles)
+  return [...new Set(r)]
 })
 
-const disabledRoles = computed(() => filters.value.roles)
-
-const handleSingleRoleSelect = (role) => {
-  console.log('role ', role)
-  if (filters.value.roles.includes(role)) {
-    // Если роль уже выбрана в таблице - отмена выбора
-    filters.value.singleRole = ''
-    return
-  }
-  filters.value.roles = role ? [role] : []
-  getList()
-}
-
-const handleTableFilter = (columnFilters) => {
-  if (columnFilters.roles) {
-    // Синхронизация с селектом
-    filters.value.roles = columnFilters.roles
-    filters.value.singleRole = columnFilters.roles.length === 1
-        ? columnFilters.roles[0]
-        : ''
-  }
-  getList()
-}
-
-const resetFilters = () => {
-  filters.value = { search: '', roles: [], singleRole: '' }
-  pagination.current_page = 1
-  getList()
-}
-
-// Методы
+// Methods
 const getList = async () => {
   loading.value = true
   try {
     const params = {
       search: filters.value.search || null,
-      role: allSelectedRoles.value || null,
-      page: pagination.current_page || 1,
-      per_page: pagination.per_page || 10
+      role: allSelectedRoles.value.length > 0 ? allSelectedRoles.value : null,
+      status: filters.value.status || 'all',
+      page: pagination.current_page,
+      per_page: pagination.per_page
     }
     const response = await userResource.list(params)
-    console.log('response ', response)
     tableData.value = response.items || []
     pagination.total = response.meta.total
-    pagination.currentPage = response.meta.current_page
-    pagination.pageSize = response.meta.per_page
+    pagination.current_page = response.meta.page || response.meta.current_page
+    pagination.per_page = response.meta.per_page
     pagination.last_page = response.meta.last_page
   } catch (error) {
-    handleError(error)
+    ElMessage.error(error.response?.data?.message || 'Ошибка загрузки данных')
   } finally {
     loading.value = false
   }
 }
 
-const handleFilterChange = (columnKey, values) => {
-  filters.value.roles = values
-  getList()
-}
-
-const handleFilter = () => {
+const handleFilter = () => { pagination.current_page = 1; getList() }
+const handleStatusChange = () => { pagination.current_page = 1; getList() }
+const handleSingleRoleSelect = () => { pagination.current_page = 1; getList() }
+const resetFilters = () => {
+  filters.value = { search: '', roles: [], singleRole: '', status: 'all' }
   pagination.current_page = 1
   getList()
 }
+const handleSizeChange = (size) => { pagination.per_page = size; pagination.current_page = 1; getList() }
+const handlePageChange = (page) => { pagination.current_page = page; getList() }
+const handleTableFilter = (columnFilters) => {
+  if (columnFilters.roles) {
+    filters.value.roles = columnFilters.roles
+    filters.value.singleRole = columnFilters.roles.length === 1 ? columnFilters.roles[0] : ''
+  }
+  getList()
+}
+const handleCreate = () => { dialogFormVisible.value = true }
 
-const handleFilterReset = () => {
-  console.log('Сброс фильтра')
-  handleFilter()
+const openFilter = (column) => {
+  const header = document.querySelector(`.${column.id}`)
+  const popper = header?.querySelector('.el-table-filter')
+  if (popper) popper.style.display = popper.style.display === 'none' ? 'block' : 'none'
 }
 
-const handleCreate = () => {
-  resetNewUser()
-  dialogFormVisible.value = true
+// Actions Router / API calls
+const tableActions = async (action, row) => {
+  switch (action) {
+    case 'edit-item': router.push(`/administrator/users/edit/${row.id}`); break
+    case 'view-item': router.push(`/administrator/users/view/${row.id}`); break
+    case 'delete-item': await handleDeleteUser(row); break
+    case 'ban-item': await handleBanUser(row); break
+    case 'unban-item': await handleUnbanUser(row); break
+    case 'restore-item': await handleRestoreUser(row); break
+    case 'edit-permission-item': await handleEditPermissions(row); break
+      // 🔥 Новые действия для админского подтверждения
+    case 'admin-confirm-old':
+      openAdminConfirmDialog('admin-confirm-old', row, t('users.actions.adminConfirmOld'))
+      break
+    case 'admin-confirm-new':
+      openAdminConfirmDialog('admin-confirm-new', row, t('users.actions.adminConfirmNew'))
+      break
+  }
 }
 
-const resetNewUser = () => {
-  Object.assign(newUser, {
-    role: 'user',
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    sex: 0,
-    birthday_model: null,
-    description: ''
-  })
+const handleDeleteUser = async (user) => {
+  try {
+    await ElMessageBox.confirm(t('table.user.elMessageBox.confirm1.message@j', { name: user.name }), t('table.user.elMessageBox.deleteTitle'), { type: 'warning', dangerouslyUseHTMLString: true })
+    await userResource.destroy(user.id)
+    ElMessage.success(t('table.user.elMessage.delete.success.message'))
+    getList()
+  } catch (error) { if (error !== 'cancel') ElMessage.error(t('table.user.elMessage.delete.error.message')) }
 }
 
-// Добавьте эти объявления
-const permissions = ref([])
-const menuPermissions = ref([])
-const otherPermissions = ref([])
-const currentUserId = ref(0)
-const currentUserName = ref('')
-const currentUserRole = ref([])
+const handleBanUser = async (user) => {
+  try {
+    await ElMessageBox.confirm(t('users.dialogs.banConfirm', { name: user.name }), t('users.dialogs.banTitle'), { type: 'warning' })
+    await userResource.ban(user.id)
+    ElMessage.success(t('users.messages.banSuccess'))
+    getList()
+  } catch (error) {
+    if (error !== 'cancel') {
+      const errorMsg = error.response?.data?.message || error.message || t('users.messages.banError')
+      ElMessage.error(errorMsg)
+    }
+  }
+}
 
-// Работа с правами
+const handleUnbanUser = async (user) => {
+  try {
+    await userResource.unban(user.id)
+    ElMessage.success(t('users.messages.unbanSuccess'))
+    getList()
+  } catch (error) { ElMessage.error(t('users.messages.unbanError')) }
+}
+
+const handleRestoreUser = async (user) => {
+  try {
+    await ElMessageBox.confirm(t('users.dialogs.restoreConfirm', { name: user.name }), t('users.dialogs.restoreTitle'), { type: 'warning' })
+    await userResource.restore(user.id)
+    ElMessage.success(t('users.messages.restoreSuccess'))
+    getList()
+  } catch (error) { if (error !== 'cancel') ElMessage.error(t('users.messages.restoreError')) }
+}
+
+const handleEditPermissions = async (user) => {
+  if (permissions.value.length === 0) {
+    await getPermissions()
+  }
+  currentUser.value = { ...user }
+  dialogPermissionVisible.value = true
+}
+
 const getPermissions = async () => {
   try {
     const { data } = await permissionResource.list({})
-    console.log('permissionResource data:', data)
-    const { all, menu, other } = classifyPermissions(data)
-    console.log('classifyPermissions all menu other:', all, menu, other)
-    permissions.value = all
-    menuPermissions.value = menu
-    otherPermissions.value = other
+    permissions.value = classifyPermissions(data).all
   } catch (error) {
-    console.error('Ошибка загрузки разрешений:', error)
-    let message = t('error.loadPermissions')
-    if (error.response?.data?.message) {
-      message += `: ${error.response.data.message}`
-    } else if (error.message) {
-      message += `: ${error.message}`
-    }
-    ElMessage.error(message)
+    ElMessage.error(t('error.loadPermissions'))
   }
 }
 
-/**
- * Классификация разрешений на группы
- * @param {Array} permissions - Список разрешений
- */
-const classifyPermissions = (permissions) => {
-  const result = { all: [], menu: [], other: [] }
-  permissions.forEach(permission => {
-    const permissionName = permission.name || permission
-    result.all.push(permission)
-    if (permissionName.startsWith('view menu ')) {
-      result.menu.push(normalizeMenuPermission(permission))
+// 🔥 Методы для админского подтверждения
+const openAdminConfirmDialog = (actionType, row, title) => {
+  adminConfirmDialog.actionType = actionType
+  adminConfirmDialog.user = row
+  adminConfirmDialog.title = title
+  adminConfirmDialog.reason = ''
+  adminConfirmDialog.visible = true
+}
+
+const executeAdminConfirm = async () => {
+  try {
+    adminConfirmDialog.loading = true
+    if (adminConfirmDialog.actionType === 'admin-confirm-old') {
+      await userResource.adminConfirmOldEmail(adminConfirmDialog.user.id, adminConfirmDialog.reason)
     } else {
-      result.other.push(normalizePermission(permission))
+      await userResource.adminConfirmNewEmail(adminConfirmDialog.user.id, adminConfirmDialog.reason)
     }
-  })
-  return result
-}
-
-// Нормализация разрешений для меню
-const normalizeMenuPermission = (permission) => ({
-  id: permission.id,
-  name: uppercaseFirst(permission.name.replace('view menu ', '')),
-  disabled: permission.disabled || false
-})
-
-// Нормализация обычных разрешений
-const normalizePermission = (permission) => ({
-  id: permission.id,
-  name: uppercaseFirst(permission.name),
-  disabled: permission.disabled || permission.name === 'manage permission'
-});
-
-// Обработчик действий таблицы
-const tableActions = (action, row) => {
-  switch (action) {
-    case 'edit-item':
-      router.push(`/administrator/users/edit/${row.id}`)
-      break
-    case 'delete-item':
-      handleDeleteUser(row)
-      break
-    case 'edit-permission-item':
-      handleEditPermissions(row)
-      break
-    default:
-      console.warn('Неизвестное действие:', action)
-  }
-}
-
-// Обработчик удаления пользователя
-const handleDeleteUser = async (user) => {
-  try {
-    await ElMessageBox.confirm(
-        t('table.user.elMessageBox.confirm1.message@j', { name: user.name }),
-        t('table.user.elMessageBox.deleteTitle'),
-        {
-          confirmButtonText: t('table.user.elMessageBox.confirmButtonText'),
-          cancelButtonText: t('table.user.elMessageBox.cancelButtonText'),
-          dangerouslyUseHTMLString: true,
-          type: 'warning'
-        }
-    )
-    await userResource.destroy(user.id)
-    ElMessage.success(t('table.user.elMessage.delete.success.message'))
-    await getList()
+    ElMessage.success(t('users.messages.adminConfirmSuccess') || 'Действие успешно выполнено')
+    adminConfirmDialog.visible = false
+    getList() // Обновляем таблицу
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(t('table.user.elMessage.delete.error.message'))
-    }
-  }
-}
-
-// Полный код обработки прав
-const handleEditPermissions = async (user) => {
-  if (isAdmin(user.roles)) {
-    ElMessage.warning(t('permission.errors.cantEditAdmin'));
-    return;
-  }
-
-  try {
-    const { data } = await userResource.permissions(user.id);
-    currentUser.value = {
-      ...user,
-      permissions: data
-    };
-    dialogPermissionLoading.value = true;
-    dialogPermissionVisible.value = true;
-    await nextTick();
-    refMenuPermissions.value?.setCheckedKeys(permissionKeys(userMenuPermissions.value));
-    refOtherPermissions.value?.setCheckedKeys(permissionKeys(userOtherPermissions.value));
-  } catch (error) {
-    console.error('Error in handleEditPermissions:', error);
-    ElMessage.error(t('error.loadPermissions'));
+    ElMessage.error(error.response?.data?.message || t('users.messages.adminConfirmError') || 'Ошибка при выполнении действия')
   } finally {
-    dialogPermissionLoading.value = false;
-  }
-};
-
-const permissionProps = reactive({
-  children: 'children',
-  label: 'name',
-  disabled: 'disabled'
-})
-
-const userMenuPermissions = computed(() => {
-  if (!currentUser.value?.permissions) return [];
-  const rolePermissions = currentUser.value.permissions.role?.map(permission => ({
-    ...permission,
-    disabled: true
-  })) || [];
-  const userPermissions = currentUser.value.permissions.user?.map(permission => ({
-    ...permission,
-    disabled: false
-  })) || [];
-  return [...rolePermissions, ...userPermissions];
-});
-
-const userOtherPermissions = computed(() => {
-  if (!currentUser.value?.permissions) return [];
-  const rolePermissions = currentUser.value.permissions.role?.map(permission => ({
-    ...permission,
-    disabled: true
-  })) || [];
-  const userPermissions = currentUser.value.permissions.user?.map(permission => ({
-    ...permission,
-    disabled: false
-  })) || [];
-  return [...rolePermissions, ...userPermissions];
-});
-
-// Функция для создания объекта разрешений роли
-const createRolePermissions = (permissions, permissionType) => {
-  // Используем функцию classifyPermissions для получения разрешений определенного типа
-  const classifiedPermissions = classifyPermissions(permissions)[permissionType] || [];
-
-  // Возвращаем объект с разрешениями роли, которые нельзя изменить
-  return {
-    id: -1,
-    name: t('permission.table.rolePermissions.name'),
-    disabled: true,
-    children: classifiedPermissions.map(p => ({ ...p, disabled: true })),
-  };
-};
-
-// Функция для фильтрации и форматирования разрешений пользователя
-const createUserPermissions = (allPermissions, rolePermissions) => {
-  // Фильтруем разрешения, чтобы исключить те, которые унаследованы от роли
-  return allPermissions
-      .filter(permission => !rolePermissions.some(p => p.id === permission.id))
-      .map(p => ({ ...p, disabled: false })); // Разрешения пользователя можно изменять
-};
-
-// Функция для нормализации разрешений меню
-const normalizeMenuPermissions = (currentUser, menuPermissions) => {
-  // Получаем разрешения роли для текущего пользователя
-  const rolePermissions = createRolePermissions(currentUser.value.permissions.role, 'menu');
-
-  // Получаем разрешения пользователя, которые не унаследованы от роли
-  const userPermissions = createUserPermissions(menuPermissions.value, currentUser.value.permissions.role);
-
-  // Возвращаем нормализованные разрешения для меню
-  return [
-    rolePermissions,
-    {
-      id: 0,
-      name: t('permission.table.userPermissions.name.menu'),
-      children: userPermissions,
-      disabled: userPermissions.length === 0,
-    }
-  ];
-};
-
-// Функция для нормализации других разрешений
-const normalizeOtherPermissions = (currentUser, otherPermissions) => {
-  // Получаем разрешения роли для текущего пользователя
-  const rolePermissions = createRolePermissions(currentUser.value.permissions.role, 'other');
-
-  // Получаем разрешения пользователя, которые не унаследованы от роли
-  const userPermissions = createUserPermissions(otherPermissions.value, currentUser.value.permissions.role);
-
-  // Возвращаем нормализованные другие разрешения
-  return [
-    rolePermissions,
-    {
-      id: 0,
-      name: t('permission.table.userPermissions.name.permissions'),
-      children: userPermissions,
-      disabled: userPermissions.length === 0,
-    }
-  ];
-};
-
-// Использование функций в вычисляемых свойствах
-const normalizedMenuPermissions = computed(() => {
-  return normalizeMenuPermissions(currentUser, menuPermissions);
-});
-
-const normalizedOtherPermissions = computed(() => {
-  return normalizeOtherPermissions(currentUser, otherPermissions);
-});
-
-const createUser = async (formEl) => {
-  if (!await formEl.validate()) return
-  userCreating.value = true
-  try {
-    const userData = {
-      ...newUser,
-      roles: [newUser.role],
-      birthday: newUser.birthday_model
-          ? dayjs(newUser.birthday_model).format(FormatDateTime)
-          : null
-    }
-    await userResource.store(userData)
-    ElMessage.success(t('table.user.elMessage.created.success.message'))
-    dialogFormVisible.value = false
-    await getList()
-  } catch (error) {
-    ElMessage.error(error.response?.data?.message || t('table.user.elMessage.created.success.error'))
-  } finally {
-    userCreating.value = false
+    adminConfirmDialog.loading = false
   }
 }
 
-const confirmPermission = async () => {
-  dialogPermissionLoading.value = true;
-  try {
-    const checkedMenu = refMenuPermissions.value.getCheckedKeys();
-    const checkedOther = refOtherPermissions.value.getCheckedKeys();
-    const selectedPermissions = [...checkedMenu, ...checkedOther];
+// Lifecycle
+const updateHeight = () => { tableHeight.value = calculateTableHeight(300, 60) }
 
-    const rolePermissionIds = currentUser.value.permissions.role.map(p => p.id);
-    const permissionsToUpdate = selectedPermissions.filter(id => !rolePermissionIds.includes(id));
-
-    await userResource.updatePermission(currentUser.value.id, {
-      permissions: permissionsToUpdate
-    });
-
-    ElMessage.success(t('permission.table.elMessage.update.success.message'));
-    dialogPermissionVisible.value = false;
-    await getList();
-  } catch (error) {
-    console.error('Error in confirmPermission:', error);
-    ElMessage.error(error.response?.data?.message || t('permission.table.elMessage.update.error.message'));
-  } finally {
-    dialogPermissionLoading.value = false;
-  }
-};
-
-// Получение ID разрешений
-const permissionKeys = (permissions) =>
-    permissions.map(p => p.id)
-
-const tableHeight = ref('calc(100vh - 300px)')
-
-function updateTableHeight() {
-  // Получаем высоты элементов по их ID
-  const navbarEl = document.querySelector('#main-navbar');
-  const tagsViewEl = document.querySelector('#tags-view-container');
-  const appMainEl = document.querySelector('#app-main');
-  const cardBodyEl = document.querySelector('.el-card__body');
-
-  // Доп регулировка
-
-  const AddLevel = 60;
-
-  // Динамические высоты с запасом
-  const navbarHeight = navbarEl?.offsetHeight || 60;
-  const tagsViewHeight = tagsViewEl?.offsetHeight || 50;
-
-  // Рассчитываем паддинги app-main
-  const appMainStyle = window.getComputedStyle(appMainEl || {});
-  const appMainPaddingTop = parseInt(appMainStyle.paddingTop) || 20;
-  const appMainPaddingBottom = parseInt(appMainStyle.paddingBottom) || 20;
-  const appMainPadding = appMainPaddingTop + appMainPaddingBottom;
-
-
-  const cardBodyStyle = window.getComputedStyle(cardBodyEl || {});
-  const cardBodyPaddingTop = parseInt(cardBodyStyle.paddingTop) || 20;
-  const cardBodyPaddingBottom = parseInt(cardBodyStyle.paddingBottom) || 20;
-  const cardBodyPadding = cardBodyPaddingTop + cardBodyPaddingBottom;
-
-
-  // Остальные элементы (фильтры, заголовок, пагинация)
-  const filterContainer = document.querySelector('.filter-container');
-  const filterHeight = filterContainer?.offsetHeight + AddLevel || 120; // Заголовок + фильтры
-
-  const paginationEl = document.querySelector('.pagination-container, .el-pagination');
-  const paginationHeight = paginationEl?.offsetHeight || 60;
-
-  // Общая высота, которую нужно вычесть
-  const totalOffset = navbarHeight + tagsViewHeight + appMainPadding + cardBodyPadding + filterHeight + paginationHeight;
-
-  // Защита от отрицательных значений
-  const minHeight = 300;
-  const viewportHeight = window.innerHeight;
-
-  console.log('Расчет высоты таблицы:', {
-    viewportHeight,
-    totalOffset,
-    navbarHeight,
-    tagsViewHeight,
-    appMainPadding,
-    filterHeight,
-    paginationHeight,
-    minHeight
-  });
-
-  if (viewportHeight - totalOffset < minHeight) {
-    tableHeight.value = `${minHeight}px`;
-  } else {
-    tableHeight.value = `calc(100vh - ${totalOffset}px)`;
-  }
-}
-
-// Инициализация
 onMounted(async () => {
-  pagination.per_page = 20
-  console.log('Инициализация расчета высоты таблицы');
-
   setTimeout(() => {
-    updateTableHeight()
-    window.addEventListener('resize', updateTableHeight)
-  }, 300);
+    updateHeight()
+    window.addEventListener('resize', updateHeight)
+  }, 300)
   await getList()
-  // Проверка блокировки manage permission
-  if (checkPermission(['manage permission'])) {
-    await getPermissions()
-  }
+  if (checkPermission(['manage permission'])) await getPermissions()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('resize', updateTableHeight)
+  window.removeEventListener('resize', updateHeight)
 })
 </script>
+
 <style lang="scss" scoped>
 .custom-header {
   display: flex;
@@ -1019,29 +402,18 @@ onUnmounted(() => {
 :deep(.el-form-item.is-error .el-input__validateIcon) {
   color: var(--el-color-danger) !important;
 }
-.edit-input {
-  padding-right: 100px;
-}
-.cancel-btn {
-  position: absolute;
-  right: 15px;
-  top: 10px;
-}
-.dialog-footer {
-  text-align: left;
-  padding-top: 0;
-  margin-left: 150px;
-}
 .app-container {
   flex: 1;
   justify-content: space-between;
   font-size: 14px;
   padding: 8px;
+
   .el-dialog__body {
     .form-container {
       margin-top: 1rem;
     }
   }
+
   .el-table-filter__checkbox-group {
     max-height: 300px;
     overflow-y: auto;
@@ -1050,13 +422,18 @@ onUnmounted(() => {
       font-weight: 500;
     }
   }
+
   .filter-container {
     .filter-item.search-filter-item {
       width: 220px;
       margin-right: 5px;
     }
     .filter-item.select-role-filter-item {
-      width: 110px;
+      width: 130px;
+      margin-right: 5px;
+    }
+    .filter-item.select-status-filter-item {
+      width: 150px;
       margin-right: 5px;
     }
     .select-role-filter-item {
@@ -1066,6 +443,7 @@ onUnmounted(() => {
       }
     }
   }
+
   .block {
     float: left;
     min-width: 250px;

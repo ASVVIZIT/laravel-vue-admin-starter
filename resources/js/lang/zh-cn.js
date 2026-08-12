@@ -44,25 +44,27 @@ export default {
     "forgotPasswordSubtitle": "输入您的邮箱，我们将发送重置链接",
     "sendResetLink": "发送重置链接",
     "emailSent": "邮件已发送！",
-    "checkEmail": "请检查您的邮箱 {email} 获取重置链接",
-    "resetLinkSent": "重置链接已发送到您的邮箱",
+    "checkEmail": "请检查您的邮箱",
+    "resetLinkSent": "如果账户存在，您将收到邮件",
+    "resetLinkSentGeneric": "如果账户存在于我们的数据库中，所有者将收到包含密码重置说明的邮件。",
+    "resetLinkSentHint": "如果几分钟内未收到邮件，请检查垃圾邮件文件夹或确认邮箱地址正确。",
     "resetFailed": "发送重置链接失败",
     "backToLogin": "返回登录",
 
     "resetPasswordTitle": "重置密码",
-    "resetPasswordSubtitle": "输入您的新密码",
+    "resetPasswordSubtitle": "输入新密码",
     "resetPassword": "重置密码",
     "passwordResetSuccess": "密码重置成功",
-    "invalidResetLink": "无效或过期的重置链接",
+    "invalidResetLink": "无效或已过期的链接",
 
     "registerTitle": "创建账户",
-    "registerSubtitle": "填写表格创建您的账户",
+    "registerSubtitle": "填写表单以创建账户",
     "register": "注册",
     "registerSuccess": "注册成功！请检查您的邮箱",
     "registerFailed": "注册失败",
     "alreadyHaveAccount": "已有账户？登录",
-    "agreeTerms": "我同意条款和条件",
-    "mustAgreeTerms": "请同意条款",
+    "agreeTerms": "我同意使用条款",
+    "mustAgreeTerms": "请接受条款",
 
     "emailVerificationTitle": "邮箱验证",
     "emailVerificationSubtitle": "我们已向您的邮箱发送验证链接",
@@ -70,9 +72,9 @@ export default {
     "checkYourEmail": "请检查您的邮箱：",
     "goToLogin": "前往登录",
     "verificationResent": "验证邮件已重新发送",
-    "resendFailed": "重新发送验证邮件失败",
+    "resendFailed": "发送邮件失败",
     "resendVerification": "重新发送验证邮件",
-    "resendCooldown": "{seconds}秒后可重发",
+    "resendCooldown": "{seconds}秒后重试",
     "sending": "发送中...",
     "verifying": "验证中...",
     "invalidVerificationLink": "无效的验证链接",
@@ -173,6 +175,7 @@ export default {
     }
   },
   "permission": {
+    "search": "搜索权限...",
     "actions": {
       "addRole": "添加角色权限",
       "editPermission": "编辑权限",
@@ -181,11 +184,14 @@ export default {
       "cancel": "取消"
     },
     "messages": {
+      "unsavedChanges": "您有未保存的更改。不保存就关闭？",
+      "noPermissionsSelected": "未选择任何权限。继续？",
       "editPermissionForForm": "编辑权限为",
       "switchRoles": "切换角色",
       "tips": "某些情况下不适合使用v-role/v-permission（例如Element Tab组件或el-table-column），请手动使用v-if和checkRole/checkPermission。"
     },
     "errors": {
+      "noUserData": "未找到用户数据",
       "cantEditAdmin": "无法为管理员用户修改权限"
     },
     "table": {
@@ -339,19 +345,31 @@ export default {
       "about_me": "关于我",
       "education": "教育",
       "skills": "技能",
+      "emailStatus": "邮箱状态",
       "tabs": {
         "timeline": "时间线",
         "account": "账户"
       },
       "elMessage": {
         "update": {
-          "success": { "message": "用户的信息已成功更新" }
+          "success": { "message": "用户信息已成功更新" }
+        },
+        "reverify": {
+          "success": "重新验证邮件已发送到您的邮箱",
+          "error": "发送邮件失败"
         }
       },
       "fields": {
         "role": { "title": "角色", "placeholder": "选择角色" },
         "name": { "title": "名称", "placeholder": "您的名字" },
-        "email": { "title": "邮箱", "placeholder": "您的邮箱" },
+        "email": {
+          "title": "邮箱",
+          "placeholder": "您的邮箱",
+          "changeHint": "更改邮箱需要通过当前邮箱进行验证",
+          "systemEmail": "系统邮箱 - 无需验证"
+        },
+        "email_verified": { "title": "邮箱状态" },
+        "email_reverified": { "title": "最后重新验证" },
         "password": { "title": "密码", "placeholder": "输入密码" },
         "confirmPassword": { "title": "确认密码", "placeholder": "不能与名称或邮箱相同" },
         "sex": { "title": "性别", "placeholder": "" },
@@ -360,6 +378,22 @@ export default {
         "age": { "title": "年龄", "placeholder": "未指定出生日期" },
         "birthday": { "title": "生日", "placeholder": "选择出生日期" },
         "description": { "title": "描述", "placeholder": "写下关于您自己..." }
+      },
+      "actions": {
+        "request_reverify": "请求重新验证"
+      },
+      "emailChange": {
+        "title": "更改邮箱",
+        "currentEmail": "当前邮箱",
+        "newEmail": "新邮箱",
+        "changeButton": "更改",
+        "requestButton": "请求更改",
+        "successMessage": "确认邮件已发送到您当前的邮箱",
+        "errorMessage": "请求更改邮箱时出错",
+        "cancelButton": "取消",
+        "confirmButton": "确认",
+        "infoText": "确认链接将发送到您当前的邮箱",
+        "sameAsCurrent": "新邮箱不能与当前邮箱相同"
       }
     }
   },
@@ -663,6 +697,10 @@ export default {
     }
   },
   "common": {
+    "noData": "暂无数据",
+    "items": "项",
+    "selected": "已选择",
+    "warning": "警告",
     "submitting": "保存中...",
     "required": "必填字段",
     "view404": {
@@ -714,6 +752,62 @@ export default {
   },
   "roles_description_admin": "系统管理员",
   "roles_description_superadmin": "超级管理员",
+
+  // 👥 用户 — 账户状态管理（封禁/解封/恢复）
+  "users": {
+    "listTitle": "用户列表",
+    "viewTitle": "查看用户",
+    "deletedAt": "删除时间",
+    "status": {
+      "label": "状态",
+      "all": "全部",
+      "active": "🟢 活跃",
+      "banned": "🔴 已封禁",
+      "trashed": "⚫ 已删除",
+      "unverified": "🟡 未验证"
+    },
+    "actions": {
+      "ban": "封禁",
+      "unban": "解除封禁",
+      "restore": "恢复",
+      "edit": "编辑",
+      "delete": "删除",
+      "view": "查看",
+      "permissions": "权限",
+      "cannotEditAdmin": "无法编辑",
+      "adminEditHint": "个人资料可访问，权限受保护",
+      "adminConfirmOld": "确认旧邮箱",
+      "adminConfirmNew": "确认新邮箱",
+      "adminQuickActions": "管理员操作",
+      "adminQuickActionsHint": "跳过邮件发送直接确认邮箱更改",
+      "confirmReason": "确认原因",
+      "confirmReasonPlaceholder": "例如：用户无法访问旧邮箱，已通过护照核实身份"
+    },
+    "dialogs": {
+      "banConfirm": "您确定要封禁用户 {name} 吗？",
+      "banTitle": "确认封禁",
+      "restoreConfirm": "恢复用户 {name}？",
+      "restoreTitle": "确认恢复"
+    },
+    "messages": {
+      "banSuccess": "用户已被封禁",
+      "banError": "封禁失败",
+      "unbanSuccess": "用户已解除封禁",
+      "unbanError": "解除封禁失败",
+      "restoreSuccess": "用户已恢复",
+      "restoreError": "恢复失败",
+      "adminConfirmSuccess": "操作成功完成",
+      "adminConfirmError": "操作执行失败"
+    },
+    "permissions": {
+      "tooltip": {
+        "role_view": "Inherited from role — View",
+        "role_manage": "Inherited from role — Manage",
+        "user_view": "Additional — View",
+        "user_manage": "Additional — Manage",
+      }
+    }
+  },
 
   // 🔍 I18N CHECKER (翻译检查器)
   "i18nChecker": {

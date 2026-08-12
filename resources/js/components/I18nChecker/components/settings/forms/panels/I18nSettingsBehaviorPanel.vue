@@ -28,7 +28,6 @@
         <el-switch v-model="localData.highlightSearch" :active-value="true" :inactive-value="false" />
       </el-form-item>
 
-      <!-- 🔥 НОВОЕ: Цвет подсветки -->
       <el-form-item v-if="localData.highlightSearch" :label="$t('i18nChecker.settings.behavior.highlightColor')" class="compact-item">
         <div class="highlight-color-wrapper">
           <el-color-picker v-model="localData.highlightColor" size="small" />
@@ -46,6 +45,11 @@
           </div>
         </div>
         <div class="form-tip">{{ $t('i18nChecker.settings.behavior.highlightColorTip') || 'Цвет автоматически подбирает контрастный текст' }}</div>
+      </el-form-item>
+
+      <el-form-item :label="$t('i18nChecker.settings.behavior.preserveSearch')" class="compact-item">
+        <el-switch v-model="localData.preserveSearch" :active-value="true" :inactive-value="false" />
+        <div class="form-tip">{{ $t('i18nChecker.settings.behavior.preserveSearchTip') || 'Поисковые запросы сохраняются при смене языка и режима' }}</div>
       </el-form-item>
     </el-form>
   </div>

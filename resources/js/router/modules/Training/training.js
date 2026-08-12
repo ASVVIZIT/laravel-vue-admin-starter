@@ -17,9 +17,9 @@ export default [
         component: () => import('@/layout/Layout.vue'),
         meta: {
             title: 'Тренировки',
-            elSvgIcon: 'Trophy', // 'Fitness' или 'Trophy'
-            permissions: ['view_training'],
-            order: 5 // порядок в меню
+            elSvgIcon: 'Trophy',
+            permissions: ['view menu training'],
+            order: 5
         },
         children: [
             {
@@ -30,7 +30,7 @@ export default [
                     title: 'Мои тренировки',
                     elSvgIcon: 'DataLine',
                     affix: false,
-                    permissions: ['view_training'],
+                    permissions: ['view training'],
                     noCache: true
                 }
             },
@@ -41,7 +41,7 @@ export default [
                 meta: {
                     title: 'Добавить запись',
                     elSvgIcon: 'EditPen',
-                    permissions: ['create_training_log'],
+                    permissions: ['create training log'],
                     noCache: true
                 }
             },
@@ -52,8 +52,8 @@ export default [
                 meta: {
                     title: 'Справочник упражнений',
                     elSvgIcon: 'List',
-                    permissions: ['view_training'],
-                    hidden: true // скрыто из меню, доступно по прямой ссылке
+                    permissions: ['view training'],
+                    hidden: true
                 }
             },
             {
@@ -63,7 +63,7 @@ export default [
                 meta: {
                     title: 'Статистика',
                     elSvgIcon: 'TrendCharts',
-                    permissions: ['view_training_stats'],
+                    permissions: ['view training stats'],
                     noCache: true
                 }
             },
@@ -74,7 +74,7 @@ export default [
                 meta: {
                     title: 'Тренировки пользователя',
                     elSvgIcon: 'Share',
-                    permissions: ['view_training'],
+                    permissions: ['view training'],
                     hidden: true
                 },
                 props: true

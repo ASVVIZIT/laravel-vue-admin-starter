@@ -25,21 +25,38 @@ class User extends Authenticatable implements MustVerifyEmail
         1 => 'Female'
     ];
 
-    protected $dates = ['deleted_at', 'birthday'];
+    // 🔥 КРИТИЧЕСКИ ВАЖНО: Добавлены поля для смены email, иначе $user->update() их игнорирует
     protected $fillable = [
-        'name', 'email', 'password', 'status', 'sex', 'birthday', 'description', 'avatar'
+        'name',
+        'email',
+        'password',
+        'status',
+        'sex',
+        'birthday',
+        'description',
+        'avatar',
+        // Поля для процесса смены email
+        'pending_new_email',
+        'pending_email_token',
+        'pending_email_expires_at',
+        'old_email_confirmed',
     ];
 
     public $appends = ['age', 'sex_format', 'main_role'];
 
     protected $hidden = [
         'password',
-        'updated_at',
-        'deleted_at'
+        'updated_at'
     ];
 
+    // 🔥 КРИТИЧЕСКИ ВАЖНО: Добавлен кастинг для корректной работы с датами и булевыми значениями
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'deleted_at' => 'datetime',
+        'birthday' => 'datetime',
+        // Кастинг для полей смены email
+        'pending_email_expires_at' => 'datetime',
+        'old_email_confirmed' => 'boolean',
     ];
 
     public function userTabs()

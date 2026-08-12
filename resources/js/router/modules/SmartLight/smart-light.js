@@ -14,7 +14,7 @@ export default [
         meta: {
             title: 'Умное освещение SmartLight',
             elSvgIcon: 'Lightning',
-            permissions: ['view_smart_light'],
+            permissions: ['view menu smart light'],
         },
         children: [
             {
@@ -24,7 +24,7 @@ export default [
                 meta: {
                     title: 'Управление освещением',
                     elSvgIcon: 'ReadingLamp',
-                    permissions: ['view_smart_light'],
+                    permissions: ['view smart light'],
                     noCache: true
                 }
             },
@@ -36,7 +36,7 @@ export default [
                     title: 'Глобальные настройки',
                     elSvgIcon: 'SetUp',
                     affix: false,
-                    permissions: ['manage_smart_light'],
+                    permissions: ['manage smart light'],
                     noCache: true
                 }
             },
@@ -47,7 +47,7 @@ export default [
                 meta: {
                     title: 'Настройки SmartLight',
                     elSvgIcon: 'SetUp',
-                    permissions: ['manage_smart_light'],
+                    permissions: ['manage smart light'],
                     noCache: true
                 }
             },
@@ -58,7 +58,7 @@ export default [
                 meta: {
                     title: 'Настройки устройства',
                     elSvgIcon: 'SetUp',
-                    permissions: ['manage_own_smart_light']
+                    permissions: ['manage own smart light']
                 },
                 hidden: true,
                 props: true

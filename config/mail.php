@@ -93,8 +93,18 @@ return [
 
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@example.com'),
-        'name' => env('MAIL_FROM_NAME', 'Example'),
+        'name' => env('MAIL_FROM_NAME', 'Fenix Portal Text Example'),
     ],
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Получатели писем
+    |--------------------------------------------------------------------------
+    */
+
+    'to_admin' => env('MAIL_TO_ADMIN', env('MAIL_FROM_ADDRESS')),
+    'test_to' => env('MAIL_TEST_TO', env('MAIL_TO_ADMIN')),
 
     /*
     |--------------------------------------------------------------------------

@@ -20,6 +20,12 @@
 
       <div class="i18n-spacer" />
 
+      <el-tooltip v-if="hasSavedSimpleSearches" :content="$t('i18nChecker.clearSavedSearches') || 'Очистить сохранённые запросы'" placement="top">
+        <el-button size="small" text type="info" @click="clearSimpleSearches">
+          <I18nIcon name="delete" />
+        </el-button>
+      </el-tooltip>
+
       <el-button size="small" @click="runCheck">
         <I18nIcon name="refresh" />
         {{ $t('i18nChecker.refresh') }}
@@ -100,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue';
@@ -110,16 +116,49 @@ import { SIMPLE_TABLE_COLUMNS } from '@components/I18nChecker/config/tableColumn
 import { STATUS_OPTIONS, FILTER_DEFAULTS } from '@components/I18nChecker/config/filtersConfig.js';
 import { LANGUAGE_OPTIONS } from '@components/I18nChecker/config/languagesConfig.js';
 import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
+import { useI18nSearchPersistence } from '@components/I18nChecker/composables/useI18nSearchPersistence.js';
 import { highlightText } from '@components/I18nChecker/utils/highlightUtils.js';
 
 const { t, locale } = useI18n();
 
-const { tableHeight, fontSize, compactMode, confirmBeforeExport, highlightSearch, highlightColor } = useI18nSettings();
+const { tableHeight, fontSize, compactMode, confirmBeforeExport, highlightSearch, highlightColor, preserveSearch } = useI18nSettings();
+const { saveSearch, restoreSearch, clearModeSearches, hasModeSearches } = useI18nSearchPersistence();
 
-const selectedLang = ref(FILTER_DEFAULTS.lang);
-const selectedCategory = ref(FILTER_DEFAULTS.category);
-const selectedStatus = ref(FILTER_DEFAULTS.status);
-const searchQuery = ref('');
+// 🔥 ВОССТАНОВЛЕНИЕ из localStorage
+const selectedLang = ref(restoreSearch('simple', 'filters', 'lang', FILTER_DEFAULTS.lang));
+const selectedCategory = ref(restoreSearch('simple', 'filters', 'category', FILTER_DEFAULTS.category));
+const selectedStatus = ref(restoreSearch('simple', 'filters', 'status', FILTER_DEFAULTS.status));
+const searchQuery = ref(restoreSearch('simple', 'query', 'value', ''));
+
+// 🔥 СОХРАНЕНИЕ в localStorage
+watch(selectedLang, (newVal) => {
+  if (preserveSearch.value) saveSearch('simple', 'filters', 'lang', newVal);
+});
+
+watch(selectedCategory, (newVal) => {
+  if (preserveSearch.value) saveSearch('simple', 'filters', 'category', newVal);
+});
+
+watch(selectedStatus, (newVal) => {
+  if (preserveSearch.value) saveSearch('simple', 'filters', 'status', newVal);
+});
+
+watch(searchQuery, (newVal) => {
+  if (preserveSearch.value) saveSearch('simple', 'query', 'value', newVal);
+});
+
+// 🔥 Проверка наличия сохранённых запросов
+const hasSavedSimpleSearches = computed(() => hasModeSearches('simple'));
+
+// 🔥 Очистка всех сохранённых запросов режима
+const clearSimpleSearches = () => {
+  clearModeSearches('simple');
+  selectedLang.value = FILTER_DEFAULTS.lang;
+  selectedCategory.value = FILTER_DEFAULTS.category;
+  selectedStatus.value = FILTER_DEFAULTS.status;
+  searchQuery.value = '';
+  ElMessage.success(t('i18nChecker.savedSearchesCleared') || 'Сохранённые запросы очищены');
+};
 
 const results = ref({
   found: [],

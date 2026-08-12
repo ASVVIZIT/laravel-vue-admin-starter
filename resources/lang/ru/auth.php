@@ -1,19 +1,37 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Authentication Language Lines
     |--------------------------------------------------------------------------
-    |
-    | The following language lines are used during authentication for various
-    | messages that we need to display to the user. You are free to modify
-    | these language lines according to your application's requirements.
-    |
     */
 
-    'failed' => 'Эти учетные данные не соответствуют нашим записям.',
-    'throttle' => 'Слишком много попыток входа в систему. Пожалуйста, попробуйте еще раз в :seconds секунд.',
+    'failed' => 'Неверное имя пользователя или пароль.',
+    'password' => 'Неверный пароль.',
+    'throttle' => 'Слишком много попыток входа. Пожалуйста, попробуйте снова через :seconds секунд.',
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Verification Language Lines
+    |--------------------------------------------------------------------------
+    */
+
+    'verified' => 'Ваш адрес электронной почты успешно подтвержден!',
+    'verification_sent' => 'Новая ссылка для подтверждения отправлена на ваш адрес электронной почты.',
+
+    // 🔥 НОВЫЕ: Сообщения для перепроверки (Re-verification)
+    'reverification_sent' => 'Ссылка для повторного подтверждения актуальности email отправлена на вашу почту.',
+    'email_already_verified' => 'Ваш email уже подтвержден.',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Audit Log Titles & Content (Для LogEmailVerification.php)
+    |--------------------------------------------------------------------------
+    */
+    'log_email_verified_title' => 'Email подтвержден',
+    'log_email_verified_content' => 'Пользователь впервые подтвердил email: :email',
+
+    'log_email_reverified_title' => 'Email переподтвержден',
+    'log_email_reverified_content' => 'Пользователь подтвердил актуальность email: :email',
 ];

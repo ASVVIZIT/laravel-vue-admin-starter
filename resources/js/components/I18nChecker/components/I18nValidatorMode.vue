@@ -17,7 +17,6 @@
       <I18nStatsGrid :stats="validatorStats" />
 
       <el-collapse v-model="expandedSections" class="i18n-collapse">
-        <!-- 🔥 ДУБЛИКАТЫ -->
         <el-collapse-item v-if="report.duplicates && report.duplicates.length > 0" name="duplicates">
           <template #title>
             <div class="i18n-collapse-header i18n-collapse-header-danger">
@@ -43,12 +42,19 @@
                   v-model="searchInPathsDuplicates"
                   size="small"
                   class="i18n-search-toggle"
-                  :label="$t('i18nChecker.paths') || 'Пути'"
-              />
+              >
+                <I18nIcon name="folder" />
+              </el-checkbox>
             </el-tooltip>
 
             <div class="i18n-spacer" />
             <span class="i18n-search-count">{{ filteredDuplicates.length }} / {{ report.duplicates.length }}</span>
+
+            <el-tooltip v-if="hasSavedValidatorSearches" :content="$t('i18nChecker.clearSavedSearches') || 'Очистить сохранённые запросы'" placement="top">
+              <el-button size="small" text type="info" @click="clearValidatorSearches">
+                <I18nIcon name="delete" />
+              </el-button>
+            </el-tooltip>
           </div>
 
           <div class="i18n-table-wrapper">
@@ -79,7 +85,6 @@
           </div>
         </el-collapse-item>
 
-        <!-- 🔥 НЕПРАВИЛЬНЫЕ ПУТИ -->
         <el-collapse-item v-if="report.wrongPaths && report.wrongPaths.length > 0" name="wrongPaths">
           <template #title>
             <div class="i18n-collapse-header i18n-collapse-header-danger">
@@ -105,8 +110,9 @@
                   v-model="searchInPathsWrongPaths"
                   size="small"
                   class="i18n-search-toggle"
-                  :label="$t('i18nChecker.paths') || 'Пути'"
-              />
+              >
+                <I18nIcon name="folder" />
+              </el-checkbox>
             </el-tooltip>
 
             <div class="i18n-spacer" />
@@ -145,7 +151,6 @@
           </div>
         </el-collapse-item>
 
-        <!-- 🔥 ПЛОСКИЕ КЛЮЧИ (без переключателя - нет массивов) -->
         <el-collapse-item v-if="report.flatKeys && report.flatKeys.length > 0" name="flatKeys">
           <template #title>
             <div class="i18n-collapse-header i18n-collapse-header-warning">
@@ -194,18 +199,21 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { ElMessage } from 'element-plus';
 import I18nIcon from '@components/I18nChecker/components/shared/I18nIcon.vue';
 import I18nStatsGrid from '@components/I18nChecker/components/shared/I18nStatsGrid.vue';
 import { VALIDATOR_STATS_CONFIG } from '@components/I18nChecker/config/validatorStatsConfig.js';
 import { VALIDATOR_SECTIONS } from '@components/I18nChecker/config/sectionsConfig.js';
 import { useI18nSettings } from '@components/I18nChecker/composables/useI18nSettings.js';
+import { useI18nSearchPersistence } from '@components/I18nChecker/composables/useI18nSearchPersistence.js';
 import { highlightText } from '@components/I18nChecker/utils/highlightUtils.js';
 
 const { t } = useI18n();
 
-const { tableHeight, fontSize, compactMode, maxFlatKeys, highlightSearch, highlightColor } = useI18nSettings();
+const { tableHeight, fontSize, compactMode, maxFlatKeys, highlightSearch, highlightColor, preserveSearch } = useI18nSettings();
+const { saveSearch, restoreSearch, restoreBoolean, clearModeSearches, hasModeSearches } = useI18nSearchPersistence();
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -217,16 +225,46 @@ defineEmits(['validate']);
 
 const expandedSections = ref([...VALIDATOR_SECTIONS]);
 
-// 🔥 ОТДЕЛЬНЫЕ переменные для каждой секции
-const duplicatesSearch = ref('');
-const searchInPathsDuplicates = ref(false);
+const duplicatesSearch = ref(restoreSearch('validator', 'duplicates', 'query', ''));
+const searchInPathsDuplicates = ref(restoreBoolean('validator', 'duplicates', 'inPaths', false));
 
-const wrongPathsSearch = ref('');
-const searchInPathsWrongPaths = ref(false);
+const wrongPathsSearch = ref(restoreSearch('validator', 'wrongPaths', 'query', ''));
+const searchInPathsWrongPaths = ref(restoreBoolean('validator', 'wrongPaths', 'inPaths', false));
 
-const flatKeysSearch = ref('');
+const flatKeysSearch = ref(restoreSearch('validator', 'flatKeys', 'query', ''));
 
-// 🔥 Фильтрация с учётом поиска по путям
+watch(duplicatesSearch, (newVal) => {
+  if (preserveSearch.value) saveSearch('validator', 'duplicates', 'query', newVal);
+});
+
+watch(searchInPathsDuplicates, (newVal) => {
+  if (preserveSearch.value) saveSearch('validator', 'duplicates', 'inPaths', newVal);
+});
+
+watch(wrongPathsSearch, (newVal) => {
+  if (preserveSearch.value) saveSearch('validator', 'wrongPaths', 'query', newVal);
+});
+
+watch(searchInPathsWrongPaths, (newVal) => {
+  if (preserveSearch.value) saveSearch('validator', 'wrongPaths', 'inPaths', newVal);
+});
+
+watch(flatKeysSearch, (newVal) => {
+  if (preserveSearch.value) saveSearch('validator', 'flatKeys', 'query', newVal);
+});
+
+const hasSavedValidatorSearches = computed(() => hasModeSearches('validator'));
+
+const clearValidatorSearches = () => {
+  clearModeSearches('validator');
+  duplicatesSearch.value = '';
+  searchInPathsDuplicates.value = false;
+  wrongPathsSearch.value = '';
+  searchInPathsWrongPaths.value = false;
+  flatKeysSearch.value = '';
+  ElMessage.success(t('i18nChecker.savedSearchesCleared') || 'Сохранённые запросы очищены');
+};
+
 const filteredDuplicates = computed(() => {
   if (!props.report?.duplicates) return [];
   if (!duplicatesSearch.value.trim()) return props.report.duplicates;
@@ -236,7 +274,7 @@ const filteredDuplicates = computed(() => {
   if (searchInPathsDuplicates.value) {
     return props.report.duplicates.filter(item =>
         item.key.toLowerCase().includes(query) ||
-        item.paths.some(path => path.toLowerCase().includes(query))
+        (item.paths || []).some(path => path.toLowerCase().includes(query))
     );
   } else {
     return props.report.duplicates.filter(item =>
@@ -296,12 +334,14 @@ const validatorStats = computed(() => {
 
 .i18n-search-panel { display: flex; align-items: center; gap: 4px; padding: 4px; background: #fafafa; border: 1px solid #ebeef5; border-radius: 3px; margin: 4px 0; .i18n-search-input { width: 200px; } .i18n-spacer { flex: 1; } .i18n-search-count { font-size: 9px; color: #909399; padding: 0 4px; white-space: nowrap; } }
 
-/* 🔥 Стили для переключателя */
 .i18n-search-toggle {
   margin-left: 4px;
   :deep(.el-checkbox__label) {
     font-size: 10px;
     color: #606266;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
   }
 }
 

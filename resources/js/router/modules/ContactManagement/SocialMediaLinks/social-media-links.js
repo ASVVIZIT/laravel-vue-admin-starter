@@ -9,7 +9,7 @@ export default [
             title: 'Соцсети для отзывов',
             description: 'Управление соцсети для отзывов',
             elSvgIcon: 'Connection',
-            permissions: ['manage_social_media_links'],
+            permissions: ['manage social media links'],
         },
         children: [
             {
@@ -20,7 +20,7 @@ export default [
                     title: 'Управление qr-code (ссылки)',
                     description: 'Управление соцсети для отзывов',
                     elSvgIcon: 'Operation',
-                    permissions: ['manage_social_media_links'],
+                    permissions: ['manage social media links'],
                 }
             },
             {
