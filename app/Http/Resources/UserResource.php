@@ -16,7 +16,7 @@ class UserResource extends JsonResource
 
         // Хелперы для проверки типа права (строго соответствуют логике во фронтенде)
         $isView = fn($name) => str_starts_with($name, 'view ');
-        $isManage = fn($name) => str_starts_with($name, 'manage ') || in_array($name, ['share training', 'create training log']);
+        $isManage = fn($name) => str_starts_with($name, 'manage ') || in_array($name, ['share training', 'create training log', 'confirm user email']);
 
         // 1. Подсчёт прав, унаследованных от роли
         $roleViewCount = $rolePerms->filter(fn($p) => $isView($p['name']))->count();

@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Lock, EditPen } from '@element-plus/icons-vue'
@@ -243,13 +243,16 @@ const permissionProps = {
 // Проверка: является ли пользователь админом (readonly режим)
 const isReadonly = computed(() => {
   if (!localUser.value?.roles) return false
-  // Если у пользователя роль superadmin или admin, включаем режим просмотра
   return ['superadmin', 'admin'].some(role => localUser.value.roles.includes(role))
 })
 
-// Вспомогательные функции
 const isView = (name) => name?.startsWith('view ')
-const isManage = (name) => name?.startsWith('manage ') || name === 'share training' || name === 'create training log'
+
+const isManage = (name) =>
+    name?.startsWith('manage ') ||
+    name === 'share training' ||
+    name === 'create training log' ||
+    name === 'confirm user email'
 
 // 1. Права роли - Просмотр
 const roleViewPermissions = computed(() => {
@@ -387,9 +390,9 @@ const handleConfirm = async () => {
     const currentManageKeys = userManageTreeRef.value?.getCheckedKeys(false) || []
     const allUserPermissions = [...currentViewKeys, ...currentManageKeys]
 
-    await userResource.updatePermission(localUser.value.id, {
-      permissions: allUserPermissions
-    })
+    // 🔥 ИСПРАВЛЕНО: передаём плоский массив ID, без обёртки { permissions: ... }
+    // Метод updatePermission в user.js уже сам оборачивает данные при отправке
+    await userResource.updatePermission(localUser.value.id, allUserPermissions)
 
     ElMessage.success(t('permission.table.elMessage.update.success.message'))
     resetDialog()
@@ -530,7 +533,6 @@ const handleConfirm = async () => {
       }
     }
 
-    // Компактный тег-счётчик
     .count-tag {
       font-weight: 600;
       font-size: 11px;

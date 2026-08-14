@@ -2,7 +2,6 @@
   <el-card class="app-container">
     <h2>{{ $t('users.listTitle') }}</h2>
 
-    <!-- 1. Фильтры -->
     <UserFilters
         v-model="filters"
         :roles="roles"
@@ -15,7 +14,6 @@
         @role-change="handleSingleRoleSelect"
     />
 
-    <!-- 2. Таблица -->
     <custom-table
         :size="store.size"
         :table-data="tableData"
@@ -61,13 +59,11 @@
         </el-tag>
       </template>
 
-      <!-- 3. Действия таблицы -->
       <template #table_options="{ row }">
         <UserTableActions :row="row" :size="store.size" @action="tableActions" />
       </template>
     </custom-table>
 
-    <!-- 4. Диалоги -->
     <UserCreateDialog
         v-model="dialogFormVisible"
         :size="store.size"
@@ -84,7 +80,6 @@
         @success="getList"
     />
 
-    <!-- 🔥 5. Модалка административного подтверждения email -->
     <el-dialog
         v-model="adminConfirmDialog.visible"
         :title="adminConfirmDialog.title"
@@ -117,25 +112,22 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Filter } from '@element-plus/icons-vue'
 
-// Utils
 import { getUserActionType, getStatusTagType, getStatusLabel, getRoleColor, isAdmin } from '@/utils/userStatus'
 import { classifyPermissions } from '@/utils/permissionTree'
 import { calculateTableHeight } from '@/utils/tableHeight'
 
-// Components
 import CustomTable from '@/components/CustomTable.vue'
 import UserFilters from './components/UserFilters.vue'
 import UserTableActions from './components/UserTableActions.vue'
 import UserCreateDialog from './components/UserCreateDialog.vue'
 import UserPermissionsDialog from './components/UserPermissionsDialog.vue'
 
-// API & Store
 import UserResource from '@/api/user'
 import Resource from '@/api/resource'
 import { appStore } from '@/store/appStore'
@@ -147,23 +139,81 @@ const userResource = new UserResource()
 const permissionResource = new Resource('permissions')
 const store = appStore()
 
-// State
+// ============================================================================
+// УПРАВЛЕНИЕ СОСТОЯНИЕМ ФИЛЬТРОВ (LocalStorage)
+// ============================================================================
+const STORAGE_KEY = 'users-table-filters'
+
+const saveFiltersToStorage = (filtersData) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtersData))
+  } catch (e) {
+    console.warn('Failed to save filters:', e)
+  }
+}
+
+const loadFiltersFromStorage = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY)
+    return stored ? JSON.parse(stored) : null
+  } catch (e) {
+    console.warn('Failed to load filters:', e)
+    return null
+  }
+}
+
+const defaultFilters = { search: '', roles: [], singleRole: '', status: 'all' }
+const defaultPagination = { current_page: 1, per_page: 20 }
+
+const storedFilters = loadFiltersFromStorage() || {}
+
+// Безопасная инициализация: гарантируем наличие всех ключей
+const filters = ref({
+  search: storedFilters.search ?? defaultFilters.search,
+  roles: Array.isArray(storedFilters.roles) ? storedFilters.roles : defaultFilters.roles,
+  singleRole: storedFilters.singleRole ?? defaultFilters.singleRole,
+  status: storedFilters.status ?? defaultFilters.status
+})
+
+const pagination = reactive({
+  current_page: Number(storedFilters.current_page) || defaultPagination.current_page,
+  per_page: Number(storedFilters.per_page) || defaultPagination.per_page,
+  total: 0,
+  last_page: 1
+})
+
+// Явное сохранение только нужных полей, чтобы избежать "мусора" или пропажи ключей
+watch(
+    () => ({
+      search: filters.value.search,
+      roles: filters.value.roles,
+      singleRole: filters.value.singleRole,
+      status: filters.value.status,
+      current_page: pagination.current_page,
+      per_page: pagination.per_page
+    }),
+    (newVal) => {
+      saveFiltersToStorage(newVal)
+    },
+    { deep: true }
+)
+
+// ============================================================================
+// ОСНОВНАЯ ЛОГИКА
+// ============================================================================
 const loading = ref(true)
 const tableData = ref([])
 const dialogFormVisible = ref(false)
 const dialogPermissionVisible = ref(false)
 const currentUser = ref({ id: 0, name: '', permissions: { role: [], user: [] } })
-const filters = ref({ search: '', roles: [], singleRole: '', status: 'all' })
-const pagination = reactive({ current_page: 1, per_page: 20, total: 0, last_page: 1 })
 const permissions = ref([])
 const tableHeight = ref('calc(100vh - 300px)')
 
-// 🔥 State для админского подтверждения
 const adminConfirmDialog = reactive({
   visible: false,
   loading: false,
   title: '',
-  actionType: '', // 'admin-confirm-old' или 'admin-confirm-new'
+  actionType: '',
   user: null,
   reason: ''
 })
@@ -171,7 +221,14 @@ const adminConfirmDialog = reactive({
 const roles = ['superadmin', 'admin', 'manager', 'editor', 'user', 'visitor']
 const per_pages = [5, 10, 30, 50, 100, 150, 200]
 
-// Table Config
+// Объединяем singleRole и roles в один массив для отправки на бэкенд
+const allSelectedRoles = computed(() => {
+  const r = []
+  if (filters.value.singleRole) r.push(filters.value.singleRole)
+  r.push(...(filters.value.roles || []))
+  return [...new Set(r)]
+})
+
 const tableOption = computed(() => {
   if (!checkPermission(['manage user'])) return {}
   return {
@@ -198,24 +255,18 @@ const basicColumn = computed(() => [
   },
 ])
 
-const allSelectedRoles = computed(() => {
-  const r = []
-  if (filters.value.singleRole) r.push(filters.value.singleRole)
-  r.push(...filters.value.roles)
-  return [...new Set(r)]
-})
-
-// Methods
 const getList = async () => {
   loading.value = true
   try {
+    // Формируем параметры строго в том виде, который ожидает UserController@index
     const params = {
       search: filters.value.search || null,
-      role: allSelectedRoles.value.length > 0 ? allSelectedRoles.value : null,
+      role: allSelectedRoles.value.length > 0 ? allSelectedRoles.value : null, // Бэкенд ждет именно 'role' (array)
       status: filters.value.status || 'all',
       page: pagination.current_page,
       per_page: pagination.per_page
     }
+
     const response = await userResource.list(params)
     tableData.value = response.items || []
     pagination.total = response.meta.total
@@ -232,13 +283,22 @@ const getList = async () => {
 const handleFilter = () => { pagination.current_page = 1; getList() }
 const handleStatusChange = () => { pagination.current_page = 1; getList() }
 const handleSingleRoleSelect = () => { pagination.current_page = 1; getList() }
+
 const resetFilters = () => {
-  filters.value = { search: '', roles: [], singleRole: '', status: 'all' }
-  pagination.current_page = 1
+  filters.value = { ...defaultFilters }
+  pagination.current_page = defaultPagination.current_page
+  pagination.per_page = defaultPagination.per_page
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch (e) {
+    console.warn('Failed to clear filters:', e)
+  }
   getList()
 }
+
 const handleSizeChange = (size) => { pagination.per_page = size; pagination.current_page = 1; getList() }
 const handlePageChange = (page) => { pagination.current_page = page; getList() }
+
 const handleTableFilter = (columnFilters) => {
   if (columnFilters.roles) {
     filters.value.roles = columnFilters.roles
@@ -246,6 +306,7 @@ const handleTableFilter = (columnFilters) => {
   }
   getList()
 }
+
 const handleCreate = () => { dialogFormVisible.value = true }
 
 const openFilter = (column) => {
@@ -254,7 +315,6 @@ const openFilter = (column) => {
   if (popper) popper.style.display = popper.style.display === 'none' ? 'block' : 'none'
 }
 
-// Actions Router / API calls
 const tableActions = async (action, row) => {
   switch (action) {
     case 'edit-item': router.push(`/administrator/users/edit/${row.id}`); break
@@ -264,7 +324,6 @@ const tableActions = async (action, row) => {
     case 'unban-item': await handleUnbanUser(row); break
     case 'restore-item': await handleRestoreUser(row); break
     case 'edit-permission-item': await handleEditPermissions(row); break
-      // 🔥 Новые действия для админского подтверждения
     case 'admin-confirm-old':
       openAdminConfirmDialog('admin-confirm-old', row, t('users.actions.adminConfirmOld'))
       break
@@ -331,7 +390,6 @@ const getPermissions = async () => {
   }
 }
 
-// 🔥 Методы для админского подтверждения
 const openAdminConfirmDialog = (actionType, row, title) => {
   adminConfirmDialog.actionType = actionType
   adminConfirmDialog.user = row
@@ -350,7 +408,7 @@ const executeAdminConfirm = async () => {
     }
     ElMessage.success(t('users.messages.adminConfirmSuccess') || 'Действие успешно выполнено')
     adminConfirmDialog.visible = false
-    getList() // Обновляем таблицу
+    getList()
   } catch (error) {
     ElMessage.error(error.response?.data?.message || t('users.messages.adminConfirmError') || 'Ошибка при выполнении действия')
   } finally {
@@ -358,7 +416,6 @@ const executeAdminConfirm = async () => {
   }
 }
 
-// Lifecycle
 const updateHeight = () => { tableHeight.value = calculateTableHeight(300, 60) }
 
 onMounted(async () => {
