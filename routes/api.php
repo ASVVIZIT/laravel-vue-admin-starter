@@ -115,13 +115,14 @@ Route::match(['get', 'post'], '/auth/verify-email/{id}/{hash}', [AuthController:
 // 3. ПОЛЬЗОВАТЕЛИ (Users)
 // ============================================================================
 
-// 3.1. ПУБЛИЧНЫЕ: Подтверждение email по ссылке из письма (БЕЗ auth:sanctum!)
+// 3.1. ПУБЛИЧНЫЕ: Подтверждение смены email (БЕЗ auth:sanctum, БЕЗ user_id)
+// Токен самодостаточен — ищем пользователя через User::where('pending_email_token', $token)
 Route::prefix('users')->group(function () {
-    Route::get('/{user}/confirm-old-email/{token}', [UserController::class, 'confirmOldEmail']);
-    Route::get('/{user}/confirm-new-email/{token}', [UserController::class, 'confirmNewEmail']);
+    Route::get('/confirm-old-email/{token}', [UserController::class, 'confirmOldEmail']);
+    Route::get('/confirm-new-email/{token}', [UserController::class, 'confirmNewEmail']);
 });
 
-// 3.2. ЗАЩИЩЕННЫЕ: Действия пользователя со своим аккаунтом (или админ за него)
+// 3.2. ЗАЩИЩЕННЫЕ: Действия пользователя со своим аккаунтом
 Route::prefix('users')->middleware('auth:sanctum')->group(function () {
     Route::post('/{user}/request-email-change', [UserController::class, 'requestEmailChange']);
     Route::post('/{user}/reverify-email', [UserController::class, 'requestEmailReverification']);
@@ -132,18 +133,21 @@ Route::prefix('users')->middleware(['auth:sanctum', 'permission:' . Acl::PERMISS
     Route::get('/', [UserController::class, 'index']);
     Route::post('/', [UserController::class, 'store']);
     Route::get('/{id}', [UserController::class, 'show']);
-    Route::put('/{user}', [UserController::class, 'update']);
-    Route::delete('/{user}', [UserController::class, 'destroy']);
-    Route::post('/{id}/restore', [UserController::class, 'restore']);
-    Route::post('/{user}/ban', [UserController::class, 'ban']);
-    Route::post('/{user}/unban', [UserController::class, 'unban']);
-    Route::get('/{user}/permissions', [UserController::class, 'permissions']);
-    Route::put('/{user}/permissions', [UserController::class, 'updatePermissions']);
-    Route::get('/{user}/logs', [LogController::class, 'index']);
 
-    // 🔥 Администраторское подтверждение смены email
-    Route::post('/{user}/admin-confirm-old-email', [UserController::class, 'adminConfirmOldEmail']);
-    Route::post('/{user}/admin-confirm-new-email', [UserController::class, 'adminConfirmNewEmail']);
+    // {user} → {id} для работы с soft-deleted
+    Route::put('/{id}', [UserController::class, 'update']);
+    Route::delete('/{id}', [UserController::class, 'destroy']);
+    Route::post('/{id}/restore', [UserController::class, 'restore']);
+    Route::post('/{id}/ban', [UserController::class, 'ban']);
+    Route::post('/{id}/unban', [UserController::class, 'unban']);
+    Route::get('/{id}/permissions', [UserController::class, 'permissions']);
+    Route::put('/{id}/permissions', [UserController::class, 'updatePermissions']);
+    Route::get('/{id}/logs', [LogController::class, 'index']);
+
+    // Администраторское подтверждение смены email
+    Route::post('/{id}/admin-confirm-old-email', [UserController::class, 'adminConfirmOldEmail']);
+    Route::post('/{id}/admin-confirm-new-email', [UserController::class, 'adminConfirmNewEmail']);
+    Route::post('/{id}/resend-new-email-confirmation', [UserController::class, 'resendNewEmailConfirmation']);
 });
 
 

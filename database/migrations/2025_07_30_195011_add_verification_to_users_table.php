@@ -19,7 +19,7 @@ return new class extends Migration
                 $table->timestamp('email_reverified_at')->nullable()->after('email_verified_at');
             }
 
-            // 3. 🔥 НОВОЕ: Поля для смены email
+            // 3. Поля для смены email
             if (!Schema::hasColumn('users', 'pending_new_email')) {
                 $table->string('pending_new_email')->nullable()->after('email_reverified_at');
             }
@@ -32,12 +32,28 @@ return new class extends Migration
             if (!Schema::hasColumn('users', 'old_email_confirmed')) {
                 $table->boolean('old_email_confirmed')->default(false)->after('pending_email_expires_at');
             }
+
+            // 4. НОВОЕ: Способ подтверждения каждого шага ('email' | 'admin' | null)
+            //    Нужно для звёзд в таблице/профиле: зелёная = реально (письмо), синяя = системно (админ)
+            if (!Schema::hasColumn('users', 'old_email_confirm_method')) {
+                $table->string('old_email_confirm_method', 10)->nullable()->after('old_email_confirmed');
+            }
+            if (!Schema::hasColumn('users', 'new_email_confirm_method')) {
+                $table->string('new_email_confirm_method', 10)->nullable()->after('old_email_confirm_method');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
+            // Откат в обратном порядке создания
+            if (Schema::hasColumn('users', 'new_email_confirm_method')) {
+                $table->dropColumn('new_email_confirm_method');
+            }
+            if (Schema::hasColumn('users', 'old_email_confirm_method')) {
+                $table->dropColumn('old_email_confirm_method');
+            }
             if (Schema::hasColumn('users', 'old_email_confirmed')) {
                 $table->dropColumn('old_email_confirmed');
             }

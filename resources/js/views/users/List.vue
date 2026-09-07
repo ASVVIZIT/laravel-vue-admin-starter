@@ -41,9 +41,15 @@
       </template>
 
       <template #status_type="{ row }">
-        <el-tag :type="getStatusTagType(getUserActionType(row))" effect="dark" :size="store.size">
-          {{ getStatusLabel(getUserActionType(row)) }}
-        </el-tag>
+        <div class="status-cell">
+          <EmailVerifyStars
+              v-if="checkPermission(['confirm user email'])"
+              :user="row"
+          />
+          <el-tag :type="getStatusTagType(getUserActionType(row))" effect="dark" :size="store.size">
+            {{ getStatusLabel(getUserActionType(row)) }}
+          </el-tag>
+        </div>
       </template>
 
       <template #roles="{ row }">
@@ -127,6 +133,7 @@ import UserFilters from './components/UserFilters.vue'
 import UserTableActions from './components/UserTableActions.vue'
 import UserCreateDialog from './components/UserCreateDialog.vue'
 import UserPermissionsDialog from './components/UserPermissionsDialog.vue'
+import EmailVerifyStars from './components/EmailVerifyStars.vue'
 
 import UserResource from '@/api/user'
 import Resource from '@/api/resource'
@@ -245,7 +252,7 @@ const basicColumn = computed(() => [
   { prop: 'id', label: t('table.user.columns.id'), width: '65', resizable: false, sortable: true, fixed: true },
   { prop: 'name', label: t('table.user.columns.name'), width: '130', sortable: true, fixed: true },
   { prop: 'email', label: t('table.user.columns.email'), sortable: true },
-  { prop: 'status_type', label: t('users.status.label'), width: '120', slot: true },
+  { prop: 'status_type', label: t('users.status.label'), minWidth: '170', slot: true },
   {
     prop: 'roles', label: t('table.user.columns.role'), width: '110', slot: true, columnKey: 'roles',
     filters: roles.map(role => ({ text: role.toUpperCase(), value: role, style: { color: getRoleColor(role) } })),
@@ -329,6 +336,9 @@ const tableActions = async (action, row) => {
       break
     case 'admin-confirm-new':
       openAdminConfirmDialog('admin-confirm-new', row, t('users.actions.adminConfirmNew'))
+      break
+    case 'resend-new-email':
+      await handleResendNewEmail(row)
       break
   }
 }
@@ -416,6 +426,16 @@ const executeAdminConfirm = async () => {
   }
 }
 
+const handleResendNewEmail = async (user) => {
+  try {
+    const res = await userResource.resendNewEmailConfirmation(user.id)
+    ElMessage.success(res?.message || t('users.messages.resendNewEmailSuccess'))
+    getList()
+  } catch (error) {
+    ElMessage.error(error.response?.data?.message || t('users.messages.resendNewEmailError'))
+  }
+}
+
 const updateHeight = () => { tableHeight.value = calculateTableHeight(300, 60) }
 
 onMounted(async () => {
@@ -445,6 +465,14 @@ onUnmounted(() => {
     color: var(--el-color-primary);
   }
 }
+
+.status-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
 .el-tag {
   margin: 2px;
 }

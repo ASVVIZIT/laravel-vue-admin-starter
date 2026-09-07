@@ -22,9 +22,9 @@ class FastCompanyContactChannelSeeder extends Seeder
      * Настройки по умолчанию
      */
     protected const CHANNELS_PER_COMPANY = 7;
-    protected const BATCH_SIZE = 1000;
-    protected const COMPANY_CHUNK_SIZE = 100;
-    protected const PROGRESS_INTERVAL = 5000;
+    protected const BATCH_SIZE = 500;
+    protected const COMPANY_CHUNK_SIZE = 50;
+    protected const PROGRESS_INTERVAL = 1000;
 
     /**
      * Доступные типы каналов

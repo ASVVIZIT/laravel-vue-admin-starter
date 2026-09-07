@@ -11,7 +11,7 @@ const adminRoutes = {
     title: 'Administrator',
     description: 'Управление пользователями и правами доступа',
     bootstrapIcon: 'person-workspace',
-    permissions: ['view menu administrator'],
+    permissions: ['view menu administrator', 'manage user'],
   },
   children: [
     /** User managements */

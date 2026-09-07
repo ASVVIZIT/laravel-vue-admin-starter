@@ -6,6 +6,42 @@ class UserResource extends Resource {
     super('users');
   }
 
+  async list(params = {}) {
+    try {
+      console.log('[UserResource] Fetching users list:', params);
+      const response = await request({ url: `/${this.uri}`, method: 'get', params });
+      console.log('[UserResource] Users list fetched:', response);
+      return response;
+    } catch (error) {
+      console.error('[UserResource] Error fetching users list:', error);
+      throw error;
+    }
+  }
+
+  async update(id, data) {
+    try {
+      console.log(`[UserResource] Updating user ID: ${id}`, data);
+      const response = await request({ url: `/${this.uri}/${id}`, method: 'put', data });
+      console.log('[UserResource] User updated successfully:', response);
+      return response;
+    } catch (error) {
+      console.error(`[UserResource] Error updating user ID ${id}:`, error);
+      throw error;
+    }
+  }
+
+  async destroy(id) {
+    try {
+      console.log('[UserResource] Attempting to destroy user ID:', id);
+      const response = await request({ url: `/${this.uri}/${id}`, method: 'delete' });
+      console.log(`[UserResource] User ID ${id} destroyed successfully:`, response);
+      return response;
+    } catch (error) {
+      console.error(`[UserResource] Error destroying user ID ${id}:`, error);
+      throw error;
+    }
+  }
+
   async show(id) {
     try {
       console.log(`[UserResource] Fetching user ID:`, id);
@@ -118,6 +154,36 @@ class UserResource extends Resource {
     }
   }
 
+  async confirmOldEmail(token) {
+    try {
+      console.log(`[UserResource] Confirming old email with token`);
+      const response = await request({
+        url: `/${this.uri}/confirm-old-email/${token}`,
+        method: 'get'
+      });
+      console.log(`[UserResource] Old email confirmed:`, response);
+      return response;
+    } catch (error) {
+      console.error(`[UserResource] Error confirming old email:`, error);
+      throw error;
+    }
+  }
+
+  async confirmNewEmail(token) {
+    try {
+      console.log(`[UserResource] Confirming new email with token`);
+      const response = await request({
+        url: `/${this.uri}/confirm-new-email/${token}`,
+        method: 'get'
+      });
+      console.log(`[UserResource] New email confirmed:`, response);
+      return response;
+    } catch (error) {
+      console.error(`[UserResource] Error confirming new email:`, error);
+      throw error;
+    }
+  }
+
   async adminConfirmOldEmail(userId, reason = '') {
     try {
       const response = await request({
@@ -142,6 +208,21 @@ class UserResource extends Resource {
       return response;
     } catch (error) {
       console.error(`[UserResource] Error admin confirming new email:`, error);
+      throw error;
+    }
+  }
+
+  async resendNewEmailConfirmation(userId) {
+    try {
+      console.log(`[UserResource] Resending new-email confirmation for user ${userId}`);
+      const response = await request({
+        url: `/${this.uri}/${userId}/resend-new-email-confirmation`,
+        method: 'post'
+      });
+      console.log(`[UserResource] New-email confirmation resent:`, response);
+      return response;
+    } catch (error) {
+      console.error(`[UserResource] Error resending new-email confirmation:`, error);
       throw error;
     }
   }

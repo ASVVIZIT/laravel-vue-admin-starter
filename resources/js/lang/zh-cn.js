@@ -419,7 +419,8 @@ export default {
   "form": {
     "button": {
       "save": "保存",
-      "cancel": "取消"
+      "cancel": "取消",
+      "confirm": "确认"
     }
   },
   "accessory": {
@@ -781,7 +782,8 @@ export default {
       "adminQuickActions": "管理员操作",
       "adminQuickActionsHint": "跳过邮件发送直接确认邮箱更改",
       "confirmReason": "确认原因",
-      "confirmReasonPlaceholder": "例如：用户无法访问旧邮箱，已通过护照核实身份"
+      "confirmReasonPlaceholder": "例如：用户无法访问旧邮箱，已通过护照核实身份",
+      "resendNewEmail": "请求新邮箱验证"
     },
     "dialogs": {
       "banConfirm": "您确定要封禁用户 {name} 吗？",
@@ -797,15 +799,30 @@ export default {
       "restoreSuccess": "用户已恢复",
       "restoreError": "恢复失败",
       "adminConfirmSuccess": "操作成功完成",
-      "adminConfirmError": "操作执行失败"
+      "adminConfirmError": "操作执行失败",
+      "resendNewEmailSuccess": "确认邮件已发送到新邮箱",
+      "resendNewEmailError": "无法发送确认邮件"
     },
     "permissions": {
       "tooltip": {
-        "role_view": "Inherited from role — View",
-        "role_manage": "Inherited from role — Manage",
-        "user_view": "Additional — View",
-        "user_manage": "Additional — Manage",
+        "role_view": "继承自角色 — 查看",
+        "role_manage": "继承自角色 — 管理",
+        "user_view": "附加 — 查看",
+        "user_manage": "附加 — 管理"
       }
+    },
+    "verify": {
+      "label": "验证",
+      "oldReal": "第1步：旧邮箱已通过邮件验证",
+      "oldSystem": "第1步：旧邮箱由管理员验证（系统）",
+      "newReal": "第2步：新邮箱已通过邮件验证",
+      "newSystem": "第2步：新邮箱由管理员验证（系统）",
+      "notDone": "步骤未完成",
+      "step1Requested": "第1步：已请求更改邮箱，等待确认",
+      "step1Done": "第1步：邮箱更改请求已完成",
+      "step1NotRequested": "第1步：未请求更改邮箱",
+      "step2NotDone": "第2步：旧邮箱未验证",
+      "step3NotDone": "第3步：新邮箱未验证"
     }
   },
 

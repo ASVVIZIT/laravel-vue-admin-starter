@@ -46,6 +46,7 @@ class UserResource extends JsonResource
             'status_type' => $this->getStatusType(),
             'is_banned' => $this->isBanned(),
             'email_verified' => $this->hasVerifiedEmail(),
+            'email_verified_at' => $this->email_verified_at?->toISOString(),
             'email_reverified_at' => $this->email_reverified_at?->toISOString(),
             'deleted_at' => $this->deleted_at?->toISOString(),
             'banned_at' => $this->bannedAt(),
@@ -55,6 +56,10 @@ class UserResource extends JsonResource
             'pending_new_email' => $this->pending_new_email,
             'old_email_confirmed' => (bool) $this->old_email_confirmed,
 
+            // СПОСОБ подтверждения каждого шага: 'email' | 'admin' | null
+            'old_email_confirm_method' => $this->old_email_confirm_method,
+            'new_email_confirm_method' => $this->new_email_confirm_method,
+
             'roles' => $this->roles->pluck('name')->toArray(),
             'permissions' => $this->getAllPermissions()->pluck('name')->toArray(),
 
@@ -63,9 +68,9 @@ class UserResource extends JsonResource
                 'role_view' => $roleViewCount,
                 'role_manage' => $roleManageCount,
                 'user_view' => $userViewCount,
-                'total_user_view' => max(0, $totalViewAll - $roleViewCount), // Сколько всего view прав минус те, что уже дала роль
+                'total_user_view' => max(0, $totalViewAll - $roleViewCount),
                 'user_manage' => $userManageCount,
-                'total_user_manage' => max(0, $totalManageAll - $roleManageCount), // Сколько всего manage прав минус те, что уже дала роль
+                'total_user_manage' => max(0, $totalManageAll - $roleManageCount),
             ],
 
             // Оставляем старые счетчики для обратной совместимости (если вдруг используются в других местах)

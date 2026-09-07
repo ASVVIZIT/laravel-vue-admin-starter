@@ -25,7 +25,6 @@ class User extends Authenticatable implements MustVerifyEmail
         1 => 'Female'
     ];
 
-    // 🔥 КРИТИЧЕСКИ ВАЖНО: Добавлены поля для смены email, иначе $user->update() их игнорирует
     protected $fillable = [
         'name',
         'email',
@@ -40,6 +39,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'pending_email_token',
         'pending_email_expires_at',
         'old_email_confirmed',
+        'old_email_confirm_method',
+        'new_email_confirm_method',
     ];
 
     public $appends = ['age', 'sex_format', 'main_role'];
@@ -49,7 +50,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'updated_at'
     ];
 
-    // 🔥 КРИТИЧЕСКИ ВАЖНО: Добавлен кастинг для корректной работы с датами и булевыми значениями
     protected $casts = [
         'email_verified_at' => 'datetime',
         'deleted_at' => 'datetime',

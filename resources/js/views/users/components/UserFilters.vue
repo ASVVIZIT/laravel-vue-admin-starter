@@ -17,9 +17,9 @@
         :placeholder="$t('table.user.form.fields.role.title')"
         class="filter-item select-role-filter-item"
         :loading="loading"
-        @change="handleRoleChange"
         filterable
         clearable
+        @change="$emit('role-change', $event)"
     >
       <el-option
           v-for="item in roles"
@@ -36,7 +36,7 @@
         :placeholder="$t('users.status.label')"
         class="filter-item select-status-filter-item"
         clearable
-        @change="handleStatusChange"
+        @change="$emit('status-change', $event)"
     >
       <el-option :label="$t('users.status.all')" value="all" />
       <el-option :label="$t('users.status.active')" value="active" />
@@ -65,13 +65,7 @@ import { Search, Plus, Refresh } from '@element-plus/icons-vue'
 const props = defineProps({
   modelValue: {
     type: Object,
-    required: true,
-    default: () => ({
-      search: '',
-      roles: [],
-      singleRole: '',
-      status: 'all'
-    })
+    required: true
   },
   roles: {
     type: Array,
@@ -87,7 +81,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits([
+defineEmits([
   'update:modelValue',
   'search',
   'reset',
@@ -96,23 +90,10 @@ const emit = defineEmits([
   'role-change'
 ])
 
-// Вычисляемое свойство для двусторонней связи без watch
-const filters = computed({
-  get: () => props.modelValue,
-  set: (val) => emit('update:modelValue', val)
-})
+// Read-only computed: v-model по полям (filters.search и т.д.) пишет
+// напрямую в объект родителя, writable-ветка не нужна.
+const filters = computed(() => props.modelValue)
 
-// Обработчик изменения роли
-const handleRoleChange = (role) => {
-  emit('role-change', role)
-}
-
-// Обработчик изменения статуса
-const handleStatusChange = (status) => {
-  emit('status-change', status)
-}
-
-// Утилита для форматирования текста
 const uppercaseFirst = (str) => {
   if (!str) return ''
   return str.charAt(0).toUpperCase() + str.slice(1)
@@ -120,11 +101,17 @@ const uppercaseFirst = (str) => {
 </script>
 
 <style lang="scss" scoped>
+$filter-search-width: 220px;
+$filter-role-width: 130px;
+$filter-status-width: 150px;
+$filter-gap: 5px;
+$breakpoint-md: 1200px;
+
 .filter-container {
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 5px;
+  gap: $filter-gap;
   margin-bottom: 16px;
 
   .filter-item {
@@ -132,11 +119,11 @@ const uppercaseFirst = (str) => {
   }
 
   .search-filter-item {
-    width: 220px;
+    width: $filter-search-width;
   }
 
   .select-role-filter-item {
-    width: 130px;
+    width: $filter-role-width;
 
     &.is-disabled {
       opacity: 0.7;
@@ -145,11 +132,11 @@ const uppercaseFirst = (str) => {
   }
 
   .select-status-filter-item {
-    width: 150px;
+    width: $filter-status-width;
   }
 
   // Адаптивность для маленьких экранов
-  @media (max-width: 1200px) {
+  @media (max-width: $breakpoint-md) {
     flex-wrap: wrap;
 
     .search-filter-item,

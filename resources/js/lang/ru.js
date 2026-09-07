@@ -78,7 +78,53 @@ export default {
         "sending": "Отправка...",
         "verifying": "Проверяем...",
         "invalidVerificationLink": "Неверная ссылка подтверждения",
-        "verificationFailed": "Ошибка подтверждения"
+        "verificationFailed": "Ошибка подтверждения",
+
+        // 🔥 STANDALONE AUTH PAGES (email confirmation, restore, verify, reset)
+        "contactSupport": "Вопросы?",
+
+        "confirmEmail": {
+            "processingTitle": "Подтверждение...",
+            "processingMessage": "Пожалуйста, подождите, идёт проверка ссылки...",
+            "successTitle": "Email успешно подтверждён!",
+            "successMessage": "Ваш email подтверждён. Теперь вы можете войти в систему.",
+            "errorTitle": "Ошибка подтверждения",
+            "errorMessage": "Ссылка недействительна или срок её действия истёк."
+        },
+
+        "restoreAccount": {
+            "processingTitle": "Восстановление...",
+            "processingMessage": "Идёт восстановление вашего аккаунта...",
+            "successTitle": "Аккаунт восстановлен!",
+            "successMessage": "Ваш аккаунт успешно восстановлен. Теперь вы можете войти.",
+            "errorTitle": "Ошибка восстановления",
+            "errorMessage": "Ссылка недействительна или аккаунт не найден."
+        },
+
+        "emailVerify": {
+            "processingTitle": "Проверка email...",
+            "processingMessage": "Идёт подтверждение вашего адреса...",
+            "successTitle": "Email подтверждён!",
+            "successMessage": "Ваш email подтверждён. Теперь вы можете войти.",
+            "errorTitle": "Ошибка подтверждения",
+            "errorMessage": "Ссылка недействительна или срок её действия истёк."
+        },
+
+        "passwordResetByToken": {
+            "title": "Сброс пароля",
+            "formMessage": "Введите новый пароль для вашего аккаунта",
+            "processingTitle": "Сброс пароля...",
+            "processingMessage": "Сохраняем новый пароль...",
+            "successTitle": "Пароль сброшен!",
+            "successMessage": "Пароль успешно изменён. Теперь войдите с новым паролем.",
+            "errorTitle": "Ошибка сброса",
+            "errorMessage": "Ссылка недействительна или срок её действия истёк.",
+            "newPassword": "Новый пароль",
+            "newPasswordPlaceholder": "Минимум 6 символов",
+            "confirmPassword": "Подтвердите пароль",
+            "confirmPasswordPlaceholder": "Повторите пароль",
+            "submit": "Сбросить пароль"
+        }
     },
     "login": {
         "title": "Вход в личный кабинет",
@@ -361,6 +407,7 @@ export default {
             "about_me": "Обо мне",
             "education": "Образование",
             "skills": "Навыки",
+            "emailStatus": "Статус Email",
             "tabs": {
                 "timeline": "Timeline",
                 "account": "Аккаунт"
@@ -433,7 +480,8 @@ export default {
     "form": {
         "button": {
             "save": "Сохранить",
-            "cancel": "Отмена"
+            "cancel": "Отмена",
+            "confirm": "Подтвердить"
         }
     },
     "accessory": {
@@ -770,7 +818,6 @@ export default {
     "roles_description_admin": "Администратор системы",
     "roles_description_superadmin": "Суперадминистратор",
 
-    // 👥 ПОЛЬЗОВАТЕЛИ — управление статусами (ban/unban/restore)
     "users": {
         "listTitle": "Список пользователей",
         "viewTitle": "Просмотр пользователя",
@@ -798,7 +845,8 @@ export default {
             "adminQuickActions": "Действия администратора",
             "adminQuickActionsHint": "Подтвердить смену email в обход отправки писем",
             "confirmReason": "Причина подтверждения",
-            "confirmReasonPlaceholder": "Например: Пользователь потерял доступ к старой почте, личность подтверждена по паспорту"
+            "confirmReasonPlaceholder": "Например: Пользователь потерял доступ к старой почте, личность подтверждена по паспорту",
+            "resendNewEmail": "Запросить проверку новой почты"
         },
         "dialogs": {
             "banConfirm": "Вы уверены, что хотите забанить пользователя {name}?",
@@ -814,7 +862,9 @@ export default {
             "restoreSuccess": "Пользователь восстановлен",
             "restoreError": "Ошибка восстановления",
             "adminConfirmSuccess": "Действие успешно выполнено",
-            "adminConfirmError": "Ошибка при выполнении действия"
+            "adminConfirmError": "Ошибка при выполнении действия",
+            "resendNewEmailSuccess": "Письмо с подтверждением отправлено на новую почту",
+            "resendNewEmailError": "Не удалось отправить письмо подтверждения"
         },
         "permissions": {
             "tooltip": {
@@ -823,23 +873,32 @@ export default {
                 "user_view": "Дополнительные — Просмотр (view)",
                 "user_manage": "Дополнительные — Управление (manage)"
             }
+        },
+        "verify": {
+            "label": "Подтверждения",
+            "oldReal": "Шаг 1: старая почта подтверждена по письму",
+            "oldSystem": "Шаг 1: старая почта подтверждена админом (системно)",
+            "newReal": "Шаг 2: новая почта подтверждена по письму",
+            "newSystem": "Шаг 2: новая почта подтверждена админом (системно)",
+            "notDone": "Шаг не пройден",
+            "step1Requested": "Шаг 1: смена email запрошена, ожидается подтверждение",
+            "step1Done": "Шаг 1: запрос на смену email завершён",
+            "step1NotRequested": "Шаг 1: смена email не запрашивалась",
+            "step2NotDone": "Шаг 2: старая почта не подтверждена",
+            "step3NotDone": "Шаг 3: новая почта не подтверждена"
         }
     },
 
-    // 🔍 I18N CHECKER (Сканер переводов) — ПОЛНЫЙ БЛОК
     "i18nChecker": {
-        // === Основные ===
         "title": "Проверка переводов i18n",
         "subtitle": "Проверка и сканирование переводов",
 
-        // === Режимы ===
         "simpleMode": "Простая проверка",
         "simpleDesc": "Проверка известного списка ключей",
         "scannerMode": "Сканер кода",
         "scannerDesc": "Автоматический поиск всех ключей",
         "validatorMode": "Проверка путей",
 
-        // === Сканер ===
         "startScan": "Запустить сканер",
         "scanning": "Сканирование...",
         "scanComplete": "Сканирование завершено!",
@@ -848,13 +907,11 @@ export default {
         "scanHint": "Сканер найдёт все ключи в коде и сравнит с переводами",
         "keysInCode": "ключей в коде",
 
-        // === Validator ===
         "validating": "Проверка...",
         "startValidation": "Проверить пути",
         "validateHint": "Найдёт ключи с неправильной вложенностью",
         "validationComplete": "Проверка путей завершена!",
 
-        // === Статистика ===
         "totalKeys": "Всего",
         "coverage": "Покрытие",
         "usedInCode": "Исп.",
@@ -864,7 +921,6 @@ export default {
         "wrongPaths": "Неправильных путей",
         "flatKeys": "Плоских ключей",
 
-        // === Фильтры и поиск ===
         "searchKey": "Поиск по ключу...",
         "allFiles": "Все файлы",
         "allCategories": "Все категории",
@@ -875,7 +931,6 @@ export default {
         "refresh": "Обновить",
         "exportMissing": "Экспорт",
 
-        // === Таблица ===
         "colKey": "Ключ",
         "colCategory": "Категория",
         "colPriority": "Приоритет",
@@ -890,24 +945,20 @@ export default {
         "correctPath": "Правильный путь",
         "usedIn": "Используется в",
 
-        // === Приоритеты ===
         "priorityCritical": "КРИТ",
         "priorityNormal": "НОРМ",
         "priorityLow": "НИЗК",
 
-        // === Статусы ===
         "ok": "OK",
         "miss": "MISS",
         "notTranslated": "Не переведено",
 
-        // === Секции ===
         "missingIn": "Отсутствуют в",
         "unusedIn": "Не используются в",
         "duplicatesFound": "Найдены дубликаты",
         "wrongPathsFound": "Неправильные пути",
         "flatKeysFound": "Плоские ключи",
 
-        // === Копирование ===
         "copy": "Копировать",
         "copyFilteredKeys": "Отфильтрованные ключи",
         "copyAllKeys": "Все ключи",
@@ -916,7 +967,6 @@ export default {
         "copiedCount": "Скопировано",
         "copyFailed": "Не удалось скопировать",
 
-        // === Простой режим (Simple) === 🔥 НОВЫЕ
         "total": "Всего",
         "found": "Найдено",
         "missing": "Отсутствует",
@@ -924,7 +974,6 @@ export default {
         "from": "из",
         "entries": "записей",
 
-        // === Сообщения ===
         "noMissing": "Все ключи присутствуют!",
         "exported": "Экспортировано!",
         "copied": "Ключи скопированы!",
@@ -940,10 +989,7 @@ export default {
         "byCategory": "По категориям",
         "detailedResults": "Детальные результаты",
 
-        // === Настройки (Settings) ===
-        // 🔍 I18N CHECKER — Настройки (Settings)
         "settings": {
-            // === Общие ===
             "title": "Настройки модуля I18nChecker",
             "open": "Настройки",
             "cancel": "Отмена",
@@ -955,7 +1001,6 @@ export default {
             "resetDone": "Настройки сброшены",
             "saveFailed": "Не удалось сохранить настройки",
 
-            // === Meta (настройки формы) ===
             "meta": {
                 "toggle": "Настроить отображение формы",
                 "layout": "Расположение табов",
@@ -967,7 +1012,6 @@ export default {
                 "tabBehavior": "⚙️ Поведение"
             },
 
-            // === Icons (Иконки) ===
             "icons": {
                 "title": "Иконки",
                 "sourceTitle": "Источник иконок",
@@ -988,7 +1032,6 @@ export default {
                 "previewCount": "иконок"
             },
 
-            // === Display (Отображение) ===
             "display": {
                 "title": "Отображение",
                 "tablesTitle": "Таблицы",
@@ -1006,7 +1049,6 @@ export default {
                 "compactModeTip": "Уменьшает отступы и padding для более плотного отображения"
             },
 
-            // === Behavior (Поведение) ===
             "behavior": {
                 "title": "Поведение",
                 "autoRunTitle": "Автозапуск",
@@ -1033,7 +1075,6 @@ export default {
         }
     },
 
-    // 🌐 I18N VIEW (Страница i18n) — ПОЛНЫЙ БЛОК
     "i18nView": {
         "title": "Международный пример",
         "note": "Добавление и удаление языков смотрите в документации",
@@ -1053,7 +1094,6 @@ export default {
         "three": "三"
     },
 
-    // 💻 CONSOLE LOGS (Для отладки API запросов)
     "console": {
         "userResource": {
             "fetchPermissions": "Запрос прав доступа для пользователя ID:",

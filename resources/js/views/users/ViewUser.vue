@@ -49,6 +49,15 @@
         <el-descriptions-item :label="'Первичная проверка'">
           {{ user.email_verified_at ? dayjs(user.email_verified_at).format('DD.MM.YYYY HH:mm') : '-' }}
         </el-descriptions-item>
+
+        <!-- Звёзды способа подтверждения (email / admin) -->
+        <el-descriptions-item :label="t('users.verify.label') || 'Подтверждения'" :span="2">
+          <EmailVerifyStars :user="user" always />
+          <span v-if="!user.old_email_confirm_method && !user.new_email_confirm_method" class="verify-hint">
+            {{ t('users.verify.notDone') || 'Шаги не пройдены' }}
+          </span>
+        </el-descriptions-item>
+
         <el-descriptions-item :label="'Последняя перепроверка'">
           {{ user.email_reverified_at ? dayjs(user.email_reverified_at).format('DD.MM.YYYY HH:mm') : 'Не проводилась' }}
         </el-descriptions-item>
@@ -84,6 +93,8 @@ import UserResource from '@/api/user'
 import checkPermission from '@/utils/permission'
 import { appStore } from '@/store/appStore'
 import dayjs from 'dayjs'
+
+import EmailVerifyStars from './components/EmailVerifyStars.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
@@ -129,12 +140,6 @@ const loadUser = async () => {
     console.log('[ViewUser] Loading user:', userId)
 
     const response = await userResource.show(userId)
-    console.log('[ViewUser] Response:', response)
-
-    // Обработка разных форматов ответа
-    // Вариант 1: { data: { user: {...} } }
-    // Вариант 2: { user: {...} } (прямой ресурс)
-    // Вариант 3: { id: ..., name: ... } (сырой объект)
 
     if (response?.data?.user) {
       user.value = response.data.user
@@ -207,6 +212,14 @@ onMounted(() => {
   .role-tag {
     margin: 2px;
   }
+}
+
+// Стиль подсказки, когда шаги не пройдены
+.verify-hint {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-style: italic;
 }
 
 .action-buttons {

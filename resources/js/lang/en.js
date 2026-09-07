@@ -16,7 +16,6 @@ export default {
     "Page404": "404",
     "Administrator": "Administrator",
     "UserList": "Users",
-    "UserList": "Users",
     "UserProfile": "User Profile",
     "DynamicTable": "Dynamic table",
     "Guide": "Website Guide",
@@ -79,7 +78,53 @@ export default {
     "sending": "Sending...",
     "verifying": "Verifying...",
     "invalidVerificationLink": "Invalid verification link",
-    "verificationFailed": "Verification failed"
+    "verificationFailed": "Verification failed",
+
+    // 🔥 STANDALONE AUTH PAGES (email confirmation, restore, verify, reset)
+    "contactSupport": "Questions?",
+
+    "confirmEmail": {
+      "processingTitle": "Confirming...",
+      "processingMessage": "Please wait, verifying the link...",
+      "successTitle": "Email confirmed!",
+      "successMessage": "Your email is confirmed. You can now log in.",
+      "errorTitle": "Confirmation error",
+      "errorMessage": "The link is invalid or has expired."
+    },
+
+    "restoreAccount": {
+      "processingTitle": "Restoring...",
+      "processingMessage": "Restoring your account...",
+      "successTitle": "Account restored!",
+      "successMessage": "Your account has been restored. You can now log in.",
+      "errorTitle": "Restore error",
+      "errorMessage": "The link is invalid or the account was not found."
+    },
+
+    "emailVerify": {
+      "processingTitle": "Verifying email...",
+      "processingMessage": "Verifying your address...",
+      "successTitle": "Email verified!",
+      "successMessage": "Your email is verified. You can now log in.",
+      "errorTitle": "Verification error",
+      "errorMessage": "The link is invalid or has expired."
+    },
+
+    "passwordResetByToken": {
+      "title": "Reset Password",
+      "formMessage": "Enter a new password for your account",
+      "processingTitle": "Resetting...",
+      "processingMessage": "Saving new password...",
+      "successTitle": "Password reset!",
+      "successMessage": "Your password has been changed. Log in with the new password.",
+      "errorTitle": "Reset error",
+      "errorMessage": "The link is invalid or has expired.",
+      "newPassword": "New password",
+      "newPasswordPlaceholder": "At least 6 characters",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Repeat the password",
+      "submit": "Reset password"
+    }
   },
   "login": {
     "title": "Log in to your personal account",
@@ -180,7 +225,6 @@ export default {
     "actions": {
       "addRole": "Add Role Permission",
       "editPermission": "Edit Permissions",
-      "editPermissionForForm": "Edit permissions for form",
       "delete": "Delete",
       "confirm": "Confirm",
       "cancel": "Cancel"
@@ -281,12 +325,7 @@ export default {
         "fields": {
           "role": { "title": "Role", "placeholder": "Select a role" },
           "name": { "title": "Name", "placeholder": "Your name" },
-          "email": {
-            "title": "Email",
-            "placeholder": "Your email",
-            "changeHint": "Changing email requires verification via your current email address",
-            "systemEmail": "System email - verification not required"
-          },
+          "email": { "title": "Email", "placeholder": "Your email" },
           "password": { "title": "Password", "placeholder": "Enter password" },
           "confirmPassword": { "title": "Confirm Password", "placeholder": "Must not match name or email" },
           "sex": { "title": "Gender", "placeholder": "" },
@@ -398,7 +437,6 @@ export default {
         "successMessage": "Confirmation email sent to your current address",
         "errorMessage": "Error requesting email change",
         "cancelButton": "Cancel",
-        "confirmButton": "Confirm",
         "infoText": "A confirmation link will be sent to your current email",
         "sameAsCurrent": "New email must not be the same as current"
       }
@@ -426,7 +464,8 @@ export default {
   "form": {
     "button": {
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "confirm": "Confirm"
     }
   },
   "accessory": {
@@ -710,6 +749,9 @@ export default {
     "warning": "Warning",
     "submitting": "Saving...",
     "required": "Required field",
+    "verified": "Verified",
+    "unverified": "Unverified",
+    "never": "Never",
     "view404": {
       "buttons": {
         "back": "Back",
@@ -760,11 +802,10 @@ export default {
   "roles_description_admin": "System administrator",
   "roles_description_superadmin": "Super administrator",
 
-  // 👥 USERS — account status management (ban/unban/restore)
   "users": {
-    "listTitle": "User list",
+    "listTitle": "User List",
     "viewTitle": "View User",
-    "deletedAt": "Deleted at",
+    "deletedAt": "Deleted",
     "status": {
       "label": "Status",
       "all": "All",
@@ -782,54 +823,64 @@ export default {
       "view": "View",
       "permissions": "Permissions",
       "cannotEditAdmin": "Cannot edit",
-      "adminEditHint": "Profile is accessible, permissions are protected",
+      "adminEditHint": "Profile available, permissions protected",
       "adminConfirmOld": "Confirm old email",
       "adminConfirmNew": "Confirm new email",
-      "adminQuickActions": "Admin Actions",
-      "adminQuickActionsHint": "Confirm email change bypassing email delivery",
+      "adminQuickActions": "Admin actions",
+      "adminQuickActionsHint": "Confirm email change bypassing email sending",
       "confirmReason": "Confirmation reason",
-      "confirmReasonPlaceholder": "E.g., User lost access to old email, identity verified by passport"
+      "confirmReasonPlaceholder": "Example: User lost access to old email, identity verified by passport",
+      "resendNewEmail": "Request new email verification"
     },
     "dialogs": {
       "banConfirm": "Are you sure you want to ban user {name}?",
-      "banTitle": "Confirm ban",
+      "banTitle": "Ban Confirmation",
       "restoreConfirm": "Restore user {name}?",
-      "restoreTitle": "Confirm restore"
+      "restoreTitle": "Restore Confirmation"
     },
     "messages": {
-      "banSuccess": "User has been banned",
+      "banSuccess": "User banned",
       "banError": "Ban error",
-      "unbanSuccess": "User has been unbanned",
+      "unbanSuccess": "User unbanned",
       "unbanError": "Unban error",
-      "restoreSuccess": "User has been restored",
+      "restoreSuccess": "User restored",
       "restoreError": "Restore error",
       "adminConfirmSuccess": "Action completed successfully",
-      "adminConfirmError": "Action execution error"
+      "adminConfirmError": "Error performing action",
+      "resendNewEmailSuccess": "Confirmation email sent to new email",
+      "resendNewEmailError": "Failed to send confirmation email"
     },
     "permissions": {
       "tooltip": {
         "role_view": "Inherited from role — View",
         "role_manage": "Inherited from role — Manage",
         "user_view": "Additional — View",
-        "user_manage": "Additional — Manage",
+        "user_manage": "Additional — Manage"
       }
+    },
+    "verify": {
+      "label": "Verifications",
+      "oldReal": "Step 1: old email confirmed via letter",
+      "oldSystem": "Step 1: old email confirmed by admin (system)",
+      "newReal": "Step 2: new email confirmed via letter",
+      "newSystem": "Step 2: new email confirmed by admin (system)",
+      "notDone": "Step not completed",
+      "step1Requested": "Step 1: email change requested, awaiting confirmation",
+      "step1Done": "Step 1: email change request completed",
+      "step1NotRequested": "Step 1: email change not requested",
+      "step2NotDone": "Step 2: old email not confirmed",
+      "step3NotDone": "Step 3: new email not confirmed"
     }
   },
 
-  // 🔍 I18N CHECKER
   "i18nChecker": {
-    // === Basic ===
     "title": "i18n Translations Checker",
     "subtitle": "Check and scan translations",
-
-    // === Modes ===
     "simpleMode": "Simple Check",
     "simpleDesc": "Check known list of keys",
     "scannerMode": "Code Scanner",
     "scannerDesc": "Automatic search of all keys",
     "validatorMode": "Path Validation",
-
-    // === Scanner ===
     "startScan": "Start Scanner",
     "scanning": "Scanning...",
     "scanComplete": "Scan complete!",
@@ -837,14 +888,10 @@ export default {
     "scanError": "Scan error",
     "scanHint": "Scanner will find all keys in code and compare with translations",
     "keysInCode": "keys in code",
-
-    // === Validator ===
     "validating": "Validating...",
     "startValidation": "Validate Paths",
     "validateHint": "Finds keys with incorrect nesting",
     "validationComplete": "Path validation complete!",
-
-    // === Statistics ===
     "totalKeys": "Total",
     "coverage": "Coverage",
     "usedInCode": "Used",
@@ -853,8 +900,6 @@ export default {
     "duplicates": "Duplicates",
     "wrongPaths": "Wrong paths",
     "flatKeys": "Flat keys",
-
-    // === Filters & Search ===
     "searchKey": "Search by key...",
     "allFiles": "All files",
     "allCategories": "All categories",
@@ -864,8 +909,6 @@ export default {
     "search": "Search...",
     "refresh": "Refresh",
     "exportMissing": "Export",
-
-    // === Table ===
     "colKey": "Key",
     "colCategory": "Category",
     "colPriority": "Priority",
@@ -879,25 +922,17 @@ export default {
     "wrongPath": "Wrong path",
     "correctPath": "Correct path",
     "usedIn": "Used in",
-
-    // === Priorities ===
     "priorityCritical": "CRIT",
     "priorityNormal": "NORM",
     "priorityLow": "LOW",
-
-    // === Statuses ===
     "ok": "OK",
     "miss": "MISS",
     "notTranslated": "Not translated",
-
-    // === Sections ===
     "missingIn": "Missing in",
     "unusedIn": "Unused in",
     "duplicatesFound": "Duplicates found",
     "wrongPathsFound": "Wrong paths found",
     "flatKeysFound": "Flat keys found",
-
-    // === Copy ===
     "copy": "Copy",
     "copyFilteredKeys": "Filtered keys",
     "copyAllKeys": "All keys",
@@ -905,16 +940,12 @@ export default {
     "copyAllTemplate": "Translation template (all)",
     "copiedCount": "Copied",
     "copyFailed": "Failed to copy",
-
-    // === Simple Mode === 🔥 NEW
     "total": "Total",
     "found": "Found",
     "missing": "Missing",
     "showing": "Showing",
     "from": "of",
     "entries": "entries",
-
-    // === Messages ===
     "noMissing": "All keys present!",
     "exported": "Exported!",
     "copied": "Keys copied!",
@@ -922,17 +953,13 @@ export default {
     "noPathIssues": "No path issues!",
     "clickToScan": "Click \"Start Scanner\" to analyze translations",
     "clickToValidate": "Click \"Validate Paths\" to analyze structure",
-
     "language": "Language",
     "category": "Category",
     "status": "Status",
     "foundKeys": "Found keys",
     "byCategory": "By category",
     "detailedResults": "Detailed results",
-
-    // === Settings ===
     "settings": {
-      // === General ===
       "title": "I18nChecker Module Settings",
       "open": "Settings",
       "cancel": "Cancel",
@@ -943,8 +970,6 @@ export default {
       "saved": "Settings saved",
       "resetDone": "Settings reset",
       "saveFailed": "Failed to save settings",
-
-      // === Meta (form settings) ===
       "meta": {
         "toggle": "Configure form display",
         "layout": "Tabs layout",
@@ -955,8 +980,6 @@ export default {
         "tabDisplay": "📊 Display",
         "tabBehavior": "⚙️ Behavior"
       },
-
-      // === Icons ===
       "icons": {
         "title": "Icons",
         "sourceTitle": "Icon source",
@@ -976,8 +999,6 @@ export default {
         "previewTitle": "Icons preview",
         "previewCount": "icons"
       },
-
-      // === Display ===
       "display": {
         "title": "Display",
         "tablesTitle": "Tables",
@@ -994,8 +1015,6 @@ export default {
         "compactMode": "Compact mode",
         "compactModeTip": "Reduces margins and padding for denser display"
       },
-
-      // === Behavior ===
       "behavior": {
         "title": "Behavior",
         "autoRunTitle": "Auto-run",
@@ -1022,7 +1041,6 @@ export default {
     }
   },
 
-  // 🌐 I18N VIEW
   "i18nView": {
     "title": "International Example",
     "note": "See documentation for adding and removing languages",
@@ -1041,4 +1059,27 @@ export default {
     "two": "二",
     "three": "三"
   },
+
+  "console": {
+    "userResource": {
+      "fetchPermissions": "Fetching permissions for user ID:",
+      "fetchPermissionsSuccess": "Permissions fetched successfully:",
+      "fetchPermissionsError": "Error fetching permissions for user ID:",
+      "updatePermissions": "Updating permissions for user ID:",
+      "updatePermissionsSuccess": "Permissions updated successfully:",
+      "updatePermissionsError": "Error updating permissions for user ID:",
+      "banAttempt": "Attempting to ban user ID:",
+      "banSuccess": "User ID banned successfully:",
+      "banError": "Error banning user ID:",
+      "unbanAttempt": "Attempting to unban user ID:",
+      "unbanSuccess": "User ID unbanned successfully:",
+      "unbanError": "Error unbanning user ID:",
+      "restoreAttempt": "Attempting to restore user ID:",
+      "restoreSuccess": "User ID restored successfully:",
+      "restoreError": "Error restoring user ID:",
+      "reverifyRequest": "Requesting email re-verification",
+      "reverifySuccess": "Re-verification email requested successfully:",
+      "reverifyError": "Error requesting re-verification:"
+    }
+  }
 };

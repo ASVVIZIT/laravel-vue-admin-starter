@@ -68,7 +68,7 @@
             </div>
           </el-form-item>
 
-          <!-- 🔥 Блок статуса Email (только для не-системных email) -->
+          <!-- Блок статуса Email (только для не-системных email) -->
           <template v-if="!isSystemEmailComputed">
             <el-divider content-position="left" style="margin: 10px 0;">
               <el-icon><Message /></el-icon>
@@ -100,6 +100,14 @@
                 >
                   {{ t('user.profile.actions.request_reverify') || 'Запросить перепроверку' }}
                 </el-button>
+              </el-descriptions-item>
+
+              <!-- Звёзды способа подтверждения (email / admin) -->
+              <el-descriptions-item :label="t('users.verify.label') || 'Подтверждения'">
+                <EmailVerifyStars :user="user" always />
+                <span v-if="!user.old_email_confirm_method && !user.new_email_confirm_method" class="verify-hint">
+                  {{ t('users.verify.notDone') || 'Шаги не пройдены' }}
+                </span>
               </el-descriptions-item>
             </el-descriptions>
           </template>
@@ -147,7 +155,7 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 🔥 Подключение компонента смены email с передачей userId -->
+    <!-- Подключение компонента смены email с передачей userId -->
     <EmailChangeDialog
         v-model="showEmailChangeDialog"
         :user-id="user.id"
@@ -167,8 +175,11 @@ import { useI18n } from "vue-i18n"
 import { appStore } from '@/store/appStore'
 import { isSystemEmail } from '@/utils/emailConfig'
 
-// Импорт нового компонента
+// Импорт компонента смены email
 import EmailChangeDialog from './EmailChangeDialog.vue'
+
+// Импорт компонента звёзд подтверждения
+import EmailVerifyStars from './EmailVerifyStars.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 const store = appStore()
@@ -187,7 +198,10 @@ const props = defineProps({
       description: '',
       email_verified: false,
       email_verified_at: null,
-      email_reverified_at: null
+      email_reverified_at: null,
+      // Поля звёзд (отдаются из UserResource)
+      old_email_confirm_method: null,
+      new_email_confirm_method: null,
     }),
   },
 })
@@ -347,5 +361,13 @@ const { activeActivity, updating, timeLinesData, timeLinesPagination } = toRefs(
   .el-icon {
     color: var(--el-color-info);
   }
+}
+
+/* Стиль подсказки, когда шаги подтверждения не пройдены */
+.verify-hint {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  font-style: italic;
 }
 </style>

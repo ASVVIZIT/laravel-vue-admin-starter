@@ -3,10 +3,6 @@
 namespace Database\Seeders\Base;
 
 use Illuminate\Database\Seeder;
-use Database\Seeders\SocialMediaLinks\SocialMediaLinksSeeder;
-use Database\Seeders\Company\CompanySeeder;
-use Database\Seeders\CompanyContactChannels\CompanyContactChannelsSeeder;
-use Database\Seeders\Landing\LandingPageSeeder;
 
 class AdminBaseSeeder extends Seeder
 {
@@ -15,30 +11,30 @@ class AdminBaseSeeder extends Seeder
         $this->command->info('🚀 Запуск базового сидера...');
         $this->command->info('');
 
-        // ✅ 1. РОЛИ И РАЗРЕШЕНИЯ (включая Landing права)
-        $this->command->info('📋 Шаг 1/6: Роли и разрешения...');
+        // ✅ 1. РОЛИ И РАЗРЕШЕНИЯ
+        $this->command->info('📋 Шаг 1/9: Роли и разрешения...');
         $this->call(RolesAndPermissionsSeeder::class);
 
         // ✅ 2. ПОЛЬЗОВАТЕЛИ
-        $this->command->info('👤 Шаг 2/6: Пользователи...');
+        $this->command->info('👤 Шаг 2/9: Пользователи...');
         $this->call(UsersSeeder::class);
         $this->call(UsersTableSeeder::class);
 
         // ✅ 3. СОЦИАЛЬНЫЕ ССЫЛКИ
-        $this->command->info('🔗 Шаг 3/6: Социальные ссылки...');
-        $this->call(SocialMediaLinksSeeder::class);
+        $this->command->info('🔗 Шаг 3/9: Социальные ссылки...');
+        $this->call(\Database\Seeders\SocialMediaLinks\SocialMediaLinksSeeder::class);
 
         // ✅ 4. КОМПАНИИ И КАНАЛЫ
-        $this->command->info('🏢 Шаг 4/6: Компании и каналы...');
-        $this->call(CompanySeeder::class);
-        $this->call(CompanyContactChannelsSeeder::class);
+        $this->command->info('🏢 Шаг 4/9: Компании и каналы...');
+        $this->call(\Database\Seeders\Company\CompanySeeder::class);
+        $this->call(\Database\Seeders\CompanyContactChannels\CompanyContactChannelsSeeder::class);
 
-        // ✅ 5. 🔥 LANDING PAGES
-        $this->command->info('🎨 Шаг 5/6: Лендинги...');
-        $this->call(LandingPageSeeder::class);
+        // ✅ 5. LANDING PAGES
+        $this->command->info('🎨 Шаг 5/9: Лендинги...');
+        $this->call(\Database\Seeders\Landing\LandingPageSeeder::class);
 
-        // ✅ 6. ИНТЕРФЕЙС АДМИНКИ (меню + шаблоны)
-        $this->command->info('🖥️  Шаг 6/6: Интерфейс админки...');
+        // ✅ 6. ИНТЕРФЕЙС АДМИНКИ
+        $this->command->info('🖥️  Шаг 6/9: Интерфейс админки...');
         $this->call(\Database\Seeders\Interface\AdminMenuSeeder::class);
         $this->call(\Database\Seeders\Interface\Template\TemplateSeeder::class);
 

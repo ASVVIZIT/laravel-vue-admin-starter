@@ -1,6 +1,7 @@
 <template>
   <div class="user-table-actions">
     <el-button-group :size="size">
+      <!-- Админы (superadmin/admin) — только view + permissions, защищён от редактирования -->
       <template v-if="isAdmin(row.roles)">
         <el-tooltip :content="$t('users.actions.edit')" placement="top" v-if="checkPermission(['manage user edit'])">
           <el-button type="primary" :size="size" :round="true" @click="$emit('action', 'edit-item', row)">
@@ -16,6 +17,7 @@
       </template>
 
       <template v-else>
+        <!-- 🔴 Удалённые (trashed) -->
         <template v-if="getUserActionType(row) === 'trashed'">
           <el-tooltip :content="$t('users.actions.view')" placement="top">
             <el-button type="info" :size="size" :round="true" @click="$emit('action', 'view-item', row)">
@@ -30,6 +32,7 @@
           </el-tooltip>
         </template>
 
+        <!-- 🔴 Забаненные (banned) -->
         <template v-else-if="getUserActionType(row) === 'banned'">
           <el-tooltip :content="$t('users.actions.unban')" placement="top" v-if="checkPermission(['manage user'])">
             <el-button type="success" :size="size" :round="true" @click="$emit('action', 'unban-item', row)">
@@ -38,6 +41,28 @@
           </el-tooltip>
         </template>
 
+        <!-- 🟡 Не подтверждённые (unverified) — 🔥 НОВАЯ ВЕТКА P0-ФИКС -->
+        <template v-else-if="getUserActionType(row) === 'unverified'">
+          <el-tooltip :content="$t('users.actions.edit')" placement="top" v-if="checkPermission(['manage user edit'])">
+            <el-button type="primary" :size="size" :round="true" @click="$emit('action', 'edit-item', row)">
+              <el-icon><EditPen /></el-icon>
+            </el-button>
+          </el-tooltip>
+
+          <el-tooltip :content="$t('users.actions.delete')" placement="top" v-if="checkPermission(['manage user delete'])">
+            <el-button type="danger" :size="size" :round="false" @click="$emit('action', 'delete-item', row)">
+              <el-icon><Delete /></el-icon>
+            </el-button>
+          </el-tooltip>
+
+          <el-tooltip :content="$t('users.actions.ban')" placement="top" v-if="checkPermission(['manage user'])">
+            <el-button type="warning" :size="size" :round="true" @click="$emit('action', 'ban-item', row)">
+              <el-icon><Lock /></el-icon>
+            </el-button>
+          </el-tooltip>
+        </template>
+
+        <!-- 🟢 Активные (active) — стандартный набор -->
         <template v-else>
           <el-tooltip :content="$t('users.actions.edit')" placement="top" v-if="checkPermission(['manage user edit'])">
             <el-button type="primary" :size="size" :round="true" @click="$emit('action', 'edit-item', row)">
@@ -58,6 +83,7 @@
           </el-tooltip>
         </template>
 
+        <!-- Права доступа (permissions) — для всех не-админов -->
         <el-tooltip :content="$t('users.actions.permissions')" placement="top" v-if="checkPermission(['manage permission'])">
           <el-button type="permission" :size="size" :round="true" @click="$emit('action', 'edit-permission-item', row)">
             <el-icon><Finished /></el-icon>
@@ -65,6 +91,7 @@
         </el-tooltip>
       </template>
 
+      <!-- 🔥 Кнопки подтверждения email (админский поток смены email) -->
       <el-tooltip :content="$t('users.actions.adminConfirmOld')" placement="top" v-if="showEmailConfirm && !row.old_email_confirmed">
         <el-button type="warning" :size="size" :round="true" @click="$emit('action', 'admin-confirm-old', row)">
           <el-icon><Message /></el-icon>
@@ -76,8 +103,16 @@
           <el-icon><CircleCheck /></el-icon>
         </el-button>
       </el-tooltip>
+
+      <el-tooltip :content="$t('users.actions.resendNewEmail')" placement="top" v-if="showEmailConfirm && row.old_email_confirmed">
+        <el-button type="primary" plain :size="size" :round="true" class="resend-email-btn" @click="$emit('action', 'resend-new-email', row)">
+          <el-icon><Message /></el-icon>
+          <el-icon class="resend-indicator"><Promotion /></el-icon>
+        </el-button>
+      </el-tooltip>
     </el-button-group>
 
+    <!-- 📊 Сигнал статистики прав (тултип с деталями) -->
     <el-tooltip v-if="showStats" placement="top" effect="dark" popper-class="perm-stats-popper">
       <template #content>
         <div class="perm-stats-tooltip">
@@ -108,7 +143,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { EditPen, Delete, Lock, Unlock, View, RefreshRight, Finished, Message, CircleCheck } from '@element-plus/icons-vue'
+import { EditPen, Delete, Lock, Unlock, View, RefreshRight, Finished, Message, CircleCheck, Promotion } from '@element-plus/icons-vue'
 import { getUserActionType, isAdmin } from '@/utils/userStatus'
 import checkPermission from '@/utils/permission'
 
@@ -141,19 +176,37 @@ const statsBars = computed(() => {
   row-gap: 4px;
 }
 
+.resend-email-btn {
+  position: relative;
+
+  .resend-indicator {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    font-size: 9px;
+    color: #fff;
+    background: var(--el-color-primary);
+    border-radius: 50%;
+    padding: 2px;
+    box-shadow: 0 0 0 1px var(--el-fill-color-blank);
+  }
+}
+
 .stats-signal {
   display: inline-flex;
   align-items: flex-end;
   justify-content: center;
   gap: 2px;
-  height: 20px;
-  width: 26px;
-  padding: 3px 5px;
+  height: 16px;
+  width: 22px;
+  padding: 2px 4px;
+  margin: 2px 0;
   border: 1px solid var(--el-border-color);
   border-radius: 4px;
   background: var(--el-fill-color-light);
   cursor: help;
   flex-shrink: 0;
+  box-sizing: border-box;
   transition: all 0.2s ease;
 
   &:hover {
@@ -165,7 +218,7 @@ const statsBars = computed(() => {
   .bar {
     width: 3px;
     border-radius: 1px;
-    min-height: 3px;
+    min-height: 2px;
   }
 
   .bar-1 { background: #909399; }

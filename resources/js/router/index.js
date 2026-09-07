@@ -20,21 +20,21 @@ import landingRoutes from './modules/Landing/landingRouter.js';
 import i18nCheckerRoutes from './modules/i18nCheckerRoute.js';
 import contactManagementRoutes from './modules/ContactManagement/contact-management.js';
 
-// 🔥 ДИНАМИЧЕСКИЙ BASE PATH
+// 🔥 STANDALONE AUTH PAGES (без Layout, для ссылок из писем)
+import emailConfirmationRoutes from './modules/auth/emailConfirmation.js';
+import accountRestoreRoutes from './modules/auth/accountRestore.js';
+import emailVerificationRoutes from './modules/auth/emailVerification.js';
+import passwordResetRoutes from './modules/auth/passwordReset.js';
+
 const basePath = detectBasePath();
 const initialType = getTypeFromBase(basePath);
 
-console.log(`[Router] Base path: ${basePath}, type: ${initialType}`);
-
 export const constantRoutes = [
-  // 🔐 СТРАНИЦЫ ВХОДА — обёрнуты в AuthLayout
+  // 🔐 СТРАНИЦЫ ВХОДА (обёрнуты в AuthLayout)
   {
     path: '/auth',
     component: AuthLayout,
     children: [
-      // ====================================================================
-      // 🔐 СТРАНИЦЫ ВХОДА (с ModeSwitcher)
-      // ====================================================================
       {
         path: '/login',
         name: 'Login',
@@ -56,10 +56,6 @@ export const constantRoutes = [
         meta: { loginType: 'tester', requiresAuth: false, hideModeSwitcher: false },
         hidden: true,
       },
-
-      // ====================================================================
-      // 🔑 ВОССТАНОВЛЕНИЕ ПАРОЛЯ (без ModeSwitcher)
-      // ====================================================================
       {
         path: '/forgot-password',
         name: 'ForgotPassword',
@@ -68,38 +64,12 @@ export const constantRoutes = [
         hidden: true,
       },
       {
-        path: '/reset-password',
-        name: 'ResetPassword',
-        component: () => import('@/views/auth/ResetPassword.vue'),
-        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
-        hidden: true,
-      },
-
-      // ====================================================================
-      // 📝 РЕГИСТРАЦИЯ (без ModeSwitcher)
-      // ====================================================================
-      {
         path: '/register',
         name: 'Register',
         component: () => import('@/views/auth/Register.vue'),
         meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
         hidden: true,
       },
-
-      // ====================================================================
-      // ✉️ ПОДТВЕРЖДЕНИЕ EMAIL (без ModeSwitcher)
-      // ====================================================================
-      {
-        path: '/email-verify',
-        name: 'EmailVerification',
-        component: () => import('@/views/auth/EmailVerification.vue'),
-        meta: { requiresAuth: false, hideModeSwitcher: true, hideFooter: true },
-        hidden: true,
-      },
-
-      // ====================================================================
-      // 🔀 OAUTH REDIRECT
-      // ====================================================================
       {
         path: '/auth-redirect',
         name: 'AuthRedirect',
@@ -128,25 +98,18 @@ export const constantRoutes = [
     hidden: true,
   },
 
-  // 🔥 ГЛАВНАЯ — редирект на ОТНОСИТЕЛЬНЫЙ путь
   {
     path: '/',
     redirect: () => {
       try {
         const authStore = useAuthStore();
-
         if (authStore?.isAuthenticated) {
           const currentType = authStore.loginType || getLoginType();
           const safeType = VALID_LOGIN_TYPES.includes(currentType) ? currentType : getDefaultLoginType();
-          // ✅ ОТНОСИТЕЛЬНЫЙ путь (без base)
           return '/dashboard';
         }
-
-        // ✅ ОТНОСИТЕЛЬНЫЙ путь (без base)
         return '/login';
-
       } catch (e) {
-        console.warn('[Router] Redirect error:', e?.message);
         return '/login';
       }
     },
@@ -202,6 +165,12 @@ export const constantRoutes = [
     ],
   },
 
+  // 🔥 STANDALONE AUTH PAGES (публичные страницы из писем, без Layout)
+  ...emailConfirmationRoutes,
+  ...accountRestoreRoutes,
+  ...emailVerificationRoutes,
+  ...passwordResetRoutes,
+
   ...dynamicTableRoutes,
   ...smartLightRoutes,
   ...trainingRoutes,
@@ -233,15 +202,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-
-  // 🔥 При прямом заходе по URL — синхронизируем тип из URL
   if (to.meta?.loginType && VALID_LOGIN_TYPES.includes(to.meta.loginType)) {
-    // Только если пользователь НЕ авторизован
     if (!authStore.isAuthenticated) {
       authStore.setLoginType(to.meta.loginType, true)
     }
   }
-
   next()
 })
 
@@ -251,7 +216,6 @@ export function resetRouter() {
   const asyncRouterNameArr = asyncRoutes
       .map((mItem) => mItem?.name)
       .filter(Boolean);
-
   asyncRouterNameArr.forEach((name) => {
     if (router.hasRoute(name)) {
       router.removeRoute(name);
