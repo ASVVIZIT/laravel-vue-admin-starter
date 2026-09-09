@@ -124,8 +124,8 @@ Route::prefix('users')->group(function () {
 
 // 3.2. ЗАЩИЩЕННЫЕ: Действия пользователя со своим аккаунтом
 Route::prefix('users')->middleware('auth:sanctum')->group(function () {
+    Route::post('/me/reverify-email', [UserController::class, 'requestEmailReverification']);
     Route::post('/{user}/request-email-change', [UserController::class, 'requestEmailChange']);
-    Route::post('/{user}/reverify-email', [UserController::class, 'requestEmailReverification']);
 });
 
 // 3.3. ЗАЩИЩЕННЫЕ: Административное управление пользователями

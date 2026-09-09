@@ -34,7 +34,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'birthday',
         'description',
         'avatar',
-        // Поля для процесса смены email
+        'email_verified_at',
         'pending_new_email',
         'pending_email_token',
         'pending_email_expires_at',

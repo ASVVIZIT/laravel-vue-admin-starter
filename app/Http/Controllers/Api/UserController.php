@@ -384,9 +384,7 @@ class UserController extends BaseController
     /** URL фронтенда для ссылок из писем. */
     private function frontendUrl(string $path): string
     {
-        // VITE_APP_URL ведёт на админку (порт 8050), APP_URL — на публичное приложение (порт 80)
-        // Ссылки из писем должны вести на админку, где есть роут /confirm-email/...
-        $baseUrl = env('VITE_APP_URL', config('app.url'));
+        $baseUrl = config('app.frontend.url', config('app.url'));
         return rtrim($baseUrl, '/') . '/' . ltrim($path, '/');
     }
 
@@ -416,7 +414,7 @@ class UserController extends BaseController
     // 📧 9. СМЕНА EMAIL — ПОЛЬЗОВАТЕЛЬСКИЙ ПОТОК
     // ========================================================================
 
-    /** Шаг 1: запрос смены email (письмо №1 на СТАРЫЙ email). Binding {user}: удалённому менять нельзя. */
+    /** Шаг 1: запрос смены email (письмо №1 на СТАРЫЙ email). Сбрасывает методы в null — старт нового процесса. */
     public function requestEmailChange(Request $request, User $user): JsonResponse
     {
         $currentUser = $request->user();
@@ -539,7 +537,7 @@ class UserController extends BaseController
         $newToken = Str::random(64);
         $user->update([
             'old_email_confirmed' => true,
-            'old_email_confirm_method' => 'email', // 🟢 реально (по письму)
+            'old_email_confirm_method' => 'email',
             'pending_email_token' => $newToken
         ]);
 
@@ -565,7 +563,6 @@ class UserController extends BaseController
                 'user_id' => $user->id,
                 'error' => $e->getMessage()
             ]);
-            // Состояние уже изменено — не возвращаем ошибку, есть кнопка повтора
         }
 
         $this->auditLog($user->id, 'Old Email Confirmed', "Подтвержден старый email для смены на: {$user->pending_new_email}");
@@ -573,7 +570,7 @@ class UserController extends BaseController
         return responseSuccess(null, 'Старый email подтверждён! На новый адрес отправлено письмо с финальной ссылкой подтверждения.');
     }
 
-    /** Шаг 3: подтверждение НОВОГО email (финальный). Поиск по токену. P1: email_verified_at = now(). */
+    /** Шаг 3: подтверждение НОВОГО email (финальный). Сохраняет метод 'email' в new_email_confirm_method. */
     public function confirmNewEmail(string $token): JsonResponse
     {
         $user = User::where('pending_email_token', $token)->first();
@@ -616,8 +613,8 @@ class UserController extends BaseController
 
         $user->update([
             'email' => $newEmail,
-            'email_verified_at' => now(), // P1: смена завершена = email верифицирован
-            'new_email_confirm_method' => 'email', // 🟢 реально (по письму)
+            'email_verified_at' => now(),
+            'new_email_confirm_method' => 'email',
             'pending_new_email' => null,
             'pending_email_token' => null,
             'pending_email_expires_at' => null,
@@ -653,7 +650,7 @@ class UserController extends BaseController
         $newToken = Str::random(64);
         $user->update([
             'old_email_confirmed' => true,
-            'old_email_confirm_method' => 'admin', // 🔵 системно (админом)
+            'old_email_confirm_method' => 'admin',
             'pending_email_token' => $newToken
         ]);
 
@@ -695,7 +692,7 @@ class UserController extends BaseController
         );
     }
 
-    /** Админ подтверждает новую почту (финальный шаг, обход письма №2). */
+    /** Админ подтверждает новую почту (финальный шаг). Сохраняет метод 'admin' в new_email_confirm_method. */
     public function adminConfirmNewEmail(Request $request, int $id): JsonResponse
     {
         $user = $this->findUserWithTrashed($id);
@@ -717,8 +714,8 @@ class UserController extends BaseController
 
         $user->update([
             'email' => $newEmail,
-            'email_verified_at' => now(), // статус станет зелёным везде
-            'new_email_confirm_method' => 'admin', // 🔵 системно (админом)
+            'email_verified_at' => now(),
+            'new_email_confirm_method' => 'admin',
             'pending_new_email' => null,
             'pending_email_token' => null,
             'pending_email_expires_at' => null,
