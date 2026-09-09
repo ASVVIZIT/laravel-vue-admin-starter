@@ -27,7 +27,7 @@ export default {
     "AccessoriesList": "配件清单",
     "AccessoryCreate": "创建电气配件",
     "AccessoryEdit": "编辑电气配件",
-    "i18nChecker": "i18n 翻译检查器",
+    "i18nChecker": "i18n 翻译检查器"
   },
   "navbar": {
     "logOut": "退出登录",
@@ -50,13 +50,11 @@ export default {
     "resetLinkSentHint": "如果几分钟内未收到邮件，请检查垃圾邮件文件夹或确认邮箱地址正确。",
     "resetFailed": "发送重置链接失败",
     "backToLogin": "返回登录",
-
     "resetPasswordTitle": "重置密码",
     "resetPasswordSubtitle": "输入新密码",
     "resetPassword": "重置密码",
     "passwordResetSuccess": "密码重置成功",
     "invalidResetLink": "无效或已过期的链接",
-
     "registerTitle": "创建账户",
     "registerSubtitle": "填写表单以创建账户",
     "register": "注册",
@@ -65,7 +63,6 @@ export default {
     "alreadyHaveAccount": "已有账户？登录",
     "agreeTerms": "我同意使用条款",
     "mustAgreeTerms": "请接受条款",
-
     "emailVerificationTitle": "邮箱验证",
     "emailVerificationSubtitle": "我们已向您的邮箱发送验证链接",
     "emailVerified": "您的邮箱已验证！",
@@ -78,7 +75,47 @@ export default {
     "sending": "发送中...",
     "verifying": "验证中...",
     "invalidVerificationLink": "无效的验证链接",
-    "verificationFailed": "验证失败"
+    "verificationFailed": "验证失败",
+    "contactSupport": "有问题？",
+    "confirmEmail": {
+      "processingTitle": "确认中...",
+      "processingMessage": "请稍候，正在验证链接...",
+      "successTitle": "邮箱确认成功！",
+      "successMessage": "您的邮箱已确认。现在您可以登录了。",
+      "errorTitle": "确认错误",
+      "errorMessage": "链接无效或已过期。"
+    },
+    "restoreAccount": {
+      "processingTitle": "恢复中...",
+      "processingMessage": "正在恢复您的账户...",
+      "successTitle": "账户已恢复！",
+      "successMessage": "您的账户已成功恢复。现在您可以登录了。",
+      "errorTitle": "恢复错误",
+      "errorMessage": "链接无效或未找到账户。"
+    },
+    "emailVerify": {
+      "processingTitle": "验证邮箱中...",
+      "processingMessage": "正在验证您的地址...",
+      "successTitle": "邮箱已验证！",
+      "successMessage": "您的邮箱已验证。现在您可以登录了。",
+      "errorTitle": "验证错误",
+      "errorMessage": "链接无效或已过期。"
+    },
+    "passwordResetByToken": {
+      "title": "重置密码",
+      "formMessage": "为您的账户输入新密码",
+      "processingTitle": "重置中...",
+      "processingMessage": "正在保存新密码...",
+      "successTitle": "密码已重置！",
+      "successMessage": "您的密码已更改。请使用新密码登录。",
+      "errorTitle": "重置错误",
+      "errorMessage": "链接无效或已过期。",
+      "newPassword": "新密码",
+      "newPasswordPlaceholder": "至少 6 个字符",
+      "confirmPassword": "确认密码",
+      "confirmPasswordPlaceholder": "重复输入密码",
+      "submit": "重置密码"
+    }
   },
   "login": {
     "title": "登录您的个人账户",
@@ -86,27 +123,22 @@ export default {
     "testerTitle": "测试登录",
     "moderatorTitle": "版主登录",
     "vipTitle": "贵宾登录",
-
     "email": "邮箱",
     "username": "用户名",
     "password": "密码",
     "confirmPassword": "确认密码",
     "any": "任意",
-
     "logIn": "登录",
     "loginAsTester": "以测试员身份登录",
     "selectRole": "选择角色",
-
     "forgotPassword": "忘记密码？",
     "register": "注册",
     "rememberMe": "记住我",
     "twoFactorCode": "双重认证码",
     "captcha": "输入验证码",
     "vipCode": "贵宾码",
-
     "thirdparty": "或通过以下方式登录",
     "thirdpartyTips": "本地无法模拟，请结合您自己的业务进行模拟！！！",
-
     "loginSuccess": "登录成功",
     "loginFailed": "登录失败"
   },
@@ -141,7 +173,7 @@ export default {
       "password": {
         "placeholder": "输入密码",
         "required": "需要密码",
-        "minLength": "密码不能包含少于6位数字"
+        "minLength": "密码不能少于 6 位"
       },
       "confirmPassword": {
         "required": "需要确认密码",
@@ -149,8 +181,8 @@ export default {
       },
       "twoFactor": {
         "required": "需要双重认证码",
-        "pattern": "验证码必须是6位数字",
-        "placeholder": "请输入6位验证码"
+        "pattern": "验证码必须是 6 位数字",
+        "placeholder": "请输入 6 位验证码"
       },
       "captcha": {
         "required": "需要输入验证码",
@@ -391,7 +423,6 @@ export default {
         "successMessage": "确认邮件已发送到您当前的邮箱",
         "errorMessage": "请求更改邮箱时出错",
         "cancelButton": "取消",
-        "confirmButton": "确认",
         "infoText": "确认链接将发送到您当前的邮箱",
         "sameAsCurrent": "新邮箱不能与当前邮箱相同"
       }
@@ -704,23 +735,26 @@ export default {
     "warning": "警告",
     "submitting": "保存中...",
     "required": "必填字段",
+    "verified": "已验证",
+    "unverified": "未验证",
+    "never": "从未",
     "view404": {
       "buttons": {
         "back": "返回",
-        "backHome": "回家吧"
+        "backHome": "返回首页"
       },
       "OOPS": "哎呀！",
-      "Message": "保镖说你不能进入这个页面...",
+      "Message": "保镖说您不能进入这个页面...",
       "Info": "请检查您输入的URL是否正确。点击下面的按钮返回主页。",
-      "CopyrightBy": "版权由",
+      "CopyrightBy": "版权所有",
       "ProjectInGithub": "Github中的项目"
     },
     "view401": {
       "buttons": {
         "back": "返回",
-        "backHome": "回家吧"
+        "backHome": "返回首页"
       },
-      "CanGo": "或者你可以去:",
+      "CanGo": "或者您可以去:",
       "OOPS": "哇！",
       "Permission": "您没有访问此页面的权限。",
       "MessageAdmin": "如果您不满意，请与管理员联系。",
@@ -753,8 +787,6 @@ export default {
   },
   "roles_description_admin": "系统管理员",
   "roles_description_superadmin": "超级管理员",
-
-  // 👥 用户 — 账户状态管理（封禁/解封/恢复）
   "users": {
     "listTitle": "用户列表",
     "viewTitle": "查看用户",
@@ -825,21 +857,14 @@ export default {
       "step3NotDone": "第3步：新邮箱未验证"
     }
   },
-
-  // 🔍 I18N CHECKER (翻译检查器)
   "i18nChecker": {
-    // === 基础 ===
     "title": "i18n 翻译检查器",
     "subtitle": "检查和扫描翻译",
-
-    // === 模式 ===
     "simpleMode": "简单检查",
     "simpleDesc": "检查已知键列表",
     "scannerMode": "代码扫描器",
     "scannerDesc": "自动搜索所有键",
     "validatorMode": "路径验证",
-
-    // === 扫描器 ===
     "startScan": "启动扫描器",
     "scanning": "扫描中...",
     "scanComplete": "扫描完成！",
@@ -847,14 +872,10 @@ export default {
     "scanError": "扫描错误",
     "scanHint": "扫描器将找到代码中的所有键并与翻译进行比较",
     "keysInCode": "代码中的键",
-
-    // === 验证器 ===
     "validating": "验证中...",
     "startValidation": "验证路径",
     "validateHint": "查找嵌套不正确的键",
     "validationComplete": "路径验证完成！",
-
-    // === 统计 ===
     "totalKeys": "总计",
     "coverage": "覆盖率",
     "usedInCode": "已使用",
@@ -863,8 +884,6 @@ export default {
     "duplicates": "重复项",
     "wrongPaths": "错误路径",
     "flatKeys": "扁平键",
-
-    // === 筛选和搜索 ===
     "searchKey": "按关键字搜索...",
     "allFiles": "所有文件",
     "allCategories": "所有类别",
@@ -874,8 +893,6 @@ export default {
     "search": "搜索...",
     "refresh": "刷新",
     "exportMissing": "导出",
-
-    // === 表格 ===
     "colKey": "键",
     "colCategory": "类别",
     "colPriority": "优先级",
@@ -889,25 +906,17 @@ export default {
     "wrongPath": "错误路径",
     "correctPath": "正确路径",
     "usedIn": "使用于",
-
-    // === 优先级 ===
     "priorityCritical": "关键",
     "priorityNormal": "普通",
     "priorityLow": "低",
-
-    // === 状态 ===
     "ok": "正常",
     "miss": "缺失",
     "notTranslated": "未翻译",
-
-    // === 部分 ===
     "missingIn": "缺失于",
     "unusedIn": "未使用于",
     "duplicatesFound": "发现重复项",
     "wrongPathsFound": "发现错误路径",
     "flatKeysFound": "发现扁平键",
-
-    // === 复制 ===
     "copy": "复制",
     "copyFilteredKeys": "已筛选的键",
     "copyAllKeys": "所有键",
@@ -915,16 +924,12 @@ export default {
     "copyAllTemplate": "翻译模板（全部）",
     "copiedCount": "已复制",
     "copyFailed": "复制失败",
-
-    // === 简单模式 === 🔥 新增
     "total": "总计",
     "found": "已找到",
     "missing": "缺失",
     "showing": "显示",
     "from": "/",
     "entries": "条记录",
-
-    // === 消息 ===
     "noMissing": "所有键都存在！",
     "exported": "已导出！",
     "copied": "键已复制！",
@@ -932,17 +937,13 @@ export default {
     "noPathIssues": "没有路径问题！",
     "clickToScan": "点击「启动扫描器」分析翻译",
     "clickToValidate": "点击「验证路径」分析结构",
-
     "language": "语言",
     "category": "类别",
     "status": "状态",
     "foundKeys": "已找到键",
     "byCategory": "按类别",
     "detailedResults": "详细结果",
-
-     // === 页面样式设置 ===
     "settings": {
-      // === 通用 ===
       "title": "I18nChecker 模块设置",
       "open": "设置",
       "cancel": "取消",
@@ -953,8 +954,6 @@ export default {
       "saved": "设置已保存",
       "resetDone": "设置已重置",
       "saveFailed": "保存设置失败",
-
-      // === 元数据（表单设置） ===
       "meta": {
         "toggle": "配置表单显示",
         "layout": "标签页布局",
@@ -965,8 +964,6 @@ export default {
         "tabDisplay": "📊 显示",
         "tabBehavior": "⚙️ 行为"
       },
-
-      // === 图标 ===
       "icons": {
         "title": "图标",
         "sourceTitle": "图标来源",
@@ -986,8 +983,6 @@ export default {
         "previewTitle": "图标预览",
         "previewCount": "个图标"
       },
-
-      // === 显示 ===
       "display": {
         "title": "显示",
         "tablesTitle": "表格",
@@ -1004,8 +999,6 @@ export default {
         "compactMode": "紧凑模式",
         "compactModeTip": "减少边距和内边距，使显示更紧凑"
       },
-
-      // === 行为 ===
       "behavior": {
         "title": "行为",
         "autoRunTitle": "自动运行",
@@ -1031,8 +1024,6 @@ export default {
       }
     }
   },
-
-  // 🌐 I18N VIEW (国际化示例)
   "i18nView": {
     "title": "国际化示例",
     "note": "添加和删除语言请参阅文档",
@@ -1051,4 +1042,49 @@ export default {
     "two": "二",
     "three": "三"
   },
-};
+  "console": {
+    "userResource": {
+      "fetchPermissions": "正在获取用户 ID 的权限:",
+      "fetchPermissionsSuccess": "成功获取权限:",
+      "fetchPermissionsError": "获取用户 ID 权限时出错:",
+      "updatePermissions": "正在更新用户 ID 的权限:",
+      "updatePermissionsSuccess": "权限更新成功:",
+      "updatePermissionsError": "更新用户 ID 权限时出错:",
+      "banAttempt": "正在尝试封禁用户 ID:",
+      "banSuccess": "用户 ID 封禁成功:",
+      "banError": "封禁用户 ID 时出错:",
+      "unbanAttempt": "正在尝试解除封禁用户 ID:",
+      "unbanSuccess": "用户 ID 解除封禁成功:",
+      "unbanError": "解除封禁用户 ID 时出错:",
+      "restoreAttempt": "正在尝试恢复用户 ID:",
+      "restoreSuccess": "用户 ID 恢复成功:",
+      "restoreError": "恢复用户 ID 时出错:",
+      "reverifyRequest": "正在请求重新验证电子邮件",
+      "reverifySuccess": "成功请求重新验证电子邮件:",
+      "reverifyError": "请求重新验证电子邮件时出错:"
+    },
+    "diagnostics": {
+      "fetchConfig": "正在获取诊断配置",
+      "fetchConfigSuccess": "诊断配置获取成功:",
+      "fetchConfigError": "获取诊断配置时出错:",
+      "fetchChecks": "正在获取实体的检查项:",
+      "fetchChecksSuccess": "检查项获取成功:",
+      "fetchChecksError": "获取检查项时出错:"
+    }
+  },
+  "diagnostics": {
+    "title": "系统诊断",
+    "entities": {
+      "users": "用户"
+    },
+    "coming_soon": "该实体的诊断模块正在开发中",
+    "check_id": "检查项",
+    "status": "状态",
+    "details": "结果",
+    "action": "操作",
+    "copy_cli": "复制 CLI",
+    "status_ok": "正常",
+    "status_warn": "警告",
+    "status_fail": "错误"
+  }
+}

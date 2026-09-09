@@ -1114,6 +1114,30 @@ export default {
             "reverifyRequest": "Запрос письма для перепроверки email",
             "reverifySuccess": "Письмо для перепроверки успешно запрошено:",
             "reverifyError": "Ошибка при запросе перепроверки email:"
+        },
+        "diagnostics": {
+            "fetchConfig": "Запрос конфигурации диагностики",
+            "fetchConfigSuccess": "Конфигурация диагностики получена:",
+            "fetchConfigError": "Ошибка при получении конфигурации диагностики:",
+            "fetchChecks": "Запрос проверок для сущности:",
+            "fetchChecksSuccess": "Проверки получены:",
+            "fetchChecksError": "Ошибка при получении проверок:"
         }
+    },
+
+    "diagnostics": {
+        "title": "Диагностика системы",
+        "entities": {
+            "users": "Пользователи"
+        },
+        "coming_soon": "Модуль диагностики для этой сущности в разработке",
+        "check_id": "Проверка",
+        "status": "Статус",
+        "details": "Результат",
+        "action": "Действие",
+        "copy_cli": "Скопировать CLI",
+        "status_ok": "OK",
+        "status_warn": "Внимание",
+        "status_fail": "Ошибка"
     }
 };

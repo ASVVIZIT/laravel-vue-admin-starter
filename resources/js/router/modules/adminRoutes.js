@@ -36,12 +36,25 @@ const adminRoutes = {
       name: 'UserList',
       meta: { title: 'UserList', bootstrapIcon: 'people', showInGuide: true, permissions: ['manage user'] },
     },
+
     /** Role and permission */
     {
       path: 'roles',
       component: () => import('@/views/role-permission/List.vue'),
       name: 'RoleList',
       meta: { title: 'RolePermission', bootstrapIcon: 'person-lines-fill', permissions: ['manage permission'] },
+    },
+
+    /** Diagnostics (Админ-панель разработчика) */
+    {
+      path: 'diagnostics',
+      component: () => import('@/views/diagnostics/Index.vue'),
+      name: 'Diagnostics',
+      meta: {
+        title: 'Diagnostics',
+        bootstrapIcon: 'activity', // Иконка пульса/мониторинга из Bootstrap Icons
+        permissions: ['view menu diagnostics']
+      },
     },
   ],
 }

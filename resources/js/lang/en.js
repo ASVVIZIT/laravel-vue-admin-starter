@@ -1080,6 +1080,30 @@ export default {
       "reverifyRequest": "Requesting email re-verification",
       "reverifySuccess": "Re-verification email requested successfully:",
       "reverifyError": "Error requesting re-verification:"
+    },
+    "diagnostics": {
+      "fetchConfig": "Fetching diagnostics configuration",
+      "fetchConfigSuccess": "Diagnostics configuration fetched:",
+      "fetchConfigError": "Error fetching diagnostics configuration:",
+      "fetchChecks": "Fetching checks for entity:",
+      "fetchChecksSuccess": "Checks fetched:",
+      "fetchChecksError": "Error fetching checks:"
     }
-  }
+  },
+
+  "diagnostics": {
+    "title": "System Diagnostics",
+    "entities": {
+      "users": "Users"
+    },
+    "coming_soon": "Diagnostics module for this entity is under development",
+    "check_id": "Check",
+    "status": "Status",
+    "details": "Result",
+    "action": "Action",
+    "copy_cli": "Copy CLI",
+    "status_ok": "OK",
+    "status_warn": "Warning",
+    "status_fail": "Error"
+  },
 };
