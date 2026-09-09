@@ -80,6 +80,11 @@ final class Acl
     const PERMISSION_VIEW_SYSTEM_LOGS = 'view system logs';            // Просмотр системных логов и аудит-трейлов
     const PERMISSION_MANAGE_SYSTEM_SETTINGS = 'manage system settings'; // Глобальные настройки сайта (режим обслуживания и т.д.)
 
+    // Диагностика (админ-панель разработчика)
+    const PERMISSION_MENU_DIAGNOSTICS = 'view menu diagnostics';
+    const PERMISSION_DIAGNOSTICS_VIEW = 'view diagnostics';
+    const PERMISSION_DIAGNOSTICS_MANAGE = 'manage diagnostics';
+
     /**
      * Получить все права доступа (кроме исключённых)
      */

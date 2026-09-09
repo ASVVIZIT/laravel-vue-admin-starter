@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\LogController;
+use App\Http\Controllers\Api\Diagnostics\DiagnosticController;
 use App\Http\Controllers\Api\Entity\MeasurementCategoryController;
 use App\Http\Controllers\Api\Entity\MeasurementUnitController;
 use App\Http\Controllers\Api\Entity\AccessoryController;
@@ -481,3 +482,26 @@ Route::middleware(['auth:sanctum'])->prefix('i18n')->name('i18n.')->group(functi
     Route::get('/translations/{lang}', [I18nScannerController::class, 'getTranslations'])->name('translations')->middleware('throttle:30,1');
     Route::get('/validate-paths', [I18nScannerController::class, 'validatePaths'])->name('validate-paths')->middleware('throttle:10,1');
 });
+
+
+
+
+// ============================================================================
+// 15. DIAGNOSTICS (админ-панель разработчика; регистрируется только при enabled)
+// ============================================================================
+if (config('diagnostics.enabled')) {
+    Route::prefix('diagnostics')
+        ->middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_DIAGNOSTICS_VIEW])
+        ->name('diagnostics.')
+        ->group(function () {
+            Route::get('/config', [DiagnosticController::class, 'config'])->name('config');
+            Route::get('/{entity}/checks', [DiagnosticController::class, 'checks'])->name('checks');
+            Route::get('/{entity}/inspect', [DiagnosticController::class, 'inspect'])->name('inspect');
+            Route::post('/{entity}/crud', [DiagnosticController::class, 'crud'])
+                ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+                ->name('crud');
+            Route::post('/{entity}/simulate', [DiagnosticController::class, 'simulate'])
+                ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+                ->name('simulate');
+        });
+}
