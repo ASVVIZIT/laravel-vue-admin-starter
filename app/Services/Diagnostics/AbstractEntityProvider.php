@@ -63,4 +63,13 @@ abstract class AbstractEntityProvider implements EntityDiagnosticProvider
 
         return in_array(strtolower($domain ?: ''), $whitelist, true);
     }
+
+    /**
+     * Получить инструкции по исправлению для конкретной проверки.
+     * По умолчанию — нет инструкций.
+     */
+    public function getFixInstructions(string $checkId): ?array
+    {
+        return null;
+    }
 }

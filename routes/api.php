@@ -507,7 +507,6 @@ Route::prefix('diagnostics')
         Route::post('/email/inspect', [DiagnosticController::class, 'inspectEmail'])
             ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
             ->name('email.inspect');
-
         Route::get('/system-users', [DiagnosticController::class, 'systemUsers'])
             ->name('system-users');
 

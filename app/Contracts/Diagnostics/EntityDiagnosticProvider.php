@@ -34,4 +34,10 @@ interface EntityDiagnosticProvider
      * @return array<string, mixed>
      */
     public function simulate(string $step, array $payload = []): array;
+
+    /**
+     * Получить инструкции по исправлению для конкретной проверки.
+     * Возвращает null, если исправление не предусмотрено.
+     */
+    public function getFixInstructions(string $checkId): ?array;
 }

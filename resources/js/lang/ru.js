@@ -37,7 +37,6 @@ export default {
         "theme": "Theme",
         "size": "Глобальный размер",
         "profile": "Профиль",
-        "logout": "Выйти из системы",
         "home": "Домой"
     },
     "auth": {
@@ -1131,6 +1130,50 @@ export default {
 
             "system_users_title": "Системные пользователи",
             "system_users_desc": "Тестовые аккаунты (пароль: TestPassword123!). Кнопка «Сбросить» — удаляет и создаёт заново."
+        },
+        "actions": {
+            "close": "Закрыть",
+            "confirm": "Подтвердить",
+            "cancel": "Отмена",
+            "copy_cli": "Скопировать CLI",
+            "cli_command": "CLI-команда",
+            "file": "Файл",
+            "fix": "Исправить",
+            "show_instructions": "Показать инструкцию",
+            "create": "Создать",
+            "edit": "Редактировать",
+            "delete": "Удалить",
+            "restore": "Восстановить",
+            "simulate": "Симулировать",
+            "view": "Просмотреть",
+            "cleanup": "Очистить",
+            "tooltip_ok": "Проверка пройдена — исправление не требуется",
+            "tooltip_no_fix": "Для этой проверки нет инструкции по исправлению"
+        },
+        "fix": {
+            "problem": "Обнаруженная проблема",
+            "fields_display_title": "Недостающие поля",
+            "view_vertical": "Вертикально",
+            "view_horizontal": "Горизонтально",
+            "copy_list": "Скопировать список",
+            "copy_list_tooltip": "Скопировать недостающие поля списком через запятую — готово для вставки в $fillable",
+            "copy_list_success": "Список скопирован — вставляй в $fillable",
+            "users_base_fields_title": "Добавить базовые поля User",
+            "users_base_fields_desc": "Открой app/Models/User.php и добавь name, email, password, email_verified_at, remember_token в $fillable. Если колонок нет в БД — накатай миграцию.",
+            "users_email_flow_title": "Добавить поля email-потока",
+            "users_email_flow_desc": "Открой app/Models/User.php и добавь pending_new_email, pending_email_token, pending_email_expires_at, old_email_confirmed, old_email_confirm_method, new_email_confirm_method в $fillable. Если колонок нет — накатай миграцию add_email_confirm_methods_to_users_table.",
+            "users_system_fields_title": "Добавить системные поля",
+            "users_system_fields_desc": "Открой app/Models/User.php и добавь is_system, system_role в $fillable. Если колонок нет — накатай миграцию 2014_10_12_000001_add_is_system_to_users_table.",
+            "users_traits_title": "Подключить недостающие traits",
+            "users_traits_desc": "Открой app/Models/User.php и добавь use Notifiable, SoftDeletes, HasRoles в класс User.",
+            "users_casts_title": "Исправить касты модели User",
+            "users_casts_desc": "Открой app/Models/User.php и добавь в $casts: 'email_verified_at' => 'datetime', 'is_system' => 'boolean'.",
+            "users_frontend_url_title": "Настроить frontend.url",
+            "users_frontend_url_desc": "Проверь config/app.php. Убедись, что ключ 'frontend' -> 'url' указывает на правильный адрес фронта.",
+            "users_routes_title": "Проверить роуты",
+            "users_routes_desc": "Выполни команду ниже, чтобы увидеть список зарегистрированных роутов и найти missing.",
+            "users_permission_title": "Синхронизировать права",
+            "users_permission_desc": "Выполни команду ниже, чтобы убедиться, что право 'confirm user email' существует и выдано нужным ролям."
         }
     }
 }

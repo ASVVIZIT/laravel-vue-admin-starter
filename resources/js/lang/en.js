@@ -37,7 +37,6 @@ export default {
     "theme": "Theme",
     "size": "Global Size",
     "profile": "Profile",
-    "logout": "Log Out",
     "home": "Home"
   },
   "auth": {
@@ -1140,7 +1139,7 @@ export default {
     },
     "help": {
       "main_title": "System Diagnostics",
-      "main_desc": "Real-time system integrity and configuration checks. Read-only — no data changes.",
+      "main_desc": "Real-time system integrity and configuration checks. All checks are read-only — no data changes.",
 
       "users_title": "Users Checklist",
       "users_desc": "User model, users table, routes and permissions check. OK — good, WARN — nuance, FAIL — issue. CLI button — run command to fix.",
@@ -1149,7 +1148,51 @@ export default {
       "inspector_desc": "Email check: format, MX records, system registration, statuses (verified/banned/trashed). Read-only.",
 
       "system_users_title": "System Users",
-      "system_users_desc": "Test accounts (password: TestPassword123!). «Reset» button — deletes and recreates."
+      "system_users_desc": "Test accounts (password: TestPassword123!). «Reset» button — deletes and recreates from scratch."
+    },
+    "actions": {
+      "close": "Close",
+      "confirm": "Confirm",
+      "cancel": "Cancel",
+      "copy_cli": "Copy CLI",
+      "cli_command": "CLI Command",
+      "file": "File",
+      "fix": "Fix",
+      "show_instructions": "Show Instructions",
+      "create": "Create",
+      "edit": "Edit",
+      "delete": "Delete",
+      "restore": "Restore",
+      "simulate": "Simulate",
+      "view": "View",
+      "cleanup": "Cleanup",
+      "tooltip_ok": "Check passed — no fix required",
+      "tooltip_no_fix": "No fix instructions for this check"
+    },
+    "fix": {
+      "problem": "Detected problem",
+      "fields_display_title": "Missing fields",
+      "view_vertical": "Vertical",
+      "view_horizontal": "Horizontal",
+      "copy_list": "Copy list",
+      "copy_list_tooltip": "Copy missing fields as a comma-separated list — ready to paste into $fillable",
+      "copy_list_success": "List copied — paste into $fillable",
+      "users_base_fields_title": "Add base User fields",
+      "users_base_fields_desc": "Open app/Models/User.php and add name, email, password, email_verified_at, remember_token to $fillable. If columns are missing from DB — run migration.",
+      "users_email_flow_title": "Add email-flow fields",
+      "users_email_flow_desc": "Open app/Models/User.php and add pending_new_email, pending_email_token, pending_email_expires_at, old_email_confirmed, old_email_confirm_method, new_email_confirm_method to $fillable. If columns are missing — run migration add_email_confirm_methods_to_users_table.",
+      "users_system_fields_title": "Add system fields",
+      "users_system_fields_desc": "Open app/Models/User.php and add is_system, system_role to $fillable. If columns are missing — run migration 2014_10_12_000001_add_is_system_to_users_table.",
+      "users_traits_title": "Add missing traits",
+      "users_traits_desc": "Open app/Models/User.php and add use Notifiable, SoftDeletes, HasRoles to the User class.",
+      "users_casts_title": "Fix User model casts",
+      "users_casts_desc": "Open app/Models/User.php and add to $casts: 'email_verified_at' => 'datetime', 'is_system' => 'boolean'.",
+      "users_frontend_url_title": "Configure frontend.url",
+      "users_frontend_url_desc": "Check config/app.php. Ensure the 'frontend' -> 'url' key points to the correct frontend address.",
+      "users_routes_title": "Check routes",
+      "users_routes_desc": "Run the command below to see the list of registered routes and find missing ones.",
+      "users_permission_title": "Sync permissions",
+      "users_permission_desc": "Run the command below to ensure the 'confirm user email' permission exists and is assigned to the correct roles."
     }
   }
 };

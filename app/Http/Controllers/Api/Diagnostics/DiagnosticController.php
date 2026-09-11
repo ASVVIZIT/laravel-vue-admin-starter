@@ -48,7 +48,14 @@ class DiagnosticController extends BaseController
             return $blocked;
         }
 
-        $checks = $this->provider($entity)->checks();
+        $provider = $this->provider($entity);
+        $checks = $provider->checks();
+
+        // Добавляем инструкции по исправлению (если есть)
+        foreach ($checks as &$check) {
+            $check['fix_instructions'] = $provider->getFixInstructions($check['id']);
+        }
+        unset($check);
 
         $summary = [
             'ok' => count(array_filter($checks, fn(array $item): bool => $item['status'] === 'ok')),
@@ -224,11 +231,31 @@ class DiagnosticController extends BaseController
 
     /**
      * Сброс и пересоздание системных (тестовых) пользователей.
+     *
+     * 🔥 Использует forceCreate/forceFill вместо create — обходит $fillable модели User.
+     * Сброс должен работать даже когда конфигурация модели сломана (это диагностический инструмент).
      */
     public function resetSystemUsers(): JsonResponse
     {
         if ($blocked = $this->guardEnabled()) {
             return $blocked;
+        }
+
+        // Пре-проверка: колонки, которые нужны для создания тестовых пользователей
+        $requiredColumns = ['name', 'email', 'password', 'is_system', 'system_role', 'email_verified_at'];
+
+        $missingColumns = array_values(array_filter(
+            $requiredColumns,
+            fn (string $col) => !\Illuminate\Support\Facades\Schema::hasColumn('users', $col)
+        ));
+
+        if (!empty($missingColumns)) {
+            return responseFailed(
+                'Сброс невозможен: в таблице users не хватает колонок: ' .
+                implode(', ', $missingColumns) .
+                '. Накати миграции и повтори — подсказка во вкладке «Пользователи» диагностики.',
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
         }
 
         $roles = [
@@ -249,12 +276,14 @@ class DiagnosticController extends BaseController
                 $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
 
                 if (!$role) {
-                    continue; // Пропускаем, если роль вдруг была удалена
+                    \Log::warning("Диагностика: роль '{$roleName}' не найдена — пропускаем создание тестового пользователя");
+                    continue;
                 }
 
                 $email = "test_{$roleName}@fenix.dev";
 
-                $user = User::create([
+                // 🔥 forceCreate обходит $fillable — сброс работает даже при битой модели
+                $user = User::forceCreate([
                     'name'              => $displayName,
                     'email'             => $email,
                     'password'          => \Illuminate\Support\Facades\Hash::make('TestPassword123!'),
@@ -271,8 +300,26 @@ class DiagnosticController extends BaseController
 
             return responseSuccess(['message' => 'Системные пользователи успешно удалены и созданы заново']);
 
+        } catch (\Illuminate\Database\Eloquent\MassAssignmentException $e) {
+            // Страховка: сидер использует forceCreate, но вдруг какой-то хук
+            // внутри модели снова вызовет create/update с mass assignment
+            return responseFailed(
+                'Модель User не принимает поля из-за защиты mass assignment. ' .
+                'Открой вкладку «Пользователи» в диагностике — проверка полей покажет, ' .
+                'чего не хватает в $fillable, и даст кнопку «Скопировать список».',
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (\Illuminate\Database\QueryException $e) {
+            return responseFailed(
+                'Ошибка базы данных при сбросе: структура таблицы users не совпадает с ожидаемой. ' .
+                'Открой вкладку «Пользователи» в диагностике и исправь проверки колонок.',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         } catch (\Exception $e) {
-            return responseFailed('Ошибка при сбросе системных пользователей: ' . $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+            return responseFailed(
+                'Непредвиденная ошибка при сбросе: ' . $e->getMessage(),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
         }
     }
 }

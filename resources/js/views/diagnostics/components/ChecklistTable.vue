@@ -20,36 +20,37 @@
 
       <el-table-column prop="details" :label="$t('diagnostics.details')" />
 
-      <el-table-column :label="$t('diagnostics.action')" width="250" align="center">
+      <!-- Колонка действий делегирует всё компоненту блока кнопок -->
+      <el-table-column :label="$t('diagnostics.action')" width="150" align="center">
         <template #default="{ row }">
-          <el-button
-              v-if="row.cli"
-              type="info"
-              size="small"
-              @click="copyCli(row.cli)"
-          >
-            <IconEpDocumentCopy class="mr-1" />
-            {{ $t('diagnostics.copy_cli') }}
-          </el-button>
-          <span v-else class="text-muted">—</span>
+          <ChecklistActions :check="row" @fix="openFixModal" />
         </template>
       </el-table-column>
     </el-table>
+
+    <FixActionModal
+        v-model="fixModalVisible"
+        :check="currentCheck"
+    />
   </div>
 </template>
 
 <script setup>
-import { ElMessage } from 'element-plus'
+// ref — авто-импорт (unplugin-auto-import)
 import IconEpSuccess from '~icons/ep/success-filled'
 import IconEpWarning from '~icons/ep/warning-filled'
 import IconEpCircleCloseFilled from '~icons/ep/circle-close-filled'
-import IconEpDocumentCopy from '~icons/ep/document-copy'
+import FixActionModal from './FixActionModal.vue'
+import ChecklistActions from './actions/ChecklistActions.vue'
 
 defineProps({
   checks: { type: Array, default: () => [] },
   summary: { type: Object, default: () => ({ ok: 0, warn: 0, fail: 0 }) },
   loading: { type: Boolean, default: false }
 })
+
+const fixModalVisible = ref(false)
+const currentCheck = ref(null)
 
 const getStatusType = (status) => {
   const map = { ok: 'success', warn: 'warning', fail: 'danger' }
@@ -61,10 +62,9 @@ const getStatusIcon = (status) => {
   return map[status] || IconEpWarning
 }
 
-const copyCli = (cliCommand) => {
-  navigator.clipboard.writeText(cliCommand).then(() => {
-    ElMessage.success('CLI команда скопирована')
-  })
+const openFixModal = (check) => {
+  currentCheck.value = check
+  fixModalVisible.value = true
 }
 </script>
 
@@ -78,10 +78,6 @@ const copyCli = (cliCommand) => {
   .mr-1 {
     margin-right: 4px;
     vertical-align: -2px;
-  }
-  .text-muted {
-    color: #909399;
-    font-size: 14px;
   }
 }
 </style>

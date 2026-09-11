@@ -37,7 +37,6 @@ export default {
     "theme": "主题",
     "size": "全局尺寸",
     "profile": "个人资料",
-    "logout": "退出",
     "home": "首页"
   },
   "auth": {
@@ -1121,7 +1120,7 @@ export default {
     },
     "help": {
       "main_title": "系统诊断",
-      "main_desc": "实时系统完整性和配置检查。只读 — 不更改数据。",
+      "main_desc": "实时系统完整性和配置检查。所有检查均为只读 — 不更改数据。",
 
       "users_title": "用户检查清单",
       "users_desc": "User 模型、users 表、路由和权限检查。OK — 正常，WARN — 细节，FAIL — 问题。CLI 按钮 — 运行命令修复。",
@@ -1131,6 +1130,50 @@ export default {
 
       "system_users_title": "系统用户",
       "system_users_desc": "测试账户（密码：TestPassword123!）。「重置」按钮 — 删除并重新创建。"
+    },
+    "actions": {
+      "close": "关闭",
+      "confirm": "确认",
+      "cancel": "取消",
+      "copy_cli": "复制 CLI",
+      "cli_command": "CLI 命令",
+      "file": "文件",
+      "fix": "修复",
+      "show_instructions": "显示说明",
+      "create": "创建",
+      "edit": "编辑",
+      "delete": "删除",
+      "restore": "恢复",
+      "simulate": "模拟",
+      "view": "查看",
+      "cleanup": "清理",
+      "tooltip_ok": "检查通过 — 无需修复",
+      "tooltip_no_fix": "此检查没有修复说明"
+    },
+    "fix": {
+      "problem": "检测到的问题",
+      "fields_display_title": "缺失字段",
+      "view_vertical": "垂直",
+      "view_horizontal": "水平",
+      "copy_list": "复制列表",
+      "copy_list_tooltip": "将缺失字段复制为逗号分隔列表 — 可直接粘贴到 $fillable",
+      "copy_list_success": "列表已复制 — 粘贴到 $fillable",
+      "users_base_fields_title": "添加基础 User 字段",
+      "users_base_fields_desc": "打开 app/Models/User.php 并将 name、email、password、email_verified_at、remember_token 添加到 $fillable。如果数据库中缺少列 — 运行迁移。",
+      "users_email_flow_title": "添加邮件流字段",
+      "users_email_flow_desc": "打开 app/Models/User.php 并将 pending_new_email、pending_email_token、pending_email_expires_at、old_email_confirmed、old_email_confirm_method、new_email_confirm_method 添加到 $fillable。如果缺少列 — 运行迁移 add_email_confirm_methods_to_users_table。",
+      "users_system_fields_title": "添加系统字段",
+      "users_system_fields_desc": "打开 app/Models/User.php 并将 is_system、system_role 添加到 $fillable。如果缺少列 — 运行迁移 2014_10_12_000001_add_is_system_to_users_table。",
+      "users_traits_title": "添加缺失的 traits",
+      "users_traits_desc": "打开 app/Models/User.php 并在 User 类中添加 use Notifiable、SoftDeletes、HasRoles。",
+      "users_casts_title": "修复 User 模型 casts",
+      "users_casts_desc": "打开 app/Models/User.php 并添加到 $casts：'email_verified_at' => 'datetime'、'is_system' => 'boolean'。",
+      "users_frontend_url_title": "配置 frontend.url",
+      "users_frontend_url_desc": "检查 config/app.php。确保 'frontend' -> 'url' 键指向正确的前端地址。",
+      "users_routes_title": "检查路由",
+      "users_routes_desc": "运行以下命令以查看已注册路由的列表并查找缺失的路由。",
+      "users_permission_title": "同步权限",
+      "users_permission_desc": "运行以下命令以确保 'confirm user email' 权限存在并分配给正确的角色。"
     }
   }
 }
