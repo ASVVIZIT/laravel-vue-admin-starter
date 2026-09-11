@@ -15,5 +15,14 @@ export default {
     },
     runSimulate(entity, step, payload = {}) {
         return request({ url: `/diagnostics/${entity}/simulate`, method: 'post', data: { step, payload } })
+    },
+    inspectEmail(email) {
+        return request({ url: '/diagnostics/email/inspect', method: 'post', data: { email } })
+    },
+    getSystemUsers() {
+        return request({ url: '/diagnostics/system-users', method: 'get' })
+    },
+    resetSystemUsers() {
+        return request({ url: '/diagnostics/system-users/reset', method: 'post' })
     }
 }

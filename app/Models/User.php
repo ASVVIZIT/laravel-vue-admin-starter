@@ -41,6 +41,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'old_email_confirmed',
         'old_email_confirm_method',
         'new_email_confirm_method',
+        'is_system',
+        'system_role',
     ];
 
     public $appends = ['age', 'sex_format', 'main_role'];
@@ -57,6 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
         // Кастинг для полей смены email
         'pending_email_expires_at' => 'datetime',
         'old_email_confirmed' => 'boolean',
+        'is_system' => 'boolean',
     ];
 
     public function userTabs()
@@ -151,5 +154,33 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getAuthIdentifier()
     {
         return $this->getKey();
+    }
+
+    // ========================================================================
+    // 🔥 B3: Методы для системных (тестовых) пользователей
+    // ========================================================================
+
+    /**
+     * Является ли пользователь системным (тестовым).
+     */
+    public function isSystem(): bool
+    {
+        return (bool) $this->is_system;
+    }
+
+    /**
+     * Scope: только системные пользователи.
+     */
+    public function scopeSystem($query)
+    {
+        return $query->where('is_system', true);
+    }
+
+    /**
+     * Scope: только реальные (не системные) пользователи.
+     */
+    public function scopeReal($query)
+    {
+        return $query->where('is_system', false);
     }
 }

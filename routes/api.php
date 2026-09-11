@@ -489,19 +489,30 @@ Route::middleware(['auth:sanctum'])->prefix('i18n')->name('i18n.')->group(functi
 // ============================================================================
 // 15. DIAGNOSTICS (админ-панель разработчика; регистрируется только при enabled)
 // ============================================================================
-if (config('diagnostics.enabled')) {
-    Route::prefix('diagnostics')
-        ->middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_DIAGNOSTICS_VIEW])
-        ->name('diagnostics.')
-        ->group(function () {
-            Route::get('/config', [DiagnosticController::class, 'config'])->name('config');
-            Route::get('/{entity}/checks', [DiagnosticController::class, 'checks'])->name('checks');
-            Route::get('/{entity}/inspect', [DiagnosticController::class, 'inspect'])->name('inspect');
-            Route::post('/{entity}/crud', [DiagnosticController::class, 'crud'])
-                ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
-                ->name('crud');
-            Route::post('/{entity}/simulate', [DiagnosticController::class, 'simulate'])
-                ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
-                ->name('simulate');
-        });
-}
+Route::prefix('diagnostics')
+    ->middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_DIAGNOSTICS_VIEW])
+    ->name('diagnostics.')
+    ->group(function () {
+        Route::get('/config', [DiagnosticController::class, 'config'])->name('config');
+        Route::get('/{entity}/checks', [DiagnosticController::class, 'checks'])->name('checks');
+        Route::get('/{entity}/inspect', [DiagnosticController::class, 'inspect'])->name('inspect');
+        Route::post('/{entity}/crud', [DiagnosticController::class, 'crud'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('crud');
+        Route::post('/{entity}/simulate', [DiagnosticController::class, 'simulate'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('simulate');
+
+        // Инспектор email и системные пользователи
+        Route::post('/email/inspect', [DiagnosticController::class, 'inspectEmail'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('email.inspect');
+
+        Route::get('/system-users', [DiagnosticController::class, 'systemUsers'])
+            ->name('system-users');
+
+        // Сброс системных пользователей
+        Route::post('/system-users/reset', [DiagnosticController::class, 'resetSystemUsers'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('system-users.reset');
+    });

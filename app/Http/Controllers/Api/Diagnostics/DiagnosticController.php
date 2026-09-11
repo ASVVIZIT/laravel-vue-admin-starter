@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Api\Diagnostics;
 
 use App\Contracts\Diagnostics\EntityDiagnosticProvider;
 use App\Http\Controllers\Api\BaseController;
+use App\Models\LoginAttempt;
+use App\Models\User;
+use App\Services\Diagnostics\EmailInspectorService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -75,7 +78,7 @@ class DiagnosticController extends BaseController
         ]);
 
         if ($validator->fails()) {
-            return $this->sendValidationError($validator->errors());
+            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return responseSuccess([
@@ -118,7 +121,7 @@ class DiagnosticController extends BaseController
         ]);
 
         if ($validator->fails()) {
-            return $this->sendValidationError($validator->errors());
+            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
         return responseSuccess([
@@ -159,5 +162,117 @@ class DiagnosticController extends BaseController
         $definition = config("diagnostics.entities.{$entity}");
 
         return app($definition['provider']);
+    }
+
+    /**
+     * Инспектор email: полная карточка без мутаций.
+     */
+    public function inspectEmail(Request $request): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $inspector = app(EmailInspectorService::class);
+        $card = $inspector->inspect($request->input('email'));
+
+        return responseSuccess(['card' => $card]);
+    }
+
+    /**
+     * Список системных (тестовых) пользователей.
+     */
+    public function systemUsers(): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $users = User::withTrashed()
+            ->where('is_system', true)
+            ->orderBy('system_role')
+            ->get([
+                'id', 'name', 'email', 'system_role',
+                'email_verified_at', 'deleted_at',
+            ])
+            ->map(function ($user) {
+                $banned = LoginAttempt::where('email', $user->email)
+                    ->where('is_banned', true)
+                    ->exists();
+
+                return [
+                    'id'                => $user->id,
+                    'name'              => $user->name,
+                    'email'             => $user->email,
+                    'system_role'       => $user->system_role,
+                    'email_verified_at' => $user->email_verified_at,
+                    'deleted_at'        => $user->deleted_at,
+                    'banned'            => $banned,
+                ];
+            });
+
+        return responseSuccess(['users' => $users]);
+    }
+
+    /**
+     * Сброс и пересоздание системных (тестовых) пользователей.
+     */
+    public function resetSystemUsers(): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $roles = [
+            'superadmin' => 'Test Superadmin',
+            'admin'      => 'Test Admin',
+            'manager'    => 'Test Manager',
+            'editor'     => 'Test Editor',
+            'user'       => 'Test User',
+            'visitor'    => 'Test Visitor',
+        ];
+
+        try {
+            // 1. Полностью удаляем старых системных пользователей (forceDelete, чтобы не было конфликтов unique email)
+            User::where('is_system', true)->forceDelete();
+
+            // 2. Создаем их заново по образцу сидера
+            foreach ($roles as $roleName => $displayName) {
+                $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
+
+                if (!$role) {
+                    continue; // Пропускаем, если роль вдруг была удалена
+                }
+
+                $email = "test_{$roleName}@fenix.dev";
+
+                $user = User::create([
+                    'name'              => $displayName,
+                    'email'             => $email,
+                    'password'          => \Illuminate\Support\Facades\Hash::make('TestPassword123!'),
+                    'email_verified_at' => now(),
+                    'is_system'         => true,
+                    'system_role'       => $roleName,
+                ]);
+
+                $user->assignRole($role);
+            }
+
+            // Сбрасываем кэш прав Spatie на всякий случай
+            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+
+            return responseSuccess(['message' => 'Системные пользователи успешно удалены и созданы заново']);
+
+        } catch (\Exception $e) {
+            return responseFailed('Ошибка при сбросе системных пользователей: ' . $e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 }

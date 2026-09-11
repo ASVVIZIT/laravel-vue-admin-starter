@@ -7,22 +7,51 @@
         </div>
       </template>
 
-      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+      <!-- 🔥 Общий HelpBlock на главной странице -->
+      <HelpBlock
+          title-key="diagnostics.help.main_title"
+          description-key="diagnostics.help.main_desc"
+      />
+
+      <el-tabs v-model="activeTab">
+        <!-- Вкладки сущностей из реестра -->
         <el-tab-pane
             v-for="entity in registry"
             :key="entity.key"
             :label="$t(`diagnostics.entities.${entity.key}`)"
             :name="entity.key"
         >
-          <!-- Контент для сущности users -->
           <div v-if="entity.key === 'users'" class="entity-content">
+            <!-- 🔥 HelpBlock для вкладки Users -->
+            <HelpBlock
+                title-key="diagnostics.help.users_title"
+                description-key="diagnostics.help.users_desc"
+            />
             <ChecklistTable :checks="checks" :summary="summary" :loading="loading" />
           </div>
-
-          <!-- Заглушка для будущих сущностей -->
           <div v-else class="entity-placeholder">
             <el-empty :description="$t('diagnostics.coming_soon')" />
           </div>
+        </el-tab-pane>
+
+        <!-- B3: Инспектор email -->
+        <el-tab-pane :label="$t('diagnostics.email_inspector.tab')" name="email_inspector">
+          <!-- 🔥 HelpBlock для инспектора -->
+          <HelpBlock
+              title-key="diagnostics.help.inspector_title"
+              description-key="diagnostics.help.inspector_desc"
+          />
+          <EmailInspector />
+        </el-tab-pane>
+
+        <!-- B3: Системные пользователи -->
+        <el-tab-pane :label="$t('diagnostics.system_users.tab')" name="system_users">
+          <!-- 🔥 HelpBlock для системных пользователей -->
+          <HelpBlock
+              title-key="diagnostics.help.system_users_title"
+              description-key="diagnostics.help.system_users_desc"
+          />
+          <SystemUsersTable />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -30,13 +59,15 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue'
+// ref, onMounted подхватываются автоматически через unplugin-auto-import
 import { useDiagnosticsStore } from '@/store/diagnosticsStore'
 import ChecklistTable from './components/ChecklistTable.vue'
+import EmailInspector from './components/EmailInspector.vue'
+import SystemUsersTable from './components/SystemUsersTable.vue'
+import HelpBlock from './components/HelpBlock.vue'
 
 const diagnosticsStore = useDiagnosticsStore()
 const activeTab = ref('users')
-
 const registry = ref([])
 const checks = ref([])
 const summary = ref({ ok: 0, warn: 0, fail: 0 })
@@ -50,28 +81,15 @@ onMounted(async () => {
   }
 })
 
-watch(() => diagnosticsStore.activeEntity, (newVal) => {
-  activeTab.value = newVal
-})
-
-watch(() => diagnosticsStore.checks, (newVal) => {
-  checks.value = newVal
-})
-
-watch(() => diagnosticsStore.summary, (newVal) => {
-  summary.value = newVal
-})
-
-watch(() => diagnosticsStore.loading, (newVal) => {
-  loading.value = newVal
-})
-
-const handleTabChange = async (entityKey) => {
-  await loadEntityChecks(entityKey)
-}
-
 const loadEntityChecks = async (entityKey) => {
-  await diagnosticsStore.fetchChecks(entityKey)
+  loading.value = true
+  try {
+    await diagnosticsStore.fetchChecks(entityKey)
+    checks.value = diagnosticsStore.checks
+    summary.value = diagnosticsStore.summary
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -84,7 +102,7 @@ const loadEntityChecks = async (entityKey) => {
   font-weight: 600;
 }
 .entity-content {
-  padding-top: 10px;
+  /* padding-top убран — HelpBlock сам даёт отступ */
 }
 .entity-placeholder {
   padding: 40px 0;

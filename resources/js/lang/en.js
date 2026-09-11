@@ -28,6 +28,7 @@ export default {
     "AccessoryCreate": "Create Electrical Accessory",
     "AccessoryEdit": "Edit Electrical Accessory",
     "i18nChecker": "i18n Translations Checker",
+    "Diagnostics": "Diagnostics"
   },
   "navbar": {
     "logOut": "Log Out",
@@ -752,6 +753,8 @@ export default {
     "verified": "Verified",
     "unverified": "Unverified",
     "never": "Never",
+    "yes": "Yes",
+    "no": "No",
     "view404": {
       "buttons": {
         "back": "Back",
@@ -1104,6 +1107,49 @@ export default {
     "copy_cli": "Copy CLI",
     "status_ok": "OK",
     "status_warn": "Warning",
-    "status_fail": "Error"
-  },
+    "status_fail": "Error",
+    "email_inspector": {
+      "tab": "Email Inspector",
+      "title": "Email Address Check",
+      "placeholder": "Enter email to check",
+      "check": "Check",
+      "email": "Email",
+      "valid_format": "Valid format",
+      "mx_records": "MX records",
+      "domain": "Domain",
+      "registered": "Registered",
+      "user_id": "User ID",
+      "is_system": "System",
+      "system_role": "System role",
+      "verified": "Verified",
+      "banned": "Banned",
+      "trashed": "Trashed",
+      "status_type": "Status type"
+    },
+    "system_users": {
+      "tab": "System Users",
+      "title": "Test Accounts",
+      "count": "Total: {count}",
+      "reset": "Reset and Recreate",
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "verified": "Verified",
+      "banned": "Banned",
+      "trashed": "Trashed"
+    },
+    "help": {
+      "main_title": "System Diagnostics",
+      "main_desc": "Real-time system integrity and configuration checks. Read-only — no data changes.",
+
+      "users_title": "Users Checklist",
+      "users_desc": "User model, users table, routes and permissions check. OK — good, WARN — nuance, FAIL — issue. CLI button — run command to fix.",
+
+      "inspector_title": "Email Inspector",
+      "inspector_desc": "Email check: format, MX records, system registration, statuses (verified/banned/trashed). Read-only.",
+
+      "system_users_title": "System Users",
+      "system_users_desc": "Test accounts (password: TestPassword123!). «Reset» button — deletes and recreates."
+    }
+  }
 };

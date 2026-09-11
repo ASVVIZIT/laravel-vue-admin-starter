@@ -28,6 +28,7 @@ export default {
         "AccessoryCreate": "Создание аксессуара электрики",
         "AccessoryEdit": "Редактирование аксессуара электрики",
         "i18nChecker": "Проверка переводов i18n",
+        "Diagnostics": "Диагностика"
     },
     "navbar": {
         "logOut": "Выйти из системы",
@@ -50,13 +51,11 @@ export default {
         "resetLinkSentHint": "Если письмо не пришло в течение нескольких минут — проверьте папку «Спам» или убедитесь, что email введён верно.",
         "resetFailed": "Не удалось отправить ссылку",
         "backToLogin": "Вернуться к входу",
-
         "resetPasswordTitle": "Сброс пароля",
         "resetPasswordSubtitle": "Введите новый пароль",
         "resetPassword": "Сбросить пароль",
         "passwordResetSuccess": "Пароль успешно сброшен",
         "invalidResetLink": "Неверная или истёкшая ссылка",
-
         "registerTitle": "Создать аккаунт",
         "registerSubtitle": "Заполните форму для создания аккаунта",
         "register": "Зарегистрироваться",
@@ -65,7 +64,6 @@ export default {
         "alreadyHaveAccount": "Уже есть аккаунт? Войти",
         "agreeTerms": "Я согласен с условиями использования",
         "mustAgreeTerms": "Пожалуйста, примите условия",
-
         "emailVerificationTitle": "Подтверждение Email",
         "emailVerificationSubtitle": "Мы отправили ссылку для подтверждения на вашу почту",
         "emailVerified": "Ваш email подтверждён!",
@@ -79,10 +77,7 @@ export default {
         "verifying": "Проверяем...",
         "invalidVerificationLink": "Неверная ссылка подтверждения",
         "verificationFailed": "Ошибка подтверждения",
-
-        // 🔥 STANDALONE AUTH PAGES (email confirmation, restore, verify, reset)
         "contactSupport": "Вопросы?",
-
         "confirmEmail": {
             "processingTitle": "Подтверждение...",
             "processingMessage": "Пожалуйста, подождите, идёт проверка ссылки...",
@@ -91,7 +86,6 @@ export default {
             "errorTitle": "Ошибка подтверждения",
             "errorMessage": "Ссылка недействительна или срок её действия истёк."
         },
-
         "restoreAccount": {
             "processingTitle": "Восстановление...",
             "processingMessage": "Идёт восстановление вашего аккаунта...",
@@ -100,7 +94,6 @@ export default {
             "errorTitle": "Ошибка восстановления",
             "errorMessage": "Ссылка недействительна или аккаунт не найден."
         },
-
         "emailVerify": {
             "processingTitle": "Проверка email...",
             "processingMessage": "Идёт подтверждение вашего адреса...",
@@ -109,7 +102,6 @@ export default {
             "errorTitle": "Ошибка подтверждения",
             "errorMessage": "Ссылка недействительна или срок её действия истёк."
         },
-
         "passwordResetByToken": {
             "title": "Сброс пароля",
             "formMessage": "Введите новый пароль для вашего аккаунта",
@@ -132,27 +124,22 @@ export default {
         "testerTitle": "Тестовый вход",
         "moderatorTitle": "Вход для модератора",
         "vipTitle": "VIP вход",
-
         "email": "Email",
         "username": "Имя пользователя",
         "password": "Пароль",
         "confirmPassword": "Подтвердите пароль",
         "any": "любой",
-
         "logIn": "Войти",
         "loginAsTester": "Войти как тестер",
         "selectRole": "Выберите роль",
-
         "forgotPassword": "Забыли пароль?",
         "register": "Регистрация",
         "rememberMe": "Запомнить меня",
         "twoFactorCode": "Код 2FA",
         "captcha": "Введите код с картинки",
         "vipCode": "VIP код",
-
         "thirdparty": "Или войдите через",
         "thirdpartyTips": "Невозможно эмулировать локально, интегрируйте свой бизнес-процесс!!!",
-
         "loginSuccess": "Успешный вход",
         "loginFailed": "Ошибка входа"
     },
@@ -177,15 +164,9 @@ export default {
             "name": "именем"
         },
         "rules": {
-            "role": {
-                "required": "Требуется роль"
-            },
-            "name": {
-                "required": "Требуется указать имя"
-            },
-            "sex": {
-                "required": "Требуется указать ваш пол"
-            },
+            "role": { "required": "Требуется роль" },
+            "name": { "required": "Требуется указать имя" },
+            "sex": { "required": "Требуется указать ваш пол" },
             "email": {
                 "required": "Требуется электронная почта (Email)",
                 "type": "Введите правильный Email"
@@ -247,12 +228,8 @@ export default {
             "cantEditAdmin": "Невозможно изменить разрешения для пользователей с правами администратора"
         },
         "table": {
-            "edit": {
-                "user": "Права доступа к редактированию"
-            },
-            "rolePermissions": {
-                "name": "Унаследовано от роли"
-            },
+            "edit": { "user": "Права доступа к редактированию" },
+            "rolePermissions": { "name": "Унаследовано от роли" },
             "userPermissions": {
                 "name": {
                     "menu": "Дополнительные меню",
@@ -264,9 +241,7 @@ export default {
                 "cancelButtonText": "Отмена",
                 "warning": "Предупреждение",
                 "continue": "Продолжать?",
-                "confirm1": {
-                    "message": "Это приведет к необратимому удалению пользователя."
-                }
+                "confirm1": { "message": "Это приведет к необратимому удалению пользователя." }
             },
             "elMessage": {
                 "update": {
@@ -313,9 +288,7 @@ export default {
             "readings": "Readings",
             "status": "Статус",
             "actions": "Действия",
-            "buttons": {
-                "actions": "Список действий"
-            },
+            "buttons": { "actions": "Список действий" },
             "edit": "Изменить",
             "publish": "Опубликовать",
             "draft": "Взять",
@@ -362,9 +335,7 @@ export default {
                 "cancelButtonText": "Отмена",
                 "warning": "Предупреждение",
                 "continue": "Продолжать?",
-                "confirm1": {
-                    "message@j": "Это приведет к необратимому удалению пользователя<br><strong>{name}</strong>"
-                }
+                "confirm1": { "message@j": "Это приведет к необратимому удалению пользователя<br><strong>{name}</strong>" }
             },
             "elMessage": {
                 "created": {
@@ -768,6 +739,8 @@ export default {
         "verified": "Подтвержден",
         "unverified": "Не подтвержден",
         "never": "Никогда",
+        "yes": "Да",
+        "no": "Нет",
         "view404": {
             "buttons": {
                 "back": "Назад",
@@ -817,7 +790,6 @@ export default {
     },
     "roles_description_admin": "Администратор системы",
     "roles_description_superadmin": "Суперадминистратор",
-
     "users": {
         "listTitle": "Список пользователей",
         "viewTitle": "Просмотр пользователя",
@@ -888,17 +860,14 @@ export default {
             "step3NotDone": "Шаг 3: новая почта не подтверждена"
         }
     },
-
     "i18nChecker": {
         "title": "Проверка переводов i18n",
         "subtitle": "Проверка и сканирование переводов",
-
         "simpleMode": "Простая проверка",
         "simpleDesc": "Проверка известного списка ключей",
         "scannerMode": "Сканер кода",
         "scannerDesc": "Автоматический поиск всех ключей",
         "validatorMode": "Проверка путей",
-
         "startScan": "Запустить сканер",
         "scanning": "Сканирование...",
         "scanComplete": "Сканирование завершено!",
@@ -906,12 +875,10 @@ export default {
         "scanError": "Ошибка при сканировании",
         "scanHint": "Сканер найдёт все ключи в коде и сравнит с переводами",
         "keysInCode": "ключей в коде",
-
         "validating": "Проверка...",
         "startValidation": "Проверить пути",
         "validateHint": "Найдёт ключи с неправильной вложенностью",
         "validationComplete": "Проверка путей завершена!",
-
         "totalKeys": "Всего",
         "coverage": "Покрытие",
         "usedInCode": "Исп.",
@@ -920,7 +887,6 @@ export default {
         "duplicates": "Дубликатов",
         "wrongPaths": "Неправильных путей",
         "flatKeys": "Плоских ключей",
-
         "searchKey": "Поиск по ключу...",
         "allFiles": "Все файлы",
         "allCategories": "Все категории",
@@ -930,7 +896,6 @@ export default {
         "search": "Поиск...",
         "refresh": "Обновить",
         "exportMissing": "Экспорт",
-
         "colKey": "Ключ",
         "colCategory": "Категория",
         "colPriority": "Приоритет",
@@ -944,21 +909,17 @@ export default {
         "wrongPath": "Неправильный путь",
         "correctPath": "Правильный путь",
         "usedIn": "Используется в",
-
         "priorityCritical": "КРИТ",
         "priorityNormal": "НОРМ",
         "priorityLow": "НИЗК",
-
         "ok": "OK",
         "miss": "MISS",
         "notTranslated": "Не переведено",
-
         "missingIn": "Отсутствуют в",
         "unusedIn": "Не используются в",
         "duplicatesFound": "Найдены дубликаты",
         "wrongPathsFound": "Неправильные пути",
         "flatKeysFound": "Плоские ключи",
-
         "copy": "Копировать",
         "copyFilteredKeys": "Отфильтрованные ключи",
         "copyAllKeys": "Все ключи",
@@ -966,14 +927,12 @@ export default {
         "copyAllTemplate": "Шаблон для перевода (все)",
         "copiedCount": "Скопировано",
         "copyFailed": "Не удалось скопировать",
-
         "total": "Всего",
         "found": "Найдено",
         "missing": "Отсутствует",
         "showing": "Показано",
         "from": "из",
         "entries": "записей",
-
         "noMissing": "Все ключи присутствуют!",
         "exported": "Экспортировано!",
         "copied": "Ключи скопированы!",
@@ -981,14 +940,12 @@ export default {
         "noPathIssues": "Нет проблем с путями!",
         "clickToScan": "Нажмите «Запустить сканер» для анализа переводов",
         "clickToValidate": "Нажмите «Проверить пути» для анализа структуры",
-
         "language": "Язык",
         "category": "Категория",
         "status": "Статус",
         "foundKeys": "Найдено ключей",
         "byCategory": "По категориям",
         "detailedResults": "Детальные результаты",
-
         "settings": {
             "title": "Настройки модуля I18nChecker",
             "open": "Настройки",
@@ -1000,7 +957,6 @@ export default {
             "saved": "Настройки сохранены",
             "resetDone": "Настройки сброшены",
             "saveFailed": "Не удалось сохранить настройки",
-
             "meta": {
                 "toggle": "Настроить отображение формы",
                 "layout": "Расположение табов",
@@ -1011,7 +967,6 @@ export default {
                 "tabDisplay": "📊 Отображение",
                 "tabBehavior": "⚙️ Поведение"
             },
-
             "icons": {
                 "title": "Иконки",
                 "sourceTitle": "Источник иконок",
@@ -1031,7 +986,6 @@ export default {
                 "previewTitle": "Предпросмотр иконок",
                 "previewCount": "иконок"
             },
-
             "display": {
                 "title": "Отображение",
                 "tablesTitle": "Таблицы",
@@ -1048,7 +1002,6 @@ export default {
                 "compactMode": "Компактный режим",
                 "compactModeTip": "Уменьшает отступы и padding для более плотного отображения"
             },
-
             "behavior": {
                 "title": "Поведение",
                 "autoRunTitle": "Автозапуск",
@@ -1074,7 +1027,6 @@ export default {
             }
         }
     },
-
     "i18nView": {
         "title": "Международный пример",
         "note": "Добавление и удаление языков смотрите в документации",
@@ -1093,7 +1045,6 @@ export default {
         "two": "二",
         "three": "三"
     },
-
     "console": {
         "userResource": {
             "fetchPermissions": "Запрос прав доступа для пользователя ID:",
@@ -1124,7 +1075,6 @@ export default {
             "fetchChecksError": "Ошибка при получении проверок:"
         }
     },
-
     "diagnostics": {
         "title": "Диагностика системы",
         "entities": {
@@ -1138,6 +1088,49 @@ export default {
         "copy_cli": "Скопировать CLI",
         "status_ok": "OK",
         "status_warn": "Внимание",
-        "status_fail": "Ошибка"
+        "status_fail": "Ошибка",
+        "email_inspector": {
+            "tab": "Инспектор Email",
+            "title": "Проверка email-адреса",
+            "placeholder": "Введите email для проверки",
+            "check": "Проверить",
+            "email": "Email",
+            "valid_format": "Валидный формат",
+            "mx_records": "MX-записи",
+            "domain": "Домен",
+            "registered": "Зарегистрирован",
+            "user_id": "ID пользователя",
+            "is_system": "Системный",
+            "system_role": "Системная роль",
+            "verified": "Подтверждён",
+            "banned": "Забанен",
+            "trashed": "Удалён",
+            "status_type": "Тип статуса"
+        },
+        "system_users": {
+            "tab": "Системные пользователи",
+            "title": "Тестовые аккаунты",
+            "count": "Всего: {count}",
+            "reset": "Сбросить и пересоздать",
+            "name": "Имя",
+            "email": "Email",
+            "role": "Роль",
+            "verified": "Подтверждён",
+            "banned": "Забанен",
+            "trashed": "Удалён"
+        },
+        "help": {
+            "main_title": "Диагностика системы",
+            "main_desc": "Проверка целостности системы и конфигурации в реальном времени. Все проверки без изменения данных.",
+
+            "users_title": "Чек-лист «Пользователи»",
+            "users_desc": "Проверка модели User, таблицы users, роутов и прав. OK — всё ок, WARN — нюанс, FAIL — проблема. Кнопка CLI — выполни команду для исправления.",
+
+            "inspector_title": "Инспектор Email",
+            "inspector_desc": "Проверка email: формат, MX-записи, регистрация в системе, статусы (подтверждён/бан/удалён). Только чтение.",
+
+            "system_users_title": "Системные пользователи",
+            "system_users_desc": "Тестовые аккаунты (пароль: TestPassword123!). Кнопка «Сбросить» — удаляет и создаёт заново."
+        }
     }
-};
+}

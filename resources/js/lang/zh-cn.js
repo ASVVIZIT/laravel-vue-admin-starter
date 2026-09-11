@@ -27,7 +27,8 @@ export default {
     "AccessoriesList": "配件清单",
     "AccessoryCreate": "创建电气配件",
     "AccessoryEdit": "编辑电气配件",
-    "i18nChecker": "i18n 翻译检查器"
+    "i18nChecker": "i18n 翻译检查器",
+    "Diagnostics": "诊断"
   },
   "navbar": {
     "logOut": "退出登录",
@@ -738,6 +739,8 @@ export default {
     "verified": "已验证",
     "unverified": "未验证",
     "never": "从未",
+    "yes": "是",
+    "no": "否",
     "view404": {
       "buttons": {
         "back": "返回",
@@ -1085,6 +1088,49 @@ export default {
     "copy_cli": "复制 CLI",
     "status_ok": "正常",
     "status_warn": "警告",
-    "status_fail": "错误"
+    "status_fail": "错误",
+    "email_inspector": {
+      "tab": "邮件检查器",
+      "title": "电子邮件地址检查",
+      "placeholder": "输入要检查的电子邮件",
+      "check": "检查",
+      "email": "电子邮件",
+      "valid_format": "有效格式",
+      "mx_records": "MX 记录",
+      "domain": "域名",
+      "registered": "已注册",
+      "user_id": "用户 ID",
+      "is_system": "系统用户",
+      "system_role": "系统角色",
+      "verified": "已验证",
+      "banned": "已封禁",
+      "trashed": "已删除",
+      "status_type": "状态类型"
+    },
+    "system_users": {
+      "tab": "系统用户",
+      "title": "测试账户",
+      "count": "总计：{count}",
+      "reset": "重置并重新创建",
+      "name": "名称",
+      "email": "电子邮件",
+      "role": "角色",
+      "verified": "已验证",
+      "banned": "已封禁",
+      "trashed": "已删除"
+    },
+    "help": {
+      "main_title": "系统诊断",
+      "main_desc": "实时系统完整性和配置检查。只读 — 不更改数据。",
+
+      "users_title": "用户检查清单",
+      "users_desc": "User 模型、users 表、路由和权限检查。OK — 正常，WARN — 细节，FAIL — 问题。CLI 按钮 — 运行命令修复。",
+
+      "inspector_title": "邮件检查器",
+      "inspector_desc": "邮件检查：格式、MX 记录、系统注册、状态（已验证/封禁/删除）。只读。",
+
+      "system_users_title": "系统用户",
+      "system_users_desc": "测试账户（密码：TestPassword123!）。「重置」按钮 — 删除并重新创建。"
+    }
   }
 }
