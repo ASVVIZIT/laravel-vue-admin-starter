@@ -26,14 +26,14 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     protected $fillable = [
-        //'name',
-        //'email',
-        //'password',
-        //'status',
-        //'sex',
+        'name',
+        'email',
+        'password',
+        'status',
+        'sex',
         //'birthday',
         //'description',
-        //'avatar',
+        // 'avatar',
         //'email_verified_at',
         //'pending_new_email',
         //'pending_email_token',
@@ -42,7 +42,7 @@ class User extends Authenticatable implements MustVerifyEmail
         //'old_email_confirm_method',
         //'new_email_confirm_method',
         //'is_system',
-        //'system_role',
+        'system_role',
     ];
 
     public $appends = ['age', 'sex_format', 'main_role'];

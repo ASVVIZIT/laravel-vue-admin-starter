@@ -484,8 +484,6 @@ Route::middleware(['auth:sanctum'])->prefix('i18n')->name('i18n.')->group(functi
 });
 
 
-
-
 // ============================================================================
 // 15. DIAGNOSTICS (админ-панель разработчика; регистрируется только при enabled)
 // ============================================================================
@@ -503,15 +501,32 @@ Route::prefix('diagnostics')
             ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
             ->name('simulate');
 
-        // Инспектор email и системные пользователи
+        // Инспектор email
         Route::post('/email/inspect', [DiagnosticController::class, 'inspectEmail'])
             ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
             ->name('email.inspect');
+
+        // Системные пользователи: список (read) и сброс (write)
         Route::get('/system-users', [DiagnosticController::class, 'systemUsers'])
             ->name('system-users');
-
-        // Сброс системных пользователей
         Route::post('/system-users/reset', [DiagnosticController::class, 'resetSystemUsers'])
             ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
             ->name('system-users.reset');
+
+        // P2: CRUD системных пользователей (только is_system=true, write-операции)
+        Route::post('/system-users', [DiagnosticController::class, 'storeSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('system-users.store');
+        Route::put('/system-users/{id}', [DiagnosticController::class, 'updateSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.update');
+        Route::delete('/system-users/{id}', [DiagnosticController::class, 'deleteSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.destroy');
+        Route::post('/system-users/{id}/restore', [DiagnosticController::class, 'restoreSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.restore');
     });

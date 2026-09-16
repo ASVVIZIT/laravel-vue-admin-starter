@@ -7,14 +7,25 @@ use App\Http\Controllers\Api\BaseController;
 use App\Models\LoginAttempt;
 use App\Models\User;
 use App\Services\Diagnostics\EmailInspectorService;
+use Illuminate\Database\Eloquent\MassAssignmentException;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpFoundation\Response;
 
 class DiagnosticController extends BaseController
 {
+    // ========================================================================
+    // РЕЕСТР СУЩНОСТЕЙ И ЧЕК-ЛИСТЫ (B1)
+    // ========================================================================
+
     /** Реестр сущностей и возможностей для вкладок UI. */
     public function config(): JsonResponse
     {
@@ -138,6 +149,322 @@ class DiagnosticController extends BaseController
     }
 
     // ========================================================================
+    // ИНСПЕКТОР EMAIL (B3)
+    // ========================================================================
+
+    /**
+     * Инспектор email: полная карточка без мутаций.
+     */
+    public function inspectEmail(Request $request): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'email' => ['required', 'email', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $inspector = app(EmailInspectorService::class);
+        $card = $inspector->inspect($request->input('email'));
+
+        return responseSuccess(['card' => $card]);
+    }
+
+    // ========================================================================
+    // СИСТЕМНЫЕ ПОЛЬЗОВАТЕЛИ: СПИСОК И СБРОС (B3)
+    // ========================================================================
+
+    /**
+     * Список системных (тестовых) пользователей + роли для форм.
+     */
+    public function systemUsers(): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $users = User::withTrashed()
+            ->where('is_system', true)
+            ->orderBy('system_role')
+            ->get()
+            ->map(fn (User $user) => $this->systemUserCard($user));
+
+        return responseSuccess([
+            'users' => $users,
+            // Источник истины для селекта роли — БД, а не JS
+            'roles' => Role::orderBy('name')->pluck('name'),
+        ]);
+    }
+
+    /**
+     * Сброс и пересоздание системных (тестовых) пользователей.
+     *
+     * 🔥 Использует forceCreate вместо create — обходит $fillable модели User.
+     * Сброс должен работать даже когда конфигурация модели сломана (это диагностический инструмент).
+     */
+    public function resetSystemUsers(): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        // Пре-проверка: колонки, которые нужны для создания тестовых пользователей
+        $requiredColumns = ['name', 'email', 'password', 'is_system', 'system_role', 'email_verified_at'];
+
+        $missingColumns = array_values(array_filter(
+            $requiredColumns,
+            fn (string $col) => !Schema::hasColumn('users', $col)
+        ));
+
+        if (!empty($missingColumns)) {
+            return responseFailed(
+                'Сброс невозможен: в таблице users не хватает колонок: ' .
+                implode(', ', $missingColumns) .
+                '. Накати миграции и повтори — подсказка во вкладке «Пользователи» диагностики.',
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        $roles = [
+            'superadmin' => 'Test Superadmin',
+            'admin'      => 'Test Admin',
+            'manager'    => 'Test Manager',
+            'editor'     => 'Test Editor',
+            'user'       => 'Test User',
+            'visitor'    => 'Test Visitor',
+        ];
+
+        try {
+            // 1. Полностью удаляем старых системных пользователей (forceDelete, чтобы не было конфликтов unique email)
+            User::where('is_system', true)->forceDelete();
+
+            // 2. Создаем их заново по образцу сидера
+            foreach ($roles as $roleName => $displayName) {
+                $role = Role::where('name', $roleName)->first();
+
+                if (!$role) {
+                    Log::warning("Диагностика: роль '{$roleName}' не найдена — пропускаем создание тестового пользователя");
+                    continue;
+                }
+
+                $email = "test_{$roleName}@fenix.dev";
+
+                // 🔥 forceCreate обходит $fillable — сброс работает даже при битой модели
+                $user = User::forceCreate([
+                    'name'              => $displayName,
+                    'email'             => $email,
+                    'password'          => Hash::make('TestPassword123!'),
+                    'email_verified_at' => now(),
+                    'is_system'         => true,
+                    'system_role'       => $roleName,
+                ]);
+
+                $user->assignRole($role);
+            }
+
+            // Сбрасываем кэш прав Spatie на всякий случай
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
+
+            return responseSuccess(['message' => 'Системные пользователи успешно удалены и созданы заново']);
+
+        } catch (MassAssignmentException $e) {
+            // Страховка: сидер использует forceCreate, но вдруг какой-то хук
+            // внутри модели снова вызовет create/update с mass assignment
+            return responseFailed(
+                'Модель User не принимает поля из-за защиты mass assignment. ' .
+                'Открой вкладку «Пользователи» в диагностике — проверка полей покажет, ' .
+                'чего не хватает в $fillable, и даст кнопку «Скопировать список».',
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        } catch (QueryException $e) {
+            return responseFailed(
+                'Ошибка базы данных при сбросе: структура таблицы users не совпадает с ожидаемой. ' .
+                'Открой вкладку «Пользователи» в диагностике и исправь проверки колонок.',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            return responseFailed(
+                'Непредвиденная ошибка при сбросе: ' . $e->getMessage(),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // ========================================================================
+    // P2: CRUD СИСТЕМНЫХ ПОЛЬЗОВАТЕЛЕЙ (только is_system=true)
+    // ========================================================================
+
+    /**
+     * Создание системного (тестового) пользователя.
+     */
+    public function storeSystemUser(Request $request): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name'        => ['required', 'string', 'max:255'],
+            'email'       => ['required', 'email', 'max:255', 'unique:users,email'],
+            'system_role' => ['required', 'string', 'max:50', Rule::exists('roles', 'name')],
+            'password'    => ['required', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        if ($validator->fails()) {
+            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        try {
+            // forceCreate обходит $fillable: диагностика работает даже при битой модели
+            $user = User::forceCreate([
+                'name'              => $request->input('name'),
+                'email'             => $request->input('email'),
+                'password'          => Hash::make($request->input('password')),
+                'is_system'         => true,
+                'system_role'       => $request->input('system_role'),
+                'email_verified_at' => now(),
+            ]);
+
+            $this->syncSystemRole($user, $request->input('system_role'));
+
+            return responseSuccess(['user' => $this->systemUserCard($user)], 'Системный пользователь создан');
+        } catch (QueryException $e) {
+            return responseFailed(
+                'Ошибка базы данных при создании: проверь уникальность email и структуру таблицы users.',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * Редактирование системного пользователя.
+     */
+    public function updateSystemUser(Request $request, int $id): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $user = User::withTrashed()->find($id);
+
+        if (!$user || !$user->is_system) {
+            return responseFailed('Пользователь не найден или не является системным', Response::HTTP_NOT_FOUND);
+        }
+
+        if ($user->trashed()) {
+            return responseFailed('Пользователь удалён — сначала восстановите для редактирования', Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name'        => ['required', 'string', 'max:255'],
+            'email'       => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
+            'system_role' => ['required', 'string', 'max:50', Rule::exists('roles', 'name')],
+            'password'    => ['nullable', 'string', 'min:6', 'confirmed'],
+        ]);
+
+        if ($validator->fails()) {
+            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $data = [
+            'name'        => $request->input('name'),
+            'email'       => $request->input('email'),
+            'system_role' => $request->input('system_role'),
+        ];
+
+        // Пароль меняем только если передан
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($request->input('password'));
+        }
+
+        try {
+            // forceFill обходит $fillable: редактирование работает даже при битой модели
+            $user->forceFill($data)->save();
+
+            $this->syncSystemRole($user, $request->input('system_role'));
+
+            return responseSuccess(['user' => $this->systemUserCard($user)], 'Изменения сохранены');
+        } catch (QueryException $e) {
+            return responseFailed(
+                'Ошибка базы данных при сохранении: проверь уникальность email и структуру таблицы users.',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    /**
+     * Мягкое удаление системного пользователя (SoftDeletes).
+     */
+    public function deleteSystemUser(int $id): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $user = User::withTrashed()->find($id);
+
+        if (!$user || !$user->is_system) {
+            return responseFailed('Пользователь не найден или не является системным', Response::HTTP_NOT_FOUND);
+        }
+
+        if ($user->trashed()) {
+            return responseFailed('Пользователь уже удалён — используйте восстановление', Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $user->delete();
+
+        return responseSuccess(['user' => $this->systemUserCard($user)], 'Пользователь удалён — его можно восстановить');
+    }
+
+    /**
+     * Восстановление мягко удалённого системного пользователя.
+     */
+    public function restoreSystemUser(int $id): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $user = User::withTrashed()->find($id);
+
+        if (!$user || !$user->is_system) {
+            return responseFailed('Пользователь не найден или не является системным', Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$user->trashed()) {
+            return responseFailed('Пользователь не удалён — восстанавливать нечего', Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // Пока юзер лежал в корзине, email мог занять другой пользователь
+        $emailBusy = User::where('email', $user->email)
+            ->where('id', '!=', $user->id)
+            ->exists();
+
+        if ($emailBusy) {
+            return responseFailed(
+                "Восстановление невозможно: email {$user->email} уже занят другим пользователем",
+                Response::HTTP_UNPROCESSABLE_ENTITY
+            );
+        }
+
+        try {
+            $user->restore();
+
+            return responseSuccess(['user' => $this->systemUserCard($user)], 'Пользователь восстановлен');
+        } catch (QueryException $e) {
+            return responseFailed(
+                'Ошибка базы данных при восстановлении: проверь структуру таблицы users.',
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
+    // ========================================================================
     // ПРИВАТНЫЕ ХЕЛПЕРЫ
     // ========================================================================
 
@@ -172,154 +499,33 @@ class DiagnosticController extends BaseController
     }
 
     /**
-     * Инспектор email: полная карточка без мутаций.
+     * Синхронизация Spatie-роли с system_role (если роль существует).
      */
-    public function inspectEmail(Request $request): JsonResponse
+    private function syncSystemRole(User $user, string $roleName): void
     {
-        if ($blocked = $this->guardEnabled()) {
-            return $blocked;
+        $role = Role::where('name', $roleName)->first();
+
+        if ($role) {
+            $user->syncRoles([$role]);
+            app()[PermissionRegistrar::class]->forgetCachedPermissions();
         }
-
-        $validator = Validator::make($request->all(), [
-            'email' => ['required', 'email', 'max:255'],
-        ]);
-
-        if ($validator->fails()) {
-            return responseFailed($validator->errors()->first(), Response::HTTP_UNPROCESSABLE_ENTITY);
-        }
-
-        $inspector = app(EmailInspectorService::class);
-        $card = $inspector->inspect($request->input('email'));
-
-        return responseSuccess(['card' => $card]);
     }
 
     /**
-     * Список системных (тестовых) пользователей.
+     * Единая карточка системного пользователя для таблиц и форм.
      */
-    public function systemUsers(): JsonResponse
+    private function systemUserCard(User $user): array
     {
-        if ($blocked = $this->guardEnabled()) {
-            return $blocked;
-        }
-
-        $users = User::withTrashed()
-            ->where('is_system', true)
-            ->orderBy('system_role')
-            ->get([
-                'id', 'name', 'email', 'system_role',
-                'email_verified_at', 'deleted_at',
-            ])
-            ->map(function ($user) {
-                $banned = LoginAttempt::where('email', $user->email)
-                    ->where('is_banned', true)
-                    ->exists();
-
-                return [
-                    'id'                => $user->id,
-                    'name'              => $user->name,
-                    'email'             => $user->email,
-                    'system_role'       => $user->system_role,
-                    'email_verified_at' => $user->email_verified_at,
-                    'deleted_at'        => $user->deleted_at,
-                    'banned'            => $banned,
-                ];
-            });
-
-        return responseSuccess(['users' => $users]);
-    }
-
-    /**
-     * Сброс и пересоздание системных (тестовых) пользователей.
-     *
-     * 🔥 Использует forceCreate/forceFill вместо create — обходит $fillable модели User.
-     * Сброс должен работать даже когда конфигурация модели сломана (это диагностический инструмент).
-     */
-    public function resetSystemUsers(): JsonResponse
-    {
-        if ($blocked = $this->guardEnabled()) {
-            return $blocked;
-        }
-
-        // Пре-проверка: колонки, которые нужны для создания тестовых пользователей
-        $requiredColumns = ['name', 'email', 'password', 'is_system', 'system_role', 'email_verified_at'];
-
-        $missingColumns = array_values(array_filter(
-            $requiredColumns,
-            fn (string $col) => !\Illuminate\Support\Facades\Schema::hasColumn('users', $col)
-        ));
-
-        if (!empty($missingColumns)) {
-            return responseFailed(
-                'Сброс невозможен: в таблице users не хватает колонок: ' .
-                implode(', ', $missingColumns) .
-                '. Накати миграции и повтори — подсказка во вкладке «Пользователи» диагностики.',
-                Response::HTTP_UNPROCESSABLE_ENTITY
-            );
-        }
-
-        $roles = [
-            'superadmin' => 'Test Superadmin',
-            'admin'      => 'Test Admin',
-            'manager'    => 'Test Manager',
-            'editor'     => 'Test Editor',
-            'user'       => 'Test User',
-            'visitor'    => 'Test Visitor',
+        return [
+            'id'                => $user->id,
+            'name'              => $user->name,
+            'email'             => $user->email,
+            'system_role'       => $user->system_role,
+            'email_verified_at' => $user->email_verified_at,
+            'deleted_at'        => $user->deleted_at,
+            'banned'            => LoginAttempt::where('email', $user->email)
+                ->where('is_banned', true)
+                ->exists(),
         ];
-
-        try {
-            // 1. Полностью удаляем старых системных пользователей (forceDelete, чтобы не было конфликтов unique email)
-            User::where('is_system', true)->forceDelete();
-
-            // 2. Создаем их заново по образцу сидера
-            foreach ($roles as $roleName => $displayName) {
-                $role = \Spatie\Permission\Models\Role::where('name', $roleName)->first();
-
-                if (!$role) {
-                    \Log::warning("Диагностика: роль '{$roleName}' не найдена — пропускаем создание тестового пользователя");
-                    continue;
-                }
-
-                $email = "test_{$roleName}@fenix.dev";
-
-                // 🔥 forceCreate обходит $fillable — сброс работает даже при битой модели
-                $user = User::forceCreate([
-                    'name'              => $displayName,
-                    'email'             => $email,
-                    'password'          => \Illuminate\Support\Facades\Hash::make('TestPassword123!'),
-                    'email_verified_at' => now(),
-                    'is_system'         => true,
-                    'system_role'       => $roleName,
-                ]);
-
-                $user->assignRole($role);
-            }
-
-            // Сбрасываем кэш прав Spatie на всякий случай
-            app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
-
-            return responseSuccess(['message' => 'Системные пользователи успешно удалены и созданы заново']);
-
-        } catch (\Illuminate\Database\Eloquent\MassAssignmentException $e) {
-            // Страховка: сидер использует forceCreate, но вдруг какой-то хук
-            // внутри модели снова вызовет create/update с mass assignment
-            return responseFailed(
-                'Модель User не принимает поля из-за защиты mass assignment. ' .
-                'Открой вкладку «Пользователи» в диагностике — проверка полей покажет, ' .
-                'чего не хватает в $fillable, и даст кнопку «Скопировать список».',
-                Response::HTTP_UNPROCESSABLE_ENTITY
-            );
-        } catch (\Illuminate\Database\QueryException $e) {
-            return responseFailed(
-                'Ошибка базы данных при сбросе: структура таблицы users не совпадает с ожидаемой. ' .
-                'Открой вкладку «Пользователи» в диагностике и исправь проверки колонок.',
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        } catch (\Exception $e) {
-            return responseFailed(
-                'Непредвиденная ошибка при сбросе: ' . $e->getMessage(),
-                Response::HTTP_INTERNAL_SERVER_ERROR
-            );
-        }
     }
 }
