@@ -30,16 +30,16 @@
         border
         :row-class-name="rowClassName"
     >
-      <el-table-column prop="name" :label="$t('diagnostics.system_users.name')" min-width="180" />
-      <el-table-column prop="email" :label="$t('diagnostics.system_users.email')" min-width="220" />
+      <el-table-column prop="name" :label="$t('diagnostics.system_users.name')" min-width="210" />
+      <el-table-column prop="email" :label="$t('diagnostics.system_users.email')" min-width="240" />
 
-      <el-table-column prop="system_role" :label="$t('diagnostics.system_users.role')" width="140">
+      <el-table-column prop="system_role" :label="$t('diagnostics.system_users.role')" width="160">
         <template #default="{ row }">
           <el-tag size="small">{{ row.system_role }}</el-tag>
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('diagnostics.system_users.verified')" width="120" align="center">
+      <el-table-column :label="$t('diagnostics.system_users.verified')" width="180" align="center">
         <template #default="{ row }">
           <el-tag v-if="row.email_verified_at" type="success" size="small">
             {{ $t('diagnostics.system_users.verified') }}
@@ -48,7 +48,7 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('diagnostics.system_users.banned')" width="100" align="center">
+      <el-table-column :label="$t('diagnostics.system_users.banned')" width="150" align="center">
         <template #default="{ row }">
           <el-tag v-if="row.banned" type="danger" size="small">
             {{ $t('diagnostics.system_users.banned') }}
@@ -57,17 +57,32 @@
         </template>
       </el-table-column>
 
+      <!-- Корзина: тег «Удалён» + иконка окончательного удаления (бонус-режим) -->
       <el-table-column :label="$t('diagnostics.system_users.trashed')" width="110" align="center">
         <template #default="{ row }">
-          <el-tag v-if="row.deleted_at" type="info" effect="dark" size="small">
-            {{ $t('diagnostics.system_users.trashed') }}
-          </el-tag>
+          <div v-if="row.deleted_at" class="trashed-cell">
+            <el-tag type="info" effect="dark" size="small">
+              {{ $t('diagnostics.system_users.trashed') }}
+            </el-tag>
+            <el-tooltip
+                :content="$t('diagnostics.system_users.tooltip_force_delete')"
+                placement="top"
+                effect="dark"
+            >
+              <el-icon
+                  class="force-delete-icon"
+                  @click.stop="handleForceDelete(row)"
+              >
+                <IconEpDelete />
+              </el-icon>
+            </el-tooltip>
+          </div>
           <span v-else class="text-muted">—</span>
         </template>
       </el-table-column>
 
       <!-- P2: колонка действий (кнопки всегда видны, disabled + tooltip) -->
-      <el-table-column :label="$t('diagnostics.action')" width="260" align="center" fixed="right">
+      <el-table-column :label="$t('diagnostics.action')" width="420" align="center" fixed="right">
         <template #default="{ row }">
           <SystemUserActions
               :user="row"
@@ -75,6 +90,7 @@
               @edit="openEdit"
               @delete="handleDelete"
               @restore="handleRestore"
+              @ban="handleBan"
           />
         </template>
       </el-table-column>
@@ -91,10 +107,11 @@
 </template>
 
 <script setup>
-// ref, onMounted — авто-импорт (unplugin-auto-import)
+// ref, onMounted, ElMessage, ElMessageBox — авто-импорт (unplugin-auto-import)
 import { useI18n } from 'vue-i18n'
 import IconEpPlus from '~icons/ep/plus'
 import IconEpRefresh from '~icons/ep/refresh'
+import IconEpDelete from '~icons/ep/delete'
 import diagnostics from '@/api/diagnostics'
 import SystemUserActions from './actions/SystemUserActions.vue'
 import UserFormModal from './UserFormModal.vue'
@@ -155,7 +172,7 @@ const onUserSaved = () => {
 }
 
 // ============================================================================
-// УДАЛЕНИЕ / ВОССТАНОВЛЕНИЕ / СБРОС
+// УДАЛЕНИЕ / ВОССТАНОВЛЕНИЕ / БАН / СБРОС
 // catch-блоки БЕЗ ElMessage.error — интерцептор request.js уже показывает ошибку
 // ============================================================================
 
@@ -213,6 +230,43 @@ const handleRestore = async (user) => {
   }
 }
 
+/**
+ * Бонус-режим: окончательное удаление из корзины (force delete).
+ * Необратимо — модалка с type: 'error' и красной кнопкой подтверждения.
+ */
+const handleForceDelete = async (user) => {
+  try {
+    await ElMessageBox.confirm(
+        t('diagnostics.system_users.confirm_force_delete', { name: user.name }),
+        t('diagnostics.system_users.confirm_force_delete_title'),
+        {
+          confirmButtonText: t('diagnostics.actions.confirm'),
+          cancelButtonText: t('diagnostics.actions.cancel'),
+          type: 'error',
+          confirmButtonClass: 'el-button--danger'
+        }
+    )
+  } catch {
+    return // отмена
+  }
+
+  actionLoadingId.value = user.id
+  try {
+    await diagnostics.forceDeleteSystemUser(user.id)
+    ElMessage.success(t('diagnostics.system_users.message_force_delete_success'))
+    loadUsers()
+  } catch {
+    // Ошибка уже показана интерцептором request.js
+  } finally {
+    actionLoadingId.value = null
+  }
+}
+
+const handleBan = async (user) => {
+  // Задел на будущее. Кнопка disabled в SystemUserActions, сюда не попадём.
+  // Когда будет готов бэкенд — вызовем diagnostics.banSystemUser(user.id)
+}
+
 const handleReset = async () => {
   try {
     await ElMessageBox.confirm(
@@ -249,6 +303,11 @@ const handleReset = async () => {
     justify-content: space-between;
     margin-bottom: 14px;
 
+    .users-info {
+      display: flex;
+      align-items: center;
+    }
+
     .users-actions-top {
       display: flex;
       gap: 8px;
@@ -259,11 +318,59 @@ const handleReset = async () => {
     color: #909399;
   }
 
-  // Приглушённые строки удалённых пользователей
+  // Корзина: тег «Удалён» + круглая danger-кнопка в одну линию
+  .trashed-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  // Круглая danger-кнопка окончательного удаления
+  .force-delete-btn {
+    // Компактный размер, чтобы влезать в колонку 110px вместе с тегом
+    --el-button-size: 24px;
+
+    // Чуть мягче стандартного danger на строке, которая и так приглушённая
+    opacity: 0.85;
+    transition: opacity 0.2s, transform 0.15s;
+
+    &:hover {
+      opacity: 1;
+      transform: scale(1.1);
+    }
+
+    // Когда кнопка в loading — не прыгает
+    &:deep(.el-loading-spinner) {
+      margin-top: -8px;
+    }
+  }
+
+  // Иконка корзины: danger-красная, hover — темнее и чуть крупнее
+  .force-delete-icon {
+    color: #f56c6c;
+    cursor: pointer;
+    font-size: 14px;
+    transition: color 0.2s, transform 0.15s;
+
+    &:hover {
+      color: #c45656;
+      transform: scale(1.15);
+    }
+  }
+
+  // Приглушённые строки удалённых пользователей.
+  // ВАЖНО: без opacity — иначе fixed-колонка просвечивает при горизонтальном скролле
   :deep(.row-trashed) {
     td {
-      opacity: 0.6;
-      background-color: #fafafa;
+      background-color: #fafafa !important;
+      color: #909399 !important;
+    }
+
+    // Сплошной фон для зафиксированной колонки действий
+    td.el-table-fixed-column--right {
+      background-color: #ffffff !important;
+      box-shadow: -2px 0 8px rgba(0, 0, 0, 0.05);
     }
   }
 }

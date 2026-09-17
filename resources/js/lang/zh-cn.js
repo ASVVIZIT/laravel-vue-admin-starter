@@ -1150,7 +1150,11 @@ export default {
       "message_reset_success": "系统用户已重置并重新创建",
       "tooltip_edit_trashed": "用户已删除 — 先恢复再编辑",
       "tooltip_delete_trashed": "用户已删除 — 使用「恢复」",
-      "tooltip_restore_alive": "用户是活动的 — 无需恢复"
+      "tooltip_restore_alive": "用户是活动的 — 无需恢复",
+      "tooltip_force_delete": "永久删除",
+      "confirm_force_delete": "用户 {name} 将被永久删除。此操作无法撤销。是否继续？",
+      "confirm_force_delete_title": "永久删除",
+      "message_force_delete_success": "用户已永久删除",
     },
     "help": {
       "main_title": "系统诊断",
@@ -1178,6 +1182,8 @@ export default {
       "edit": "编辑",
       "delete": "删除",
       "restore": "恢复",
+      "ban": "封禁",
+      "ban_user": "封禁用户",
       "simulate": "模拟",
       "view": "查看",
       "cleanup": "清理",

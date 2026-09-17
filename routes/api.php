@@ -529,4 +529,8 @@ Route::prefix('diagnostics')
             ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
             ->whereNumber('id')
             ->name('system-users.restore');
+        Route::delete('/system-users/{id}/force', [DiagnosticController::class, 'forceDeleteSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.forceDestroy');
     });

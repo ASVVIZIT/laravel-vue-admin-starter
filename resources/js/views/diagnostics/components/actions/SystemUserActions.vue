@@ -1,75 +1,81 @@
 <template>
   <div class="system-user-actions">
-    <!-- Редактировать -->
     <ActionButton
-        type="primary"
-        :icon="IconEpEdit"
-        label-key="diagnostics.actions.edit"
-        :disabled="!canEdit"
-        :disabled-reason-key="editDisabledReason"
-        :loading="loading"
-        @click="emit('edit', user)"
-    />
-
-    <!-- Удалить -->
-    <ActionButton
-        type="danger"
-        :icon="IconEpDelete"
-        label-key="diagnostics.actions.delete"
-        :disabled="!canDelete"
-        :disabled-reason-key="deleteDisabledReason"
-        :loading="loading"
-        @click="emit('delete', user)"
-    />
-
-    <!-- Восстановить -->
-    <ActionButton
-        type="success"
-        :icon="IconEpRefreshLeft"
-        label-key="diagnostics.actions.restore"
-        :disabled="!canRestore"
-        :disabled-reason-key="restoreDisabledReason"
-        :loading="loading"
-        @click="emit('restore', user)"
+        v-for="(action, key) in actionsConfig"
+        :key="key"
+        :type="action.type"
+        :icon="action.icon"
+        :label-key="action.labelKey"
+        :disabled="action.disabled"
+        :disabled-reason-key="action.disabledReasonKey"
+        :loading="loading && activeAction === key"
+        :hide-label="action.hideLabel"
+        @click="handleAction(key, action.event)"
     />
   </div>
 </template>
 
 <script setup>
-// computed — авто-импорт (unplugin-auto-import)
+import { computed } from 'vue'
 import IconEpEdit from '~icons/ep/edit'
 import IconEpDelete from '~icons/ep/delete'
 import IconEpRefreshLeft from '~icons/ep/refresh-left'
+import IconEpLock from '~icons/ep/lock' // 🔥 Иконка для Бана
 import ActionButton from './ActionButton.vue'
 
 const props = defineProps({
   user: { type: Object, required: true },
-  // id обрабатываемой строки приходит из таблицы через проп loading
   loading: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['edit', 'delete', 'restore'])
+const emit = defineEmits(['edit', 'delete', 'restore', 'ban'])
 
-// Пользователь в корзине (soft-deleted)
 const isTrashed = computed(() => !!props.user.deleted_at)
 
-// Редактировать: нельзя, если удалён
-const canEdit = computed(() => !isTrashed.value)
-const editDisabledReason = computed(() =>
-    isTrashed.value ? 'diagnostics.system_users.tooltip_edit_trashed' : null
-)
+// 🔥 Единый конфиг кнопок действий
+const actionsConfig = computed(() => ({
+  edit: {
+    type: 'primary',
+    icon: IconEpEdit,
+    labelKey: 'diagnostics.actions.edit',
+    disabled: isTrashed.value,
+    disabledReasonKey: isTrashed.value ? 'diagnostics.system_users.tooltip_edit_trashed' : null,
+    event: 'edit'
+  },
+  delete: {
+    type: 'danger',
+    icon: IconEpDelete,
+    labelKey: 'diagnostics.actions.delete',
+    disabled: isTrashed.value,
+    disabledReasonKey: isTrashed.value ? 'diagnostics.system_users.tooltip_delete_trashed' : null,
+    event: 'delete'
+  },
+  restore: {
+    type: 'success',
+    icon: IconEpRefreshLeft,
+    labelKey: 'diagnostics.actions.restore',
+    disabled: !isTrashed.value,
+    disabledReasonKey: !isTrashed.value ? 'diagnostics.system_users.tooltip_restore_alive' : null,
+    event: 'restore'
+  },
+  ban: {
+    type: 'warning',
+    icon: IconEpLock,
+    labelKey: 'diagnostics.actions.ban',
+    disabled: true, // Пока нет бэкенда
+    disabledReasonKey: null,
+    tooltipKey: 'diagnostics.actions.ban_user', // 🔥 Реальное действие
+    event: 'ban',
+    hideLabel: false
+  }
+}))
 
-// Удалить: нельзя, если уже удалён
-const canDelete = computed(() => !isTrashed.value)
-const deleteDisabledReason = computed(() =>
-    isTrashed.value ? 'diagnostics.system_users.tooltip_delete_trashed' : null
-)
+const activeAction = computed(() => props.loading ? Object.keys(actionsConfig.value).find(key => actionsConfig.value[key].event === props.user._currentAction) : null)
 
-// Восстановить: можно только если удалён
-const canRestore = computed(() => isTrashed.value)
-const restoreDisabledReason = computed(() =>
-    !isTrashed.value ? 'diagnostics.system_users.tooltip_restore_alive' : null
-)
+const handleAction = (key, event) => {
+  // Можно добавить локальный лоадинг для конкретной кнопки, если нужно
+  emit(event, props.user)
+}
 </script>
 
 <style scoped lang="scss">
@@ -78,5 +84,16 @@ const restoreDisabledReason = computed(() =>
   align-items: center;
   justify-content: center;
   gap: 6px;
+
+  // 🔥 МЕДИА-ЗАПРОС: на экранах < 800px скрываем текст, оставляем только иконки
+  @media (max-width: 800px) {
+    :deep(.action-label) {
+      display: none !important;
+    }
+    :deep(.action-button) {
+      padding: 5px !important; // Делаем кнопку квадратной под размер иконки
+      min-width: 32px;
+    }
+  }
 }
 </style>

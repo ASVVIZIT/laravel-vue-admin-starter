@@ -55,5 +55,8 @@ export default {
     },
     restoreSystemUser(id) {
         return request({ url: `/diagnostics/system-users/${id}/restore`, method: 'post' })
+    },
+    forceDeleteSystemUser(id) {
+        return request({ url: `/diagnostics/system-users/${id}/force`, method: 'delete' })
     }
 }

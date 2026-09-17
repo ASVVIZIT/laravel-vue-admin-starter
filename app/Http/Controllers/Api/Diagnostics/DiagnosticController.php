@@ -464,6 +464,60 @@ class DiagnosticController extends BaseController
         }
     }
 
+    /**
+     * Окончательное удаление пользователя из корзины (force delete).
+     * Необратимо — запись удаляется из БД навсегда.
+     */
+    public function forceDeleteSystemUser(int $id): JsonResponse
+    {
+        if ($blocked = $this->guardEnabled()) {
+            return $blocked;
+        }
+
+        $user = User::withTrashed()->find($id);
+
+        if (!$user || !$user->is_system) {
+            return responseFailed('Пользователь не найден или не является системным', Response::HTTP_NOT_FOUND);
+        }
+
+        if (!$user->trashed()) {
+            return responseFailed('Пользователь не в корзине — используйте обычное удаление', Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        // Сохраняем данные для лога до удаления
+        $userData = [
+            'id' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+        ];
+
+        try {
+            $user->forceDelete();
+
+            Log::info('Диагностика: окончательное удаление системного пользователя', $userData);
+
+            return responseSuccess([
+                'id' => $userData['id'],
+                'message' => 'Пользователь удалён навсегда'
+            ]);
+        } catch (QueryException $e) {
+            return responseFailed(
+                'Ошибка базы данных при окончательном удалении: ' . $e->getMessage(),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        } catch (\Exception $e) {
+            Log::error('Диагностика: непредвиденная ошибка при force delete', [
+                'user_id' => $userData['id'],
+                'error' => $e->getMessage(),
+            ]);
+
+            return responseFailed(
+                'Непредвиденная ошибка при окончательном удалении: ' . $e->getMessage(),
+                Response::HTTP_INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
     // ========================================================================
     // ПРИВАТНЫЕ ХЕЛПЕРЫ
     // ========================================================================

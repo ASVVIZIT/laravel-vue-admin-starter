@@ -1169,7 +1169,11 @@ export default {
       "message_reset_success": "System users reset and recreated",
       "tooltip_edit_trashed": "User is deleted — restore first, then edit",
       "tooltip_delete_trashed": "User already deleted — use «Restore»",
-      "tooltip_restore_alive": "User is active — nothing to restore"
+      "tooltip_restore_alive": "User is active — nothing to restore",
+      "tooltip_force_delete": "Delete permanently",
+      "confirm_force_delete": "User {name} will be permanently deleted. This action cannot be undone. Continue?",
+      "confirm_force_delete_title": "Permanent deletion",
+      "message_force_delete_success": "User permanently deleted",
     },
     "help": {
       "main_title": "System Diagnostics",
@@ -1197,6 +1201,8 @@ export default {
       "edit": "Edit",
       "delete": "Delete",
       "restore": "Restore",
+      "ban": "Ban",
+      "ban_user": "Ban user",
       "simulate": "Simulate",
       "view": "View",
       "cleanup": "Cleanup",
