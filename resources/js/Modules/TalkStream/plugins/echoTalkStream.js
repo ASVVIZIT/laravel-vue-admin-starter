@@ -43,22 +43,19 @@ export function createEcho() {
         // Получение CSRF токена
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
-        // Используем текущий хост из URL вместо .env переменных
-        const currentHost = window.location.hostname;
-        const isSecure = window.location.protocol === 'https:';
-
         const configEcho = {
             broadcaster: 'reverb',
             key: import.meta.env.VITE_REVERB_APP_KEY,
-            wsHost: 'fenixlaravel.loc',    // ✅ Здесь должно быть 94.41.87.10
-            wsPort: window.location.port || (isSecure ? 443 : 80), // Автопорт
-            wssPort: window.location.port || (isSecure ? 443 : 80),
-            scheme: isSecure ? 'wss' : 'ws',
-            authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/api/broadcasting/auth',
-            wsPath: import.meta.env.VITE_REVERB_PATH || '/reverb',
-            forceTLS: isSecure,
+            wsHost: import.meta.env.VITE_REVERB_HOST || '94.41.87.10',
+            wsPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            wssPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            scheme: import.meta.env.VITE_REVERB_SCHEME || 'ws',
+            authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/broadcasting/auth',
+            wsPath: import.meta.env.VITE_REVERB_PATH || '',
+            forceTLS: false,                    // ← ВАЖНО: отключаем TLS
             disableStats: true,
-            enabledTransports: ['ws'],
+            enabledTransports: ['ws'],          // ← КРИТИЧНО: ТОЛЬКО ws, БЕЗ wss
+            disabledTransports: ['wss'],        // ← Явно запрещаем wss
             withCredentials: true,
             auth: {
                 headers: {
@@ -67,28 +64,30 @@ export function createEcho() {
                     'X-Requested-With': 'XMLHttpRequest',
                     'X-CSRF-TOKEN': csrfToken,
                 },
-                withCredentials: true,
             },
-            /*options: {
-                auth: {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Authorization': `Bearer ${token}`,
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'X-CSRF-TOKEN': csrfToken,
-                    },
-                    withCredentials: true,
-                }
-            }*/
         };
 
         log.debug('Конфигурация Echo:', configEcho);
+        log.info(`Подключение к: ${configEcho.scheme}://${configEcho.wsHost}:${configEcho.wsPort}${configEcho.wsPath}`);
 
         echoInstance = new Echo(configEcho);
 
         // Обработчик ошибок
         echoInstance.connector.pusher.connection.bind('error', err => {
             log.error('Ошибка подключения Pusher:', err);
+        });
+
+        // Обработчик состояния соединения
+        echoInstance.connector.pusher.connection.bind('state_change', states => {
+            log.debug('Состояние соединения:', states.current);
+        });
+
+        echoInstance.connector.pusher.connection.bind('connected', () => {
+            log.info('✅ WebSocket подключен успешно!');
+        });
+
+        echoInstance.connector.pusher.connection.bind('disconnected', () => {
+            log.warn('⚠️ WebSocket отключен');
         });
 
         log.info('Экземпляр Echo успешно создан');
@@ -111,7 +110,6 @@ export function updateEchoToken(newToken) {
         log.info('Обновление токена авторизации');
 
         // Обновляем токен во всех местах
-        //echoInstance.options.auth.headers.Authorization = `Bearer ${newToken}`;
         echoInstance.options.auth.headers.Authorization = `Bearer ${newToken}`;
         echoInstance.options.auth.headers['X-Requested-With'] = `XMLHttpRequest`;
         axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;

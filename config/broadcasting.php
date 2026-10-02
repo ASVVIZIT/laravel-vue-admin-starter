@@ -48,15 +48,11 @@ return [
             'secret' => env('REVERB_APP_SECRET'),
             'app_id' => env('REVERB_APP_ID'),
             'options' => [
-                'host' => env('REVERB_HOST', '0.0.0.0'),
-                'port' => env('REVERB_PORT', 443),
-                'scheme' => env('REVERB_SCHEME', 'http'),
-                'useTLS' => env('REVERB_SCHEME') === 'https',
-                'timeout' => 0.1,
-
+                'host' => '127.0.0.1',  // PHP стучится в Reverb локально
+                'port' => 8080,         // Порт, который слушает Reverb
+                'scheme' => 'http',     // PHP использует HTTP API (не ws://)
+                'useTLS' => false,
             ],
-            'enableCrypto' => false,
-            'authEndpoint' => '/api/broadcasting/auth',
         ],
 
         'ably' => [

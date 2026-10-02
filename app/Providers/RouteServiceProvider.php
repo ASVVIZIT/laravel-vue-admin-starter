@@ -47,10 +47,6 @@ class RouteServiceProvider extends ServiceProvider
                 ->namespace($this->namespace)
                 ->group(base_path('routes/web.php'));
         });
-        // RouteServiceProvider.php
-        Route::post('/broadcasting/auth', [BroadcastController::class, 'authenticate'])
-            ->middleware(['auth:sanctum'])
-            ->name('broadcast.auth');
     }
 
     /**

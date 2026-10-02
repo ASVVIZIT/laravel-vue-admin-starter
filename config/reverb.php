@@ -1,31 +1,41 @@
 <?php
 
 return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Reverb Server
+    |--------------------------------------------------------------------------
+    */
+
     'default' => env('REVERB_SERVER', 'reverb'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Reverb Servers
+    |--------------------------------------------------------------------------
+    */
+
     'servers' => [
-        'websockets' => [
-            'logger' => [
-                'channel' => 'single',
-                'level' => 'debug',
-            ],
-        ],
+
         'reverb' => [
             'host' => env('REVERB_SERVER_HOST', '0.0.0.0'),
-            'port' => env('REVERB_SERVER_PORT', 8080), // Используем порт
-            'path' => env('REVERB_SERVER_PATH', '/reverb'), // Добавляем путь /reverb
-            'hostname' => env('REVERB_HOST', '94.41.87.10'), // Ваш внешний IP
-            'allowed_origins' => ['*'],
+            'port' => env('REVERB_SERVER_PORT', 8080),
+            'path' => env('REVERB_SERVER_PATH', '/reverb'),
+            'hostname' => env('REVERB_HOST', 'localhost'),
             'options' => [
+                'host' => env('REVERB_HOST', '127.0.0.1'),
+                'port' => env('REVERB_PORT', 8080),
+                'scheme' => env('REVERB_SCHEME', 'http'),
                 'tls' => [],
-                'transport' => 'tcp',
-                'path' => '/reverb',
-                'allowed_origins' => ['*']
             ],
+            'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
+            'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
+            'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
             'max_request_size' => env('REVERB_MAX_REQUEST_SIZE', 10_000),
             'scaling' => [
                 'enabled' => env('REVERB_SCALING_ENABLED', false),
-                'channel' => env('REVERB_SCALING_CHANNEL', 'ws'),
+                'channel' => env('REVERB_SCALING_CHANNEL', 'reverb'),
                 'server' => [
                     'url' => env('REDIS_URL'),
                     'host' => env('REDIS_HOST', '127.0.0.1'),
@@ -39,28 +49,32 @@ return [
             'pulse_ingest_interval' => env('REVERB_PULSE_INGEST_INTERVAL', 15),
             'telescope_ingest_interval' => env('REVERB_TELESCOPE_INGEST_INTERVAL', 15),
         ],
+
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Reverb Applications
+    |--------------------------------------------------------------------------
+    */
 
     'apps' => [
         'provider' => 'config',
 
         'apps' => [
             [
-                'id' => env('REVERB_APP_ID', 'talkstream_app'),
                 'key' => env('REVERB_APP_KEY'),
                 'secret' => env('REVERB_APP_SECRET'),
-                'app_id' => env('REVERB_APP_ID', 'talkstream_app'),
+                'app_id' => env('REVERB_APP_ID'),
                 'options' => [
-                    'host' => env('REVERB_HOST', '94.41.87.10'), // Ваш внешний IP
-                    'port' => env('REVERB_PORT', 8080),
-                    'scheme' => env('REVERB_SCHEME', 'http'), // HTTP схема
-                    'useTLS' => false, // Явно отключаем TLS
+                    'host' => env('REVERB_HOST', 'localhost'),
+                    'port' => env('REVERB_PORT', 443),
+                    'scheme' => env('REVERB_SCHEME', 'https'),
+                    'useTLS' => env('REVERB_SCHEME', 'https') === 'https',
                 ],
-                'allowed_origins' => ['*'], // Разрешаем все источники
-                'ping_interval' => env('REVERB_APP_PING_INTERVAL', 60),
-                'activity_timeout' => env('REVERB_APP_ACTIVITY_TIMEOUT', 30),
-                'max_message_size' => env('REVERB_APP_MAX_MESSAGE_SIZE', 10_000),
+                'capacity' => null,
             ],
         ],
     ],
+
 ];

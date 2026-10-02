@@ -450,9 +450,6 @@ Route::prefix('landing')->group(function () {
 // ============================================================================
 // 13. ОТЛАДОЧНЫЕ МАРШРУТЫ И BROADCASTING
 // ============================================================================
-Route::post('/broadcasting/auth', function (Request $request) {
-    return Broadcast::auth($request);
-})->middleware(['auth:sanctum']);
 
 Route::get('/debug/network', function(Request $request) {
     $dbConnected = false;
