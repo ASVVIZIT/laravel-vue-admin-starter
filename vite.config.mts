@@ -143,14 +143,14 @@ export default defineConfig(function({ mode }) {
             'process.version': null,
             'import.meta.env': {
                 ...env,
-                VITE_APP_HOST: JSON.stringify(process.env.VITE_APP_HOST),
-                VITE_REVERB_APP_KEY: JSON.stringify(process.env.VITE_REVERB_APP_KEY),
-                VITE_REVERB_HOST: JSON.stringify(process.env.VITE_REVERB_HOST),
-                VITE_REVERB_PORT: JSON.stringify(process.env.VITE_REVERB_PORT),
-                VITE_REVERB_SCHEME: JSON.stringify(process.env.VITE_REVERB_SCHEME),
-                VITE_REVERB_AUTH_ENDPOINT: JSON.stringify(process.env.VITE_REVERB_AUTH_ENDPOINT),
-                VITE_REVERB_PATH: JSON.stringify(process.env.VITE_REVERB_PATH),
-                VITE_SANCTUM_CSRF_ENDPOINT: JSON.stringify(process.env.VITE_SANCTUM_CSRF_ENDPOINT)
+                VITE_APP_HOST: JSON.stringify(env.VITE_APP_HOST),
+                VITE_REVERB_APP_KEY: JSON.stringify(env.VITE_REVERB_APP_KEY),
+                VITE_REVERB_HOST: JSON.stringify(env.VITE_REVERB_HOST),
+                VITE_REVERB_PORT: JSON.stringify(env.VITE_REVERB_PORT),
+                VITE_REVERB_SCHEME: JSON.stringify(env.VITE_REVERB_SCHEME),
+                VITE_REVERB_AUTH_ENDPOINT: JSON.stringify(env.VITE_REVERB_AUTH_ENDPOINT),
+                VITE_REVERB_PATH: JSON.stringify(env.VITE_REVERB_PATH),
+                VITE_SANCTUM_CSRF_ENDPOINT: JSON.stringify(env.VITE_SANCTUM_CSRF_ENDPOINT)
             }
         },
 

@@ -1,6 +1,7 @@
 import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 import logger from '@/modules/TalkStream/utils/logger'
 import { getToken } from '@utils/auth.js'
 import { userStore } from '@/store/userStore'
@@ -41,22 +42,28 @@ export function createEcho() {
         window.axios.defaults.withCredentials = true
 
         // Получение CSRF токена
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-
+        const csrfToken = Cookies.get('XSRF-TOKEN') || document.querySelector('meta[name="csrf-token"]')?.content || '';
+        // Для отладки (можно будет убрать потом)
+        console.log('🔍 CSRF для Echo:', csrfToken ? 'ЕСТЬ' : 'НЕТ');
+        console.log('🔍 Bearer для Echo:', token ? 'ЕСТЬ' : 'НЕТ');
         const configEcho = {
             broadcaster: 'reverb',
             key: import.meta.env.VITE_REVERB_APP_KEY,
             wsHost: import.meta.env.VITE_REVERB_HOST || '94.41.87.10',
             wsPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
             wssPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            cluster: '',
+            wsPath: import.meta.env.VITE_REVERB_PATH || '',
             scheme: import.meta.env.VITE_REVERB_SCHEME || 'ws',
             authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/broadcasting/auth',
-            wsPath: import.meta.env.VITE_REVERB_PATH || '',
-            forceTLS: false,                    // ← ВАЖНО: отключаем TLS
+            forceTLS: false,
             disableStats: true,
-            enabledTransports: ['ws'],          // ← КРИТИЧНО: ТОЛЬКО ws, БЕЗ wss
-            disabledTransports: ['wss'],        // ← Явно запрещаем wss
+            enabledTransports: ['ws'],
+            disabledTransports: ['wss'],
             withCredentials: true,
+            activityTimeout: 30000,   // 30 сек до разрыва при неактивности
+            pongTimeout: 25000,       // 25 сек на ответ ping
+            maxReconnectAttempts: 3,  // Ограничиваем шторм
             auth: {
                 headers: {
                     'Accept': 'application/json',
@@ -67,7 +74,7 @@ export function createEcho() {
             },
         };
 
-        log.debug('Конфигурация Echo:', configEcho);
+        log.info('Конфигурация Echo:', configEcho);
         log.info(`Подключение к: ${configEcho.scheme}://${configEcho.wsHost}:${configEcho.wsPort}${configEcho.wsPath}`);
 
         echoInstance = new Echo(configEcho);
