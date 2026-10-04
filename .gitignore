@@ -39,3 +39,5 @@ composer.lock
 /dynamic_tables_dump_simple.txt
 /dynamic_tables_dump_fast.txt
 /logs/
+
+/tools/reports/
