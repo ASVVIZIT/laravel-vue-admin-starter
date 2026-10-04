@@ -40,4 +40,9 @@ composer.lock
 /dynamic_tables_dump_fast.txt
 /logs/
 
-/tools/reports/
+# Reports - игнорируем всё кроме LATEST
+/tools/reports/TALKSTREAM_AUDIT_*.txt
+!/tools/reports/TALKSTREAM_AUDIT_LATEST.txt
+
+# Snapshots - отслеживаем (для истории рефакторинга)
+!/tools/snapshots/

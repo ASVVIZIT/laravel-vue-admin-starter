@@ -1,23 +1,32 @@
 ﻿<#
 .SYNOPSIS
-    Аудит TalkStream v2: прогресс-бар, живая статистика, отчёт в tools\reports\.
+    Аудит TalkStream v3: прогресс-бар, живая статистика, кастомная метка (Label).
 .DESCRIPTION
     Секции отчёта:
-      1. Дерево модуля
+      1. Дерево файлов фронтенд- и бэкенд-частей модуля
       2. FRONTEND  — полные исходники
       3. BACKEND   — контроллеры / события / модели / сервисы
       4. INFRA     — channels.php, api.php, BroadcastServiceProvider, broadcasting.php, talkstream.php
       5. MIGRATIONS— миграции talk/message/friend/call
       6. ПРОВЕРКИ  — Requests / Resources / Policies / Services / config
       7. ИТОГИ     — статистика по секциям + список отсутствующих файлов
+.PARAMETER Root
+    Корень проекта (по умолчанию FenixPortal)
+.PARAMETER Label
+    Опциональная метка для имени файла (например: "Level_1", "Phase_Config"). Добавляется в имя перед датой.
+.PARAMETER OutFile
+    Полный путь к файлу (если не указан, генерируется автоматически в tools/reports/)
 .PARAMETER NoPause
     Не ждать Enter в конце (для CI/автоматизации)
 .EXAMPLE
-    powershell -ExecutionPolicy Bypass -File tools\Collect-TalkStreamAudit.ps1
+    powershell -ExecutionPolicy Bypass -File tools\Collect-TalkStreamAudit.ps1 -Label "Level_1"
+.EXAMPLE
+    .\Collect-TalkStreamAudit.ps1 -Label "Phase_Frontend_Core"
 #>
 [CmdletBinding()]
 param(
     [string]$Root    = "W:\OpenServer\domains\Laravel\Other\FenixPortal",
+    [string]$Label   = "",
     [string]$OutFile = "",
     [switch]$NoPause
 )
@@ -28,9 +37,12 @@ $sw0 = Get-Date
 # ========== ПАПКА ОТЧЁТОВ ==========
 $reportDir = Join-Path $Root "tools\reports"
 if (-not (Test-Path $reportDir)) { New-Item -ItemType Directory -Path $reportDir -Force | Out-Null }
+
+# ========== ФОРМИРОВАНИЕ ИМЕНИ ФАЙЛА ==========
 if (-not $OutFile) {
-    $stamp   = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
-    $OutFile = Join-Path $reportDir ("TALKSTREAM_AUDIT_" + $stamp + ".txt")
+    $stamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+    $safeLabel = if ($Label) { ($Label -replace '\s+', '_') + "_" } else { "" }
+    $OutFile = Join-Path $reportDir ("TALKSTREAM_AUDIT_" + $safeLabel + $stamp + ".txt")
 }
 
 # ========== СЧЁТЧИКИ ==========
@@ -54,7 +66,6 @@ function Write-Banner([string]$t) {
 }
 
 function Open-Section([string]$key) {
-    # закрыть предыдущую секцию строкой в консоли
     if ($script:currentSection -and $script:secStats.Contains($script:currentSection)) {
         $p = $script:secStats[$script:currentSection]
         Write-Host ("   ✔ {0,-12} файлов: {1,3} | строк: {2,6} | {3,8} КБ | нет: {4}" -f `
@@ -87,16 +98,17 @@ function Add-FileToReport([string]$absPath) {
 }
 
 # ========== ШАПКА ОТЧЁТА ==========
-Write-Line ("=" * 100); Write-Line "TALKSTREAM AUDIT DUMP (v2)"
+Write-Line ("=" * 100); Write-Line "TALKSTREAM AUDIT DUMP (v3)"
 Write-Line ("Дата : " + (Get-Date -Format "yyyy-MM-dd HH:mm:ss"))
 Write-Line ("Root : " + $Root)
+if ($Label) { Write-Line ("Label: " + $Label) }
 try { $phpVer = (php -v 2>$null | Select-Object -First 1) } catch { $phpVer = "n/a" }
 Write-Line ("PHP  : " + $phpVer)
 Write-Line ("=" * 100)
 
 Write-Host ""
 Write-Host "╔══════════════════════════════════════════════╗" -ForegroundColor Magenta
-Write-Host "║   TALKSTREAM AUDIT v2 — сбор отчёта          ║" -ForegroundColor Magenta
+Write-Host "║   TALKSTREAM AUDIT v3 — сбор отчёта          ║" -ForegroundColor Magenta
 Write-Host "╚══════════════════════════════════════════════╝" -ForegroundColor Magenta
 
 # ========== СЕКЦИЯ 1: ДЕРЕВО ==========
@@ -164,7 +176,7 @@ for ($i = 0; $i -lt $total; $i++) {
     Add-FileToReport $job.Path
 }
 Write-Progress -Activity "Аудит TalkStream: сбор файлов в отчёт" -Completed
-if ($script:currentSection) {   # закрыть последнюю секцию
+if ($script:currentSection) {
     $p = $script:secStats[$script:currentSection]
     Write-Host ("   ✔ {0,-12} файлов: {1,3} | строк: {2,6} | {3,8} КБ | нет: {4}" -f `
         $script:currentSection, $p.Files, $p.Lines, [math]::Round($p.Bytes / 1KB, 1), $p.Missing) -ForegroundColor DarkGray
@@ -224,7 +236,8 @@ if ($script:missingList.Count) {
     Write-Host (" Отсутствуют файлы ({0}):" -f $script:missingList.Count) -ForegroundColor Yellow
     $script:missingList | ForEach-Object { Write-Host ("   - " + $_) -ForegroundColor Yellow }
 }
-Write-Host (" Время: {0:N1} с" -f $elapsed) -ForegroundColor Gray
+Write-Host (" Метка : " + $(if($Label){$Label}else{"(нет)"})) -ForegroundColor Magenta
+Write-Host (" Время : {0:N1} с" -f $elapsed) -ForegroundColor Gray
 Write-Host (" Отчёт : " + $OutFile) -ForegroundColor Green
 Write-Host (" Latest: " + $latest) -ForegroundColor Cyan
 Write-Host ("=" * 78) -ForegroundColor Cyan

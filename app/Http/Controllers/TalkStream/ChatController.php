@@ -3,59 +3,34 @@ namespace App\Http\Controllers\TalkStream;
 
 use App\Events\TalkStream\MessageRead;
 use App\Events\TalkStream\NewMessage;
+use App\Http\Requests\TalkStream\SendMessageRequest;
 use App\Http\Controllers\Controller;
 use App\Models\TalkStream\FriendRequest;
 use App\Models\TalkStream\Message;
+use App\Services\TalkStream\MessageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class ChatController extends Controller
 {
-    public function sendMessage(Request $request)
+    public function __construct(
+        protected MessageService $messageService
+    ) {}
+    public function sendMessage(SendMessageRequest $request)
     {
-        $userId = auth()->id();
+        try {
+            $message = $this->messageService->create(
+                auth()->id(),
+                $request->validated('to_id'),
+                $request->validated('content')
+            );
 
-        $validator = Validator::make($request->all(), [
-            'content' => 'required|string',
-            'to_id' => 'required|exists:users,id',
-            'type' => 'sometimes|string|in:text,image,video,audio,file',  // ✅ опционально
-        ]);
+            return responseSuccess($message, 'Message sent');
 
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
+        } catch (\Exception $e) {
+            return responseFailed($e->getMessage(), 403);
         }
-
-        $to_id = $request->input('to_id');
-
-        if (!FriendRequest::areFriends($userId, $to_id)) {
-            return response()->json(['error' => 'Вы можете писать только друзьям'], 403);
-        }
-
-        $message = Message::create([
-            'from_id' => $userId,
-            'to_id' => $to_id,
-            'content' => $request->input('content'),
-            'type' => $request->input('type', 'text'),  // ✅ ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
-        ]);
-
-        // Загружаем sender для broadcast
-        $message->load('sender:id,name,avatar');
-
-        event(new NewMessage([
-            'id' => $message->id,
-            'from_id' => $message->from_id,
-            'to_id' => $message->to_id,
-            'content' => $message->content,
-            'type' => $message->type,
-            'created_at' => $message->created_at->toISOString(),
-            'sender' => $message->sender,
-        ]));
-
-        return response()->json([
-            'status' => 'Message sent',
-            'data' => $message
-        ]);
     }
 
     public function getHistory(Request $request, $userId)
