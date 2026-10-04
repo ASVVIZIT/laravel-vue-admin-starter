@@ -18,7 +18,8 @@ class ChatController extends Controller
 
         $validator = Validator::make($request->all(), [
             'content' => 'required|string',
-            'to_id' => 'required|exists:users,id'
+            'to_id' => 'required|exists:users,id',
+            'type' => 'sometimes|string|in:text,image,video,audio,file',  // ✅ опционально
         ]);
 
         if ($validator->fails()) {
@@ -34,17 +35,27 @@ class ChatController extends Controller
         $message = Message::create([
             'from_id' => $userId,
             'to_id' => $to_id,
-            'content' => $request->input('content')
+            'content' => $request->input('content'),
+            'type' => $request->input('type', 'text'),  // ✅ ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
         ]);
 
+        // Загружаем sender для broadcast
+        $message->load('sender:id,name,avatar');
+
         event(new NewMessage([
+            'id' => $message->id,
             'from_id' => $message->from_id,
             'to_id' => $message->to_id,
             'content' => $message->content,
-            'id' => $message->id
+            'type' => $message->type,
+            'created_at' => $message->created_at->toISOString(),
+            'sender' => $message->sender,
         ]));
 
-        return response()->json(['status' => 'Message sent','data' => $message]);
+        return response()->json([
+            'status' => 'Message sent',
+            'data' => $message
+        ]);
     }
 
     public function getHistory(Request $request, $userId)

@@ -10,12 +10,13 @@ class Message extends Model
 {
     protected $table = 'messages';
 
-    protected $fillable = ['from_id', 'to_id', 'content', 'read_at'];
+    // ✅ ДОБАВЛЕНО 'type'
+    protected $fillable = ['from_id', 'to_id', 'content', 'type', 'read_at'];
+
     protected $casts = [
         'read_at' => 'datetime',
     ];
 
-    // Добавляем аксессор в массив модели
     protected $appends = ['formatted_created_at'];
 
     public function sender()
@@ -28,17 +29,14 @@ class Message extends Model
         return $this->belongsTo(User::class, 'to_id');
     }
 
-    /**
-     * Геттер для форматированной даты создания
-     *
-     * @return Attribute
-     */
     protected function formattedCreatedAt(): Attribute
     {
         return Attribute::make(
             get: function () {
+                if (!$this->created_at) return '';
+
+                $date = Carbon::parse($this->created_at);
                 $now = Carbon::now();
-                $date = $this->created_at;
 
                 if ($date->isToday()) {
                     return $date->format('H:i');

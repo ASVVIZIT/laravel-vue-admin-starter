@@ -27,11 +27,12 @@ class FriendRequest extends Model
     public static function areFriends(int $userId, int $friendId): bool
     {
         return self::where(function ($query) use ($userId, $friendId) {
+            // Пользователь X отправил запрос Y, и он принят
             $query->where('user_id', $userId)
                 ->where('friend_id', $friendId)
-                ->where('accepted', true)
-                ->orWhere('declined', true);
+                ->where('accepted', true);
         })->orWhere(function ($query) use ($userId, $friendId) {
+            // Пользователь Y отправил запрос X, и он принят
             $query->where('user_id', $friendId)
                 ->where('friend_id', $userId)
                 ->where('accepted', true);
