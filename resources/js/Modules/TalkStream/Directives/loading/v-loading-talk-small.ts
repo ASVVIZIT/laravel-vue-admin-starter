@@ -20,8 +20,11 @@ export default {
         const background = binding.value?.background || 'rgba(255, 255, 255, 0.85)'
 
         // Настраиваем стили контейнера
+        // 🔥 P0-ФИКС прокрутки: НЕ пишем хосту el.style.overflow='hidden'
+        // (см. подробный комментарий в v-loading-talk.ts). Инлайн overflow:hidden
+        // на хосте навсегда перебивал overflow-y:auto у скроллящихся контейнеров.
+        // position:relative оставляем — он нужен абсолютному оверлею и скролл не ломает.
         el.style.position = 'relative'
-        el.style.overflow = 'hidden'
 
         const container = document.createElement('div')
         container.className = 'loading-directive-container'
@@ -30,7 +33,10 @@ export default {
             zIndex: '9999', display: 'flex', justifyContent: 'center', alignItems: 'center',
             backgroundColor: background, pointerEvents: 'none', userSelect: 'none',
             opacity: '0', transition: 'opacity 0.3s ease', backdropFilter: 'blur(2px)',
-            webkitBackdropFilter: 'blur(2px)', borderRadius: '8px'
+            webkitBackdropFilter: 'blur(2px)', borderRadius: '8px',
+            // 🔥 P0: клип скругления оверлея перенесён С ХОСТА на сам оверлей —
+            // скролл хоста больше не глушится, а оверлей остаётся аккуратным.
+            overflow: 'hidden'
         })
 
         el.appendChild(container)

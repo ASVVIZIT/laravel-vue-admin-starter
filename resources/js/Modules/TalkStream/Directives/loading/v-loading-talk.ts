@@ -15,8 +15,13 @@ export default {
         const text = binding.value?.text || binding.value || 'Загрузка...'
         const background = binding.value?.background || 'rgba(255, 255, 255, 0.85)'
 
+        // 🔥 P0-ФИКС прокрутки: НЕ пишем хосту el.style.overflow='hidden'.
+        // Раньше эта строка вешала на хост инлайн overflow:hidden навсегда
+        // (unmounted его не восстанавливал), что перебивало overflow-y:auto у
+        // скроллящихся контейнеров — список контактов (.contacts-wrap) терял
+        // вертикальный скролл. position:relative оставляем: он нужен абсолютному
+        // оверлею и скролл не ломает.
         el.style.position = 'relative'
-        el.style.overflow = 'hidden'
 
         const container = document.createElement('div')
         container.className = 'loading-directive-container'
@@ -25,7 +30,12 @@ export default {
             zIndex: '9999', display: 'flex', justifyContent: 'center', alignItems: 'center',
             backgroundColor: background, pointerEvents: 'none', userSelect: 'none',
             opacity: '0', transition: 'opacity 0.3s ease', backdropFilter: 'blur(2px)',
-            webkitBackdropFilter: 'blur(2px)', borderRadius: '8px'
+            webkitBackdropFilter: 'blur(2px)', borderRadius: '8px',
+            // 🔥 P0: клип скругления оверлея перенесён С ХОСТА на сам оверлей.
+            // Так оверлей по-прежнему аккуратно обрезается по своим borderRadius
+            // (включая будущие хосты с border-radius), но скролл хоста больше
+            // не глушится никогда.
+            overflow: 'hidden'
         })
 
         el.appendChild(container)
