@@ -2,20 +2,31 @@ import Echo from 'laravel-echo'
 import Pusher from 'pusher-js'
 import axios from 'axios'
 import Cookies from 'js-cookie'
-import { getToken } from '@utils/auth.js'
+import { getToken } from '@/utils/auth'
+import type { Options as PusherOptions } from 'pusher-js'
 
 // Pusher должен быть доступен глобально для laravel-echo
-window.Pusher = Pusher
-
-let echoInstance = null
-
-const log = {
-    info: (...args) => console.log('[Echo]', ...args),
-    warn: (...args) => console.warn('[Echo]', ...args),
-    error: (...args) => console.error('[Echo]', ...args),
+declare global {
+    interface Window {
+        Pusher: typeof Pusher
+        Echo: Echo | null
+        axios?: typeof axios
+        getEchoInstance?: () => Echo | null
+        disconnectEcho?: () => void
+    }
 }
 
-export function createEcho() {
+window.Pusher = Pusher
+
+let echoInstance: Echo | null = null
+
+const log = {
+    info: (...args: unknown[]): void => console.log('[Echo]', ...args),
+    warn: (...args: unknown[]): void => console.warn('[Echo]', ...args),
+    error: (...args: unknown[]): void => console.error('[Echo]', ...args),
+}
+
+export function createEcho(): Echo | null {
     const token = getToken()
 
     if (!token) {
@@ -44,7 +55,7 @@ export function createEcho() {
             document.querySelector('meta[name="csrf-token"]')?.content ||
             ''
 
-        const config = {
+        const config: PusherOptions = {
             broadcaster: 'reverb',
             key: import.meta.env.VITE_REVERB_APP_KEY,
             wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
@@ -77,7 +88,7 @@ export function createEcho() {
         // Глобальный доступ для хендлеров подписок
         window.Echo = echoInstance
 
-        echoInstance.connector.pusher.connection.bind('error', (err) => {
+        echoInstance.connector.pusher.connection.bind('error', (err: unknown) => {
             log.error('Ошибка Pusher:', err)
         })
 
@@ -90,50 +101,60 @@ export function createEcho() {
         })
 
         return echoInstance
-    } catch (e) {
-        log.error('Критическая ошибка при создании Echo:', e)
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Критическая ошибка при создании Echo:', errorMessage)
         return null
     }
 }
 
-export function updateEchoToken(newToken) {
+export function updateEchoToken(newToken: string): Echo | null {
     if (!echoInstance) return createEcho()
 
     try {
-        echoInstance.options.auth.headers.Authorization = `Bearer ${newToken}`
+        if (echoInstance.options?.auth?.headers) {
+            (echoInstance.options.auth.headers as Record<string, string>).Authorization = `Bearer ${newToken}`
+        }
+
         axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-        if (window.axios) window.axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+        if (window.axios) {
+            window.axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+        }
 
         const wasConnected = echoInstance.connector?.pusher?.connection?.state === 'connected'
         echoInstance.disconnect()
 
         if (wasConnected) {
-            setTimeout(() => echoInstance.connect(), 1500)
+            setTimeout(() => echoInstance?.connect(), 1500)
         }
 
         return echoInstance
-    } catch (e) {
-        log.error('Ошибка при обновлении токена:', e)
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Ошибка при обновлении токена:', errorMessage)
         return null
     }
 }
 
-export function getEchoInstance() {
+export function getEchoInstance(): Echo | null {
     return echoInstance
 }
 
-export function disconnectEcho() {
+export function disconnectEcho(): void {
     if (!echoInstance) return
 
     try {
         echoInstance.disconnect()
         log.info('Соединение закрыто')
-    } catch (e) {
-        log.error('Ошибка при отключении:', e)
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Ошибка при отключении:', errorMessage)
     } finally {
         echoInstance = null
         window.Echo = null
-        delete axios.defaults.headers.common['Authorization']
+        if (axios.defaults.headers.common) {
+            delete axios.defaults.headers.common['Authorization']
+        }
     }
 }
 

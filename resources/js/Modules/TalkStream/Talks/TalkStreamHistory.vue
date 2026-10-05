@@ -49,22 +49,35 @@
   </div>
 </template>
 
-<script setup>
-import { defineProps, ref, defineExpose, watch, onMounted, onBeforeUnmount, computed } from 'vue'
-
+<script setup lang="ts">
+import { ref, defineExpose, watch, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
+import type { Message, Contact, User } from '@/modules/TalkStream/types'
 import ScrollDownButtonIcon from '@/modules/TalkStream/Components/Icons/ScrollDownButtonIcon.vue'
 import MessageGroup from '@/modules/TalkStream/Components/MessageGroup.vue'
 import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
 
-const props = defineProps(['userFrom', 'contact', 'messages', 'isOnline'])
+// ✅ 1. Строгая типизация props
+const props = defineProps<{
+  userFrom: User | null
+  contact: Contact | null
+  messages: Message[]
+  isOnline: boolean
+}>()
 
-const historyContainer = ref(null)
-const showScrollButton = ref(false)
-const scrollTimeout = ref(null)
+// ✅ 2. Строгая типизация refs (HTMLElement для DOM, ReturnType для setTimeout)
+const historyContainer = ref<HTMLElement | null>(null)
+const showScrollButton = ref<boolean>(false)
+const scrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 
-const groupedMessages = computed(() => {
-  const groups = []
-  let currentGroup = null
+// ✅ 3. Интерфейс для сгруппированных сообщений
+interface GroupedMessage {
+  from_id: number
+  messages: Message[]
+}
+
+const groupedMessages = computed<GroupedMessage[]>(() => {
+  const groups: GroupedMessage[] = []
+  let currentGroup: GroupedMessage | null = null
 
   props.messages.forEach((msg) => {
     if (!currentGroup || msg.from_id !== currentGroup.from_id) {
@@ -81,17 +94,18 @@ const groupedMessages = computed(() => {
   return groups
 })
 
-function smoothScrollTo(element, to, duration) {
+// ✅ 4. Строгая типизация параметров функции скролла
+function smoothScrollTo(element: HTMLElement, to: number, duration: number): void {
   const start = element.scrollTop
   const change = to - start
   let currentTime = 0
   const increment = Math.min(Math.max(duration / 20, 10), 20)
 
-  function easeInOut(t) {
+  function easeInOut(t: number): number {
     return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
   }
 
-  function animateScroll() {
+  function animateScroll(): void {
     currentTime += increment
     const val = easeInOut(currentTime / duration) * change + start
     element.scrollTop = val
@@ -105,17 +119,18 @@ function smoothScrollTo(element, to, duration) {
   animateScroll()
 }
 
-const scrollToBottom = (duration = 300) => {
-  if (!historyContainer.value) return
-
+const scrollToBottom = (duration: number = 300): void => {
   const container = historyContainer.value
+  if (!container) return
+
   const targetScrollTop = container.scrollHeight - container.clientHeight
   smoothScrollTo(container, targetScrollTop, duration)
   showScrollButton.value = false
 }
 
-const scrollToBottomAfterRender = (duration = 300) => {
-  if (!historyContainer.value) return
+const scrollToBottomAfterRender = (duration: number = 300): void => {
+  const container = historyContainer.value
+  if (!container) return
 
   if (scrollTimeout.value) {
     clearTimeout(scrollTimeout.value)
@@ -127,28 +142,31 @@ const scrollToBottomAfterRender = (duration = 300) => {
   }, 50)
 }
 
-const checkScrollPosition = () => {
-  if (!historyContainer.value) return
+const checkScrollPosition = (): void => {
+  const container = historyContainer.value
+  if (!container) return
 
   const threshold = 100
   const isAtBottom =
-      historyContainer.value.scrollHeight -
-      historyContainer.value.scrollTop -
-      historyContainer.value.clientHeight <= threshold
+      container.scrollHeight -
+      container.scrollTop -
+      container.clientHeight <= threshold
 
   showScrollButton.value = !isAtBottom
 }
 
 watch(
     () => props.messages.length,
-    (newLength, oldLength) => {
+    (newLength: number, oldLength: number) => {
       if (newLength <= oldLength) return
-      if (!historyContainer.value) return
+
+      const container = historyContainer.value
+      if (!container) return
 
       const isAtBottom =
-          historyContainer.value.scrollHeight -
-          historyContainer.value.scrollTop -
-          historyContainer.value.clientHeight <= 100
+          container.scrollHeight -
+          container.scrollTop -
+          container.clientHeight <= 100
 
       if (isAtBottom) {
         scrollToBottomAfterRender(400)
@@ -167,13 +185,18 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (scrollTimeout.value) {
     clearTimeout(scrollTimeout.value)
+    scrollTimeout.value = null
   }
 })
 
-defineExpose({ scrollToBottom })
+// ✅ 5. Явное предоставление метода родителю
+defineExpose({
+  scrollToBottom
+})
 </script>
 
 <style lang="scss" scoped>
+/* Стили остаются без изменений, они валидны */
 .talkstream-history-container {
   flex: 1;
   position: relative;
@@ -184,7 +207,6 @@ defineExpose({ scrollToBottom })
   border-radius: 8px;
   box-shadow: inset 0 0 3px 2px #7bb0d9e8;
   background-color: rgb(46, 47, 52);
-  //background-color: #304156;
 }
 
 .spacer {

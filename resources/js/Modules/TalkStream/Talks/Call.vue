@@ -24,7 +24,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { useCallStore } from '@/modules/TalkStream/Stores/callStore'
+import { useCallStore } from '@modules/TalkStream/Stores/callStore'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import VideoCallScreen from '@/modules/TalkStream/Components/VideoCallScreen.vue'
 

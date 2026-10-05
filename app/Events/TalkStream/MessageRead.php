@@ -2,10 +2,10 @@
 
 namespace App\Events\TalkStream;
 
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\Channel;
 
 class MessageRead implements ShouldBroadcast
 {
@@ -13,13 +13,20 @@ class MessageRead implements ShouldBroadcast
 
     public function __construct(public array $message) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('chat.read.' . $this->message['from_id']);
+        return [
+            new PrivateChannel('chat.read.' . $this->message['from_id']),
+        ];
     }
 
     public function broadcastAs(): string
     {
         return 'MessageRead';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['message' => $this->message];
     }
 }

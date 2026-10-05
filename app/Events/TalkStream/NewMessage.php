@@ -16,7 +16,7 @@ class NewMessage implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->message['to_id']),  // клиент слушает 'user.X'
+            new PrivateChannel('user.' . $this->message['to_id']),
         ];
     }
 
@@ -24,7 +24,8 @@ class NewMessage implements ShouldBroadcast
     {
         return 'NewMessage';
     }
-    public function broadcastWith()
+
+    public function broadcastWith(): array
     {
         return ['message' => $this->message];
     }

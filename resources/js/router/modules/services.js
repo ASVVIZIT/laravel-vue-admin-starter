@@ -1,5 +1,5 @@
 import Layout from '@/layout/Layout.vue'
-import chatRoutes from '@/modules/TalkStream/Routes.js'
+import chatRoutes from '@modules/TalkStream/routes.ts'
 import videoRoutes from '@/modules/Video/Routes.js'
 
 const servicesRoutes = {
@@ -12,7 +12,7 @@ const servicesRoutes = {
         title: 'Services',
         description: 'Services description',
         elSvgIcon: 'Service',
-        permissions: ['view menu entity'],
+        permissions: ['view menu talkstream'],
     },
     children: [
         ...chatRoutes,

@@ -1,59 +1,79 @@
-// resources/js/Modules/TalkStream/Stores/contactStore.ts
-
 import { defineStore } from 'pinia'
-import { TalkStreamAPI } from '../api/talkstream'
-import type { Contact, User } from '../types'
-import { useUserStore } from '@/store/userStore'
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream'
+import type { Contact } from '@/modules/TalkStream/types'
 
 export const useContactStore = defineStore('contact', {
     state: () => ({
         contacts: [] as Contact[],
         selectedContact: null as Contact | null,
         onlineUsers: [] as number[],
-        loading: false
+        userFrom: null as Contact | null,
+        userId: null as number | null,
+        loading: false,
     }),
 
     actions: {
         /**
-         * Загрузка списка контактов
+         * Загрузка списка контактов с сервера
          */
-        async fetchContacts() {
+        async fetchContacts(): Promise<void> {
             this.loading = true
             try {
                 const response = await TalkStreamAPI.getContacts()
                 if (response.data) {
                     this.contacts = response.data
                 }
-            } catch (error) {
-                console.error('[ContactStore] Failed to fetch contacts:', error)
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[ContactStore] Failed to fetch contacts:', errorMessage)
             } finally {
                 this.loading = false
             }
         },
 
         /**
-         * Выбор контакта для чата
+         * Алиас для загрузки контактов
          */
-        selectContact(contact: Contact) {
+        async loadContacts(): Promise<void> {
+            return this.fetchContacts()
+        },
+
+        /**
+         * Выбор активного контакта
+         */
+        selectContact(contact: Contact | null): void {
             this.selectedContact = contact
-            try {
-                localStorage.setItem('selectedContactId', String(contact.id))
-            } catch (e) {
-                // ignore storage errors
+            if (contact) {
+                try {
+                    localStorage.setItem('selectedContactId', String(contact.id))
+                    localStorage.setItem('last-selected-contact', String(contact.id))
+                } catch (e) {
+                    // Игнорируем ошибки хранилища
+                }
             }
         },
 
         /**
-         * Проверка, онлайн ли пользователь
+         * Проверка онлайн-статуса пользователя
          */
-        isOnline(userId: number): boolean {
+        isOnline(userId: number | undefined | null): boolean {
+            if (!userId) return false
             return this.onlineUsers.includes(userId)
         },
 
         /**
-         * Обновление статуса онлайн (вызывается из Presence Handler)
+         * Проверка: является ли этот контакт текущим выбранным?
          */
-        updateUserOnline(userId: number, isOnline: boolean) {
+        isContactSelected(userId: number): boolean {
+            return this.selectedContact?.id === userId
+        },
+
+        /**
+         * Обновление онлайн-статуса пользователя
+         * @param userId ID пользователя
+         * @param isOnline Статус (true = онлайн, false = оффлайн)
+         */
+        updateUserOnline(userId: number, isOnline: boolean): void {
             if (isOnline) {
                 if (!this.onlineUsers.includes(userId)) {
                     this.onlineUsers.push(userId)
@@ -64,19 +84,76 @@ export const useContactStore = defineStore('contact', {
         },
 
         /**
-         * Очистка выбранного контакта
+         * Установить статус онлайн (алиас)
          */
-        clearSelection() {
+        setOnline(userId: number): void {
+            this.updateUserOnline(userId, true)
+        },
+
+        /**
+         * Установить статус оффлайн (алиас)
+         */
+        setOffline(userId: number): void {
+            this.updateUserOnline(userId, false)
+        },
+
+        /**
+         * Обновление данных текущего пользователя (userFrom) из списка контактов
+         */
+        async refreshUserFrom(): Promise<void> {
+            try {
+                // Если контакты еще не загружены, загружаем их
+                if (this.contacts.length === 0) {
+                    await this.fetchContacts()
+                }
+
+                // Ищем себя в списке контактов
+                if (this.userId) {
+                    const me = this.contacts.find(c => c.id === this.userId)
+                    if (me) {
+                        this.userFrom = me
+                    }
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.warn('[ContactStore] refreshUserFrom failed:', errorMessage)
+            }
+        },
+
+        /**
+         * Сброс выбора контакта
+         */
+        clearSelection(): void {
             this.selectedContact = null
+        },
+
+        /**
+         * Полный сброс стора
+         */
+        reset(): void {
+            this.contacts = []
+            this.selectedContact = null
+            this.onlineUsers = []
+            this.userFrom = null
+            this.userId = null
+            this.loading = false
         }
     },
 
     getters: {
         /**
-         * Получить текущего выбранного собеседника
+         * Получить текущий активный контакт
          */
-        activeContact: (state): Contact | null => {
-            return state.selectedContact
-        }
+        activeContact: (state): Contact | null => state.selectedContact,
+
+        /**
+         * Количество контактов
+         */
+        contactsCount: (state): number => state.contacts.length,
+
+        /**
+         * Количество онлайн пользователей
+         */
+        onlineCount: (state): number => state.onlineUsers.length
     }
 })

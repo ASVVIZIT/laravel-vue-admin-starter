@@ -37,16 +37,16 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem'
 import { userStore } from '@/store/userStore'
 import { setupUserOnlinePresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
-import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
+import { setupFriendRequestsChannel } from '@modules/TalkStream/Subscriptions/friendshipEventsHandler.js'
 
 const router = useRouter()
 const route = useRoute()
 const contactStore = useContactStore()
-const useFriendStore = friendStore()
+const friendStore = useFriendStore()
 const useUserStore = userStore()
 
 const contacts = ref([])
@@ -74,16 +74,16 @@ onMounted(async () => {
   }
 
   // Загрузка друзей и запросов
-  if (!useFriendStore.friends.length) {
-    await useFriendStore.loadFriendsList()
+  if (!friendStore.friends.length) {
+    await friendStore.loadFriendsList()
   }
 
-  if (!useFriendStore.incomingRequests.length) {
-    await useFriendStore.loadIncomingRequests()
+  if (!friendStore.incomingRequests.length) {
+    await friendStore.loadIncomingRequests()
   }
 
-  if (!useFriendStore.sentRequests.length) {
-    await useFriendStore.loadSentRequests()
+  if (!friendStore.sentRequests.length) {
+    await friendStore.loadSentRequests()
   }
 
   // Инициализация подписок

@@ -2,7 +2,7 @@
   <div class="chat-container">
     <!-- Заголовок -->
     <div class="chat-header">
-      {{ selectedContact.name || 'Выберите контакт' }}
+      {{ selectedContact?.name || 'Выберите контакт' }}
     </div>
 
     <!-- История -->
@@ -11,65 +11,76 @@
           v-for="message in messages"
           :key="message.id"
           :message="message"
-          :contact="contactStore"
+          :contact="selectedContact"
       />
     </div>
 
     <!-- Форма отправки -->
     <form class="chat-form" @submit.prevent="send">
       <input v-model="newMessage" placeholder="Напишите сообщение..." />
-      <button type="submit">Отправить</button>
+      <button type="submit" :disabled="!newMessage.trim()">Отправить</button>
     </form>
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore' // Используем chatStore для истории
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import type { Contact, Message } from '@/modules/TalkStream/types'
+import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
 
 const route = useRoute()
 const contactStore = useContactStore()
-const useFriendStore = friendStore()
+const chatStore = useChatStore()
+const friendStore = useFriendStore()
 
+// ✅ Строгая типизация refs
 const contactId = Number(route.query.to)
-const messages = ref([])
-const newMessage = ref('')
-const messagesContainer = ref(null)
+const messages = ref<Message[]>([])
+const newMessage = ref<string>('')
+const messagesContainer = ref<HTMLElement | null>(null)
+const selectedContact = ref<Contact | null>(null)
 
 onMounted(async () => {
   if (!contactId) return
 
-  // Загрузка истории
-  messages.value = await contactStore.getHistory(contactId)
+  // Загрузка истории через chatStore (стандартный паттерн)
+  await chatStore.loadHistory(contactId)
+  messages.value = chatStore.messages
 
-  // Подписка на новые сообщения
+  // Подписка на новые сообщения (если Echo доступен)
   if (window.Echo && contactId) {
     window.Echo.private(`chat.${contactId}`)
-        .listen('.NewMessage', (e) => {
+        .listen('.NewMessage', (e: { message: Message }) => {
           messages.value.push(e.message)
           scrollToBottom()
         })
   }
 
   // Получаем текущий контакт
-  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId) || null
+
   if (!selectedContact.value) {
-    selectedContact.value = await contactStore.getContact(contactId)
+    // Если контакта нет в локальном списке, можно запросить его отдельно (если есть такой метод в API)
+    // selectedContact.value = await contactStore.getContact(contactId)
   }
 })
 
-function send() {
-  if (!newMessage.value.trim()) return
-  contactStore.sendMessage(newMessage.value, contactId)
+function send(): void {
+  if (!newMessage.value.trim() || !selectedContact.value) return
+
+  chatStore.sendMessage(selectedContact.value.id, newMessage.value)
   newMessage.value = ''
   scrollToBottom()
 }
 
-function scrollToBottom() {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+function scrollToBottom(): void {
+  const container = messagesContainer.value
+  if (container) {
+    container.scrollTop = container.scrollHeight
   }
 }
 </script>
@@ -115,6 +126,11 @@ function scrollToBottom() {
     border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 0.9rem;
+    outline: none;
+
+    &:focus {
+      border-color: #42b983;
+    }
   }
 
   button {
@@ -125,9 +141,15 @@ function scrollToBottom() {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    transition: background-color 0.2s ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background-color: #36a871;
+    }
+
+    &:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
     }
   }
 }

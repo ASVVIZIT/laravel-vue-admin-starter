@@ -205,6 +205,7 @@ Route::prefix('talkstream')->middleware('auth:sanctum')->group(function () {
     Route::get('/contacts/{id}', [ContactController::class, 'show']);
     Route::post('/send', [ChatController::class, 'sendMessage']);
     Route::get('/history/{userId}', [ChatController::class, 'getHistory']);
+    Route::post('/read/{userReadId}', [ChatController::class, 'markAsRead']);
 
     Route::prefix('call')->group(function () {
         Route::post('/initiate', [CallController::class, 'initiate']);

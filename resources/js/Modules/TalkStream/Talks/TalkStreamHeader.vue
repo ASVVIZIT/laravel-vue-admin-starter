@@ -36,9 +36,9 @@
 </template>
 
 <script setup>
-import { defineProps, computed } from 'vue'
+import { computed } from 'vue'
 import PanelToggleIcon from '@/modules/TalkStream/Components/Icons/PanelToggleIcon.vue'
-import { useUiStore } from '@/modules/TalkStream/stores/uiStore'
+import { useUiStore } from '@/modules/TalkStream/Stores/uiStore'
 
 const props = defineProps({
   contact: {
@@ -52,10 +52,9 @@ const props = defineProps({
   }
 })
 
-const currentMode = 'callAudio'
-
 const uiStore = useUiStore()
 const isPanelCollapsed = computed(() => uiStore.isContactsPanelCollapsed)
+const currentMode = 'callAudio'
 
 // Если контакт задан — проверяем по ID
 const contactIsOnline = computed(() => {
@@ -65,6 +64,11 @@ const contactIsOnline = computed(() => {
 
 const togglePanel = () => {
   uiStore.toggleContactsPanel()
+}
+
+const switchMode = (mode) => {
+  // TODO: Реализовать переключение режимов звонка
+  console.log('Switch to mode:', mode)
 }
 </script>
 
@@ -169,11 +173,6 @@ const togglePanel = () => {
   margin: 0 auto;
 }
 
-.user-role {
-  font-size: 0.85rem;
-  color: #999;
-}
-
 .mode-switcher {
   border-radius: 8px;
   padding: 5px 5px;
@@ -187,11 +186,8 @@ const togglePanel = () => {
   color: white;
   font-size: 1rem;
   margin: 0 2px;
-
-  &:hover {
-    background-color: rgba(75, 115, 141, 0.75);
-    cursor: pointer;
-  }
+  background-color: rgba(75, 115, 141, 0.75);
+  cursor: pointer;
 
   &.active {
     background-color: rgba(30, 95, 141, 0.86);

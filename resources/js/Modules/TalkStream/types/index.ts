@@ -1,5 +1,3 @@
-// resources/js/Modules/TalkStream/types/index.ts
-
 export interface User {
     id: number;
     name: string;
@@ -11,6 +9,7 @@ export interface User {
 export interface Contact extends User {
     is_online?: boolean;
     last_seen_at?: string;
+    main_role?: string;
 }
 
 export interface Message {
@@ -21,9 +20,10 @@ export interface Message {
     type: 'text' | 'image' | 'file' | 'system';
     read_at?: string | null;
     created_at: string;
-    sender?: User; // Подгружается в resource
+    sender?: User;
     formatted_created_at?: string;
-    is_mine?: boolean; // Вычисляемое поле для UI
+    is_mine?: boolean;
+    isLocal?: boolean;
 }
 
 export interface FriendRequest {
@@ -37,7 +37,6 @@ export interface FriendRequest {
     friend?: User;
 }
 
-// Универсальный тип ответа API (если используете responseSuccess/responseFailed)
 export interface ApiResponse<T> {
     status: string;
     data?: T;
@@ -47,4 +46,14 @@ export interface ApiResponse<T> {
 export interface WebSocketStatus {
     isConnected: boolean;
     error: string | null;
+}
+
+export interface CallData {
+    id?: number;
+    caller_id: number;
+    callee_id: number;
+    type: 'audio' | 'video';
+    status?: 'pending' | 'active' | 'ended';
+    started_at?: string;
+    ended_at?: string;
 }

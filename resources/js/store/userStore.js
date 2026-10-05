@@ -53,21 +53,33 @@ export const userStore = defineStore('user', () => {
         try {
             const response = await userApi.getInfo();
 
-            // P0: Проверка ответа
-            if (!response || !response.data) {
+            // 🔍 РЕНТГЕН: Смотрим, что реально пришел от Axios
+            console.log('🔍 [userStore] RAW Axios Response:', response);
+
+            // Пытаемся достать данные, учитывая возможную двойную вложенность Laravel Resource
+            const userData = response?.data?.data || response?.data;
+
+            console.log('🔍 [userStore] EXTRACTED userData:', userData);
+            console.log('🔍 [userStore] userData.roles:', userData?.roles);
+
+            if (!userData || !userData.id) {
+                console.error('[userStore] Неверный формат ответа:', response);
                 throw new Error('Invalid user info response');
             }
 
-            const data = response.data;
-            id.value = data?.id ?? null;
-            name.value = data?.name ?? '';
-            avatar.value = data?.avatar || '/images/avatar-male.png';
-            email.value = data?.email ?? '';
-            roles.value = Array.isArray(data?.roles) ? data.roles : [];
-            permissions.value = Array.isArray(data?.permissions) ? data.permissions : [];
-            isTestUser.value = !!data?.is_test;
+            id.value = userData.id ?? null;
+            name.value = userData.name ?? '';
+            avatar.value = userData.avatar || '/images/avatar-male.png';
+            email.value = userData.email ?? '';
 
-            return data;
+            // 🔍 Ключевая строка: сохраняем роли
+            roles.value = Array.isArray(userData.roles) ? userData.roles : [];
+            permissions.value = Array.isArray(userData.permissions) ? userData.permissions : [];
+            isTestUser.value = !!userData.is_test;
+
+            console.log('✅ [userStore] FINAL STORE STATE -> roles:', roles.value, 'permissions:', permissions.value);
+
+            return userData;
         } catch (error) {
             console.error('[userStore] User info error:', error?.message);
             reset();

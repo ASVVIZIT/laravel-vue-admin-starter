@@ -30,7 +30,6 @@ router.beforeEach(async (to, from, next) => {
 
   if (isUserLogged) {
     if (whiteList.includes(to.path)) {
-      // ✅ ОТНОСИТЕЛЬНЫЙ путь
       next({ path: '/dashboard' })
       NProgress.done()
       return
@@ -71,7 +70,6 @@ router.beforeEach(async (to, from, next) => {
 
       ElMessage.error(error?.message || 'Authentication error')
 
-      // ✅ Используем window.location.href для смены base path
       const basePath = getSavedBasePath()
       window.location.href = basePath + 'login?redirect=' + encodeURIComponent(to.path)
       NProgress.done()
@@ -86,7 +84,6 @@ router.beforeEach(async (to, from, next) => {
         to.matched.some(record => record?.meta?.requiresAuth === true)
 
     if (routeRequiresAuth) {
-      // ✅ Используем window.location.href для смены base path
       const basePath = getSavedBasePath()
       window.location.href = basePath + 'login?redirect=' + encodeURIComponent(to.path)
       NProgress.done()

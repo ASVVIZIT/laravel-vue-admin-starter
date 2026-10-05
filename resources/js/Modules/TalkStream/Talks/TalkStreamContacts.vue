@@ -3,61 +3,80 @@
     <div class="contacts-container-header">
       <span>Общий список пользователей</span>
     </div>
-    <!-- Обёртка для прокрутки -->
-    <div class="contacts-wrap">
-      <!-- Список всех пользователей -->
-      <ul class="contact-list">
-        <ContactItemWrapper
+
+    <div
+        class="contacts-wrap"
+        v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
+    >
+      <!-- ✅ Рендерим список ТОЛЬКО когда данные дружбы загружены -->
+      <ul v-if="friendStore._initialized" class="contact-list">
+        <ContactItem
             v-for="contact in contacts"
             :key="contact.id"
             :contact="contact"
-            @select="selectContact"
-            @add-friend="sendRequest"
-            @accept-request="acceptRequest"
+            :is-online="isContactOnline(contact.id)"
+            :is-friend="isContactFriend(contact.id)"
+            :is-selected="isContactSelected(contact.id)"
+            :has-incoming="hasIncomingRequest(contact.id)"
+            :has-sent="hasSentRequest(contact.id)"
+            @select="handleSelect"
+            @add-friend="handleAddFriend"
+            @accept-request="handleAcceptRequest"
         />
       </ul>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { userStore } from '@/store/userStore'
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
-import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
-import ContactItemWrapper from '@/modules/TalkStream/Components/ContactItemWrapper.vue'
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
+import type { Contact } from '@/modules/TalkStream/types'
 
-const props = defineProps(['contacts', 'isLoadingContacts'])
-const emit = defineEmits(['select', 'add-friend', 'accept-request'])
+const emit = defineEmits<{
+  select: [contact: Contact]
+}>()
 
-const router = useRouter()
-const useUserStore = userStore()
 const contactStore = useContactStore()
-const useFriendStore = friendStore()
+const friendStore = useFriendStore()
 
-const route = useRoute()
+const contacts = computed<Contact[]>(() => contactStore.contacts)
 
-const contacts = computed(() => contactStore.contacts)
-const currentMode = ref(route.params.mode || 'chat')
+const isContactOnline = (id: number): boolean => contactStore.isOnline(id)
+const isContactFriend = (id: number): boolean => friendStore.isFriend(id)
+const isContactSelected = (id: number): boolean => contactStore.isContactSelected(id)
+const hasIncomingRequest = (id: number): boolean => friendStore.hasIncoming(id)
+const hasSentRequest = (id: number): boolean => friendStore.hasSent(id)
 
-function selectContact(contact) {
+function handleSelect(contact: Contact): void {
+  contactStore.selectContact(contact)
   emit('select', contact)
 }
 
-function sendRequest(contact) {
-  useFriendStore.sendRequest(contact.id)
-  emit('add-friend', contact)
+async function handleAddFriend(contact: Contact): Promise<void> {
+  await friendStore.sendRequest(contact.id)
 }
 
-function acceptRequest(contact) {
-  useFriendStore.acceptRequest(contact.id)
-  emit('accept-request', contact)
+async function handleAcceptRequest(contact: Contact): Promise<void> {
+  const req = friendStore.incomingRequests.find(r => r.user_id === contact.id)
+  if (req) {
+    await friendStore.acceptRequest(req.id)
+  }
 }
 
-function switchMode(mode) {
-  currentMode.value = mode
-}
+onMounted(async () => {
+  // ✅ Загружаем контакты
+  if (contactStore.contacts.length === 0) {
+    await contactStore.loadContacts()
+  }
+
+  // ✅ Инициализируем данные дружбы (1 раз, даже при перезагрузке)
+  if (!friendStore._initialized) {
+    await friendStore.init()
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -73,31 +92,27 @@ function switchMode(mode) {
 }
 
 .contacts-container-header {
-  height: 30px; /* Фиксированная высота */
-  min-height: 30px; /* Гарантирует минимальную высоту */
+  height: 30px;
+  min-height: 30px;
   display: flex;
-  align-items: center; /* Вертикальное выравнивание */
-  justify-content: center; /* Горизонтальное выравнивание */
-  width: 100%; /* Занимает всю ширину */
-  font-size: .7rem;
-  /* Добавьте это для предотвращения сжатия: */
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 0.7rem;
   flex-shrink: 0;
   box-sizing: border-box;
-}
-
-/* Остальные стили без изменений */
-.mode-switcher {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 1rem;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
 }
 
 .contacts-wrap {
   flex-grow: 1;
   overflow-y: auto;
   max-height: calc(100vh - 160px);
-  /* Добавьте это: */
-  min-height: 0; /* Разрешает сжатие */
+  min-height: 0;
+  background-color: #fff;
 }
 
 .contact-list {
@@ -106,5 +121,23 @@ function switchMode(mode) {
   padding-left: 2px;
   padding-bottom: 4px;
   margin-right: 4px;
+  margin: 0;
+}
+
+.contacts-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contacts-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.contacts-wrap::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.contacts-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
 }
 </style>

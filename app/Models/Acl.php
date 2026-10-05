@@ -42,12 +42,13 @@ final class Acl
     const PERMISSION_VIEW_MENU_LANDING = 'view menu landing';
     const PERMISSION_VIEW_MENU_TRAINING = 'view menu training';
     const PERMISSION_VIEW_MENU_SMART_LIGHT = 'view menu smart light';
+    const PERMISSION_VIEW_MENU_TALKSTREAM = 'view menu talkstream'; // <-- ДОБАВЛЕНО
 
     // ===== ПРАВА: УПРАВЛЕНИЕ =====
     const PERMISSION_USER_MANAGE = 'manage user';
     const PERMISSION_USER_EDIT_MANAGE = 'manage user edit';
     const PERMISSION_USER_DELETE_MANAGE = 'manage user delete';
-    const PERMISSION_CONFIRM_EMAIL = 'confirm user email'; // Подтверждение email по кнопке
+    const PERMISSION_CONFIRM_EMAIL = 'confirm user email';
     const PERMISSION_ENTITY_MANAGE = 'manage entity';
     const PERMISSION_ARTICLE_MANAGE = 'manage article';
     const PERMISSION_PERMISSION_MANAGE = 'manage permission';
@@ -74,13 +75,16 @@ final class Acl
     const PERMISSION_SHARE_TRAINING = 'share training';
     const PERMISSION_CREATE_TRAINING_LOG = 'create training log';
 
-    // ===== 🔥 УНИКАЛЬНЫЕ ПРАВА: ТОЛЬКО ДЛЯ SUPERADMIN =====
-    // Эти права НЕ выдаются обычному админу. Они определяют высший уровень доступа.
-    const PERMISSION_MANAGE_SUPERADMIN = 'manage superadmin';          // Создание/удаление других супер-админов
-    const PERMISSION_VIEW_SYSTEM_LOGS = 'view system logs';            // Просмотр системных логов и аудит-трейлов
-    const PERMISSION_MANAGE_SYSTEM_SETTINGS = 'manage system settings'; // Глобальные настройки сайта (режим обслуживания и т.д.)
+    // ===== ПРАВА: TALKSTREAM (ЧАТ) =====
+    const PERMISSION_USE_TALKSTREAM = 'use talkstream';
+    const PERMISSION_MANAGE_TALKSTREAM = 'manage talkstream';
 
-    // Диагностика (админ-панель разработчика)
+    // ===== УНИКАЛЬНЫЕ ПРАВА: ТОЛЬКО ДЛЯ SUPERADMIN =====
+    const PERMISSION_MANAGE_SUPERADMIN = 'manage superadmin';
+    const PERMISSION_VIEW_SYSTEM_LOGS = 'view system logs';
+    const PERMISSION_MANAGE_SYSTEM_SETTINGS = 'manage system settings';
+
+    // ===== Диагностика (админ-панель разработчика) =====
     const PERMISSION_MENU_DIAGNOSTICS = 'view menu diagnostics';
     const PERMISSION_DIAGNOSTICS_VIEW = 'view diagnostics';
     const PERMISSION_DIAGNOSTICS_MANAGE = 'manage diagnostics';

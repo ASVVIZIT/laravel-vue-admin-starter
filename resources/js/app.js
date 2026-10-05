@@ -57,7 +57,7 @@ moment.tz(timeZone)
 // ==============================================
 // SECTION 9: Директивы
 // ==============================================
-import TalkStreamDirective from '@/modules/TalkStream/Directives/loadingDirective'
+import TalkStreamDirective from '@modules/TalkStream/Directives/loadingDirective.ts'
 
 // ==============================================
 // SECTION 10: 🔥 АСИНХРОННАЯ ИНИЦИАЛИЗАЦИЯ
