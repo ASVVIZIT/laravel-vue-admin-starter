@@ -2,7 +2,6 @@
   <div class="talkstream-container">
     <ConnectionStatus />
     <div
-        v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
         class="contacts-wrapper"
         :class="{ 'collapsed': isContactsPanelCollapsed }"
     >
@@ -78,7 +77,7 @@ const handleSelectContact = async (contact: Contact) => {
   }
 }
 
-// 🔥 ИСПРАВЛЕНО: Удалено ручное создание tempMessage с положительным ID.
+// Удалено ручное создание tempMessage с положительным ID.
 // Теперь за оптимистичное обновление отвечает ТОЛЬКО chatStore.sendMessage,
 // который создает сообщение с отрицательным ID и сам его заменяет/удаляет.
 const handleSendMessage = async (data: { content: string, to_id: number }) => {
@@ -93,7 +92,8 @@ const handleSendMessage = async (data: { content: string, to_id: number }) => {
     historyRef.value?.scrollToBottom()
   } catch (e) {
     console.error('[TalkStream] Ошибка отправки:', e)
-    // chatStore.sendMessage уже удалил temp-сообщение внутри себя при ошибке
+    // chatStore.sendMessage уже обработал ошибку внутри себя:
+    // сообщение помечается как failed, а не удаляется.
   }
 }
 
@@ -115,7 +115,7 @@ onMounted(async () => {
     await withContactsLoading(() => contactStore.loadContacts())
   }
 
-  // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Загружаем userFrom после загрузки контактов
+  // Загружаем userFrom после загрузки контактов
   await contactStore.refreshUserFrom()
 
   const lastContactId = localStorage.getItem('last-selected-contact')
