@@ -11,11 +11,10 @@
     <div class="contact-avatar-wrapper">
       <div
           class="contact-avatar"
-          :style="{ backgroundImage: 'url(' + (contact.avatar || '/images/default-avatar.png') + ')' }"
+          :style="{ backgroundImage: 'url(' + (contact.avatar || '/images/avatar-main.png') + ')' }"
       ></div>
       <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
     </div>
-
     <div class="contact-info" :class="{ friend: isFriend }">
       <div class="contact-indicator">
         <span class="contact-id">ID: {{ contact?.id }}</span>
@@ -23,7 +22,6 @@
       </div>
       {{ contact?.name || defaultName }}
     </div>
-
     <div class="contact-actions">
       <button v-if="isFriend" disabled class="btn btn-friend">
         <span class="btn-text">{{ statusText }}</span>
@@ -96,15 +94,18 @@ function handleAccept(): void {
   box-sizing: border-box;
   position: relative;
 }
+
 .contact-item:hover {
   background-color: #f9f9f9;
 }
+
 .contact-item.selectedContact {
   background-color: #d6ebff !important;
   transform: scale(1.02);
   z-index: 1;
   box-shadow: 0 0 3px rgba(52, 144, 220, 0.5);
   font-weight: bold;
+
   &::before {
     content: '';
     position: absolute;
@@ -115,10 +116,12 @@ function handleAccept(): void {
     background: linear-gradient(to bottom, #3490dc, #1c7ed6);
     z-index: 2;
   }
+
   .contact-info.friend {
     color: #3490dc;
   }
 }
+
 .contact-item.selectedContact:hover {
   background-color: #b8d8f0 !important;
 }
@@ -131,6 +134,7 @@ function handleAccept(): void {
   margin-right: 0.5rem;
   margin-left: 0.2rem;
 }
+
 .contact-avatar {
   width: 30px;
   height: 30px;
@@ -143,6 +147,7 @@ function handleAccept(): void {
   flex-shrink: 0;
   position: relative;
 }
+
 .status-indicator {
   position: absolute;
   bottom: -2px;
@@ -170,10 +175,12 @@ function handleAccept(): void {
   font-size: 0.70rem;
   color: #333;
 }
+
 .contact-info.friend {
   font-weight: bold;
   color: #42b983;
 }
+
 .contact-indicator {
   display: flex;
   justify-content: space-between;
@@ -182,6 +189,7 @@ function handleAccept(): void {
   margin-bottom: 0.1rem;
   white-space: nowrap;
 }
+
 .contact-id {
   font-weight: bold;
   color: #888;
@@ -189,6 +197,7 @@ function handleAccept(): void {
   padding: 0.05rem 0.25rem;
   border-radius: 3px;
 }
+
 .contact-meta {
   font-style: italic;
   color: #999;
@@ -200,6 +209,7 @@ function handleAccept(): void {
   flex-direction: column;
   gap: 0.04rem;
 }
+
 .btn {
   min-width: 60px;
   max-width: 60px;
@@ -216,25 +226,30 @@ function handleAccept(): void {
   -webkit-box-orient: vertical;
   transition: background-color 0.2s ease;
   text-align: left;
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
+
   &.btn-add {
     background-color: #42b983;
     color: white;
     &:hover { background-color: #36a871; }
   }
+
   &.btn-accept {
     background-color: #3490dc;
     color: white;
     &:hover { background-color: #2779bf; }
   }
+
   &.btn-sent {
     background-color: #f0ad4e;
     color: white;
     &:hover { background-color: #ec971f; }
   }
+
   &.btn-friend {
     background-color: #ccc;
     color: #2c2a2a;
@@ -242,6 +257,7 @@ function handleAccept(): void {
     &:hover { background-color: #919090; }
   }
 }
+
 .btn-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;

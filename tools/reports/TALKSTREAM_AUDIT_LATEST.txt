@@ -1,8 +1,8 @@
 ﻿====================================================================================================
 TALKSTREAM AUDIT DUMP (v3)
-Дата : 2026-10-05 07:23:20
+Дата : 2026-10-06 02:16:30
 Root : W:\OpenServer\domains\Laravel\Other\FenixPortal
-Label: Level_3.3
+Label: Level_3.6
 PHP  : PHP 8.2.18 (cli) (built: Apr  9 2024 22:22:57) (ZTS Visual C++ 2019 x64)
 ====================================================================================================
 
@@ -69,6 +69,7 @@ PHP  : PHP 8.2.18 (cli) (built: Apr  9 2024 22:22:57) (ZTS Visual C++ 2019 x64)
 --- BACKEND: app\Http\Controllers\TalkStream ---
   CallController.php
   ChatController.php
+  ConfigController.php
   ContactController.php
   FriendRequestController.php
 
@@ -100,6 +101,17 @@ import request from '@utils/request'
 import type { Message, Contact, FriendRequest, ApiResponse, CallData } from '../types'
 
 export const TalkStreamAPI = {
+
+    // ========================================================================
+    // КОНФИГУРАЦИЯ МОДУЛЯ
+    // ========================================================================
+    getConfig(): Promise<ApiResponse<{
+        ui: { enable_read_receipts: boolean; messages_per_page: number };
+        limits: { max_message_length: number };
+    }>> {
+        return request.get('/talkstream/config')
+    },
+
     // ========================================================================
     // ПОЛЬЗОВАТЕЛЬ
     // ========================================================================
@@ -125,8 +137,16 @@ export const TalkStreamAPI = {
         return request.get(`/talkstream/history/${userId}`)
     },
 
-    sendMessage(to_id: number, content: string): Promise<ApiResponse<Message>> {
+    sendMessage(to_id: number, content: string): Promise<ApiResponse<Message>> {``
         return request.post('/talkstream/send', { to_id, content })
+    },
+
+    // 🔥 НОВОЕ (проблема 1а): отметка входящих как прочитанных на бэкенде.
+    // POST /talkstream/read/{userReadId}, где userReadId = ID собеседника,
+    // чьи сообщения мы прочитали. Бэкенд проставляет read_at и рассылает
+    // MessageRead отправителю (нам сюда приходит эхо-нет, см. шаг 3b).
+    markAsRead(userId: number): Promise<ApiResponse<any>> {
+        return request.post(`/talkstream/read/${userId}`)
     },
 
     // ========================================================================
@@ -309,11 +329,10 @@ button:hover {
     <div class="contact-avatar-wrapper">
       <div
           class="contact-avatar"
-          :style="{ backgroundImage: 'url(' + (contact.avatar || '/images/default-avatar.png') + ')' }"
+          :style="{ backgroundImage: 'url(' + (contact.avatar || '/images/avatar-main.png') + ')' }"
       ></div>
       <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
     </div>
-
     <div class="contact-info" :class="{ friend: isFriend }">
       <div class="contact-indicator">
         <span class="contact-id">ID: {{ contact?.id }}</span>
@@ -321,7 +340,6 @@ button:hover {
       </div>
       {{ contact?.name || defaultName }}
     </div>
-
     <div class="contact-actions">
       <button v-if="isFriend" disabled class="btn btn-friend">
         <span class="btn-text">{{ statusText }}</span>
@@ -394,15 +412,18 @@ function handleAccept(): void {
   box-sizing: border-box;
   position: relative;
 }
+
 .contact-item:hover {
   background-color: #f9f9f9;
 }
+
 .contact-item.selectedContact {
   background-color: #d6ebff !important;
   transform: scale(1.02);
   z-index: 1;
   box-shadow: 0 0 3px rgba(52, 144, 220, 0.5);
   font-weight: bold;
+
   &::before {
     content: '';
     position: absolute;
@@ -413,10 +434,12 @@ function handleAccept(): void {
     background: linear-gradient(to bottom, #3490dc, #1c7ed6);
     z-index: 2;
   }
+
   .contact-info.friend {
     color: #3490dc;
   }
 }
+
 .contact-item.selectedContact:hover {
   background-color: #b8d8f0 !important;
 }
@@ -429,6 +452,7 @@ function handleAccept(): void {
   margin-right: 0.5rem;
   margin-left: 0.2rem;
 }
+
 .contact-avatar {
   width: 30px;
   height: 30px;
@@ -441,6 +465,7 @@ function handleAccept(): void {
   flex-shrink: 0;
   position: relative;
 }
+
 .status-indicator {
   position: absolute;
   bottom: -2px;
@@ -468,10 +493,12 @@ function handleAccept(): void {
   font-size: 0.70rem;
   color: #333;
 }
+
 .contact-info.friend {
   font-weight: bold;
   color: #42b983;
 }
+
 .contact-indicator {
   display: flex;
   justify-content: space-between;
@@ -480,6 +507,7 @@ function handleAccept(): void {
   margin-bottom: 0.1rem;
   white-space: nowrap;
 }
+
 .contact-id {
   font-weight: bold;
   color: #888;
@@ -487,6 +515,7 @@ function handleAccept(): void {
   padding: 0.05rem 0.25rem;
   border-radius: 3px;
 }
+
 .contact-meta {
   font-style: italic;
   color: #999;
@@ -498,6 +527,7 @@ function handleAccept(): void {
   flex-direction: column;
   gap: 0.04rem;
 }
+
 .btn {
   min-width: 60px;
   max-width: 60px;
@@ -514,25 +544,30 @@ function handleAccept(): void {
   -webkit-box-orient: vertical;
   transition: background-color 0.2s ease;
   text-align: left;
+
   &:disabled {
     opacity: 0.7;
     cursor: not-allowed;
   }
+
   &.btn-add {
     background-color: #42b983;
     color: white;
     &:hover { background-color: #36a871; }
   }
+
   &.btn-accept {
     background-color: #3490dc;
     color: white;
     &:hover { background-color: #2779bf; }
   }
+
   &.btn-sent {
     background-color: #f0ad4e;
     color: white;
     &:hover { background-color: #ec971f; }
   }
+
   &.btn-friend {
     background-color: #ccc;
     color: #2c2a2a;
@@ -540,6 +575,7 @@ function handleAccept(): void {
     &:hover { background-color: #919090; }
   }
 }
+
 .btn-text {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -676,21 +712,21 @@ svg {
 #####  resources\js\Modules\TalkStream\Components\MessageGroup.vue
 ####################################################################################################
 <template>
-  <div class="message-group" :class="{ sent: isSent, received: !isSent }">
-    <!-- Для отправленных сообщений аватар слева -->
+  <div class="message-group" :class="{ mine: isMine, theirs: !isMine }">
+    <!-- Аватар СОБЕСЕДНИКА (слева) -->
     <div
-        class="group-avatar sent-avatar"
-        v-if="isSent && showAvatarForLast"
+        v-if="!isMine && showAvatar"
+        class="group-avatar theirs-avatar"
         :class="{ visible: avatarVisible }"
     >
       <div
           class="avatar-img"
           :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
       ></div>
-      <!-- Добавляем индикатор статуса для отправленных сообщений -->
-      <span v-if="isOnline && isSent" class="status-indicator">●</span>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
     </div>
 
+    <!-- Контейнер с сообщениями -->
     <div class="message-group-container">
       <slot
           v-for="(msg, index) in messages"
@@ -701,62 +737,35 @@ svg {
       />
     </div>
 
-    <!-- Для полученных сообщений аватар справа -->
+    <!-- Аватар МОЙ (справа) -->
     <div
-        class="group-avatar received-avatar"
-        v-if="!isSent && showAvatarForLast"
+        v-if="isMine && showAvatar"
+        class="group-avatar mine-avatar"
         :class="{ visible: avatarVisible }"
     >
       <div
           class="avatar-img"
           :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
       ></div>
-      <!-- Индикатор статуса для полученных сообщений -->
-      <span v-if="isOnline && !isSent" class="status-indicator">●</span>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
     </div>
   </div>
 </template>
 
-<script setup>
-import { defineProps, computed, ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import type { Message } from '@/modules/TalkStream/types'
 
-const props = defineProps({
-  fromId: {
-    type: Number,
-    required: true
-  },
-  messages: {
-    type: Array,
-    required: true
-  },
-  userFrom: {
-    type: Object,
-    required: true
-  },
-  contact: {
-    type: Object,
-    required: true
-  },
-  isOnline: {
-    type: Boolean,
-    default: false
-  },
-  showAvatar: {
-    type: Boolean,
-    default: true
-  }
-})
+// ТУПОЙ КОМПОНЕНТ: принимает только готовые данные, ноль бизнес-логики
+const props = defineProps<{
+  avatarUrl: string
+  isMine: boolean
+  messages: Message[]
+  isOnline: boolean
+  showAvatar: boolean
+}>()
 
 const avatarVisible = ref(false)
-const isSent = computed(() => props.contact.id === props.fromId)
-
-const avatarUrl = computed(() =>
-    isSent.value
-        ? props.contact.avatar
-        : props.userFrom.avatar || '/images/default-avatar.png'
-)
-
-const showAvatarForLast = computed(() => props.messages.length > 0 && props.showAvatar)
 
 onMounted(() => {
   setTimeout(() => {
@@ -769,23 +778,26 @@ onMounted(() => {
 .message-group {
   display: flex;
   align-items: flex-end;
+  width: 100%;
   position: relative;
   margin-bottom: 2px;
   transition: all 0.3s ease;
 
-  &.sent {
-    justify-content: flex-start;
-
-    .message-group-container {
-      align-items: flex-start;
-    }
-  }
-
-  &.received {
+  // МОИ сообщения — весь блок прижат вправо
+  &.mine {
     justify-content: flex-end;
 
     .message-group-container {
       align-items: flex-end;
+    }
+  }
+
+  // СООБЩЕНИЯ СОБЕСЕДНИКА — весь блок прижат влево
+  &.theirs {
+    justify-content: flex-start;
+
+    .message-group-container {
+      align-items: flex-start;
     }
   }
 
@@ -815,31 +827,34 @@ onMounted(() => {
       transition: all 0.3s ease;
     }
 
+    // Индикатор — эмодзи (как в ContactItem.vue), НЕ CSS-кружок
     .status-indicator {
       position: absolute;
-      bottom: -1px;
-      right: -1px;
-      width: 10px;
-      height: 10px;
-      background-color: #42b983;
-      border: 2px solid #2e2f34;
-      border-radius: 50%;
+      bottom: -2px;
+      left: -2px;
+      font-size: 0.5rem;
+      line-height: 1;
+      color: #42b983;
       z-index: 2;
+      user-select: none;
+      pointer-events: none;
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
     }
 
-    &.received-avatar {
-      margin-left: 2px;
-      margin-right: 2px;
-      order: 3;
-    }
-
-    &.sent-avatar {
-      margin-right: 2px;
-      margin-left: 2px;
+    // Аватар собеседника — слева
+    &.theirs-avatar {
+      margin-right: 8px;
       order: 1;
+    }
+
+    // Мой аватар — справа
+    &.mine-avatar {
+      margin-left: 8px;
+      order: 3;
     }
   }
 
+  // Контейнер сообщений: потолок 80% ширины строки, сжимается по контенту
   .message-group-container {
     display: flex;
     flex-direction: column;
@@ -857,8 +872,8 @@ onMounted(() => {
   <div
       class="message-wrapper"
       :class="{
-      sent: !isSent,
-      received: isSent,
+      'message-mine': isMine,
+      'message-theirs': !isMine,
       'group-top': isFirstInGroup,
       'group-bottom': isLastInGroup,
       'wide-message': isWideMessage,
@@ -880,300 +895,330 @@ onMounted(() => {
         <div class="message-meta">
           {{ message.formatted_created_at }}
         </div>
-        <div class="message-status">
-          <span v-if="isSent && !message.read_at" class="status-icon status-sent-unread">✔✔</span>
-          <span v-if="isSent && message.read_at" class="status-icon status-sent-read">✔✔</span>
-          <span v-if="!isSent" class="status-icon status-received">✔</span>
+
+        <!-- 🔥 НОВОЕ (Шаг 6): ⋮ переключатель времени прочтения.
+             Показывается только на своих сообщениях, где собеседник реально прочитал
+             (formatted_read_at непустой). Клик — toggle, не ховер (надёжнее на тач). -->
+        <span
+            v-if="hasReadReceipt"
+            class="read-receipt-toggle"
+            @click.stop="toggleReadTime"
+            :title="showReadTime ? 'Скрыть время прочтения' : 'Показать время прочтения'"
+        >⋮</span>
+
+        <!-- Галочки ТОЛЬКО на своих сообщениях (Telegram-логика) -->
+        <div v-if="isMine" class="message-status">
+          <!-- 🔥 НОВОЕ (Шаг 6): ветка ошибки отправки. Клик = retry. -->
+          <span
+              v-if="isFailed"
+              class="status-icon status-failed"
+              title="Не отправлено. Нажмите, чтобы повторить"
+              @click.stop="handleRetry"
+          >✖</span>
+
+          <!-- 🔥 НОВОЕ (Шаг 6): раскрытое время прочтения (вместо галочек, пока ⋮ нажат) -->
+          <span
+              v-else-if="showReadTime"
+              class="read-receipt-text"
+          >Прочитано: {{ message.formatted_read_at }}</span>
+
+          <!-- Обычные галочки (sending / delivered / read / unread) -->
+          <span
+              v-else
+              :class="['status-icon', statusClass]"
+              :title="statusTooltip"
+          >{{ statusIcon }}</span>
         </div>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { defineProps, computed } from 'vue'
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import type { Message, Contact, User } from '@/modules/TalkStream/types'
+import { userStore } from '@/store/userStore'
+// 🔥 НОВОЕ (Шаг 6): импорт стора для retryMessage.
+// Логика retry живёт рядом с логикой статусов (statusClass/statusIcon/statusTooltip),
+// что естественно для презентационного пузыря. MessageGroup остаётся тупым.
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
 
-const props = defineProps({
-  userFrom: {
-    type: Object,
-    required: true
-  },
-  contact: {
-    type: Object,
-    required: true
-  },
-  message: {
-    type: Object,
-    required: true
-  },
-  isOnline: {
-    type: Boolean,
-    default: false
-  },
-  isFirstInGroup: {
-    type: Boolean,
-    default: false
-  },
-  isLastInGroup: {
-    type: Boolean,
-    default: false
-  },
-  isGroupStart: {
-    type: Boolean,
-    default: false
+const props = defineProps<{
+  userFrom?: User | null
+  contact?: Contact | null
+  message: Message
+  isOnline?: boolean
+  isFirstInGroup?: boolean
+  isLastInGroup?: boolean
+  isGroupStart?: boolean
+}>()
+
+const useUserStore = userStore()
+const chatStore = useChatStore()
+
+// 🔥 НОВОЕ (Шаг 6): локальное состояние раскрытия ⋮
+const showReadTime = ref<boolean>(false)
+
+// ИСПРАВЛЕНО: моё сообщение = from_id совпадает с ID авторизованного пользователя
+const isMine = computed((): boolean => {
+  return props.message.from_id === useUserStore.id
+})
+
+// Ширина сообщения для скругления углов
+const isWideMessage = computed((): boolean => props.message.content.length < 40)
+
+// 🔥 НОВОЕ (Шаг 6): есть ли что показывать в ⋮ (своё + собеседник прочитал)
+const hasReadReceipt = computed((): boolean => {
+  return isMine.value && !!props.message.formatted_read_at
+})
+
+// 🔥 НОВОЕ (Шаг 6): сообщение упало при отправке
+const isFailed = computed((): boolean => {
+  return props.message.status === 'failed'
+})
+
+// 🔥 НОВОЕ (Шаг 6): toggle ⋮
+const toggleReadTime = (): void => {
+  showReadTime.value = !showReadTime.value
+}
+
+// 🔥 НОВОЕ (Шаг 6): повторная отправка failed-сообщения
+const handleRetry = (): void => {
+  chatStore.retryMessage(props.message.id)
+}
+
+// Класс для цвета/анимации галочек
+const statusClass = computed((): string => {
+  switch (props.message.status) {
+    case 'read':
+      return 'status-sent-read'
+    case 'delivered':
+      return 'status-sent-delivered'
+    case 'sending':
+      return 'status-sending'
+    default:
+      return 'status-sent-unread'
   }
 })
 
-const isSent = computed(() => props.message.from_id !== props.contact.id)
-const isWideMessage = computed(() => props.message.content.length < 40)
+// Иконка статуса
+const statusIcon = computed((): string => {
+  switch (props.message.status) {
+    case 'read':
+      return '✔✔'
+    case 'delivered':
+      return '✔✔'
+    case 'sending':
+      return '🕒'
+    default:
+      return '✔'
+  }
+})
+
+// Подсказка при наведении
+const statusTooltip = computed((): string => {
+  switch (props.message.status) {
+    case 'read':
+      return 'Прочитано'
+    case 'delivered':
+      return 'Доставлено'
+    case 'sending':
+      return 'Отправка...'
+    default:
+      return 'Отправлено'
+  }
+})
 </script>
 
 <style lang="scss" scoped>
+// БАЗОВЫЕ ЦВЕТА (Telegram Dark Style)
+$color-mine-bg: #2b5278;       // Синий (Мои сообщения)
+$color-theirs-bg: #182533;     // Тёмно-серый (Чужие сообщения)
+$color-text: #ffffff;          // Белый текст
+$color-meta: rgba(255, 255, 255, 0.5); // Полупрозрачный серый для времени
+
 .message-wrapper {
   display: flex;
-  align-items: flex-start;
-  padding: 4px 6px;
+  width: 100%;
+  margin-bottom: 6px;
   position: relative;
+  box-sizing: border-box;
 
-  &.group-start {
-    margin-top: 0.8rem;
+  // МОИ сообщения — пузырь прижимается СПРАВА
+  &.message-mine {
+    justify-content: flex-end;
+    padding-right: 8px;
   }
 
-  &.sent {
+  // ЧУЖИЕ сообщения — пузырь прижимается СЛЕВА
+  &.message-theirs {
     justify-content: flex-start;
+    padding-left: 8px;
+  }
+}
 
-    .message-bubble {
-      background-color: rgba(46, 83, 112, 0.69);
-      box-shadow: 0px 0px 2px 1px rgba(107, 130, 147, 0.94);
-      color: #e5e5e5;
+.message-bubble {
+  max-width: 100%;        // ПОТОЛОК = ширина контейнера; сам пузырь сжимается по контенту
+  min-width: 80px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  position: relative;
+  word-break: break-word;
+  color: $color-text;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease;
 
-      /* Одиночные сообщения */
-      &.group-top.group-bottom {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Верхние сообщения в группе */
-      &.group-top:not(.group-bottom) {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Широкие верхние сообщения */
-      &.group-top:not(.group-bottom).wide {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Узкие верхние сообщения */
-      &.group-top:not(.group-bottom).narrow {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Нижние сообщения в группе */
-      &.group-bottom:not(.group-top) {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Широкие нижние сообщения */
-      &.group-bottom:not(.group-top).wide {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Узкие нижние сообщения */
-      &.group-bottom:not(.group-top).narrow {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Средние сообщения */
-      &:not(.group-top):not(.group-bottom) {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Широкие средние сообщения */
-      &:not(.group-top):not(.group-bottom).wide {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Узкие средние сообщения */
-      &:not(.group-top):not(.group-bottom).narrow {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-    }
+  // ЦВЕТ + ХВОСТИК для моих
+  .message-wrapper.message-mine & {
+    background-color: $color-mine-bg;
+    border-bottom-right-radius: 4px;
   }
 
-  &.received {
-    justify-content: flex-end;
-
-    .message-bubble {
-      background-color: #5f84aec7;
-      box-shadow: 0px 0px 2px 1px rgba(107, 130, 147, 0.94);
-      color: #f6f6f6;
-
-      /* Одиночные сообщения */
-      &.group-top.group-bottom {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Верхние сообщения в группе */
-      &.group-top:not(.group-bottom) {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Широкие верхние сообщения */
-      &.group-top:not(.group-bottom).wide {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Узкие верхние сообщения */
-      &.group-top:not(.group-bottom).narrow {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Нижние сообщения в группе */
-      &.group-bottom:not(.group-top) {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Широкие нижние сообщения */
-      &.group-bottom:not(.group-top).wide {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Узкие нижние сообщения */
-      &.group-bottom:not(.group-top).narrow {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Средние сообщения */
-      &:not(.group-top):not(.group-bottom) {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Широкие средние сообщения */
-      &:not(.group-top):not(.group-bottom).wide {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-
-      /* Узкие средние сообщения */
-      &:not(.group-top):not(.group-bottom).narrow {
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        border-bottom-left-radius: 4px;
-        border-bottom-right-radius: 4px;
-      }
-    }
+  // ЦВЕТ + ХВОСТИК для чужих
+  .message-wrapper.message-theirs & {
+    background-color: $color-theirs-bg;
+    border-bottom-left-radius: 4px;
   }
 
-  .message-bubble {
-    padding: 8px 12px;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-    word-break: break-word;
-    transition: all 0.3s ease;
-    overflow: hidden;
+  // СРЕДНЕЕ в группе — все углы острые (склеивается с соседями)
+  &:not(.group-top):not(.group-bottom) {
+    border-radius: 4px;
   }
 
-  .message-content {
-    word-break: break-word;
-    white-space: pre-wrap;
-    position: relative;
-    z-index: 1;
+  // ВЕРХНЕЕ в группе — нижние углы острые
+  &.group-top:not(.group-bottom) {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
   }
 
-  .message-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    font-size: 0.7rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin-top: 4px;
-    position: relative;
-    z-index: 1;
+  // НИЖНЕЕ в группе — верхние углы скруглённые
+  &.group-bottom:not(.group-top) {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
   }
 
-  .message-meta {
-    margin-right: 6px;
+  // ОДИНОЧНОЕ — все углы скруглённые
+  &.group-top.group-bottom {
+    border-radius: 12px;
+  }
+}
+
+.message-content {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin-bottom: 4px;
+}
+
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 0.7rem;
+  color: $color-meta;
+  margin-top: 2px;
+  gap: 6px;
+}
+
+.message-meta {
+  margin-right: 2px;
+}
+
+.message-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-icon {
+  display: inline-block;
+  font-size: 0.85rem;
+  line-height: 1;
+  letter-spacing: -1px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+// 🔥 НОВОЕ (Шаг 6): ⋮ переключатель времени прочтения
+.read-receipt-toggle {
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: $color-meta;
+  user-select: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #4fc3f7;
+  }
+}
+
+// 🔥 НОВОЕ (Шаг 6): текст раскрытого времени прочтения
+.read-receipt-text {
+  font-size: 0.65rem;
+  color: #4fc3f7;
+  white-space: nowrap;
+}
+
+// 🔥 НОВОЕ (Шаг 6): крестик ошибки отправки (кликабельный retry)
+.status-failed {
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+}
+
+// СТАТУСЫ (ЦВЕТА ГАЛОЧЕК)
+.status-sent-unread {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.status-sent-delivered {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+// Анимация прочтения (Синяя вспышка + пульс)
+.status-sent-read {
+  color: #4fc3f7;
+  animation: readPulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  text-shadow: 0 0 6px rgba(79, 195, 247, 0.4);
+}
+
+// Часы при отправке
+.status-sending {
+  color: rgba(255, 255, 255, 0.5);
+  animation: clockPulse 1.2s infinite ease-in-out;
+}
+
+// Входящие галочки (зарезервировано на будущее)
+.status-received {
+  color: #34C759;
+}
+
+@keyframes readPulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes clockPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+// АДАПТИВ ДЛЯ УЗКИХ ЭКРАНОВ (МОБИЛЬНЫЕ) — всё влево
+@media (max-width: 768px) {
+  .message-wrapper.message-mine {
+    justify-content: flex-start;
+    padding-right: 0;
+    padding-left: 8px;
   }
 
-  .message-status {
-    display: flex;
-    align-items: center;
-  }
-
-  .status-icon {
-    display: inline-block;
-    font-size: 0.9rem;
-    margin-left: 2px;
-  }
-
-  .status-sent-unread {
-    color: #a9a9a9;
-  }
-
-  .status-sent-read {
-    color: #007AFF;
-  }
-
-  .status-received {
-    color: #34C759;
+  .message-wrapper.message-mine .message-bubble {
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 4px;
   }
 }
 </style>
@@ -2300,8 +2345,9 @@ export const useCallStore = defineStore('call', {
 ####################################################################################################
 import { defineStore } from 'pinia'
 import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream'
-import type { Message, ApiResponse } from '@/modules/TalkStream/types'
+import type { Message, MessageStatus } from '@/modules/TalkStream/types'
 import { userStore } from '@/store/userStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 
 export const useChatStore = defineStore('chat', {
     state: () => ({
@@ -2312,9 +2358,6 @@ export const useChatStore = defineStore('chat', {
     }),
 
     actions: {
-        /**
-         * Загрузка истории сообщений для контакта
-         */
         async loadHistory(contactId: number): Promise<void> {
             const uStore = userStore()
             const userId = uStore.id
@@ -2326,7 +2369,6 @@ export const useChatStore = defineStore('chat', {
 
             const cacheKey = `${userId}_${contactId}`
 
-            // Если история уже загружена, не делаем запрос
             if (this.history[cacheKey] && this.history[cacheKey].length > 0) {
                 this.messages = this.history[cacheKey]
                 return
@@ -2337,7 +2379,9 @@ export const useChatStore = defineStore('chat', {
                 if (response.data) {
                     const enrichedMessages = response.data.map((msg) => ({
                         ...msg,
-                        is_mine: msg.from_id === userId
+                        is_mine: msg.from_id === userId,
+                        isLocal: false,
+                        status: (msg.read_at ? 'read' : 'delivered') as MessageStatus
                     }))
 
                     this.history[cacheKey] = enrichedMessages
@@ -2353,16 +2397,14 @@ export const useChatStore = defineStore('chat', {
             }
         },
 
-        /**
-         * Отправка сообщения
-         */
         async sendMessage(to_id: number, content: string): Promise<void> {
             const uStore = userStore()
             const userId = uStore.id
 
             if (!userId || !content.trim()) return
 
-            const tempId = Date.now()
+            const tempId = -Date.now()
+
             const tempMessage: Message = {
                 id: tempId,
                 from_id: userId,
@@ -2371,67 +2413,66 @@ export const useChatStore = defineStore('chat', {
                 type: 'text',
                 created_at: new Date().toISOString(),
                 is_mine: true,
-                isLocal: true
+                isLocal: true,
+                status: 'sending'
             }
 
-            // Оптимистичное обновление UI
             this.messages.push(tempMessage)
 
             try {
                 const response = await TalkStreamAPI.sendMessage(to_id, content)
 
                 if (response.data) {
-                    // Заменяем локальное сообщение на реальное от сервера
-                    this.replaceLocalMessage(tempId, response.data)
+                    this.replaceLocalMessage(tempId, {
+                        ...response.data,
+                        status: 'delivered'
+                    })
                 }
             } catch (error: unknown) {
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error'
                 console.error('[ChatStore] Failed to send message:', errorMessage)
-                // Удаляем локальное сообщение при ошибке
-                this.removeLocalMessage(tempId)
+                // 🔥 ИСПРАВЛЕНО (проблема 3): вместо тихого удаления — помечаем как failed,
+                // чтобы пузырь остался на экране с ✖ и возможностью повторной отправки.
+                this.markFailed(tempId)
             }
         },
 
-        /**
-         * Замена локального сообщения на серверное
-         */
         replaceLocalMessage(tempId: number, realMessage: Message): void {
-            const index = this.messages.findIndex(m => m.id === tempId)
+            // 🔥 Строгое приведение к Number, чтобы найти временный ID
+            const index = this.messages.findIndex(m => Number(m.id) === Number(tempId))
+
             if (index !== -1) {
-                // Сохраняем флаг isLocal, чтобы UI мог отличить локальные от серверных
                 const enrichedMessage = {
                     ...realMessage,
                     is_mine: true,
-                    isLocal: false
+                    isLocal: false,
+                    status: (realMessage.status || 'delivered') as MessageStatus
                 }
-                this.messages[index] = enrichedMessage
 
-                // Обновляем кэш истории
+                // Заменяем элемент в массиве (удаляем временный, вставляем реальный)
+                this.messages.splice(index, 1, enrichedMessage)
+
                 const uStore = userStore()
                 const userId = uStore.id
                 const contactId = realMessage.to_id === userId ? realMessage.from_id : realMessage.to_id
                 const cacheKey = `${userId}_${contactId}`
 
                 if (this.history[cacheKey]) {
-                    const histIndex = this.history[cacheKey].findIndex(m => m.id === tempId)
+                    const histIndex = this.history[cacheKey].findIndex(m => Number(m.id) === Number(tempId))
                     if (histIndex !== -1) {
-                        this.history[cacheKey][histIndex] = enrichedMessage
+                        this.history[cacheKey].splice(histIndex, 1, enrichedMessage)
                     }
                 }
             }
         },
 
-        /**
-         * Удаление локального сообщения
-         */
         removeLocalMessage(tempId: number): void {
-            this.messages = this.messages.filter(m => m.id !== tempId)
+            this.messages = this.messages.filter(m => Number(m.id) !== Number(tempId))
 
-            // Также удаляем из кэша истории, если там есть
             const uStore = userStore()
             const userId = uStore.id
             for (const key in this.history) {
-                const msgIndex = this.history[key].findIndex(m => m.id === tempId)
+                const msgIndex = this.history[key].findIndex(m => Number(m.id) === Number(tempId))
                 if (msgIndex !== -1) {
                     this.history[key].splice(msgIndex, 1)
                     break
@@ -2439,24 +2480,28 @@ export const useChatStore = defineStore('chat', {
             }
         },
 
-        /**
-         * Добавление входящего сообщения (через WebSocket)
-         */
         addIncomingMessage(message: Message): void {
             const uStore = userStore()
             const userId = uStore.id
+            const contactStore = useContactStore()
+
+            if (this.messages.some(m => Number(m.id) === Number(message.id))) {
+                return
+            }
 
             const msgWithStatus = {
                 ...message,
                 is_mine: message.from_id === userId,
-                isLocal: false
+                isLocal: false,
+                status: (message.read_at ? 'read' : 'delivered') as MessageStatus
             }
-
-            // Если сообщение не для текущего открытого чата, все равно добавляем в историю
-            this.messages.push(msgWithStatus)
 
             const contactId = message.from_id === userId ? message.to_id : message.from_id
             const cacheKey = `${userId}_${contactId}`
+
+            if (contactStore.selectedContact?.id === contactId) {
+                this.messages.push(msgWithStatus)
+            }
 
             if (this.history[cacheKey]) {
                 this.history[cacheKey].push(msgWithStatus)
@@ -2465,55 +2510,139 @@ export const useChatStore = defineStore('chat', {
             }
         },
 
-        /**
-         * Добавление локального сообщения (для мгновенного отображения перед отправкой)
-         */
         addLocalMessage(message: Message): void {
             const uStore = userStore()
             const userId = uStore.id
             const enrichedMessage = {
                 ...message,
                 is_mine: message.from_id === userId,
-                isLocal: true
+                isLocal: true,
+                status: 'sending' as MessageStatus
             }
             this.messages.push(enrichedMessage)
         },
 
-        /**
-         * Очистка текущего чата (при смене контакта)
-         */
         clearCurrentChat(): void {
             this.messages = []
         },
 
-        /**
-         * Отметка сообщений как прочитанных
-         */
         markAsRead(contactId: number): void {
             const uStore = userStore()
             const userId = uStore.id
             const now = new Date().toISOString()
+            let updated = false
 
+            // 🔥 Мутация ВХОДЯЩИХ (сообщения, которые мне написали).
+            // Используется TalkStreamHistory при скролле/клике, чтобы мгновенно
+            // сбросить счётчик непрочитанных на МОЁМ экране.
+            // Сетевой POST /read (чтобы бэкенд проставил read_at и разослал
+            // MessageRead отправителю) замыкается в TalkStreamHistory (шаг 3),
+            // т.к. требует подтверждения пути в api/talkstream.ts.
             this.messages.forEach(m => {
-                if (m.to_id === userId && m.from_id === contactId && !m.read_at) {
+                if (m.to_id === userId && m.from_id === contactId && m.status !== 'read') {
+                    m.status = 'read'
                     m.read_at = now
+                    updated = true
                 }
             })
 
-            // Обновляем кэш истории
-            const cacheKey = `${userId}_${contactId}`
-            if (this.history[cacheKey]) {
-                this.history[cacheKey].forEach(m => {
-                    if (m.to_id === userId && m.from_id === contactId && !m.read_at) {
-                        m.read_at = now
-                    }
-                })
+            if (updated) {
+                const cacheKey = `${userId}_${contactId}`
+                if (this.history[cacheKey]) {
+                    this.history[cacheKey].forEach(m => {
+                        if (m.to_id === userId && m.from_id === contactId && m.status !== 'read') {
+                            m.status = 'read'
+                            m.read_at = now
+                        }
+                    })
+                }
             }
         },
 
-        /**
-         * Сброс стора
-         */
+        // 🔥 НОВОЕ (проблема 1в): мутация ИСХОДЯЩИХ (сообщения, которые Я отправил).
+        // Вызывается из chatEventsHandler на событие MessageRead, которое прилетает
+        // ОТПРАВИТЕЛЮ. Старый markAsRead резал только входящие, поэтому синие галочки
+        // у отправителя никогда не загорались.
+        markSentAsRead(contactId: number): void {
+            const uStore = userStore()
+            const userId = uStore.id
+            const now = new Date().toISOString()
+            let updated = false
+
+            this.messages.forEach(m => {
+                if (m.from_id === userId && m.to_id === contactId && m.status !== 'read') {
+                    m.status = 'read'
+                    m.read_at = now
+                    updated = true
+                }
+            })
+
+            if (updated) {
+                const cacheKey = `${userId}_${contactId}`
+                if (this.history[cacheKey]) {
+                    this.history[cacheKey].forEach(m => {
+                        if (m.from_id === userId && m.to_id === contactId && m.status !== 'read') {
+                            m.status = 'read'
+                            m.read_at = now
+                        }
+                    })
+                }
+            }
+        },
+
+        // 🔥 НОВОЕ (проблема 3): пометка исходящего как failed вместо удаления.
+        markFailed(tempId: number): void {
+            const target = this.messages.find(m => Number(m.id) === Number(tempId))
+            if (!target) return
+
+            target.status = 'failed'
+            target.isLocal = true
+
+            const uStore = userStore()
+            const userId = uStore.id
+            const contactId = target.to_id === userId ? target.from_id : target.to_id
+            const cacheKey = `${userId}_${contactId}`
+
+            if (this.history[cacheKey]) {
+                const histMsg = this.history[cacheKey].find(m => Number(m.id) === Number(tempId))
+                if (histMsg) {
+                    histMsg.status = 'failed'
+                    histMsg.isLocal = true
+                }
+            }
+        },
+
+        // 🔥 НОВОЕ (проблема 3): повторная отправка failed-сообщения.
+        // Берёт сохранённые content/to_id из пузыря, зовёт ПОДТВЕРЖДЁННО рабочий
+        // TalkStreamAPI.sendMessage (без угадывания путей), при успехе заменяет
+        // на реальный id, при ошибке снова ставит failed. UX: клик по ✖ переотправляет молча.
+        async retryMessage(tempId: number): Promise<void> {
+            const uStore = userStore()
+            const userId = uStore.id
+
+            const failed = this.messages.find(m => Number(m.id) === Number(tempId))
+            if (!failed || failed.status !== 'failed') return
+
+            // Возвращаем в sending
+            failed.status = 'sending'
+            failed.isLocal = true
+
+            try {
+                const response = await TalkStreamAPI.sendMessage(failed.to_id, failed.content)
+
+                if (response.data) {
+                    this.replaceLocalMessage(tempId, {
+                        ...response.data,
+                        status: 'delivered'
+                    })
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[ChatStore] Retry failed:', errorMessage)
+                this.markFailed(tempId)
+            }
+        },
+
         reset(): void {
             this.messages = []
             this.history = {}
@@ -2528,7 +2657,7 @@ export const useChatStore = defineStore('chat', {
         unreadCount: (state): number => {
             const uStore = userStore()
             const userId = uStore.id
-            return state.messages.filter(m => m.to_id === userId && !m.read_at).length
+            return state.messages.filter(m => m.to_id === userId && m.status !== 'read').length
         }
     }
 })
@@ -2713,9 +2842,27 @@ export const useFriendStore = defineStore('friend', {
         // 🔥 ВАЖНО: Хранит ID пользователей (friend_id), КОМУ мы отправили запрос, а не ID самой записи в БД
         sentRequests: [] as number[],
         userId: null as number | null,
+        // 🔥 ДОБАВЛЕНО: Флаг для предотвращения повторных запросов и гонки состояний при рендере
+        _initialized: false,
     }),
 
     actions: {
+        /**
+         * Глобальная инициализация данных дружбы (вызывается 1 раз при старте модуля)
+         * Гарантирует, что все списки загружены до того, как UI начнет их проверять
+         */
+        async init(): Promise<void> {
+            if (this._initialized) return
+
+            await Promise.all([
+                this.loadFriendsList(),
+                this.loadIncomingRequests(),
+                this.loadSentRequests()
+            ])
+
+            this._initialized = true
+        },
+
         /**
          * Отправить запрос в друзья
          */
@@ -2738,7 +2885,7 @@ export const useFriendStore = defineStore('friend', {
             } catch (e: unknown) {
                 const errorMessage = e instanceof Error ? e.message : 'Unknown error'
                 console.error('[friendStore] sendRequest error:', errorMessage)
-                // Если сервер вернул 409 (уже отправлен), мы все равно можем добавить его в sentRequests для UI
+                // Если сервер вернул 409 (уже отправлен), мы все равно добавляем его в sentRequests для корректного UI
                 if ((e as any)?.response?.status === 409) {
                     if (!this.sentRequests.includes(id)) {
                         this.sentRequests.push(id)
@@ -2945,6 +3092,7 @@ export const useFriendStore = defineStore('friend', {
             this.incomingRequests = []
             this.sentRequests = []
             this.userId = null
+            this._initialized = false
         }
     },
 
@@ -3261,10 +3409,16 @@ interface NewMessagePayload {
     message: Message
 }
 
+// 🔥 ИСПРАВЛЕНО (форма payload): бэкенд MessageRead::broadcastWith() возвращает
+// ['message' => $this->message], т.е. данные ОБЁРНУТЫ в ключ 'message' — ровно как у NewMessage.
+// Поле помечено '?', потому что рантайм-гарантии нет: если бэк по какой-то причине не пришлёт
+// обёртку — guard ниже спасёт от краша, а не уронит рендер.
 interface MessageReadPayload {
-    from_id: number
-    to_id: number
-    updated_count: number
+    message?: {
+        from_id: number
+        to_id: number
+        updated_count: number
+    }
 }
 
 export function setupChatEventsChannel(echo: any, myUserId: number) {
@@ -3290,8 +3444,20 @@ export function setupChatEventsChannel(echo: any, myUserId: number) {
         // 2. Прочтение сообщений (Private Channel: chat.read.{id})
         readChannel = echo.private(`chat.read.${myUserId}`)
         readChannel.listen('.MessageRead', (e: MessageReadPayload) => {
-            logger.info(`[ChatEvents] Messages marked as read by ${e.from_id}`)
-            chatStore.markAsRead(e.from_id)
+            // 🔥 ИСПРАВЛЕНО (форма): разворачиваем обёртку 'message', как в ветке NewMessage.
+            const payload = e.message
+            if (!payload) {
+                logger.warn('[ChatEvents] MessageRead payload missing "message" wrapper, skipped')
+                return
+            }
+
+            // 🔥 ИСПРАВЛЕНО (семантика полей + функция):
+            // Событие летит на канал chat.read.{from_id} -> toOthers() -> ОТПРАВИТЕЛЮ.
+            // Значит myUserId === payload.from_id (это мы), а прочитал СОБЕСЕДНИК = payload.to_id.
+            // Красим ИСХОДЯЩИЕ к собеседнику (markSentAsRead), а не входящие (markAsRead):
+            // у отправителя в этом диалоге входящих-непрочитанных нет, старый вызов резал пустоту.
+            logger.info(`[ChatEvents] Messages marked as read by ${payload.to_id}`)
+            chatStore.markSentAsRead(payload.to_id)
         })
 
         return { userChannel, readChannel }
@@ -3931,20 +4097,14 @@ function selectContact(contact) {
 ####################################################################################################
 <template>
   <div class="talkstream-container">
-    <!-- Статус подключения -->
     <ConnectionStatus />
-
-    <!-- Панель контактов -->
     <div
         v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
         class="contacts-wrapper"
         :class="{ 'collapsed': isContactsPanelCollapsed }"
     >
-      <!-- Используем абсолютный путь к компоненту -->
       <TalkStreamContacts @select="handleSelectContact" />
     </div>
-
-    <!-- Основная область чата -->
     <div
         v-loading-talk.history="{ text: 'Загрузка истории...', background: '#ffffffaa' }"
         class="talkstream-chat"
@@ -3954,7 +4114,6 @@ function selectContact(contact) {
           :contact="selectedContact"
           :is-online="contactStore.isOnline(selectedContact?.id)"
       />
-
       <TalkStreamHistory
           ref="historyRef"
           v-if="selectedContact"
@@ -3963,7 +4122,6 @@ function selectContact(contact) {
           :messages="messages"
           :is-online="contactStore.isOnline(selectedContact.id)"
       />
-
       <TalkStreamSender
           v-if="selectedContact"
           :contact="selectedContact"
@@ -3974,32 +4132,21 @@ function selectContact(contact) {
 </template>
 
 <script setup lang="ts">
-// ✅ АБСОЛЮТНЫЕ ИМПОРТЫ (Строгий стандарт)
-import { ref, onMounted, computed, type Ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-
-// Stores
 import { useUiStore } from '@/modules/TalkStream/Stores/uiStore'
 import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
 import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import { userStore } from '@/store/userStore'
-
-// Composables
 import { useLoading } from '@/modules/TalkStream/Composables/useLoading'
-
-// Types
 import type { Contact, Message } from '@/modules/TalkStream/types'
-
-// Components (Views & Components mixed properly via alias)
 import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
 import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
 import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
 import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
 import TalkStreamSender from '@/modules/TalkStream/Talks/TalkStreamSender.vue'
-
-// --- Логика ---
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -4009,88 +4156,65 @@ const friendStore = useFriendStore()
 const useUserStore = userStore()
 const talkStreamStore = useTalkStreamStore()
 
-// Refs
 const selectedContact = ref<Contact | null>(null)
-const historyRef = ref<any | null>(null) // Можно уточнить тип, если экспортируем методы из History
+const historyRef = ref<any | null>(null)
 
-// Computed
 const messages = computed<Message[]>(() => chatStore.messages)
 const isContactsPanelCollapsed = computed<boolean>(() => uiStore.isContactsPanelCollapsed)
 
-// Loading Zones
 const { withLoading: withContactsLoading } = useLoading('contacts')
 const { withLoading: withHistoryChatLoading } = useLoading('history')
 
-// --- Methods ---
-
 const handleSelectContact = async (contact: Contact) => {
   if (!contact) return
-
   selectedContact.value = contact
   localStorage.setItem('last-selected-contact', String(contact.id))
   contactStore.selectContact(contact)
-
-  // Загружаем историю для выбранного контакта
   if (selectedContact.value) {
     await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
   }
 }
 
+// 🔥 ИСПРАВЛЕНО: Удалено ручное создание tempMessage с положительным ID.
+// Теперь за оптимистичное обновление отвечает ТОЛЬКО chatStore.sendMessage,
+// который создает сообщение с отрицательным ID и сам его заменяет/удаляет.
 const handleSendMessage = async (data: { content: string, to_id: number }) => {
   if (!selectedContact.value) return
 
-  const tempMessage: Message = {
-    id: Date.now(),
-    content: data.content,
-    from_id: useUserStore.id!,
-    to_id: data.to_id,
-    created_at: new Date().toISOString(),
-    read_at: null,
-    isLocal: true,
-    type: 'text',
-    is_mine: true
-  }
-
-  chatStore.addLocalMessage(tempMessage)
-
-  // Скролл вниз сразу
-  historyRef.value?.scrollToBottom()
-
   try {
-    const response = await chatStore.sendMessage(data.to_id, data.content)
-    // В реальном приложении здесь можно заменить tempMessage на ответ от сервера,
-    // но chatStore уже делает это внутри (replaceLocalMessage)
+    // chatStore.sendMessage сам создаст локальное сообщение, покажет его,
+    // отправит на сервер и заменит на реальное при успехе.
+    await chatStore.sendMessage(data.to_id, data.content)
+
+    // Скроллим вниз после добавления сообщения в стор
+    historyRef.value?.scrollToBottom()
   } catch (e) {
     console.error('[TalkStream] Ошибка отправки:', e)
-    chatStore.removeLocalMessage(tempMessage.id)
+    // chatStore.sendMessage уже удалил temp-сообщение внутри себя при ошибке
   }
 }
 
-// --- Lifecycle ---
-
 onMounted(async () => {
-  // 1. Восстановление UI состояния
   const savedState = localStorage.getItem('contactsPanelCollapsed')
   if (savedState !== null) {
     uiStore.setContactsPanelState(JSON.parse(savedState))
   }
 
-  // 2. Синхронизация ID пользователя (если вдруг не подтянулось)
   if (!contactStore.userId && useUserStore.id) {
     contactStore.userId = useUserStore.id
   }
 
-  // 3. Инициализация WebSocket (Один раз)
   if (!talkStreamStore.isConnected) {
     talkStreamStore.initWebSockets()
   }
 
-  // 4. Загрузка данных
   if (!contactStore.contacts.length) {
     await withContactsLoading(() => contactStore.loadContacts())
   }
 
-  // 5. Восстановление последнего выбранного чата
+  // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Загружаем userFrom после загрузки контактов
+  await contactStore.refreshUserFrom()
+
   const lastContactId = localStorage.getItem('last-selected-contact')
   if (lastContactId && contactStore.contacts.length > 0) {
     const contact = contactStore.contacts.find(c => c.id === Number(lastContactId))
@@ -4158,19 +4282,21 @@ onMounted(async () => {
       <span>Общий список пользователей</span>
     </div>
 
-    <!-- Обёртка для прокрутки -->
-    <div class="contacts-wrap" v-loading-talk-small.contacts="{ text: 'Загрузка...', background: '#ffffffaa' }">
-      <!-- Список всех пользователей -->
-      <ul class="contact-list">
+    <div
+        class="contacts-wrap"
+        v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
+    >
+      <!-- ✅ Рендерим список ТОЛЬКО когда данные дружбы загружены -->
+      <ul v-if="friendStore._initialized" class="contact-list">
         <ContactItem
             v-for="contact in contacts"
             :key="contact.id"
             :contact="contact"
-            :is-online="contactStore.isOnline(contact.id)"
-            :is-friend="friendStore.isFriend(contact.id)"
-            :is-selected="contactStore.selectedContact?.id === contact.id"
-            :has-incoming="friendStore.hasIncoming(contact.id)"
-            :has-sent="friendStore.hasSent(contact.id)"
+            :is-online="isContactOnline(contact.id)"
+            :is-friend="isContactFriend(contact.id)"
+            :is-selected="isContactSelected(contact.id)"
+            :has-incoming="hasIncomingRequest(contact.id)"
+            :has-sent="hasSentRequest(contact.id)"
             @select="handleSelect"
             @add-friend="handleAddFriend"
             @accept-request="handleAcceptRequest"
@@ -4181,7 +4307,7 @@ onMounted(async () => {
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
@@ -4194,25 +4320,41 @@ const emit = defineEmits<{
 const contactStore = useContactStore()
 const friendStore = useFriendStore()
 
-// ✅ Строгая типизация Computed
 const contacts = computed<Contact[]>(() => contactStore.contacts)
 
-function handleSelect(contact: Contact) {
+const isContactOnline = (id: number): boolean => contactStore.isOnline(id)
+const isContactFriend = (id: number): boolean => friendStore.isFriend(id)
+const isContactSelected = (id: number): boolean => contactStore.isContactSelected(id)
+const hasIncomingRequest = (id: number): boolean => friendStore.hasIncoming(id)
+const hasSentRequest = (id: number): boolean => friendStore.hasSent(id)
+
+function handleSelect(contact: Contact): void {
   contactStore.selectContact(contact)
   emit('select', contact)
 }
 
-async function handleAddFriend(contact: Contact) {
+async function handleAddFriend(contact: Contact): Promise<void> {
   await friendStore.sendRequest(contact.id)
 }
 
-async function handleAcceptRequest(contact: Contact) {
-  // Находим ID запроса по user_id отправителя
+async function handleAcceptRequest(contact: Contact): Promise<void> {
   const req = friendStore.incomingRequests.find(r => r.user_id === contact.id)
   if (req) {
     await friendStore.acceptRequest(req.id)
   }
 }
+
+onMounted(async () => {
+  // ✅ Загружаем контакты
+  if (contactStore.contacts.length === 0) {
+    await contactStore.loadContacts()
+  }
+
+  // ✅ Инициализируем данные дружбы (1 раз, даже при перезагрузке)
+  if (!friendStore._initialized) {
+    await friendStore.init()
+  }
+})
 </script>
 
 <style scoped lang="scss">
@@ -4226,6 +4368,7 @@ async function handleAcceptRequest(contact: Contact) {
   transition: all 0.2s ease;
   overflow: hidden;
 }
+
 .contacts-container-header {
   height: 30px;
   min-height: 30px;
@@ -4233,22 +4376,47 @@ async function handleAcceptRequest(contact: Contact) {
   align-items: center;
   justify-content: center;
   width: 100%;
-  font-size: .7rem;
+  font-size: 0.7rem;
   flex-shrink: 0;
   box-sizing: border-box;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
 }
+
 .contacts-wrap {
   flex-grow: 1;
   overflow-y: auto;
   max-height: calc(100vh - 160px);
   min-height: 0;
+  background-color: #fff;
 }
+
 .contact-list {
   list-style: none;
   padding-top: 4px;
   padding-left: 2px;
   padding-bottom: 4px;
   margin-right: 4px;
+  margin: 0;
+}
+
+.contacts-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contacts-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.contacts-wrap::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.contacts-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
 }
 </style>
 
@@ -4470,10 +4638,9 @@ const switchMode = (mode) => {
         <MessageGroup
             v-for="(group, groupIndex) in groupedMessages"
             :key="groupIndex"
-            :from-id="group.from_id"
+            :avatar-url="getAvatarUrl(group.from_id)"
+            :is-mine="isMine(group.from_id)"
             :messages="group.messages"
-            :user-from="userFrom"
-            :contact="contact"
             :is-online="isOnline"
             :show-avatar="true"
         >
@@ -4498,24 +4665,32 @@ const switchMode = (mode) => {
       </template>
     </div>
 
+    <!-- КНОПКА-ШТОРКА: Появляется, если есть новые сообщения и пользователь не внизу -->
     <button
         class="scroll-down-button"
         :class="{ visible: showScrollButton }"
-        @click="scrollToBottom(600)"
+        @click="handleScrollToBottomAndMarkRead"
     >
       <ScrollDownButtonIcon />
+      <!-- Счетчик новых сообщений -->
+      <span v-if="newMessagesCount > 0" class="new-messages-badge">
+        {{ newMessagesCount }}
+      </span>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose, watch, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
+import { ref, defineExpose, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import type { Message, Contact, User } from '@/modules/TalkStream/types'
 import ScrollDownButtonIcon from '@/modules/TalkStream/Components/Icons/ScrollDownButtonIcon.vue'
 import MessageGroup from '@/modules/TalkStream/Components/MessageGroup.vue'
 import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream' // 🔥 НОВОЕ (3a)
+import { userStore } from '@/store/userStore'
 
-// ✅ 1. Строгая типизация props
+// 1. Строгая типизация props
 const props = defineProps<{
   userFrom: User | null
   contact: Contact | null
@@ -4523,17 +4698,21 @@ const props = defineProps<{
   isOnline: boolean
 }>()
 
-// ✅ 2. Строгая типизация refs (HTMLElement для DOM, ReturnType для setTimeout)
+const chatStore = useChatStore()
+const useUserStore = userStore()
+
+// 2. Строгая типизация refs
 const historyContainer = ref<HTMLElement | null>(null)
 const showScrollButton = ref<boolean>(false)
-const scrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const newMessagesCount = ref<number>(0)
 
-// ✅ 3. Интерфейс для сгруппированных сообщений
+// 3. Интерфейс для сгруппированных сообщений
 interface GroupedMessage {
   from_id: number
   messages: Message[]
 }
 
+// 4. Группировка сообщений по отправителю (для аватарок и пузырей)
 const groupedMessages = computed<GroupedMessage[]>(() => {
   const groups: GroupedMessage[] = []
   let currentGroup: GroupedMessage | null = null
@@ -4553,109 +4732,139 @@ const groupedMessages = computed<GroupedMessage[]>(() => {
   return groups
 })
 
-// ✅ 4. Строгая типизация параметров функции скролла
-function smoothScrollTo(element: HTMLElement, to: number, duration: number): void {
-  const start = element.scrollTop
-  const change = to - start
-  let currentTime = 0
-  const increment = Math.min(Math.max(duration / 20, 10), 20)
-
-  function easeInOut(t: number): number {
-    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-  }
-
-  function animateScroll(): void {
-    currentTime += increment
-    const val = easeInOut(currentTime / duration) * change + start
-    element.scrollTop = val
-    if (currentTime < duration) {
-      setTimeout(animateScroll, increment)
-    } else {
-      element.scrollTop = to
-    }
-  }
-
-  animateScroll()
+// 4.5. Хелперы для MessageGroup (вся логика "кто я" живёт здесь, в мозге)
+// Фолбэк на userStore гарантирует работу даже если userFrom ещё null
+const isMine = (fromId: number): boolean => {
+  const currentUserId = props.userFrom?.id ?? useUserStore.id
+  return currentUserId === fromId
 }
 
+const getAvatarUrl = (fromId: number): string => {
+  if (isMine(fromId)) {
+    // Моё сообщение → мой аватар (бэкенд уже подставил по полу)
+    return props.userFrom?.avatar || useUserStore.avatar || '/images/avatar-main.png'
+  }
+  // Сообщение собеседника → его аватар
+  return props.contact?.avatar || '/images/avatar-main.png'
+}
+
+// 🔥 НОВОЕ (проблема 1): единая точка отметки прочтения.
+// Локально мутируем ВСЕГДА (оптимистично, мгновенно сбрасываем счётчик на моём экране).
+// Сетевой POST /read шлём ТОЛЬКО если реально были непрочитанные (гейт по unreadCount) —
+// так исключаем спам запросами, когда читать нечего.
+const markCurrentChatAsRead = (): void => {
+  const contactId = props.contact?.id
+  if (!contactId) return
+
+  const hadUnread = chatStore.unreadCount > 0
+
+  chatStore.markAsRead(contactId) // локально (сущ. метод стора)
+
+  if (hadUnread) {
+    // fire-and-forget: не блокируем UI, ошибку пишем в консоль
+    TalkStreamAPI.markAsRead(contactId).catch((error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[TalkStreamHistory] Failed to POST /read:', errorMessage)
+    })
+  }
+}
+
+// 5. Плавный скролл вниз с использованием нативного API (аппаратное ускорение)
 const scrollToBottom = (duration: number = 300): void => {
   const container = historyContainer.value
   if (!container) return
 
-  const targetScrollTop = container.scrollHeight - container.clientHeight
-  smoothScrollTo(container, targetScrollTop, duration)
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  })
+
   showScrollButton.value = false
+  newMessagesCount.value = 0
 }
 
-const scrollToBottomAfterRender = (duration: number = 300): void => {
+// 6. Скролл после рендера новых сообщений (гарантия, что DOM обновился)
+const scrollToBottomAfterRender = async (): Promise<void> => {
   const container = historyContainer.value
   if (!container) return
 
-  if (scrollTimeout.value) {
-    clearTimeout(scrollTimeout.value)
-    scrollTimeout.value = null
-  }
-
-  scrollTimeout.value = setTimeout(() => {
-    scrollToBottom(duration)
-  }, 50)
+  await nextTick()
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  })
 }
 
+// 7. Обработка скролла: проверка позиции и отметка "Прочитано"
 const checkScrollPosition = (): void => {
   const container = historyContainer.value
   if (!container) return
 
   const threshold = 100
-  const isAtBottom =
-      container.scrollHeight -
-      container.scrollTop -
-      container.clientHeight <= threshold
+  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold
 
   showScrollButton.value = !isAtBottom
+
+  // Если пользователь вручную доскроллил почти до низа, считаем, что он прочитал сообщения
+  if (isAtBottom && newMessagesCount.value > 0 && props.contact) {
+    newMessagesCount.value = 0
+    markCurrentChatAsRead() // 🔥 было chatStore.markAsRead(props.contact.id)
+  }
 }
 
+// 8. Комплексное действие: скролл вниз + сброс счетчика + отметка "Прочитано"
+const handleScrollToBottomAndMarkRead = (): void => {
+  scrollToBottom()
+  markCurrentChatAsRead() // 🔥 было if(props.contact){ chatStore.markAsRead(...) }
+}
+
+// 9. Реакция на появление новых сообщений
 watch(
     () => props.messages.length,
     (newLength: number, oldLength: number) => {
+      // Игнорируем удаления или начальную загрузку
       if (newLength <= oldLength) return
 
       const container = historyContainer.value
       if (!container) return
 
-      const isAtBottom =
-          container.scrollHeight -
-          container.scrollTop -
-          container.clientHeight <= 100
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 100
 
       if (isAtBottom) {
-        scrollToBottomAfterRender(400)
+        // Если пользователь уже внизу, плавно скроллим за новым сообщением
+        scrollToBottomAfterRender()
+        // 🔥 НОВОЕ (проблема 1): входящее, увиденное внизу, сразу отмечает прочтение.
+        // Без этого галочки у отправителя горели бы только после скролла/клика читателя.
+        // Дабла нет: программный scrollTo триггерит checkScrollPosition, но там
+        // newMessagesCount === 0 (в этой ветке не инкрементился) → повторного вызова не будет.
+        markCurrentChatAsRead()
       } else {
+        // Если пользователь читает историю вверху, показываем шторку и увеличиваем счетчик
         showScrollButton.value = true
+        newMessagesCount.value++
       }
     }
 )
 
+// 10. Инициализация при монтировании
 onMounted(() => {
   if (historyContainer.value) {
-    scrollToBottomAfterRender(300)
+    scrollToBottomAfterRender()
   }
 })
 
+// 11. Очистка (на всякий случай, хотя утечек здесь нет)
 onBeforeUnmount(() => {
-  if (scrollTimeout.value) {
-    clearTimeout(scrollTimeout.value)
-    scrollTimeout.value = null
-  }
+  // Ресурсы освобождены
 })
 
-// ✅ 5. Явное предоставление метода родителю
+// 12. Предоставление метода родителю (если понадобится вызвать из TalkStream.vue)
 defineExpose({
   scrollToBottom
 })
 </script>
 
 <style lang="scss" scoped>
-/* Стили остаются без изменений, они валидны */
 .talkstream-history-container {
   flex: 1;
   position: relative;
@@ -4720,13 +4929,13 @@ defineExpose({
   pointer-events: all;
   color: #262626;
   background-color: #fff;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   bottom: 60px;
   right: 17px;
-  overflow: hidden;
+  overflow: visible;
   transform: translateY(10px);
-  box-shadow: inset 0 0 0 1px #ededed;
+  box-shadow: inset 0 0 0 1px #ededed, 0 4px 12px rgba(0, 0, 0, 0.15);
 
   &:hover {
     opacity: 1 !important;
@@ -4748,10 +4957,36 @@ defineExpose({
   }
 
   &.visible {
-    opacity: 0.8;
+    opacity: 0.9;
     transform: translateY(0);
     pointer-events: auto;
   }
+}
+
+/* СТИЛИ ДЛЯ БЕЙДЖА НОВЫХ СООБЩЕНИЙ */
+.new-messages-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid rgb(46, 47, 52);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
 }
 
 .empty-state {
@@ -4800,25 +5035,28 @@ defineExpose({
   </form>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
 import SendPlaneIcon from '@/modules/TalkStream/Components/Icons/SendPlaneIcon.vue'
 
-const props = defineProps({
+// ✅ Строгая типизация Props
+const props = defineProps<{
   contact: {
-    type: Object,
-    required: true
+    id: number
   }
-})
+}>()
 
-const emit = defineEmits(['send'])
+// ✅ Строгая типизация Emits
+const emit = defineEmits<{
+  send: [data: { content: string; to_id: number }]
+}>()
 
-const message = ref('')
-const textarea = ref(null)
-const rows = ref(3)
+const message = ref<string>('')
+const textarea = ref<HTMLTextAreaElement | null>(null)
+const rows = ref<number>(3)
 const MAX_ROWS = 6
 
-function adjustHeight() {
+function adjustHeight(): void {
   const el = textarea.value
   if (!el) return
 
@@ -4826,14 +5064,14 @@ function adjustHeight() {
   el.style.height = `${Math.min(el.scrollHeight / 16, MAX_ROWS)}rem`
 }
 
-function handleEnter(e) {
+function handleEnter(e: KeyboardEvent): void {
   if (e.shiftKey || e.ctrlKey || e.metaKey) return
 
   e.preventDefault()
   send()
 }
 
-function send() {
+function send(): void {
   if (!message.value.trim()) return
 
   emit('send', {
@@ -4930,18 +5168,23 @@ export interface Contact extends User {
     main_role?: string;
 }
 
+export type MessageType = 'text' | 'image' | 'file' | 'system';
+export type MessageStatus = 'sending' | 'delivered' | 'read' | 'failed';
+
 export interface Message {
     id: number;
     from_id: number;
     to_id: number;
     content: string;
-    type: 'text' | 'image' | 'file' | 'system';
+    type: MessageType;
     read_at?: string | null;
     created_at: string;
     sender?: User;
     formatted_created_at?: string;
+    formatted_read_at?: string;
     is_mine?: boolean;
     isLocal?: boolean;
+    status?: MessageStatus;
 }
 
 export interface FriendRequest {
@@ -4966,12 +5209,15 @@ export interface WebSocketStatus {
     error: string | null;
 }
 
+export type CallDataType = 'audio' | 'video';
+export type CallDataStatus = 'pending' | 'active' | 'ended';
+
 export interface CallData {
     id?: number;
     caller_id: number;
     callee_id: number;
-    type: 'audio' | 'video';
-    status?: 'pending' | 'active' | 'ended';
+    type: CallDataType;
+    status?: CallDataStatus;
     started_at?: string;
     ended_at?: string;
 }
@@ -5152,6 +5398,40 @@ class ChatController extends Controller
 }
 
 ####################################################################################################
+#####  app\Http\Controllers\TalkStream\ConfigController.php
+####################################################################################################
+<?php
+
+namespace App\Http\Controllers\TalkStream;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
+
+class ConfigController extends Controller
+{
+    /**
+     * Получить конфигурацию модуля TalkStream для фронтенда
+     *
+     * @return JsonResponse
+     */
+    public function getConfig(): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'ui' => [
+                    'enable_read_receipts' => (bool) config('talkstream.ui.enable_read_receipts', true),
+                    'messages_per_page'    => (int) config('talkstream.ui.messages_per_page', 50),
+                ],
+                'limits' => [
+                    'max_message_length' => (int) config('talkstream.limits.max_message_length', 5000),
+                ],
+            ]
+        ]);
+    }
+}
+
+####################################################################################################
 #####  app\Http\Controllers\TalkStream\ContactController.php
 ####################################################################################################
 <?php
@@ -5319,10 +5599,10 @@ class FriendRequestController extends Controller
 
 namespace App\Events\TalkStream;
 
-use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\InteractsWithSockets;
 
 class FriendRequestAccepted implements ShouldBroadcast
 {
@@ -5330,14 +5610,21 @@ class FriendRequestAccepted implements ShouldBroadcast
 
     public function __construct(public array $request) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('friends.' . $this->request['user_id']);
+        return [
+            new PrivateChannel('friends.' . $this->request['user_id']),
+        ];
     }
 
     public function broadcastAs(): string
     {
         return 'FriendRequestAccepted';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['request' => $this->request];
     }
 }
 
@@ -5348,10 +5635,10 @@ class FriendRequestAccepted implements ShouldBroadcast
 
 namespace App\Events\TalkStream;
 
-use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\InteractsWithSockets;
 
 class FriendRequestDeclined implements ShouldBroadcast
 {
@@ -5359,14 +5646,21 @@ class FriendRequestDeclined implements ShouldBroadcast
 
     public function __construct(public array $request) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('friends.' . $this->request['user_id']);
+        return [
+            new PrivateChannel('friends.' . $this->request['user_id']),
+        ];
     }
 
     public function broadcastAs(): string
     {
         return 'FriendRequestDeclined';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['request' => $this->request];
     }
 }
 
@@ -5377,9 +5671,9 @@ class FriendRequestDeclined implements ShouldBroadcast
 
 namespace App\Events\TalkStream;
 
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 
 class FriendRequestSent implements ShouldBroadcast
@@ -5388,14 +5682,21 @@ class FriendRequestSent implements ShouldBroadcast
 
     public function __construct(public array $request) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('friends.' . $this->request['friend_id']);
+        return [
+            new PrivateChannel('friends.' . $this->request['friend_id']),
+        ];
     }
 
     public function broadcastAs(): string
     {
         return 'FriendRequestSent';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['request' => $this->request];
     }
 }
 
@@ -5406,10 +5707,10 @@ class FriendRequestSent implements ShouldBroadcast
 
 namespace App\Events\TalkStream;
 
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\Channel;
 
 class IncomingCall implements ShouldBroadcast
 {
@@ -5417,14 +5718,21 @@ class IncomingCall implements ShouldBroadcast
 
     public function __construct(public array $call) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('call.' . $this->call['callee_id']);
+        return [
+            new PrivateChannel('call.' . $this->call['callee_id']),
+        ];
     }
 
     public function broadcastAs(): string
     {
         return 'IncomingCall';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['call' => $this->call];
     }
 }
 
@@ -5435,10 +5743,10 @@ class IncomingCall implements ShouldBroadcast
 
 namespace App\Events\TalkStream;
 
+use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\Channel;
 
 class MessageRead implements ShouldBroadcast
 {
@@ -5446,14 +5754,21 @@ class MessageRead implements ShouldBroadcast
 
     public function __construct(public array $message) {}
 
-    public function broadcastOn(): Channel
+    public function broadcastOn(): array
     {
-        return new Channel('chat.read.' . $this->message['from_id']);
+        return [
+            new PrivateChannel('chat.read.' . $this->message['from_id']),
+        ];
     }
 
     public function broadcastAs(): string
     {
         return 'MessageRead';
+    }
+
+    public function broadcastWith(): array
+    {
+        return ['message' => $this->message];
     }
 }
 
@@ -5478,7 +5793,7 @@ class NewMessage implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('user.' . $this->message['to_id']),  // клиент слушает 'user.X'
+            new PrivateChannel('user.' . $this->message['to_id']),
         ];
     }
 
@@ -5486,7 +5801,8 @@ class NewMessage implements ShouldBroadcast
     {
         return 'NewMessage';
     }
-    public function broadcastWith()
+
+    public function broadcastWith(): array
     {
         return ['message' => $this->message];
     }
@@ -5568,6 +5884,7 @@ class FriendRequest extends Model
 #####  app\Models\TalkStream\Message.php
 ####################################################################################################
 <?php
+
 namespace App\Models\TalkStream;
 
 use App\Models\User;
@@ -5579,14 +5896,24 @@ class Message extends Model
 {
     protected $table = 'messages';
 
-    // ✅ ДОБАВЛЕНО 'type'
-    protected $fillable = ['from_id', 'to_id', 'content', 'type', 'read_at'];
+    protected $fillable = [
+        'from_id',
+        'to_id',
+        'content',
+        'type',
+        'read_at'
+    ];
 
     protected $casts = [
         'read_at' => 'datetime',
+        'created_at' => 'datetime',
     ];
 
-    protected $appends = ['formatted_created_at'];
+    protected $appends = [
+        'formatted_created_at',
+        // 🔥 НОВОЕ (рука 2, для слота ⋮ в пузыре): время прочтения собеседником
+        'formatted_read_at'
+    ];
 
     public function sender()
     {
@@ -5602,19 +5929,55 @@ class Message extends Model
     {
         return Attribute::make(
             get: function () {
-                if (!$this->created_at) return '';
+                if (!$this->created_at) {
+                    return '';
+                }
 
-                $date = Carbon::parse($this->created_at);
-                $now = Carbon::now();
+                $date = $this->created_at;
+
+                if (!($date instanceof Carbon)) {
+                    $date = Carbon::parse($this->created_at);
+                }
 
                 if ($date->isToday()) {
-                    return $date->format('H:i');
+                    return $date->format('H:i:s');
                 } elseif ($date->isYesterday()) {
-                    return 'Вчера в ' . $date->format('H:i');
+                    return 'Вчера в ' . $date->format('H:i:s');
                 } elseif ($date->isCurrentYear()) {
-                    return $date->format('d M \в H:i');
+                    return $date->format('d M \в H:i:s');
                 } else {
-                    return $date->format('d.m.Y \в H:i');
+                    return $date->format('d.m.Y \в H:i:s');
+                }
+            }
+        );
+    }
+
+    // 🔥 НОВОЕ (рука 2): форматированное время прочтения.
+    // read_at nullable (миграция): если собеседник не читал — пустая строка,
+    // слот ⋮ в MessageItem просто не отрисуется (v-if по непустоте в шаге 6).
+    // Структура веток идентична formattedCreatedAt, чтобы UI-время выглядело единообразно.
+    protected function formattedReadAt(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->read_at) {
+                    return '';
+                }
+
+                $date = $this->read_at;
+
+                if (!($date instanceof Carbon)) {
+                    $date = Carbon::parse($this->read_at);
+                }
+
+                if ($date->isToday()) {
+                    return $date->format('H:i:s');
+                } elseif ($date->isYesterday()) {
+                    return 'Вчера в ' . $date->format('H:i:s');
+                } elseif ($date->isCurrentYear()) {
+                    return $date->format('d M \в H:i:s');
+                } else {
+                    return $date->format('d.m.Y \в H:i:s');
                 }
             }
         );
@@ -5664,7 +6027,6 @@ namespace App\Services\TalkStream;
 use App\Events\TalkStream\NewMessage;
 use App\Models\TalkStream\Message;
 use App\Services\TalkStream\FriendService;
-use Illuminate\Support\Facades\Auth;
 
 class MessageService
 {
@@ -5679,7 +6041,6 @@ class MessageService
     public function create(int $fromId, int $toId, string $content): Message
     {
         // 1. Проверка дружбы через FriendService
-        // (Нужно убедиться, что сервис подключен через use App\Services\TalkStream\FriendService;)
         if (!FriendService::areFriends($fromId, $toId)) {
             throw new \Exception('Вы можете писать только друзьям');
         }
@@ -5689,17 +6050,20 @@ class MessageService
             'from_id' => $fromId,
             'to_id'   => $toId,
             'content' => $content,
-            'type'    => 'text', // Дефолт
+            'type'    => 'text',
         ]);
 
         // 3. Broadcast
+        // Добавлены read_at и formatted_created_at, чтобы фронтенд сразу получил время
         broadcast(new NewMessage([
-            'id'         => $message->id,
-            'from_id'    => $message->from_id,
-            'to_id'      => $message->to_id,
-            'content'    => $message->content,
-            'type'       => $message->type,
-            'created_at' => $message->created_at->toISOString(),
+            'id'                   => $message->id,
+            'from_id'              => $message->from_id,
+            'to_id'                => $message->to_id,
+            'content'              => $message->content,
+            'type'                 => $message->type,
+            'read_at'              => $message->read_at ? $message->read_at->toISOString() : null,
+            'created_at'           => $message->created_at->toISOString(),
+            'formatted_created_at' => $message->formatted_created_at,
         ]))->toOthers();
 
         return $message;
@@ -5846,6 +6210,7 @@ use App\Http\Controllers\Api\Entity\MeasurementUnitController;
 use App\Http\Controllers\Api\Entity\AccessoryController;
 use App\Http\Controllers\Api\Entity\BrandController;
 use App\Http\Controllers\Api\Entity\DeviceTypeController;
+use \App\Http\Controllers\TalkStream\ConfigController;
 use App\Http\Controllers\TalkStream\ContactController;
 use App\Http\Controllers\TalkStream\ChatController;
 use App\Http\Controllers\TalkStream\CallController;
@@ -6020,6 +6385,9 @@ Route::prefix('entities')->middleware(['auth:sanctum', 'permission:' . Acl::PERM
 // 7. TALKSTREAM (Чаты, звонки, друзья)
 // ============================================================================
 Route::prefix('talkstream')->middleware('auth:sanctum')->group(function () {
+
+    Route::get('/config', [ConfigController::class, 'getConfig']);
+
     Route::get('/user', [ContactController::class, 'show']);
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::get('/contacts/{id}', [ContactController::class, 'show']);
@@ -6466,7 +6834,44 @@ return [
 ####################################################################################################
 <?php
 
+/*
+|--------------------------------------------------------------------------
+| TALKSTREAM MODULE CONFIG — контракт настроек модуля чата
+|--------------------------------------------------------------------------
+|
+| ⚠️ ЭТО КОНТРАКТ/ЗАДЕЛ, НЕ ВСЕ ФЛАГИ ПРИМЕНЯЮТСЯ В КОДЕ.
+| Значения ниже — декларация намерений. Реальная зрелость каждой опции
+| помечена тегом справа. Не считай [НЕТ]-флаги «выключенными фичами» —
+| это фичи, которых ещё нет в реализации.
+|
+| ЛЕГЕНДА МЕТОК:
+|   [РЕАЛ]  опция/канал/событие реально работает в коде (подписка/валидация/логика есть)
+|   [ЧАСТ]  часть цепочки есть, часть отсутствует (напр. событие шлётся, но фронт не ловит)
+|   [НЕТ]   задел: объявлено в контракте, в коде не применяется / фича не реализована
+|   [РАСХ]  рассинхрон контракта с реальным кодом (имя/маппинг врёт) — требует правки значения
+|
+| РЕВИЗИЯ (якорь отладки, НЕ релизная версия):
+|   Привязана к срезу аудита tools/reports/TALKSTREAM_AUDIT_Level_*.txt.
+|   Для «какая версия чата» теху на экране — читать это поле через
+|   ConfigController::getConfig (когда фронт-читалка /talkstream/config будет
+|   подключена; сейчас она НЕ подключена — см. примечание в конце файла).
+|   Настоящая версия модуля в будущем = git describe --tags, не ручной счётчик.
+|
+| СВОДКА ЗРЕЛОСТИ (27 листовых опций):
+|   [РЕАЛ]=7  [ЧАСТ]=3  [РАСХ]=1  [НЕТ]=16
+|   Реально работают: channels.user/presence/friends; events.message_read/
+|   friend_request_sent/friend_accepted; limits.max_message_length;
+|   базовая логика read-receipt (но НЕ флаг-выключатель enable_read_receipts).
+|   Остальное — задел под будущие итерации (typing, пагинация, медиа, WebRTC,
+|   реакции, редактирование/удаление, rate-limit, фронт-читалка конфига).
+|
+*/
+
 return [
+
+// Якорь среза контракта (совпадает с меткой последнего аудита, включённого в коммит).
+    'revision' => 'audit-3.6',
+
     /*
     |--------------------------------------------------------------------------
     | Broadcasting Settings (Channels & Events)
@@ -6474,17 +6879,31 @@ return [
     */
     'broadcasting' => [
         'channels' => [
+            // [РЕАЛ] echo.private('user.{id}') в setupChatEventsChannel; ловит .NewMessage и .MessageRead
             'user'      => 'user.{id}',
+            // [РЕАЛ] echo.join('chat')→presence-chat + setupUserPresenceChannel (here/joining/leaving→setUserOnline/Offline)
             'presence'  => 'chat',
+            // [РЕАЛ] echo.private('friends.{id}') + setupFriendRequestsChannel (ловит FriendRequestSent/Accepted)
             'friends'   => 'friends.{userId}',
+            // [ЧАСТ] канал объявлен в channels.php, роуты call/* и CallController есть,
+            //        но WebRTC-сигналинг (offer/answer/ICE) не реализован → медиасоединение не установится
             'call'      => 'call.{userId}',
+            // [НЕТ]  канал объявлен в channels.php, но ни одной подписки/слушателя signal.* в модуле нет
             'signal'    => 'signal.{userId}',
         ],
         'events' => [
+            // [РАСХ] реальный класс события = App\Events\TalkStream\NewMessage (broadcastAs 'NewMessage'),
+            //        а НЕ 'MessageSent'. Маппинг ниже врёт контракту. Правка значения (по твоему слову,
+            //        сейчас НЕ применена): 'message_sent' => 'NewMessage'. Фронт-хендлер слушает '.NewMessage'.
             'message_sent'          => 'MessageSent',
+            // [РЕАЛ] App\Events\TalkStream\MessageRead; broadcastWith=['message'=>…]; фронт разворачивает e.message.to_id→markSentAsRead
             'message_read'          => 'MessageRead',
+            // [РЕАЛ] App\Events\TalkStream\FriendRequestSent; ловится friendshipEventsHandler
             'friend_request_sent'   => 'FriendRequestSent',
+            // [РЕАЛ] App\Events\TalkStream\FriendRequestAccepted; ловится friendshipEventsHandler
             'friend_accepted'       => 'FriendRequestAccepted',
+            // [ЧАСТ] App\Events\TalkStream\IncomingCall шлётся из CallController::initiate,
+            //        но фронт-обработчик входящего звонка/сигнализации отсутствует
             'incoming_call'         => 'IncomingCall',
         ],
     ],
@@ -6493,14 +6912,31 @@ return [
     |--------------------------------------------------------------------------
     | UI & Display Settings (Настройки отображения)
     |--------------------------------------------------------------------------
+    | НИ ОДИН флаг ниже сейчас НЕ гейтит рендер: фронт-читалка /talkstream/config
+    | не подключена, значения захардкожены/дефолтны в компонентах.
     */
     'ui' => [
+        // [НЕТ] getHistory тянет ВСЮ историю без пагинации; поле отдаётся ConfigController, но фронт не читает
         'messages_per_page'       => 50,          // Пагинация истории
+
+        // [НЕТ] chatStore.history/messages не обрезаются по лимиту; переполнение кэша не контролируется
         'history_cache_limit'     => 200,         // Лимит кэша сообщений на фронтенде
-        'typing_indicator_timeout' => 1500,       // Задержка исчезновения "печатает..." (мс)
-        'status_message_timeout'  => 3000,        // Время показа уведомлений "Успешно/Ошибка"
+
+        // [НЕТ] индикатора «печатает…» нет ни в сторе, ни в UI, ни WS-события Typing*
+        'typing_indicator_timeout' => 800,       // Задержка исчезновения "печатает..." (мс)
+
+        // [НЕТ] таймауты ElMessage/ElNotification = дефолт ElementPlus, конфиг не читается
+        'status_message_timeout'  => 1500,        // Время показа уведомлений "Успешно/Ошибка" (мс)
+
+        // [НЕТ] фичи typing нет → флаг нечего включать/выключать
         'enable_typing_indicator' => true,        // Включить индикатор набора текста
+
+        // [ЧАСТ] БАЗОВАЯ логика read-receipt РЕАЛИЗОВАНА (POST /read + MessageRead + markSentAsRead + синие галочки),
+        //        но сам ФЛАГ-ВЫКЛЮЧАТЕЛЬ не применяется: MessageItem рисует галочки безусловно,
+        //        без проверки config('talkstream.ui.enable_read_receipts') на фронте.
         'enable_read_receipts'    => true,        // Включить галочки прочтения
+
+        // [НЕТ] анимации набора текста нет (зависит от typing-фичи)
         'enable_typing_animation' => true,        // Анимация набора текста
     ],
 
@@ -6510,14 +6946,24 @@ return [
     |--------------------------------------------------------------------------
     */
     'limits' => [
+        // [РЕАЛ] SendMessageRequest валидирует content по max_message_length; ConfigController отдаёт поле
         'max_message_length'    => 5000,          // Макс. длина сообщения (символов)
+
+        // [НЕТ] медиа/вложений нет (type всегда 'text'), размер файла не проверяется
         'max_attachment_size'   => 25600,         // Макс. размер файла (KB -> ~25MB)
+
+        // [НЕТ] mime-типы не используются (нет загрузки файлов в чат)
         'allowed_mime_types'    => [              // Разрешенные типы медиа
             'image/jpeg', 'image/png', 'image/gif', 'image/webp',
             'video/mp4', 'video/webm',
             'application/pdf',
         ],
+
+        // [НЕТ] в группе роутов talkstream (routes/api.php) НЕТ throttle middleware на /send и др.
         'rate_limit_per_minute' => 60,            // API запросов в минуту
+
+        // [НЕТ для чата] поиск контактов не реализован (contactStore.loadContacts тянет всех без фильтра);
+        //        поле пересекается по смыслу с Training-конфигом, в TalkStream не читается
         'search_min_length'     => 3,             // Мин. символов для поиска контактов
     ],
 
@@ -6525,15 +6971,48 @@ return [
     |--------------------------------------------------------------------------
     | Feature Flags (Вкл/Выкл функций)
     |--------------------------------------------------------------------------
+    | Все флаги ниже — ЗАДЕЛ: соответствующих фич в коде нет, и флаги НЕ гейтят UI.
+    | Значения оставлены как есть (контракт намерений), не понижай их молча.
     */
     'features' => [
+        // [НЕТ] голосовых сообщений нет (нет type='voice', нет записи/воспроизведения)
         'enable_voice_messages'     => true,
+
+        // [НЕТ] видеозвонков нет: роуты/события инициации есть, WebRTC-соединения нет; флаг не гейтит
         'enable_video_calls'        => true,
+
+        // [НЕТ] реакций нет; значение false согласовано с реальностью (единственный честный флаг секции)
         'enable_reactions'          => false,     // Beta
+
+        // [НЕТ] редактирования сообщений нет (нет UI, нет эндпоинта, нет события); флаг не гейтит
         'enable_editing_messages'   => true,
+
+        // [НЕТ] удаления сообщений нет (нет UI, нет эндпоинта, нет события); флаг не гейтит
         'enable_message_deletion'   => true,      // Возможность удалить свое сообщение
     ],
 ];
+
+/*
+|--------------------------------------------------------------------------
+| ПРИМЕЧАНИЕ ДЛЯ ТЕХА / ДОРАБОТКИ
+|--------------------------------------------------------------------------
+| 1. РАСХОЖДЕНИЕ message_sent: чтобы контракт не врал, поменяй значение на 'NewMessage'
+|    (реальный broadcastAs класса App\Events\TalkStream\NewMessage). Сейчас фронт
+|    слушает '.NewMessage', поэтому рантайм работает, но конфиг-маппинг дезориентирует.
+| 2. Фронт-читалка /talkstream/config НЕ подключена: ConfigController::getConfig отдаёт
+|    subset (ui.enable_read_receipts, ui.messages_per_page, limits.max_message_length),
+|    но ни appStore, ни initAuthConfig, ни settings.js этот эндпоинт не дёргают.
+|    Пока это так — ВСЕ [НЕТ]/[ЧАСТ]-флаги ui.* и features.* физически ни на что не влияют.
+| 3. Чтобы показывать теху «ревизию чата» на экране — достаточно добавить в ответ
+|    ConfigController::getConfig строку 'revision' => config('talkstream.revision')
+|    и вывести её бейджем, когда фронт-читалка будет подключена. Саму читалку и бейдж
+|    сейчас НЕ делаем (согласовано: экосистема пишется, git есть, 0.0.x избыточно).
+| 4. Порядок закрытия заделов (рекомендация, не обязательство):
+|    сначала [НЕТ]-фичи, видимые пользователю (typing, пагинация, rate-limit),
+|    затем медиа/вложения (разблокирует max_attachment_size + allowed_mime_types),
+|    затем WebRTC-сигналинг (разблокирует call/signal/incoming_call/enable_video_calls),
+|    затем редактирование/удаление/реакции, затем фронт-читалка конфига + гейты флагов.
+*/
 
 ####################################################################################################
 #####  5. МИГРАЦИИ TALKSTREAM
@@ -6623,11 +7102,11 @@ class CreateTalkStreamTables extends Migration
 #####  7. ИТОГИ АУДИТА
 ####################################################################################################
 Секция          Файлов     Строк         КБ       Нет
-FRONTEND            41      4746      147,6         0
-BACKEND             15       639         19         0
-INFRA                5       805       43,1         0
+FRONTEND            41      4991      162,4         0
+BACKEND             16       753       22,5         0
+INFRA                5       920       53,4         0
 MIGRATIONS           1        61        2,3         0
 -------------------------------------------------------
-ИТОГО               62      6251        212
+ИТОГО               63      6725      240,5
 Отсутствует файлов: 0
-Время сбора: 1,2 с
+Время сбора: 1,4 с

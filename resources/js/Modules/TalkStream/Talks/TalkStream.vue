@@ -1,19 +1,13 @@
 <template>
   <div class="talkstream-container">
-    <!-- Статус подключения -->
     <ConnectionStatus />
-
-    <!-- Панель контактов -->
     <div
         v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
         class="contacts-wrapper"
         :class="{ 'collapsed': isContactsPanelCollapsed }"
     >
-      <!-- Используем абсолютный путь к компоненту -->
       <TalkStreamContacts @select="handleSelectContact" />
     </div>
-
-    <!-- Основная область чата -->
     <div
         v-loading-talk.history="{ text: 'Загрузка истории...', background: '#ffffffaa' }"
         class="talkstream-chat"
@@ -23,7 +17,6 @@
           :contact="selectedContact"
           :is-online="contactStore.isOnline(selectedContact?.id)"
       />
-
       <TalkStreamHistory
           ref="historyRef"
           v-if="selectedContact"
@@ -32,7 +25,6 @@
           :messages="messages"
           :is-online="contactStore.isOnline(selectedContact.id)"
       />
-
       <TalkStreamSender
           v-if="selectedContact"
           :contact="selectedContact"
@@ -43,32 +35,21 @@
 </template>
 
 <script setup lang="ts">
-// ✅ АБСОЛЮТНЫЕ ИМПОРТЫ (Строгий стандарт)
-import { ref, onMounted, computed, type Ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-
-// Stores
 import { useUiStore } from '@/modules/TalkStream/Stores/uiStore'
 import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
 import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import { userStore } from '@/store/userStore'
-
-// Composables
 import { useLoading } from '@/modules/TalkStream/Composables/useLoading'
-
-// Types
 import type { Contact, Message } from '@/modules/TalkStream/types'
-
-// Components (Views & Components mixed properly via alias)
 import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
 import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
 import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
 import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
 import TalkStreamSender from '@/modules/TalkStream/Talks/TalkStreamSender.vue'
-
-// --- Логика ---
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -78,88 +59,65 @@ const friendStore = useFriendStore()
 const useUserStore = userStore()
 const talkStreamStore = useTalkStreamStore()
 
-// Refs
 const selectedContact = ref<Contact | null>(null)
-const historyRef = ref<any | null>(null) // Можно уточнить тип, если экспортируем методы из History
+const historyRef = ref<any | null>(null)
 
-// Computed
 const messages = computed<Message[]>(() => chatStore.messages)
 const isContactsPanelCollapsed = computed<boolean>(() => uiStore.isContactsPanelCollapsed)
 
-// Loading Zones
 const { withLoading: withContactsLoading } = useLoading('contacts')
 const { withLoading: withHistoryChatLoading } = useLoading('history')
 
-// --- Methods ---
-
 const handleSelectContact = async (contact: Contact) => {
   if (!contact) return
-
   selectedContact.value = contact
   localStorage.setItem('last-selected-contact', String(contact.id))
   contactStore.selectContact(contact)
-
-  // Загружаем историю для выбранного контакта
   if (selectedContact.value) {
     await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
   }
 }
 
+// 🔥 ИСПРАВЛЕНО: Удалено ручное создание tempMessage с положительным ID.
+// Теперь за оптимистичное обновление отвечает ТОЛЬКО chatStore.sendMessage,
+// который создает сообщение с отрицательным ID и сам его заменяет/удаляет.
 const handleSendMessage = async (data: { content: string, to_id: number }) => {
   if (!selectedContact.value) return
 
-  const tempMessage: Message = {
-    id: Date.now(),
-    content: data.content,
-    from_id: useUserStore.id!,
-    to_id: data.to_id,
-    created_at: new Date().toISOString(),
-    read_at: null,
-    isLocal: true,
-    type: 'text',
-    is_mine: true
-  }
-
-  chatStore.addLocalMessage(tempMessage)
-
-  // Скролл вниз сразу
-  historyRef.value?.scrollToBottom()
-
   try {
-    const response = await chatStore.sendMessage(data.to_id, data.content)
-    // В реальном приложении здесь можно заменить tempMessage на ответ от сервера,
-    // но chatStore уже делает это внутри (replaceLocalMessage)
+    // chatStore.sendMessage сам создаст локальное сообщение, покажет его,
+    // отправит на сервер и заменит на реальное при успехе.
+    await chatStore.sendMessage(data.to_id, data.content)
+
+    // Скроллим вниз после добавления сообщения в стор
+    historyRef.value?.scrollToBottom()
   } catch (e) {
     console.error('[TalkStream] Ошибка отправки:', e)
-    chatStore.removeLocalMessage(tempMessage.id)
+    // chatStore.sendMessage уже удалил temp-сообщение внутри себя при ошибке
   }
 }
 
-// --- Lifecycle ---
-
 onMounted(async () => {
-  // 1. Восстановление UI состояния
   const savedState = localStorage.getItem('contactsPanelCollapsed')
   if (savedState !== null) {
     uiStore.setContactsPanelState(JSON.parse(savedState))
   }
 
-  // 2. Синхронизация ID пользователя (если вдруг не подтянулось)
   if (!contactStore.userId && useUserStore.id) {
     contactStore.userId = useUserStore.id
   }
 
-  // 3. Инициализация WebSocket (Один раз)
   if (!talkStreamStore.isConnected) {
     talkStreamStore.initWebSockets()
   }
 
-  // 4. Загрузка данных
   if (!contactStore.contacts.length) {
     await withContactsLoading(() => contactStore.loadContacts())
   }
 
-  // 5. Восстановление последнего выбранного чата
+  // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Загружаем userFrom после загрузки контактов
+  await contactStore.refreshUserFrom()
+
   const lastContactId = localStorage.getItem('last-selected-contact')
   if (lastContactId && contactStore.contacts.length > 0) {
     const contact = contactStore.contacts.find(c => c.id === Number(lastContactId))

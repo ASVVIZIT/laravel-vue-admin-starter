@@ -1,19 +1,19 @@
 <template>
-  <div class="message-group" :class="{ sent: isSent, received: !isSent }">
-    <!-- Для отправленных сообщений аватар слева -->
+  <div class="message-group" :class="{ mine: isMine, theirs: !isMine }">
+    <!-- Аватар СОБЕСЕДНИКА (слева) -->
     <div
-        class="group-avatar sent-avatar"
-        v-if="isSent && showAvatarForLast"
+        v-if="!isMine && showAvatar"
+        class="group-avatar theirs-avatar"
         :class="{ visible: avatarVisible }"
     >
       <div
           class="avatar-img"
           :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
       ></div>
-      <!-- Добавляем индикатор статуса для отправленных сообщений -->
-      <span v-if="isOnline && isSent" class="status-indicator">●</span>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
     </div>
 
+    <!-- Контейнер с сообщениями -->
     <div class="message-group-container">
       <slot
           v-for="(msg, index) in messages"
@@ -24,62 +24,35 @@
       />
     </div>
 
-    <!-- Для полученных сообщений аватар справа -->
+    <!-- Аватар МОЙ (справа) -->
     <div
-        class="group-avatar received-avatar"
-        v-if="!isSent && showAvatarForLast"
+        v-if="isMine && showAvatar"
+        class="group-avatar mine-avatar"
         :class="{ visible: avatarVisible }"
     >
       <div
           class="avatar-img"
           :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
       ></div>
-      <!-- Индикатор статуса для полученных сообщений -->
-      <span v-if="isOnline && !isSent" class="status-indicator">●</span>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
     </div>
   </div>
 </template>
 
-<script setup>
-import { defineProps, computed, ref, onMounted } from 'vue'
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import type { Message } from '@/modules/TalkStream/types'
 
-const props = defineProps({
-  fromId: {
-    type: Number,
-    required: true
-  },
-  messages: {
-    type: Array,
-    required: true
-  },
-  userFrom: {
-    type: Object,
-    required: true
-  },
-  contact: {
-    type: Object,
-    required: true
-  },
-  isOnline: {
-    type: Boolean,
-    default: false
-  },
-  showAvatar: {
-    type: Boolean,
-    default: true
-  }
-})
+// ТУПОЙ КОМПОНЕНТ: принимает только готовые данные, ноль бизнес-логики
+const props = defineProps<{
+  avatarUrl: string
+  isMine: boolean
+  messages: Message[]
+  isOnline: boolean
+  showAvatar: boolean
+}>()
 
 const avatarVisible = ref(false)
-const isSent = computed(() => props.contact.id === props.fromId)
-
-const avatarUrl = computed(() =>
-    isSent.value
-        ? props.contact.avatar
-        : props.userFrom.avatar || '/images/default-avatar.png'
-)
-
-const showAvatarForLast = computed(() => props.messages.length > 0 && props.showAvatar)
 
 onMounted(() => {
   setTimeout(() => {
@@ -92,23 +65,26 @@ onMounted(() => {
 .message-group {
   display: flex;
   align-items: flex-end;
+  width: 100%;
   position: relative;
   margin-bottom: 2px;
   transition: all 0.3s ease;
 
-  &.sent {
-    justify-content: flex-start;
-
-    .message-group-container {
-      align-items: flex-start;
-    }
-  }
-
-  &.received {
+  // МОИ сообщения — весь блок прижат вправо
+  &.mine {
     justify-content: flex-end;
 
     .message-group-container {
       align-items: flex-end;
+    }
+  }
+
+  // СООБЩЕНИЯ СОБЕСЕДНИКА — весь блок прижат влево
+  &.theirs {
+    justify-content: flex-start;
+
+    .message-group-container {
+      align-items: flex-start;
     }
   }
 
@@ -138,31 +114,34 @@ onMounted(() => {
       transition: all 0.3s ease;
     }
 
+    // Индикатор — эмодзи (как в ContactItem.vue), НЕ CSS-кружок
     .status-indicator {
       position: absolute;
-      bottom: -1px;
-      right: -1px;
-      width: 10px;
-      height: 10px;
-      background-color: #42b983;
-      border: 2px solid #2e2f34;
-      border-radius: 50%;
+      bottom: -2px;
+      left: -2px;
+      font-size: 0.5rem;
+      line-height: 1;
+      color: #42b983;
       z-index: 2;
+      user-select: none;
+      pointer-events: none;
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
     }
 
-    &.received-avatar {
-      margin-left: 2px;
-      margin-right: 2px;
-      order: 3;
-    }
-
-    &.sent-avatar {
-      margin-right: 2px;
-      margin-left: 2px;
+    // Аватар собеседника — слева
+    &.theirs-avatar {
+      margin-right: 8px;
       order: 1;
+    }
+
+    // Мой аватар — справа
+    &.mine-avatar {
+      margin-left: 8px;
+      order: 3;
     }
   }
 
+  // Контейнер сообщений: потолок 80% ширины строки, сжимается по контенту
   .message-group-container {
     display: flex;
     flex-direction: column;

@@ -6,10 +6,16 @@ interface NewMessagePayload {
     message: Message
 }
 
+// 🔥 ИСПРАВЛЕНО (форма payload): бэкенд MessageRead::broadcastWith() возвращает
+// ['message' => $this->message], т.е. данные ОБЁРНУТЫ в ключ 'message' — ровно как у NewMessage.
+// Поле помечено '?', потому что рантайм-гарантии нет: если бэк по какой-то причине не пришлёт
+// обёртку — guard ниже спасёт от краша, а не уронит рендер.
 interface MessageReadPayload {
-    from_id: number
-    to_id: number
-    updated_count: number
+    message?: {
+        from_id: number
+        to_id: number
+        updated_count: number
+    }
 }
 
 export function setupChatEventsChannel(echo: any, myUserId: number) {
@@ -35,8 +41,20 @@ export function setupChatEventsChannel(echo: any, myUserId: number) {
         // 2. Прочтение сообщений (Private Channel: chat.read.{id})
         readChannel = echo.private(`chat.read.${myUserId}`)
         readChannel.listen('.MessageRead', (e: MessageReadPayload) => {
-            logger.info(`[ChatEvents] Messages marked as read by ${e.from_id}`)
-            chatStore.markAsRead(e.from_id)
+            // 🔥 ИСПРАВЛЕНО (форма): разворачиваем обёртку 'message', как в ветке NewMessage.
+            const payload = e.message
+            if (!payload) {
+                logger.warn('[ChatEvents] MessageRead payload missing "message" wrapper, skipped')
+                return
+            }
+
+            // 🔥 ИСПРАВЛЕНО (семантика полей + функция):
+            // Событие летит на канал chat.read.{from_id} -> toOthers() -> ОТПРАВИТЕЛЮ.
+            // Значит myUserId === payload.from_id (это мы), а прочитал СОБЕСЕДНИК = payload.to_id.
+            // Красим ИСХОДЯЩИЕ к собеседнику (markSentAsRead), а не входящие (markAsRead):
+            // у отправителя в этом диалоге входящих-непрочитанных нет, старый вызов резал пустоту.
+            logger.info(`[ChatEvents] Messages marked as read by ${payload.to_id}`)
+            chatStore.markSentAsRead(payload.to_id)
         })
 
         return { userChannel, readChannel }

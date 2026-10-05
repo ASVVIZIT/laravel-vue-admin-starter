@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\Entity\MeasurementUnitController;
 use App\Http\Controllers\Api\Entity\AccessoryController;
 use App\Http\Controllers\Api\Entity\BrandController;
 use App\Http\Controllers\Api\Entity\DeviceTypeController;
+use \App\Http\Controllers\TalkStream\ConfigController;
 use App\Http\Controllers\TalkStream\ContactController;
 use App\Http\Controllers\TalkStream\ChatController;
 use App\Http\Controllers\TalkStream\CallController;
@@ -200,6 +201,9 @@ Route::prefix('entities')->middleware(['auth:sanctum', 'permission:' . Acl::PERM
 // 7. TALKSTREAM (Чаты, звонки, друзья)
 // ============================================================================
 Route::prefix('talkstream')->middleware('auth:sanctum')->group(function () {
+
+    Route::get('/config', [ConfigController::class, 'getConfig']);
+
     Route::get('/user', [ContactController::class, 'show']);
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::get('/contacts/{id}', [ContactController::class, 'show']);

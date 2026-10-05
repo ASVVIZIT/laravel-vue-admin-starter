@@ -11,10 +11,9 @@
         <MessageGroup
             v-for="(group, groupIndex) in groupedMessages"
             :key="groupIndex"
-            :from-id="group.from_id"
+            :avatar-url="getAvatarUrl(group.from_id)"
+            :is-mine="isMine(group.from_id)"
             :messages="group.messages"
-            :user-from="userFrom"
-            :contact="contact"
             :is-online="isOnline"
             :show-avatar="true"
         >
@@ -39,24 +38,32 @@
       </template>
     </div>
 
+    <!-- КНОПКА-ШТОРКА: Появляется, если есть новые сообщения и пользователь не внизу -->
     <button
         class="scroll-down-button"
         :class="{ visible: showScrollButton }"
-        @click="scrollToBottom(600)"
+        @click="handleScrollToBottomAndMarkRead"
     >
       <ScrollDownButtonIcon />
+      <!-- Счетчик новых сообщений -->
+      <span v-if="newMessagesCount > 0" class="new-messages-badge">
+        {{ newMessagesCount }}
+      </span>
     </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, defineExpose, watch, onMounted, onBeforeUnmount, computed, type Ref } from 'vue'
+import { ref, defineExpose, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
 import type { Message, Contact, User } from '@/modules/TalkStream/types'
 import ScrollDownButtonIcon from '@/modules/TalkStream/Components/Icons/ScrollDownButtonIcon.vue'
 import MessageGroup from '@/modules/TalkStream/Components/MessageGroup.vue'
 import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream' // 🔥 НОВОЕ (3a)
+import { userStore } from '@/store/userStore'
 
-// ✅ 1. Строгая типизация props
+// 1. Строгая типизация props
 const props = defineProps<{
   userFrom: User | null
   contact: Contact | null
@@ -64,17 +71,21 @@ const props = defineProps<{
   isOnline: boolean
 }>()
 
-// ✅ 2. Строгая типизация refs (HTMLElement для DOM, ReturnType для setTimeout)
+const chatStore = useChatStore()
+const useUserStore = userStore()
+
+// 2. Строгая типизация refs
 const historyContainer = ref<HTMLElement | null>(null)
 const showScrollButton = ref<boolean>(false)
-const scrollTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
+const newMessagesCount = ref<number>(0)
 
-// ✅ 3. Интерфейс для сгруппированных сообщений
+// 3. Интерфейс для сгруппированных сообщений
 interface GroupedMessage {
   from_id: number
   messages: Message[]
 }
 
+// 4. Группировка сообщений по отправителю (для аватарок и пузырей)
 const groupedMessages = computed<GroupedMessage[]>(() => {
   const groups: GroupedMessage[] = []
   let currentGroup: GroupedMessage | null = null
@@ -94,109 +105,139 @@ const groupedMessages = computed<GroupedMessage[]>(() => {
   return groups
 })
 
-// ✅ 4. Строгая типизация параметров функции скролла
-function smoothScrollTo(element: HTMLElement, to: number, duration: number): void {
-  const start = element.scrollTop
-  const change = to - start
-  let currentTime = 0
-  const increment = Math.min(Math.max(duration / 20, 10), 20)
-
-  function easeInOut(t: number): number {
-    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
-  }
-
-  function animateScroll(): void {
-    currentTime += increment
-    const val = easeInOut(currentTime / duration) * change + start
-    element.scrollTop = val
-    if (currentTime < duration) {
-      setTimeout(animateScroll, increment)
-    } else {
-      element.scrollTop = to
-    }
-  }
-
-  animateScroll()
+// 4.5. Хелперы для MessageGroup (вся логика "кто я" живёт здесь, в мозге)
+// Фолбэк на userStore гарантирует работу даже если userFrom ещё null
+const isMine = (fromId: number): boolean => {
+  const currentUserId = props.userFrom?.id ?? useUserStore.id
+  return currentUserId === fromId
 }
 
+const getAvatarUrl = (fromId: number): string => {
+  if (isMine(fromId)) {
+    // Моё сообщение → мой аватар (бэкенд уже подставил по полу)
+    return props.userFrom?.avatar || useUserStore.avatar || '/images/avatar-main.png'
+  }
+  // Сообщение собеседника → его аватар
+  return props.contact?.avatar || '/images/avatar-main.png'
+}
+
+// 🔥 НОВОЕ (проблема 1): единая точка отметки прочтения.
+// Локально мутируем ВСЕГДА (оптимистично, мгновенно сбрасываем счётчик на моём экране).
+// Сетевой POST /read шлём ТОЛЬКО если реально были непрочитанные (гейт по unreadCount) —
+// так исключаем спам запросами, когда читать нечего.
+const markCurrentChatAsRead = (): void => {
+  const contactId = props.contact?.id
+  if (!contactId) return
+
+  const hadUnread = chatStore.unreadCount > 0
+
+  chatStore.markAsRead(contactId) // локально (сущ. метод стора)
+
+  if (hadUnread) {
+    // fire-and-forget: не блокируем UI, ошибку пишем в консоль
+    TalkStreamAPI.markAsRead(contactId).catch((error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[TalkStreamHistory] Failed to POST /read:', errorMessage)
+    })
+  }
+}
+
+// 5. Плавный скролл вниз с использованием нативного API (аппаратное ускорение)
 const scrollToBottom = (duration: number = 300): void => {
   const container = historyContainer.value
   if (!container) return
 
-  const targetScrollTop = container.scrollHeight - container.clientHeight
-  smoothScrollTo(container, targetScrollTop, duration)
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  })
+
   showScrollButton.value = false
+  newMessagesCount.value = 0
 }
 
-const scrollToBottomAfterRender = (duration: number = 300): void => {
+// 6. Скролл после рендера новых сообщений (гарантия, что DOM обновился)
+const scrollToBottomAfterRender = async (): Promise<void> => {
   const container = historyContainer.value
   if (!container) return
 
-  if (scrollTimeout.value) {
-    clearTimeout(scrollTimeout.value)
-    scrollTimeout.value = null
-  }
-
-  scrollTimeout.value = setTimeout(() => {
-    scrollToBottom(duration)
-  }, 50)
+  await nextTick()
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  })
 }
 
+// 7. Обработка скролла: проверка позиции и отметка "Прочитано"
 const checkScrollPosition = (): void => {
   const container = historyContainer.value
   if (!container) return
 
   const threshold = 100
-  const isAtBottom =
-      container.scrollHeight -
-      container.scrollTop -
-      container.clientHeight <= threshold
+  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold
 
   showScrollButton.value = !isAtBottom
+
+  // Если пользователь вручную доскроллил почти до низа, считаем, что он прочитал сообщения
+  if (isAtBottom && newMessagesCount.value > 0 && props.contact) {
+    newMessagesCount.value = 0
+    markCurrentChatAsRead() // 🔥 было chatStore.markAsRead(props.contact.id)
+  }
 }
 
+// 8. Комплексное действие: скролл вниз + сброс счетчика + отметка "Прочитано"
+const handleScrollToBottomAndMarkRead = (): void => {
+  scrollToBottom()
+  markCurrentChatAsRead() // 🔥 было if(props.contact){ chatStore.markAsRead(...) }
+}
+
+// 9. Реакция на появление новых сообщений
 watch(
     () => props.messages.length,
     (newLength: number, oldLength: number) => {
+      // Игнорируем удаления или начальную загрузку
       if (newLength <= oldLength) return
 
       const container = historyContainer.value
       if (!container) return
 
-      const isAtBottom =
-          container.scrollHeight -
-          container.scrollTop -
-          container.clientHeight <= 100
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 100
 
       if (isAtBottom) {
-        scrollToBottomAfterRender(400)
+        // Если пользователь уже внизу, плавно скроллим за новым сообщением
+        scrollToBottomAfterRender()
+        // 🔥 НОВОЕ (проблема 1): входящее, увиденное внизу, сразу отмечает прочтение.
+        // Без этого галочки у отправителя горели бы только после скролла/клика читателя.
+        // Дабла нет: программный scrollTo триггерит checkScrollPosition, но там
+        // newMessagesCount === 0 (в этой ветке не инкрементился) → повторного вызова не будет.
+        markCurrentChatAsRead()
       } else {
+        // Если пользователь читает историю вверху, показываем шторку и увеличиваем счетчик
         showScrollButton.value = true
+        newMessagesCount.value++
       }
     }
 )
 
+// 10. Инициализация при монтировании
 onMounted(() => {
   if (historyContainer.value) {
-    scrollToBottomAfterRender(300)
+    scrollToBottomAfterRender()
   }
 })
 
+// 11. Очистка (на всякий случай, хотя утечек здесь нет)
 onBeforeUnmount(() => {
-  if (scrollTimeout.value) {
-    clearTimeout(scrollTimeout.value)
-    scrollTimeout.value = null
-  }
+  // Ресурсы освобождены
 })
 
-// ✅ 5. Явное предоставление метода родителю
+// 12. Предоставление метода родителю (если понадобится вызвать из TalkStream.vue)
 defineExpose({
   scrollToBottom
 })
 </script>
 
 <style lang="scss" scoped>
-/* Стили остаются без изменений, они валидны */
 .talkstream-history-container {
   flex: 1;
   position: relative;
@@ -261,13 +302,13 @@ defineExpose({
   pointer-events: all;
   color: #262626;
   background-color: #fff;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   bottom: 60px;
   right: 17px;
-  overflow: hidden;
+  overflow: visible;
   transform: translateY(10px);
-  box-shadow: inset 0 0 0 1px #ededed;
+  box-shadow: inset 0 0 0 1px #ededed, 0 4px 12px rgba(0, 0, 0, 0.15);
 
   &:hover {
     opacity: 1 !important;
@@ -289,10 +330,36 @@ defineExpose({
   }
 
   &.visible {
-    opacity: 0.8;
+    opacity: 0.9;
     transform: translateY(0);
     pointer-events: auto;
   }
+}
+
+/* СТИЛИ ДЛЯ БЕЙДЖА НОВЫХ СООБЩЕНИЙ */
+.new-messages-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid rgb(46, 47, 52);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
 }
 
 .empty-state {

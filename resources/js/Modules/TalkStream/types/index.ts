@@ -12,18 +12,23 @@ export interface Contact extends User {
     main_role?: string;
 }
 
+export type MessageType = 'text' | 'image' | 'file' | 'system';
+export type MessageStatus = 'sending' | 'delivered' | 'read' | 'failed';
+
 export interface Message {
     id: number;
     from_id: number;
     to_id: number;
     content: string;
-    type: 'text' | 'image' | 'file' | 'system';
+    type: MessageType;
     read_at?: string | null;
     created_at: string;
     sender?: User;
     formatted_created_at?: string;
+    formatted_read_at?: string;
     is_mine?: boolean;
     isLocal?: boolean;
+    status?: MessageStatus;
 }
 
 export interface FriendRequest {
@@ -48,12 +53,15 @@ export interface WebSocketStatus {
     error: string | null;
 }
 
+export type CallDataType = 'audio' | 'video';
+export type CallDataStatus = 'pending' | 'active' | 'ended';
+
 export interface CallData {
     id?: number;
     caller_id: number;
     callee_id: number;
-    type: 'audio' | 'video';
-    status?: 'pending' | 'active' | 'ended';
+    type: CallDataType;
+    status?: CallDataStatus;
     started_at?: string;
     ended_at?: string;
 }

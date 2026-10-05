@@ -2,6 +2,17 @@ import request from '@utils/request'
 import type { Message, Contact, FriendRequest, ApiResponse, CallData } from '../types'
 
 export const TalkStreamAPI = {
+
+    // ========================================================================
+    // КОНФИГУРАЦИЯ МОДУЛЯ
+    // ========================================================================
+    getConfig(): Promise<ApiResponse<{
+        ui: { enable_read_receipts: boolean; messages_per_page: number };
+        limits: { max_message_length: number };
+    }>> {
+        return request.get('/talkstream/config')
+    },
+
     // ========================================================================
     // ПОЛЬЗОВАТЕЛЬ
     // ========================================================================
@@ -27,8 +38,16 @@ export const TalkStreamAPI = {
         return request.get(`/talkstream/history/${userId}`)
     },
 
-    sendMessage(to_id: number, content: string): Promise<ApiResponse<Message>> {
+    sendMessage(to_id: number, content: string): Promise<ApiResponse<Message>> {``
         return request.post('/talkstream/send', { to_id, content })
+    },
+
+    // 🔥 НОВОЕ (проблема 1а): отметка входящих как прочитанных на бэкенде.
+    // POST /talkstream/read/{userReadId}, где userReadId = ID собеседника,
+    // чьи сообщения мы прочитали. Бэкенд проставляет read_at и рассылает
+    // MessageRead отправителю (нам сюда приходит эхо-нет, см. шаг 3b).
+    markAsRead(userId: number): Promise<ApiResponse<any>> {
+        return request.post(`/talkstream/read/${userId}`)
     },
 
     // ========================================================================

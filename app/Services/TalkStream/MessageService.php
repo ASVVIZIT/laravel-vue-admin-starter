@@ -5,7 +5,6 @@ namespace App\Services\TalkStream;
 use App\Events\TalkStream\NewMessage;
 use App\Models\TalkStream\Message;
 use App\Services\TalkStream\FriendService;
-use Illuminate\Support\Facades\Auth;
 
 class MessageService
 {
@@ -20,7 +19,6 @@ class MessageService
     public function create(int $fromId, int $toId, string $content): Message
     {
         // 1. Проверка дружбы через FriendService
-        // (Нужно убедиться, что сервис подключен через use App\Services\TalkStream\FriendService;)
         if (!FriendService::areFriends($fromId, $toId)) {
             throw new \Exception('Вы можете писать только друзьям');
         }
@@ -30,17 +28,20 @@ class MessageService
             'from_id' => $fromId,
             'to_id'   => $toId,
             'content' => $content,
-            'type'    => 'text', // Дефолт
+            'type'    => 'text',
         ]);
 
         // 3. Broadcast
+        // Добавлены read_at и formatted_created_at, чтобы фронтенд сразу получил время
         broadcast(new NewMessage([
-            'id'         => $message->id,
-            'from_id'    => $message->from_id,
-            'to_id'      => $message->to_id,
-            'content'    => $message->content,
-            'type'       => $message->type,
-            'created_at' => $message->created_at->toISOString(),
+            'id'                   => $message->id,
+            'from_id'              => $message->from_id,
+            'to_id'                => $message->to_id,
+            'content'              => $message->content,
+            'type'                 => $message->type,
+            'read_at'              => $message->read_at ? $message->read_at->toISOString() : null,
+            'created_at'           => $message->created_at->toISOString(),
+            'formatted_created_at' => $message->formatted_created_at,
         ]))->toOthers();
 
         return $message;
