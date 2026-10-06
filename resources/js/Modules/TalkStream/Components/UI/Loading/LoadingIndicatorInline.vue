@@ -24,19 +24,32 @@ const visible = computed(() => {
   return state
 })
 
-// Токены inline заданы в конфиге полностью (компонент пишется с нуля),
-// поэтому здесь нет TODO - значения известны по построению.
+/**
+ * CSS custom properties из конфига.
+ *
+ * Числовые поля SpinnerTokens типизированы как number | null, потому что
+ * варианты default/small в config/loading.ts пока содержат null (TODO Пасс C).
+ * У inline значения конкретные, но компилятор не сужает тип по ключу варианта.
+ * Фолбэки ниже зеркалят числа из loadingConfig.variants.inline.spinner:
+ * если конфиг когда-нибудь обнулит поле, компонент покажет разумный дефолт
+ * вместо строки "nullpx" в DOM. Источник истины остаётся конфиг — фолбэк
+ * здесь только защита типов и рантайма.
+ *
+ * В inline-режиме директива НЕ управляет opacity контейнера (в отличие от
+ * overlay), поэтому <transition name="lt-fade"> здесь — единственный владелец
+ * анимации появления/исчезновения. Убирать его нельзя.
+ */
 const cssVars = computed(() => {
   const sp = loadingConfig.variants.inline.spinner
   const placement = loadingConfig.variants.inline.labelPlacement
   return {
-    '--lt-size': `${sp.size}px`,
-    '--lt-border': `${sp.border}px`,
+    '--lt-size': `${sp.size ?? 16}px`,
+    '--lt-border': `${sp.border ?? 2}px`,
     '--lt-track': sp.track ?? 'transparent',
     '--lt-tone': sp.tone ?? 'currentColor',
     '--lt-text-size': sp.textSize ?? '0.7rem',
     '--lt-text-color': sp.textColor ?? 'inherit',
-    '--lt-gap': `${sp.labelGap}px`,
+    '--lt-gap': `${sp.labelGap ?? 6}px`,
     '--lt-direction': placement === 'left' ? 'row-reverse' : 'row'
   } as Record<string, string>
 })
