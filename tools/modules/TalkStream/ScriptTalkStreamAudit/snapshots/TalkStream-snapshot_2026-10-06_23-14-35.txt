@@ -1,0 +1,5390 @@
+TalkStream audit snapshot
+Generated: 2026-10-06 23:15:11
+Script version: 3.1.0
+Project root: W:\OpenServer\domains\Laravel\Other\FenixPortal
+Modules directory: resources/js/Modules
+Module directory: resources/js/Modules/TalkStream
+
+=== FILES ===
+
+---------- FILE: resources/js/Modules/TalkStream/routes.ts ----------
+import type { RouteRecordRaw } from 'vue-router'
+
+const talkStreamRoutes: RouteRecordRaw[] = [
+    {
+        path: 'talkstream',
+        name: 'TalkStream',
+        // ✅ Абсолютный путь к компоненту
+        component: () => import('@/modules/TalkStream/Talks/TalkStream.vue'),
+        meta: {
+            title: 'Общий Чат',
+            description: 'Real-time messaging & presence',
+            bootstrapIcon: 'chat-dots',
+            permissions: ['view menu talkstream'],
+            breadcrumb: true,
+        }
+    }
+]
+
+export default talkStreamRoutes
+
+
+---------- FILE: resources/js/Modules/TalkStream/api/talkstream.ts ----------
+import request from '@utils/request'
+import type { Message, Contact, FriendRequest, ApiResponse, CallData } from '../types'
+
+export const TalkStreamAPI = {
+
+    // ========================================================================
+    // КОНФИГУРАЦИЯ МОДУЛЯ
+    // ========================================================================
+    getConfig(): Promise<ApiResponse<{
+        ui: { enable_read_receipts: boolean; messages_per_page: number };
+        limits: { max_message_length: number };
+    }>> {
+        return request.get('/talkstream/config')
+    },
+
+    // ========================================================================
+    // ПОЛЬЗОВАТЕЛЬ
+    // ========================================================================
+    getUser(): Promise<ApiResponse<Contact>> {
+        return request.get('/talkstream/user')
+    },
+
+    // ========================================================================
+    // КОНТАКТЫ
+    // ========================================================================
+    getContacts(): Promise<ApiResponse<Contact[]>> {
+        return request.get('/talkstream/contacts')
+    },
+
+    getContact(id: number): Promise<ApiResponse<Contact>> {
+        return request.get(`/talkstream/contacts/${id}`)
+    },
+
+    // ========================================================================
+    // ИСТОРИЯ СООБЩЕНИЙ
+    // ========================================================================
+    getHistory(userId: number): Promise<ApiResponse<Message[]>> {
+        return request.get(`/talkstream/history/${userId}`)
+    },
+
+    sendMessage(to_id: number, content: string): Promise<ApiResponse<Message>> {``
+        return request.post('/talkstream/send', { to_id, content })
+    },
+
+    // 🔥 НОВОЕ (проблема 1а): отметка входящих как прочитанных на бэкенде.
+    // POST /talkstream/read/{userReadId}, где userReadId = ID собеседника,
+    // чьи сообщения мы прочитали. Бэкенд проставляет read_at и рассылает
+    // MessageRead отправителю (нам сюда приходит эхо-нет, см. шаг 3b).
+    markAsRead(userId: number): Promise<ApiResponse<any>> {
+        return request.post(`/talkstream/read/${userId}`)
+    },
+
+    // ========================================================================
+    // ДРУЗЬЯ
+    // ========================================================================
+    getFriendsList(): Promise<ApiResponse<Contact[]>> {
+        return request.get('/talkstream/friends')
+    },
+
+    getIncomingRequests(): Promise<ApiResponse<FriendRequest[]>> {
+        return request.get('/talkstream/friends/incoming')
+    },
+
+    getSentRequests(): Promise<ApiResponse<FriendRequest[]>> {
+        return request.get('/talkstream/friends/sent')
+    },
+
+    isFriend(userId: number): Promise<ApiResponse<{ isFriend: boolean }>> {
+        return request.get(`/talkstream/friends/is-friend/${userId}`)
+    },
+
+    sendFriendRequest(friend_id: number): Promise<ApiResponse<any>> {
+        return request.post('/talkstream/friends/send', { friend_id })
+    },
+
+    acceptFriendRequest(id: number): Promise<ApiResponse<any>> {
+        return request.post(`/talkstream/friends/accept/${id}`)
+    },
+
+    // ========================================================================
+    // ЗВОНКИ (все 6 методов из routes/api.php)
+    // ========================================================================
+
+    /**
+     * POST /talkstream/call/initiate — инициировать звонок
+     */
+    initiateCall(to_id: number, type: 'audio' | 'video'): Promise<ApiResponse<CallData>> {
+        return request.post('/talkstream/call/initiate', { to_id, type })
+    },
+
+    /**
+     * POST /talkstream/call/start — старт звонка (после принятия)
+     */
+    startCall(to_id: number, type: 'audio' | 'video' = 'video'): Promise<ApiResponse<CallData>> {
+        return request.post('/talkstream/call/start', { to_id, type })
+    },
+
+    /**
+     * POST /talkstream/call/accept — принять входящий звонок
+     */
+    acceptCall(call_id: number): Promise<ApiResponse<CallData>> {
+        return request.post('/talkstream/call/accept', { call_id })
+    },
+
+    /**
+     * POST /talkstream/call/decline — отклонить входящий звонок
+     */
+    declineCall(call_id: number): Promise<ApiResponse<any>> {
+        return request.post('/talkstream/call/decline', { call_id })
+    },
+
+    /**
+     * POST /talkstream/call/end — завершить звонок (старый метод)
+     */
+    endCall(call_id: number): Promise<ApiResponse<any>> {
+        return request.post('/talkstream/call/end', { call_id })
+    },
+
+    /**
+     * POST /talkstream/call/end-call — завершить звонок (новый метод)
+     */
+    endCallFixed(call_id: number): Promise<ApiResponse<any>> {
+        return request.post('/talkstream/call/end-call', { call_id })
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/ConnectionStatus.vue ----------
+<script setup>
+import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore';
+
+const talkStream = useTalkStreamStore();
+</script>
+
+<template>
+  <div class="connection-status">
+    <div v-if="talkStream.isConnected" class="status connected">
+      <span class="indicator"></span>Server Online
+    </div>
+
+    <div v-else-if="talkStream.connectionError" class="status error">
+      <span class="indicator"></span>
+      Server Connection error: {{ talkStream.connectionError || 'Unknown error' }}
+      <button @click="talkStream.forceReconnect">Server Retry</button>
+    </div>
+
+    <div v-else class="status connecting">
+      <span class="indicator"></span>
+      Server Connecting...
+    </div>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.connection-status {
+  position: fixed;
+  bottom: 8px;
+  right: 24px;
+  padding: 6px 10px;
+  background: #f3efef;
+  border-radius: 8px;
+  box-shadow: 3px 3px 7px 1px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.connected .indicator {
+  background-color: #10b981;
+}
+
+.connecting .indicator {
+  background-color: #f59e0b;
+  animation: pulse 1.5s infinite;
+}
+
+.error .indicator {
+  background-color: #ef4444;
+}
+
+button {
+  margin-left: 12px;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #e5e7eb;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/ContactItem.vue ----------
+<template>
+  <li
+      class="contact-item"
+      :class="{
+      online: isOnline,
+      friend: isFriend,
+      selectedContact: isSelected
+    }"
+      @click="handleSelect"
+  >
+    <div class="contact-avatar-wrapper">
+      <div
+          class="contact-avatar"
+          :style="{ backgroundImage: 'url(' + (contact.avatar || '/images/avatar-main.png') + ')' }"
+      ></div>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
+    </div>
+    <div class="contact-info" :class="{ friend: isFriend }">
+      <div class="contact-indicator">
+        <span class="contact-id">ID: {{ contact?.id }}</span>
+        <span class="contact-meta">[{{ contact.main_role || 'Пользователь' }}]</span>
+      </div>
+      {{ contact?.name || defaultName }}
+    </div>
+    <div class="contact-actions">
+      <button v-if="isFriend" disabled class="btn btn-friend">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+      <button v-else-if="hasIncoming" @click.stop="handleAccept" class="btn btn-accept">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+      <button v-else-if="hasSent" disabled class="btn btn-sent">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+      <button v-else @click.stop="handleAdd" class="btn btn-add">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+    </div>
+  </li>
+</template>
+
+<script setup lang="ts">
+import { defineProps, defineEmits, computed } from 'vue'
+import type { Contact } from '@/modules/TalkStream/types'
+
+const props = defineProps<{
+  contact: Contact
+  isOnline: boolean
+  isFriend: boolean
+  isSelected: boolean
+  hasIncoming: boolean
+  hasSent: boolean
+}>()
+
+const emit = defineEmits<{
+  select: [contact: Contact]
+  addFriend: [contact: Contact]
+  acceptRequest: [contact: Contact]
+}>()
+
+const defaultName = 'Без имени'
+
+const statusText = computed((): string => {
+  if (props.isFriend) return '✔ Друг'
+  if (props.hasIncoming) return '✔ Принять'
+  if (props.hasSent) return '⏳ Отправлен'
+  return '➕ Добавить'
+})
+
+function handleSelect(): void {
+  emit('select', props.contact)
+}
+
+function handleAdd(): void {
+  emit('addFriend', props.contact)
+}
+
+function handleAccept(): void {
+  emit('acceptRequest', props.contact)
+}
+</script>
+
+<style scoped lang="scss">
+.contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.15rem .18rem 0.15rem .18rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.contact-item:hover {
+  background-color: #f9f9f9;
+}
+
+.contact-item.selectedContact {
+  background-color: #d6ebff !important;
+  transform: scale(1.02);
+  z-index: 1;
+  box-shadow: 0 0 3px rgba(52, 144, 220, 0.5);
+  font-weight: bold;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #3490dc, #1c7ed6);
+    z-index: 2;
+  }
+
+  .contact-info.friend {
+    color: #3490dc;
+  }
+}
+
+.contact-item.selectedContact:hover {
+  background-color: #b8d8f0 !important;
+}
+
+.contact-avatar-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+  margin-left: 0.2rem;
+}
+
+.contact-avatar {
+  width: 30px;
+  height: 30px;
+  box-shadow: inset 0 0 0 0.12rem #b8c4cc;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: -2px;
+  font-size: 0.5rem;
+  line-height: 1;
+  color: #42b983;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+  text-shadow: 0 0 2px rgba(255,255,255,0.8);
+}
+
+.contact-info {
+  position: relative;
+  flex-grow: 1;
+  overflow: hidden;
+  margin-right: 0.7rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  line-height: 0.75rem;
+  font-weight: 600;
+  font-size: 0.70rem;
+  color: #333;
+}
+
+.contact-info.friend {
+  font-weight: bold;
+  color: #42b983;
+}
+
+.contact-indicator {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.50rem;
+  color: #777;
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+}
+
+.contact-id {
+  font-weight: bold;
+  color: #888;
+  background: rgba(200, 200, 200, 0.2);
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+}
+
+.contact-meta {
+  font-style: italic;
+  color: #999;
+}
+
+.contact-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.04rem;
+}
+
+.btn {
+  min-width: 60px;
+  max-width: 60px;
+  padding: 0.42rem 0.3rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.42rem;
+  cursor: pointer;
+  white-space: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: background-color 0.2s ease;
+  text-align: left;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  &.btn-add {
+    background-color: #42b983;
+    color: white;
+    &:hover { background-color: #36a871; }
+  }
+
+  &.btn-accept {
+    background-color: #3490dc;
+    color: white;
+    &:hover { background-color: #2779bf; }
+  }
+
+  &.btn-sent {
+    background-color: #f0ad4e;
+    color: white;
+    &:hover { background-color: #ec971f; }
+  }
+
+  &.btn-friend {
+    background-color: #ccc;
+    color: #2c2a2a;
+    cursor: not-allowed;
+    &:hover { background-color: #919090; }
+  }
+}
+
+.btn-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.1em;
+  max-height: 2.2em;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/ContactItemWrapper.vue ----------
+<template>
+  <ContactItem
+      :contact="contact"
+      :is-online="isOnline"
+      :is-friend="isFriend"
+      :is-selected="isSelected"
+      :has-incoming="hasIncoming"
+      :has-sent="hasSent"
+      @select="handleSelect"
+      @add-friend="$emit('add-friend', contact)"
+      @accept-request="$emit('accept-request', contact)"
+  />
+</template>
+
+<script setup lang="ts">
+import { defineProps, defineEmits, computed, onMounted } from 'vue'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import type { Contact } from '@/modules/TalkStream/types'
+
+// ✅ Строгая типизация Props
+const props = defineProps<{
+  contact: Contact
+}>()
+
+// ✅ Строгая типизация Emits
+const emit = defineEmits<{
+  select: [contact: Contact]
+  addFriend: [contact: Contact]
+  acceptRequest: [contact: Contact]
+}>()
+
+const contactStore = useContactStore()
+const friendStore = useFriendStore()
+
+// Вычисляемые состояния
+const isOnline = computed((): boolean => contactStore.isOnline(props.contact.id))
+const isFriend = computed((): boolean => friendStore.isFriend(props.contact.id))
+const hasIncoming = computed((): boolean => friendStore.hasIncoming(props.contact.id))
+const hasSent = computed((): boolean => friendStore.hasSent(props.contact.id))
+
+// ✅ ИСПРАВЛЕНО: Надежная проверка выбора без конфликтов типов и мерцания
+const isSelected = computed((): boolean => {
+  const lastSelectedId = localStorage.getItem('last-selected-contact')
+  const isStoreSelected = contactStore.selectedContact?.id === props.contact.id
+  const isLocalStorageSelected = lastSelectedId === String(props.contact.id)
+  return isStoreSelected || isLocalStorageSelected
+})
+
+function handleSelect(): void {
+  contactStore.selectContact(props.contact)
+  emit('select', props.contact)
+}
+
+onMounted(() => {
+  // ✅ Автоматический выбор при загрузке, если контакт помечен в localStorage
+  const lastSelectedId = localStorage.getItem('last-selected-contact')
+  if (lastSelectedId && props.contact.id === Number(lastSelectedId)) {
+    contactStore.selectContact(props.contact)
+  }
+})
+
+// ⚠️ ВАЖНО: onUnmounted убран. В v-for он вызывается при любой перерисовке списка (фильтр/поиск),
+// что ломало бы выбор контакта. Управление состоянием оставлено полностью на contactStore.
+</script>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/MessageGroup.vue ----------
+<template>
+  <div class="message-group" :class="{ mine: isMine, theirs: !isMine }">
+    <!-- Аватар СОБЕСЕДНИКА (слева) -->
+    <div
+        v-if="!isMine && showAvatar"
+        class="group-avatar theirs-avatar"
+        :class="{ visible: avatarVisible }"
+    >
+      <div
+          class="avatar-img"
+          :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
+      ></div>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
+    </div>
+
+    <!-- Контейнер с сообщениями -->
+    <div class="message-group-container">
+      <slot
+          v-for="(msg, index) in messages"
+          :key="msg.id"
+          :message="msg"
+          :isFirstInGroup="index === 0"
+          :isLastInGroup="index === messages.length - 1"
+      />
+    </div>
+
+    <!-- Аватар МОЙ (справа) -->
+    <div
+        v-if="isMine && showAvatar"
+        class="group-avatar mine-avatar"
+        :class="{ visible: avatarVisible }"
+    >
+      <div
+          class="avatar-img"
+          :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
+      ></div>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue'
+import type { Message } from '@/modules/TalkStream/types'
+
+// ТУПОЙ КОМПОНЕНТ: принимает только готовые данные, ноль бизнес-логики
+const props = defineProps<{
+  avatarUrl: string
+  isMine: boolean
+  messages: Message[]
+  isOnline: boolean
+  showAvatar: boolean
+}>()
+
+const avatarVisible = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    avatarVisible.value = true
+  }, 10)
+})
+</script>
+
+<style lang="scss" scoped>
+.message-group {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  position: relative;
+  margin-bottom: 2px;
+  transition: all 0.3s ease;
+
+  // МОИ сообщения — весь блок прижат вправо
+  &.mine {
+    justify-content: flex-end;
+
+    .message-group-container {
+      align-items: flex-end;
+    }
+  }
+
+  // СООБЩЕНИЯ СОБЕСЕДНИКА — весь блок прижат влево
+  &.theirs {
+    justify-content: flex-start;
+
+    .message-group-container {
+      align-items: flex-start;
+    }
+  }
+
+  .group-avatar {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    margin-bottom: 4px;
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+    transition: all 0.3s ease;
+
+    &.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      box-shadow: 0px 0px 5px 2px #7bb0d9e8;
+      transition: all 0.3s ease;
+    }
+
+    // Индикатор — эмодзи (как в ContactItem.vue), НЕ CSS-кружок
+    .status-indicator {
+      position: absolute;
+      bottom: -2px;
+      left: -2px;
+      font-size: 0.5rem;
+      line-height: 1;
+      color: #42b983;
+      z-index: 2;
+      user-select: none;
+      pointer-events: none;
+      text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
+    }
+
+    // Аватар собеседника — слева
+    &.theirs-avatar {
+      margin-right: 8px;
+      order: 1;
+    }
+
+    // Мой аватар — справа
+    &.mine-avatar {
+      margin-left: 8px;
+      order: 3;
+    }
+  }
+
+  // Контейнер сообщений: потолок 80% ширины строки, сжимается по контенту
+  .message-group-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+    order: 2;
+    transition: transform 0.3s ease;
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/MessageItem.vue ----------
+<template>
+  <div
+      class="message-wrapper"
+      :class="{
+      'message-mine': isMine,
+      'message-theirs': !isMine,
+      'group-top': isFirstInGroup,
+      'group-bottom': isLastInGroup,
+      'wide-message': isWideMessage,
+      'narrow-message': !isWideMessage
+    }"
+  >
+    <div
+        class="message-bubble"
+        :class="{
+        'group-top': isFirstInGroup,
+        'group-bottom': isLastInGroup,
+        'wide': isWideMessage,
+        'narrow': !isWideMessage
+      }"
+    >
+      <div class="message-content">{{ message.content }}</div>
+
+      <div class="message-footer">
+        <div class="message-meta">
+          {{ message.formatted_created_at }}
+        </div>
+
+        <!-- 🔥 НОВОЕ (Шаг 6): ⋮ переключатель времени прочтения.
+             Показывается только на своих сообщениях, где собеседник реально прочитал
+             (formatted_read_at непустой). Клик — toggle, не ховер (надёжнее на тач). -->
+        <span
+            v-if="hasReadReceipt"
+            class="read-receipt-toggle"
+            @click.stop="toggleReadTime"
+            :title="showReadTime ? 'Скрыть время прочтения' : 'Показать время прочтения'"
+        >⋮</span>
+
+        <!-- Галочки ТОЛЬКО на своих сообщениях (Telegram-логика) -->
+        <div v-if="isMine" class="message-status">
+          <!-- 🔥 НОВОЕ (Шаг 6): ветка ошибки отправки. Клик = retry. -->
+          <span
+              v-if="isFailed"
+              class="status-icon status-failed"
+              title="Не отправлено. Нажмите, чтобы повторить"
+              @click.stop="handleRetry"
+          >✖</span>
+
+          <!-- 🔥 НОВОЕ (Шаг 6): раскрытое время прочтения (вместо галочек, пока ⋮ нажат) -->
+          <span
+              v-else-if="showReadTime"
+              class="read-receipt-text"
+          >Прочитано: {{ message.formatted_read_at }}</span>
+
+          <!-- Обычные галочки (sending / delivered / read / unread) -->
+          <span
+              v-else
+              :class="['status-icon', statusClass]"
+              :title="statusTooltip"
+          >{{ statusIcon }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, ref } from 'vue'
+import type { Message, Contact, User } from '@/modules/TalkStream/types'
+import { userStore } from '@/store/userStore'
+// 🔥 НОВОЕ (Шаг 6): импорт стора для retryMessage.
+// Логика retry живёт рядом с логикой статусов (statusClass/statusIcon/statusTooltip),
+// что естественно для презентационного пузыря. MessageGroup остаётся тупым.
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+
+const props = defineProps<{
+  userFrom?: User | null
+  contact?: Contact | null
+  message: Message
+  isOnline?: boolean
+  isFirstInGroup?: boolean
+  isLastInGroup?: boolean
+  isGroupStart?: boolean
+}>()
+
+const useUserStore = userStore()
+const chatStore = useChatStore()
+
+// 🔥 НОВОЕ (Шаг 6): локальное состояние раскрытия ⋮
+const showReadTime = ref<boolean>(false)
+
+// ИСПРАВЛЕНО: моё сообщение = from_id совпадает с ID авторизованного пользователя
+const isMine = computed((): boolean => {
+  return props.message.from_id === useUserStore.id
+})
+
+// Ширина сообщения для скругления углов
+const isWideMessage = computed((): boolean => props.message.content.length < 40)
+
+// 🔥 НОВОЕ (Шаг 6): есть ли что показывать в ⋮ (своё + собеседник прочитал)
+const hasReadReceipt = computed((): boolean => {
+  return isMine.value && !!props.message.formatted_read_at
+})
+
+// 🔥 НОВОЕ (Шаг 6): сообщение упало при отправке
+const isFailed = computed((): boolean => {
+  return props.message.status === 'failed'
+})
+
+// 🔥 НОВОЕ (Шаг 6): toggle ⋮
+const toggleReadTime = (): void => {
+  showReadTime.value = !showReadTime.value
+}
+
+// 🔥 НОВОЕ (Шаг 6): повторная отправка failed-сообщения
+const handleRetry = (): void => {
+  chatStore.retryMessage(props.message.id)
+}
+
+// Класс для цвета/анимации галочек
+const statusClass = computed((): string => {
+  switch (props.message.status) {
+    case 'read':
+      return 'status-sent-read'
+    case 'delivered':
+      return 'status-sent-delivered'
+    case 'sending':
+      return 'status-sending'
+    default:
+      return 'status-sent-unread'
+  }
+})
+
+// Иконка статуса
+const statusIcon = computed((): string => {
+  switch (props.message.status) {
+    case 'read':
+      return '✔✔'
+    case 'delivered':
+      return '✔✔'
+    case 'sending':
+      return '🕒'
+    default:
+      return '✔'
+  }
+})
+
+// Подсказка при наведении
+const statusTooltip = computed((): string => {
+  switch (props.message.status) {
+    case 'read':
+      return 'Прочитано'
+    case 'delivered':
+      return 'Доставлено'
+    case 'sending':
+      return 'Отправка...'
+    default:
+      return 'Отправлено'
+  }
+})
+</script>
+
+<style lang="scss" scoped>
+// БАЗОВЫЕ ЦВЕТА (Telegram Dark Style)
+$color-mine-bg: #2b5278;       // Синий (Мои сообщения)
+$color-theirs-bg: #182533;     // Тёмно-серый (Чужие сообщения)
+$color-text: #ffffff;          // Белый текст
+$color-meta: rgba(255, 255, 255, 0.5); // Полупрозрачный серый для времени
+
+.message-wrapper {
+  display: flex;
+  width: 100%;
+  margin-bottom: 6px;
+  position: relative;
+  box-sizing: border-box;
+
+  // МОИ сообщения — пузырь прижимается СПРАВА
+  &.message-mine {
+    justify-content: flex-end;
+    padding-right: 8px;
+  }
+
+  // ЧУЖИЕ сообщения — пузырь прижимается СЛЕВА
+  &.message-theirs {
+    justify-content: flex-start;
+    padding-left: 8px;
+  }
+}
+
+.message-bubble {
+  max-width: 100%;        // ПОТОЛОК = ширина контейнера; сам пузырь сжимается по контенту
+  min-width: 80px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  position: relative;
+  word-break: break-word;
+  color: $color-text;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease;
+
+  // ЦВЕТ + ХВОСТИК для моих
+  .message-wrapper.message-mine & {
+    background-color: $color-mine-bg;
+    border-bottom-right-radius: 4px;
+  }
+
+  // ЦВЕТ + ХВОСТИК для чужих
+  .message-wrapper.message-theirs & {
+    background-color: $color-theirs-bg;
+    border-bottom-left-radius: 4px;
+  }
+
+  // СРЕДНЕЕ в группе — все углы острые (склеивается с соседями)
+  &:not(.group-top):not(.group-bottom) {
+    border-radius: 4px;
+  }
+
+  // ВЕРХНЕЕ в группе — нижние углы острые
+  &.group-top:not(.group-bottom) {
+    border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+  }
+
+  // НИЖНЕЕ в группе — верхние углы скруглённые
+  &.group-bottom:not(.group-top) {
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+
+  // ОДИНОЧНОЕ — все углы скруглённые
+  &.group-top.group-bottom {
+    border-radius: 12px;
+  }
+}
+
+.message-content {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  margin-bottom: 4px;
+}
+
+.message-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  font-size: 0.7rem;
+  color: $color-meta;
+  margin-top: 2px;
+  gap: 6px;
+}
+
+.message-meta {
+  margin-right: 2px;
+}
+
+.message-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-icon {
+  display: inline-block;
+  font-size: 0.85rem;
+  line-height: 1;
+  letter-spacing: -1px;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+// 🔥 НОВОЕ (Шаг 6): ⋮ переключатель времени прочтения
+.read-receipt-toggle {
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: $color-meta;
+  user-select: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #4fc3f7;
+  }
+}
+
+// 🔥 НОВОЕ (Шаг 6): текст раскрытого времени прочтения
+.read-receipt-text {
+  font-size: 0.65rem;
+  color: #4fc3f7;
+  white-space: nowrap;
+}
+
+// 🔥 НОВОЕ (Шаг 6): крестик ошибки отправки (кликабельный retry)
+.status-failed {
+  color: #ef4444;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.2);
+  }
+}
+
+// СТАТУСЫ (ЦВЕТА ГАЛОЧЕК)
+.status-sent-unread {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.status-sent-delivered {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+// Анимация прочтения (Синяя вспышка + пульс)
+.status-sent-read {
+  color: #4fc3f7;
+  animation: readPulse 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  text-shadow: 0 0 6px rgba(79, 195, 247, 0.4);
+}
+
+// Часы при отправке
+.status-sending {
+  color: rgba(255, 255, 255, 0.5);
+  animation: clockPulse 1.2s infinite ease-in-out;
+}
+
+// Входящие галочки (зарезервировано на будущее)
+.status-received {
+  color: #34C759;
+}
+
+@keyframes readPulse {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  50% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes clockPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(1.1); }
+}
+
+// АДАПТИВ ДЛЯ УЗКИХ ЭКРАНОВ (МОБИЛЬНЫЕ) — всё влево
+@media (max-width: 768px) {
+  .message-wrapper.message-mine {
+    justify-content: flex-start;
+    padding-right: 0;
+    padding-left: 8px;
+  }
+
+  .message-wrapper.message-mine .message-bubble {
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 4px;
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/MessageList.vue ----------
+<template>
+  <ul class="message-list">
+    <MessageItem v-for="(msg, index) in messages" :key="index" :message="msg" />
+  </ul>
+</template>
+
+<script setup>
+import MessageItem from './MessageItem.vue'
+import { defineProps } from 'vue'
+
+defineProps({
+  messages: {
+    type: Array,
+    required: true
+  }
+})
+</script>
+
+<style scoped>
+.message-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/VideoCallScreen.vue ----------
+<template>
+  <div class="video-call-screen">
+    <div class="local-video">
+      <video :srcObject="localStream" autoplay muted></video>
+    </div>
+
+    <div class="remote-video" v-if="remoteStream">
+      <video :srcObject="remoteStream" autoplay></video>
+    </div>
+
+    <div class="call-actions">
+      <button @click="$emit('end')">Завершить</button>
+      <button @click="$emit('toggleAudio')">
+        {{ isAudioEnabled ? 'Выключить микрофон' : 'Включить микрофон' }}
+      </button>
+      <button @click="$emit('toggleVideo')">
+        {{ isVideoEnabled ? 'Выключить камеру' : 'Включить камеру' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, defineEmits } from 'vue'
+
+defineProps({
+  localStream: Object,
+  remoteStream: Object,
+  isAudioEnabled: Boolean,
+  isVideoEnabled: Boolean
+})
+
+const emit = defineEmits(['end', 'toggleAudio', 'toggleVideo'])
+</script>
+
+<style scoped>
+.video-call-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.local-video, .remote-video {
+  width: 100%;
+  max-width: 400px;
+  margin: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.call-actions button {
+  margin: 5px;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/Icons/PanelToggleIcon.vue ----------
+<template>
+  <svg class="sidebar-left-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z"></path>
+  </svg>
+</template>
+<style lang="scss" scoped>
+.sidebar-left-icon {
+  stroke: currentColor;
+  display: block;
+  width: 24px;
+  height: 24px;
+  transition: transform 0.4s ease, color 0.4s ease;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/Icons/ScrollDownButtonIcon.vue ----------
+<template>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="9" viewBox="0 0 16 9" fill="none">
+    <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M1.00008 2.41429C0.609551 2.02376 0.609551 1.3906 1.00008 1.00008C1.3906 0.609551 2.02376 0.609551 2.41429 1.00007L8.00008 6.58586L13.5859 1.00008C13.9764 0.609551 14.6096 0.609551 15.0001 1.00008C15.3906 1.3906 15.3906 2.02376 15.0001 2.41429L8.8486 8.56576C8.37997 9.03439 7.62018 9.03439 7.15155 8.56576L1.00008 2.41429Z"
+        fill="currentColor"
+    />
+  </svg>
+</template>
+
+<style scoped>
+svg {
+  stroke: currentColor;
+  fill-rule: evenodd;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/Icons/SendPlaneIcon.vue ----------
+<template>
+  <span class="send-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z" fill="currentColor"></path>
+    </svg>
+  </span>
+</template>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/UI/Loading/LoadingIndicator.vue ----------
+<template>
+  <div v-show="visible" class="loading-indicator">
+    <div class="spinner"></div>
+    <div class="loading-text">{{ text }}</div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, computed, onMounted } from 'vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+
+const props = defineProps({
+  target: {
+    type: String,
+    default: 'global'
+  },
+  text: {
+    type: String,
+    default: 'Загрузка...'
+  }
+})
+
+const visible = computed(() => {
+  const state = getLoadingState(props.target)
+  logger.debug(`[LoadingIndicator] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+  return state
+})
+
+onMounted(() => {
+  logger.info(`[LoadingIndicator] Инициализирован для: ${props.target}`)
+})
+</script>
+
+<style lang="scss" scoped>
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #007AFF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 0.7rem;
+  color: #333;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/UI/Loading/LoadingIndicatorInline.vue ----------
+<template>
+  <transition name="lt-fade">
+    <span v-show="visible" class="lt-inline" :style="cssVars">
+      <span class="lt-inline-spinner"></span>
+      <span v-if="text" class="lt-inline-text">{{ text }}</span>
+    </span>
+  </transition>
+</template>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+import { loadingConfig } from '@/modules/TalkStream/config/loading'
+
+const props = defineProps({
+  target: { type: String, default: 'global' },
+  text: { type: String, default: '' }
+})
+
+const visible = computed(() => {
+  const state = getLoadingState(props.target)
+  logger.debug(`[LoadingIndicatorInline] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+  return state
+})
+
+/**
+ * CSS custom properties из конфига.
+ *
+ * Числовые поля SpinnerTokens типизированы как number | null, потому что
+ * варианты default/small в config/loading.ts пока содержат null (TODO Пасс C).
+ * У inline значения конкретные, но компилятор не сужает тип по ключу варианта.
+ * Фолбэки ниже зеркалят числа из loadingConfig.variants.inline.spinner:
+ * если конфиг когда-нибудь обнулит поле, компонент покажет разумный дефолт
+ * вместо строки "nullpx" в DOM. Источник истины остаётся конфиг — фолбэк
+ * здесь только защита типов и рантайма.
+ *
+ * В inline-режиме директива НЕ управляет opacity контейнера (в отличие от
+ * overlay), поэтому <transition name="lt-fade"> здесь — единственный владелец
+ * анимации появления/исчезновения. Убирать его нельзя.
+ */
+const cssVars = computed(() => {
+  const sp = loadingConfig.variants.inline.spinner
+  const placement = loadingConfig.variants.inline.labelPlacement
+  return {
+    '--lt-size': `${sp.size ?? 16}px`,
+    '--lt-border': `${sp.border ?? 2}px`,
+    '--lt-track': sp.track ?? 'transparent',
+    '--lt-tone': sp.tone ?? 'currentColor',
+    '--lt-text-size': sp.textSize ?? '0.7rem',
+    '--lt-text-color': sp.textColor ?? 'inherit',
+    '--lt-gap': `${sp.labelGap ?? 6}px`,
+    '--lt-direction': placement === 'left' ? 'row-reverse' : 'row'
+  } as Record<string, string>
+})
+</script>
+
+<style scoped lang="scss">
+.lt-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--lt-gap);
+  flex-direction: var(--lt-direction);
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.lt-inline-spinner {
+  width: var(--lt-size);
+  height: var(--lt-size);
+  border: var(--lt-border) solid var(--lt-track);
+  border-top-color: var(--lt-tone);
+  border-radius: 50%;
+  animation: lt-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.lt-inline-text {
+  font-size: var(--lt-text-size);
+  color: var(--lt-text-color);
+  white-space: nowrap;
+}
+
+@keyframes lt-spin {
+  to { transform: rotate(360deg); }
+}
+
+.lt-fade-enter-active,
+.lt-fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.lt-fade-enter-from,
+.lt-fade-leave-to {
+  opacity: 0;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Components/UI/Loading/LoadingIndicatorSmall.vue ----------
+<template>
+  <div v-show="visible" class="loading-indicator">
+    <div class="spinner"></div>
+    <div class="loading-text">{{ text }}</div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, computed, onMounted } from 'vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+
+const props = defineProps({
+  target: {
+    type: String,
+    default: 'global'
+  },
+  text: {
+    type: String,
+    default: 'Загрузка...'
+  }
+})
+
+const visible = computed(() => {
+  const state = getLoadingState(props.target)
+  logger.debug(`[LoadingIndicator] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+  return state
+})
+
+onMounted(() => {
+  logger.info(`[LoadingIndicator] Инициализирован для: ${props.target}`)
+})
+</script>
+
+<style lang="scss" scoped>
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  text-align: center;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  border: 3px solid rgba(0, 0, 0, 0.2);
+  border-left-color: #11a91d;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 0.6rem;
+  color: #333;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Composables/useLoading.ts ----------
+import { ref, computed, type Ref } from 'vue'
+import logger from '@/modules/TalkStream/utils/logger'
+
+const loadingStates: Record<string, Ref<boolean>> = {}
+const errorStates: Record<string, Ref<unknown>> = {}
+
+export function useLoading(key = 'global') {
+    if (!loadingStates[key]) {
+        loadingStates[key] = ref(false)
+        errorStates[key] = ref(null)
+        logger.debug(`Создана новая зона загрузки: ${key}`)
+    }
+
+    const isLoading = loadingStates[key]
+
+    const setLoading = (value: boolean): void => {
+        logger.info(`Установлено состояние для ${key}: ${value ? 'включено' : 'выключено'}`)
+        isLoading.value = value
+        if (!value) errorStates[key].value = null
+    }
+
+    const withLoading = async <T>(promiseFn: () => Promise<T>): Promise<T> => {
+        try {
+            setLoading(true)
+            logger.info(`Загрузка начата для ${key}`)
+            return await promiseFn()
+        } catch (err) {
+            logger.error(`Ошибка загрузки в зоне ${key}`, err)
+            errorStates[key].value = err
+            throw err
+        } finally {
+            setLoading(false)
+            logger.info(`Загрузка завершена для ${key}`)
+        }
+    }
+
+    return {
+        isLoading,
+        error: computed(() => errorStates[key].value),
+        setLoading,
+        withLoading
+    }
+}
+
+export function getLoadingState(key = 'global'): boolean {
+    const state = loadingStates[key]?.value ?? false
+    logger.debug(`Получено состояние для ${key}: ${state ? 'в процессе' : 'остановлено'}`)
+    return state
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/config/loading.ts ----------
+/**
+ * Визуальные токены лоадеров модуля TalkStream.
+ *
+ * Это фронтовый контракт дизайна, НЕ бизнес-настройки: он не едет через API
+ * и не дублирует config/talkstream.php. Директивы и индикаторы читают его
+ * напрямую, поэтому в шаблонах не остаётся литералов текста/фона/размеров.
+ *
+ * Оси:
+ *   variants - переиспользуемые наборы (default/small/inline), выбираются
+ *              той обёрткой-директивой, которую поставили на элемент.
+ *   zones    - привязка к ключу загрузки (модификатор .contacts/.history/...):
+ *              текст и точечные переопределения фона под конкретный контейнер.
+ *
+ * Приоритет слияния в директиве: binding.value > zones[key] > variants[variant] > fallback.
+ * Пока шаблоны передают binding.value, поведение идентично старому; после очистки
+ * биндингов значения берутся отсюда без изменения рендера.
+ */
+
+export interface SpinnerTokens {
+    size: number | null;        // px диаметра; null = не подтверждён, заполняется в Пасс C
+    border: number | null;      // px толщины кольца
+    track: string | null;       // цвет незамкнутой части кольца
+    tone: string | null;        // цвет дуги вращения ('currentColor' для inline)
+    textSize: string | null;    // CSS-единицы подписи
+    textColor: string | null;   // CSS-цвет подписи ('inherit' для inline)
+    labelGap: number | null;    // px зазора спиннер/подпись
+}
+
+export interface OverlayTokens {
+    background: string;         // цвет затемнения оверлея
+    blur: number;               // px backdrop-blur
+    radius: number;             // px скругления оверлея
+    zIndex: number;             // порядок поверх контента
+    fadeMs: number;             // ms плавного появления/исчезновения
+}
+
+export interface VariantPreset {
+    spinner: SpinnerTokens;
+    overlay: OverlayTokens;
+    labelPlacement: 'top' | 'bottom' | 'left' | 'right';
+}
+
+export interface LoadingZone {
+    text?: string;
+    background?: string;
+}
+
+export interface LoadingConfig {
+    fallback: { text: string; background: string };
+    variants: Record<string, VariantPreset>;
+    zones: Record<string, LoadingZone>;
+}
+
+// Оверлей-токены ниже сверены по телу директивы в дампе Level_3.6
+// (background/blur/radius/zIndex/fade и дефолт фона из Object.assign(container.style,...)).
+export const loadingConfig: LoadingConfig = {
+    fallback: {
+        text: 'Загрузка...',
+        background: 'rgba(255, 255, 255, 0.85)',
+    },
+
+    variants: {
+        default: {
+            // TODO(Пасс C): заполнить spinner из тела LoadingIndicator.vue
+            // (в дампе блок .spinner{width...} отсутствует, значения не угадываем).
+            spinner: { size: null, border: null, track: null, tone: null, textSize: null, textColor: null, labelGap: null },
+            overlay: { background: 'rgba(255, 255, 255, 0.85)', blur: 2, radius: 8, zIndex: 9999, fadeMs: 300 },
+            labelPlacement: 'bottom',
+        },
+        small: {
+            // TODO(Пасс C): заполнить spinner из тела LoadingIndicatorSmall.vue.
+            spinner: { size: null, border: null, track: null, tone: null, textSize: null, textColor: null, labelGap: null },
+            overlay: { background: 'rgba(255, 255, 255, 0.85)', blur: 2, radius: 8, zIndex: 9999, fadeMs: 300 },
+            labelPlacement: 'bottom',
+        },
+        inline: {
+            // Токены inline заданы здесь полностью: компонент пишется заново в этом пассе,
+            // значения известны по построению и не требуют сверки со старыми телами.
+            // tone/textColor на currentColor/inherit - спиннер подстраивается под цвет текста
+            // кнопки/строки, поэтому inline и вынесен в отдельный вариант.
+            spinner: { size: 16, border: 2, track: 'rgba(127,127,127,0.25)', tone: 'currentColor', textSize: '0.7rem', textColor: 'inherit', labelGap: 6 },
+            overlay: { background: 'transparent', blur: 0, radius: 0, zIndex: 0, fadeMs: 150 },
+            labelPlacement: 'right',
+        },
+    },
+
+    // Ключи совпадают с модификаторами директив (.contacts/.history/.sender/...).
+    // text/background здесь равны тем, что раньше передавались биндингом в шаблонах,
+    // поэтому перенос значений из шаблонов сюда не меняет рендер.
+    zones: {
+        contacts:   { text: 'Загрузка контактов...', background: '#ffffffaa' },
+        history:    { text: 'Загрузка истории...',   background: '#ffffffaa' },
+        sender:     { text: '' },
+        friends:    { text: '' },
+        callRow:    { text: '' },
+        connection: { text: '' },
+        global:     { text: 'Загрузка...' },
+    },
+};
+
+
+---------- FILE: resources/js/Modules/TalkStream/Directives/Loading/create-loading-directive.ts ----------
+import {
+    type Component,
+    type ObjectDirective,
+    type DirectiveBinding,
+    type VNode,
+    h,
+    render,
+    watch
+} from 'vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+import { loadingConfig, type LoadingZone } from '@/modules/TalkStream/config/loading'
+
+export interface LoadingBindingValue {
+    text?: string
+    background?: string
+}
+
+export type LoadingDirectiveValue = LoadingBindingValue | string
+
+type Layout = 'overlay' | 'inline'
+
+interface LoaderState {
+    layout: Layout
+    key: string
+    // overlay: абсолютный оверлей-контейнер; inline: инлайн-хост внутри хоста.
+    container?: HTMLDivElement
+    host?: HTMLSpanElement
+    vnode: VNode
+    unwatch?: () => void
+    originalPosition: string
+    positionPatched: boolean
+    text: string
+    background: string
+}
+
+const registry = new WeakMap<HTMLElement, LoaderState>()
+
+const resolveKey = (binding: DirectiveBinding<LoadingDirectiveValue>): string => {
+    const modifiers = Object.keys(binding.modifiers)
+    // Инвариант рукопожатия шаблон->стор: не менять derivation.
+    return modifiers[0] || binding.arg || 'global'
+}
+
+// binding.value имеет приоритет над зоной; пустая строка текста - валидное
+// значение ("без подписи"), поэтому различаем "передано явно" и "отсутствует".
+const pickText = (binding: DirectiveBinding<LoadingDirectiveValue>, zone?: LoadingZone): string => {
+    const v = binding.value
+    if (v && typeof v === 'object' && 'text' in v) return v.text ?? ''
+    if (typeof v === 'string') return v
+    if (zone && zone.text !== undefined) return zone.text
+    return loadingConfig.fallback.text
+}
+
+const pickBackground = (binding: DirectiveBinding<LoadingDirectiveValue>, zone?: LoadingZone): string => {
+    const v = binding.value
+    if (v && typeof v === 'object' && 'background' in v) return v.background ?? loadingConfig.fallback.background
+    if (zone && zone.background !== undefined) return zone.background
+    return loadingConfig.fallback.background
+}
+
+export function createLoadingDirective(
+    component: Component,
+    logName: string,
+    variant: string,
+    layout: Layout = 'overlay'
+): ObjectDirective<HTMLElement, LoadingDirectiveValue> {
+    return {
+        mounted(el: HTMLElement, binding: DirectiveBinding<LoadingDirectiveValue>) {
+            if (registry.has(el)) return
+
+            const key = resolveKey(binding)
+            const zone = loadingConfig.zones[key]
+            const text = pickText(binding, zone)
+            const background = pickBackground(binding, zone)
+            const preset = loadingConfig.variants[variant] ?? loadingConfig.variants.default
+
+            if (layout === 'inline') {
+                // Инлайн не пишет хосту вообще никаких стилей (ни position, ни overflow):
+                // вставляем отдельный span-хост и рендерим индикатор в него.
+                // Видимость сам индикатор гейтит через getLoadingState(key).
+                const host = document.createElement('span')
+                host.className = 'loading-inline-host'
+                el.appendChild(host)
+
+                const vnode = h(component, { target: key, text })
+                render(vnode, host)
+
+                registry.set(el, {
+                    layout,
+                    key,
+                    host,
+                    vnode,
+                    originalPosition: el.style.position,
+                    positionPatched: false,
+                    text,
+                    background
+                })
+                return
+            }
+
+            // Overlay: сохраняем оригинальный inline position и ставим relative
+            // только если вычисленный position реально static.
+            const originalPosition = el.style.position
+            const computedPosition = window.getComputedStyle(el).position
+            const positionPatched = computedPosition === 'static'
+            if (positionPatched) {
+                el.style.position = 'relative'
+            }
+
+            const container = document.createElement('div')
+            container.className = 'loading-directive-container'
+            Object.assign(container.style, {
+                position: 'absolute',
+                top: '0',
+                left: '0',
+                right: '0',
+                bottom: '0',
+                zIndex: String(preset.overlay.zIndex),
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: background,
+                pointerEvents: 'none',
+                userSelect: 'none',
+                opacity: '0',
+                transition: `opacity ${preset.overlay.fadeMs}ms ease`,
+                backdropFilter: `blur(${preset.overlay.blur}px)`,
+                webkitBackdropFilter: `blur(${preset.overlay.blur}px)`,
+                borderRadius: `${preset.overlay.radius}px`,
+                // Клип скругления на самом оверлее, не на хосте (иначе глушится скролл).
+                overflow: 'hidden'
+            })
+            el.appendChild(container)
+
+            const vnode = h(component, { target: key, text })
+            render(vnode, container)
+
+            const unwatch = watch(
+                () => getLoadingState(key),
+                (isLoading: boolean) => {
+                    container.style.opacity = isLoading ? '1' : '0'
+                    logger.debug(`[${logName}] ${key}: ${isLoading ? 'показываем' : 'скрываем'}`)
+                },
+                { immediate: true }
+            )
+
+            registry.set(el, {
+                layout,
+                key,
+                container,
+                vnode,
+                unwatch,
+                originalPosition,
+                positionPatched,
+                text,
+                background
+            })
+        },
+
+        updated(el: HTMLElement, binding: DirectiveBinding<LoadingDirectiveValue>) {
+            const state = registry.get(el)
+            if (!state) return
+
+            const zone = loadingConfig.zones[state.key]
+            const text = pickText(binding, zone)
+            const background = pickBackground(binding, zone)
+
+            if (state.layout === 'inline') {
+                if (state.text === text) return
+                const vnode = h(component, { target: state.key, text })
+                if (state.host) render(vnode, state.host)
+                state.vnode = vnode
+                state.text = text
+                return
+            }
+
+            if (state.text === text && state.background === background) return
+            if (state.container) state.container.style.backgroundColor = background
+            const vnode = h(component, { target: state.key, text })
+            if (state.container) render(vnode, state.container)
+            state.vnode = vnode
+            state.text = text
+            state.background = background
+        },
+
+        unmounted(el: HTMLElement) {
+            const state = registry.get(el)
+            if (!state) return
+
+            if (state.unwatch) state.unwatch()
+
+            if (state.layout === 'inline') {
+                if (state.host) {
+                    render(null, state.host)
+                    if (state.host.parentNode === el) el.removeChild(state.host)
+                }
+                registry.delete(el)
+                return
+            }
+
+            if (state.container) {
+                render(null, state.container)
+                if (state.container.parentNode === el) el.removeChild(state.container)
+            }
+            if (state.positionPatched) {
+                el.style.position = state.originalPosition
+            }
+            registry.delete(el)
+        }
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Directives/Loading/loadingDirective.ts ----------
+import { type App } from 'vue'
+import loadingTalkStream from '@/modules/TalkStream/Directives/Loading/v-loading-talkstream'
+import loadingTalkStreamSmall from '@/modules/TalkStream/Directives/Loading/v-loading-talkstream-small'
+import loadingTalkStreamInline from '@/modules/TalkStream/Directives/Loading/v-loading-talkstream-inline'
+
+export default {
+    install(app: App): void {
+        app.directive('loading-talkstream', loadingTalkStream)
+        app.directive('loading-talkstream-small', loadingTalkStreamSmall)
+        app.directive('loading-talkstream-inline', loadingTalkStreamInline)
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Directives/Loading/v-loading-talkstream-inline.ts ----------
+import LoadingIndicatorInline from '@/modules/TalkStream/Components/UI/Loading/LoadingIndicatorInline.vue'
+import { createLoadingDirective } from '@/modules/TalkStream/Directives/Loading/create-loading-directive'
+
+export default createLoadingDirective(LoadingIndicatorInline, 'Directive:v-loading-talkstream-inline', 'inline', 'inline')
+
+
+---------- FILE: resources/js/Modules/TalkStream/Directives/Loading/v-loading-talkstream-small.ts ----------
+import LoadingIndicatorSmall from '@/modules/TalkStream/Components/UI/Loading/LoadingIndicatorSmall.vue'
+import { createLoadingDirective } from '@/modules/TalkStream/Directives/Loading/create-loading-directive'
+
+export default createLoadingDirective(LoadingIndicatorSmall, 'Directive:v-loading-talkstream-small', 'small', 'overlay')
+
+
+---------- FILE: resources/js/Modules/TalkStream/Directives/Loading/v-loading-talkstream.ts ----------
+import LoadingIndicator from '@/modules/TalkStream/Components/UI/Loading/LoadingIndicator.vue'
+import { createLoadingDirective } from '@/modules/TalkStream/Directives/Loading/create-loading-directive'
+
+export default createLoadingDirective(LoadingIndicator, 'Directive:v-loading-talkstream', 'default', 'overlay')
+
+
+---------- FILE: resources/js/Modules/TalkStream/plugins/echoTalkStream.ts ----------
+import Echo from 'laravel-echo'
+import Pusher from 'pusher-js'
+import axios from 'axios'
+import Cookies from 'js-cookie'
+import { getToken } from '@/utils/auth'
+import type { Options as PusherOptions } from 'pusher-js'
+
+// Pusher должен быть доступен глобально для laravel-echo
+declare global {
+    interface Window {
+        Pusher: typeof Pusher
+        Echo: Echo | null
+        axios?: typeof axios
+        getEchoInstance?: () => Echo | null
+        disconnectEcho?: () => void
+    }
+}
+
+window.Pusher = Pusher
+
+let echoInstance: Echo | null = null
+
+const log = {
+    info: (...args: unknown[]): void => console.log('[Echo]', ...args),
+    warn: (...args: unknown[]): void => console.warn('[Echo]', ...args),
+    error: (...args: unknown[]): void => console.error('[Echo]', ...args),
+}
+
+export function createEcho(): Echo | null {
+    const token = getToken()
+
+    if (!token) {
+        log.warn('Токен отсутствует, Echo не создаётся')
+        return null
+    }
+
+    if (echoInstance) {
+        log.info('Используем существующий экземпляр')
+        return echoInstance
+    }
+
+    try {
+        log.info('Создаём новый экземпляр Echo')
+
+        // Глобальные заголовки axios (для auth-запросов Echo)
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        axios.defaults.withCredentials = true
+        if (window.axios) {
+            window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+            window.axios.defaults.withCredentials = true
+        }
+
+        const csrfToken =
+            Cookies.get('XSRF-TOKEN') ||
+            document.querySelector('meta[name="csrf-token"]')?.content ||
+            ''
+
+        const config: PusherOptions = {
+            broadcaster: 'reverb',
+            key: import.meta.env.VITE_REVERB_APP_KEY,
+            wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
+            wsPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            wssPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            wsPath: '',                              // ← строго пусто! pusher-js сам добавит /app/{key}
+            scheme: import.meta.env.VITE_REVERB_SCHEME || 'ws',
+            authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/broadcasting/auth',
+            forceTLS: false,
+            disableStats: true,
+            enabledTransports: ['ws'],               // без XHR-fallback
+            disabledTransports: ['wss', 'sockjs'],
+            withCredentials: true,
+            activityTimeout: 30000,
+            pongTimeout: 20000,                      // должен быть < activityTimeout
+            auth: {
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+            },
+        }
+
+        log.info(`Подключение к: ${config.scheme}://${config.wsHost}:${config.wsPort}`)
+
+        echoInstance = new Echo(config)
+
+        // Глобальный доступ для хендлеров подписок
+        window.Echo = echoInstance
+
+        echoInstance.connector.pusher.connection.bind('error', (err: unknown) => {
+            log.error('Ошибка Pusher:', err)
+        })
+
+        echoInstance.connector.pusher.connection.bind('connected', () => {
+            log.info('✅ WebSocket подключён')
+        })
+
+        echoInstance.connector.pusher.connection.bind('disconnected', () => {
+            log.warn('⚠️ WebSocket отключён')
+        })
+
+        return echoInstance
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Критическая ошибка при создании Echo:', errorMessage)
+        return null
+    }
+}
+
+export function updateEchoToken(newToken: string): Echo | null {
+    if (!echoInstance) return createEcho()
+
+    try {
+        if (echoInstance.options?.auth?.headers) {
+            (echoInstance.options.auth.headers as Record<string, string>).Authorization = `Bearer ${newToken}`
+        }
+
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+        if (window.axios) {
+            window.axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+        }
+
+        const wasConnected = echoInstance.connector?.pusher?.connection?.state === 'connected'
+        echoInstance.disconnect()
+
+        if (wasConnected) {
+            setTimeout(() => echoInstance?.connect(), 1500)
+        }
+
+        return echoInstance
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Ошибка при обновлении токена:', errorMessage)
+        return null
+    }
+}
+
+export function getEchoInstance(): Echo | null {
+    return echoInstance
+}
+
+export function disconnectEcho(): void {
+    if (!echoInstance) return
+
+    try {
+        echoInstance.disconnect()
+        log.info('Соединение закрыто')
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Ошибка при отключении:', errorMessage)
+    } finally {
+        echoInstance = null
+        window.Echo = null
+        if (axios.defaults.headers.common) {
+            delete axios.defaults.headers.common['Authorization']
+        }
+    }
+}
+
+if (import.meta.env.DEV) {
+    window.getEchoInstance = getEchoInstance
+    window.disconnectEcho = disconnectEcho
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Services/talkRequest.ts ----------
+import request from '@/utils/request'
+import type { AxiosRequestConfig, AxiosResponse } from 'axios'
+
+/**
+ * Обёртка для запросов чат-модуля TalkStream.
+ * Автоматически добавляет префикс /talkstream к URL.
+ */
+export default function talkRequest<T = unknown>(config: AxiosRequestConfig): Promise<AxiosResponse<T>> {
+    if (config.url && !config.url.startsWith('/talkstream')) {
+        config.url = '/talkstream' + config.url
+    }
+
+    return request(config).catch((error: unknown) => {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        console.error('[TalkRequest] Ошибка запроса:', errorMessage)
+        throw error
+    })
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Services/talkResource.ts ----------
+import talkRequest from '@/modules/TalkStream/Services/talkRequest'
+import type { AxiosResponse } from 'axios'
+
+/**
+ * Базовый ресурс для REST-запросов модуля TalkStream.
+ * Предоставляет стандартные CRUD-методы со строгой типизацией.
+ */
+export default class TalkResource {
+    protected uri: string
+
+    constructor(uri: string) {
+        this.uri = uri
+    }
+
+    /**
+     * GET — список ресурсов или кастомный путь
+     */
+    list<T = unknown>(query: Record<string, unknown> = {}, path: string = ''): Promise<AxiosResponse<T>> {
+        const url = path ? `/${this.uri}/${path}` : `/${this.uri}`
+        return talkRequest<T>({
+            url,
+            method: 'get',
+            params: query
+        })
+    }
+
+    /**
+     * POST — создание ресурса
+     */
+    store<T = unknown>(data: Record<string, unknown>, path: string = ''): Promise<AxiosResponse<T>> {
+        const url = path ? `/${this.uri}/${path}` : `/${this.uri}`
+        return talkRequest<T>({
+            url,
+            method: 'post',
+            data
+        })
+    }
+
+    /**
+     * GET — получение ресурса по ID
+     */
+    get<T = unknown>(id: number | string, path: string = ''): Promise<AxiosResponse<T>> {
+        const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
+        return talkRequest<T>({
+            url,
+            method: 'get'
+        })
+    }
+
+    /**
+     * PUT — обновление ресурса по ID
+     */
+    update<T = unknown>(id: number | string, data: Record<string, unknown>, path: string = ''): Promise<AxiosResponse<T>> {
+        const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
+        return talkRequest<T>({
+            url,
+            method: 'put',
+            data
+        })
+    }
+
+    /**
+     * DELETE — удаление ресурса по ID
+     */
+    destroy<T = unknown>(id: number | string, path: string = ''): Promise<AxiosResponse<T>> {
+        const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
+        return talkRequest<T>({
+            url,
+            method: 'delete'
+        })
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Services/talkService.ts ----------
+import TalkResource from '@/modules/TalkStream/Services/talkResource'
+import type { AxiosResponse } from 'axios'
+
+/**
+ * Сервис бизнес-логики модуля TalkStream.
+ * Наследует базовые CRUD-методы и добавляет конкретные endpoints.
+ * Все типы строго проверены (noImplicitAny: true).
+ */
+export default class TalkService extends TalkResource {
+    constructor() {
+        super('talkstream')
+    }
+
+    // ========================================================================
+    // КОНТАКТЫ
+    // ========================================================================
+
+    getUserId<T = unknown>(query: Record<string, unknown> = {}, path: string = 'user'): Promise<AxiosResponse<T>> {
+        return this.list<T>(query, path)
+    }
+
+    getContacts<T = unknown>(query: Record<string, unknown> = {}, path: string = 'contacts'): Promise<AxiosResponse<T>> {
+        return this.list<T>(query, path)
+    }
+
+    // ========================================================================
+    // ИСТОРИЯ И СООБЩЕНИЯ
+    // ========================================================================
+
+    getHistory<T = unknown>(userId: number | string, path: string = 'history'): Promise<AxiosResponse<T>> {
+        return this.get<T>(userId, path)
+    }
+
+    sendMessage<T = unknown>(content: string, to_id: number | string): Promise<AxiosResponse<T>> {
+        return this.store<T>({ content, to_id }, 'send')
+    }
+
+    // ========================================================================
+    // ДРУЗЬЯ
+    // ========================================================================
+
+    getFriendsList<T = unknown>(path: string = 'friends'): Promise<AxiosResponse<T>> {
+        return this.list<T>({}, path)
+    }
+
+    getIncomingFriendsRequest<T = unknown>(query: Record<string, unknown> = {}, path: string = 'friends/incoming'): Promise<AxiosResponse<T>> {
+        return this.list<T>(query, path)
+    }
+
+    getSentRequests<T = unknown>(path: string = 'friends/sent'): Promise<AxiosResponse<T>> {
+        return this.list<T>({}, path)
+    }
+
+    isFriend<T = unknown>(userId: number | string, path: string = 'friends/is-friend'): Promise<AxiosResponse<T>> {
+        return this.get<T>(userId, path)
+    }
+
+    sendFriendRequest<T = unknown>(friend_id: number | string, path: string = 'friends/send'): Promise<AxiosResponse<T>> {
+        return this.store<T>({ friend_id }, path)
+    }
+
+    acceptFriendRequest<T = unknown>(id: number | string, path: string = ''): Promise<AxiosResponse<T>> {
+        const actualPath = path || `friends/accept/${id}`
+        return this.store<T>({ id }, actualPath)
+    }
+
+    // ========================================================================
+    // ЗВОНКИ (все 6 методов, как в routes/api.php)
+    // ========================================================================
+
+    initiateCall<T = unknown>(to_id: number | string, type: 'audio' | 'video'): Promise<AxiosResponse<T>> {
+        return this.store<T>({ to_id, type }, 'call/initiate')
+    }
+
+    startCall<T = unknown>(to_id: number | string, type: 'audio' | 'video' = 'video'): Promise<AxiosResponse<T>> {
+        return this.store<T>({ to_id, type }, 'call/start')
+    }
+
+    acceptCall<T = unknown>(call_id: number | string): Promise<AxiosResponse<T>> {
+        return this.store<T>({ call_id }, 'call/accept')
+    }
+
+    declineCall<T = unknown>(call_id: number | string): Promise<AxiosResponse<T>> {
+        return this.store<T>({ call_id }, 'call/decline')
+    }
+
+    endCall<T = unknown>(call_id: number | string): Promise<AxiosResponse<T>> {
+        return this.store<T>({ call_id }, 'call/end')
+    }
+
+    endCallFixed<T = unknown>(call_id: number | string): Promise<AxiosResponse<T>> {
+        return this.store<T>({ call_id }, 'call/end-call')
+    }
+
+    getCallHistory<T = unknown>(userId: number | string, path: string = 'call/history'): Promise<AxiosResponse<T>> {
+        return this.get<T>(userId, path)
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Stores/callStore.ts ----------
+import { defineStore } from 'pinia'
+// ✅ Абсолютный путь к API
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream'
+// ✅ Абсолютный путь к типам
+import type { CallData } from '@/modules/TalkStream/types'
+
+export const useCallStore = defineStore('call', {
+    state: () => ({
+        activeCall: null as CallData | null,
+        incomingCall: null as CallData | null,
+        localStream: null as MediaStream | null,
+        remoteStream: null as MediaStream | null,
+        peerConnection: null as RTCPeerConnection | null,
+        isAudioEnabled: true,
+        isVideoEnabled: true,
+    }),
+
+    actions: {
+        /**
+         * Инициировать исходящий звонок
+         */
+        async initiateCall(to_id: number, type: 'audio' | 'video' = 'video'): Promise<void> {
+            try {
+                // ✅ Абсолютный путь в действии
+                const response = await TalkStreamAPI.initiateCall(to_id, type)
+                if (response.data) {
+                    this.activeCall = { ...response.data, status: 'calling' }
+                    this.localStream = await this.setupLocalStream({
+                        video: type === 'video',
+                        audio: true
+                    })
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[callStore] initiateCall error:', errorMessage)
+                throw error
+            }
+        },
+
+        /**
+         * Старт звонка (после принятия)
+         */
+        async startCall(to_id: number, type: 'audio' | 'video' = 'video'): Promise<void> {
+            try {
+                const response = await TalkStreamAPI.startCall(to_id, type)
+                if (response.data) {
+                    this.activeCall = { ...response.data, status: 'active' }
+                    this.localStream = await this.setupLocalStream({
+                        video: type === 'video',
+                        audio: true
+                    })
+                    await this.setupPeerConnection()
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[callStore] startCall error:', errorMessage)
+                throw error
+            }
+        },
+
+        /**
+         * Принять входящий звонок
+         */
+        async acceptCall(call_id: number): Promise<void> {
+            if (!this.incomingCall) return
+
+            try {
+                const response = await TalkStreamAPI.acceptCall(call_id)
+                if (response.data) {
+                    this.activeCall = { ...response.data, status: 'active' }
+                    this.incomingCall = null
+                    this.localStream = await this.setupLocalStream({
+                        video: this.activeCall.type === 'video',
+                        audio: true
+                    })
+                    await this.setupPeerConnection()
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[callStore] acceptCall error:', errorMessage)
+                throw error
+            }
+        },
+
+        /**
+         * Отклонить входящий звонок
+         */
+        async declineCall(call_id: number): Promise<void> {
+            try {
+                await TalkStreamAPI.declineCall(call_id)
+                this.incomingCall = null
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[callStore] declineCall error:', errorMessage)
+            }
+        },
+
+        /**
+         * Завершить активный звонок
+         */
+        async endCall(): Promise<void> {
+            if (!this.activeCall) return
+
+            const callId = this.activeCall.id || 0
+
+            try {
+                try {
+                    await TalkStreamAPI.endCallFixed(callId)
+                } catch {
+                    await TalkStreamAPI.endCall(callId)
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.warn('[callStore] endCall API error:', errorMessage)
+            } finally {
+                this.cleanup()
+            }
+        },
+
+        /**
+         * Обработка входящего звонка (вызывается из WebSocket)
+         */
+        handleIncomingCall(callData: CallData): void {
+            this.incomingCall = callData
+        },
+
+        /**
+         * Запросить доступ к камере/микрофону
+         */
+        async setupLocalStream(options: MediaStreamConstraints = { video: true, audio: true }): Promise<MediaStream | null> {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(options)
+                this.localStream = stream
+                return stream
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+                console.error('[callStore] Не удалось получить медиапоток:', errorMessage)
+                return null
+            }
+        },
+
+        /**
+         * Настройка WebRTC соединения
+         */
+        async setupPeerConnection(): Promise<void> {
+            const configuration: RTCConfiguration = {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' }
+                ]
+            }
+
+            const pc = new RTCPeerConnection(configuration)
+            this.peerConnection = pc
+
+            const stream = this.localStream
+            if (stream) {
+                const tracks = stream.getTracks()
+                for (const track of tracks) {
+                    pc.addTrack(track, stream)
+                }
+            }
+
+            pc.ontrack = (event: RTCTrackEvent) => {
+                this.remoteStream = event.streams[0] ?? null
+            }
+
+            pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
+                if (event.candidate) {
+                    console.log('[WebRTC] ICE candidate:', event.candidate)
+                }
+            }
+        },
+
+        /**
+         * Переключение микрофона
+         */
+        toggleAudio(isEnabled: boolean): void {
+            this.isAudioEnabled = isEnabled
+            const stream = this.localStream
+            if (stream) {
+                const tracks = stream.getAudioTracks()
+                for (const track of tracks) {
+                    track.enabled = isEnabled
+                }
+            }
+        },
+
+        /**
+         * Переключение камеры
+         */
+        toggleVideo(isEnabled: boolean): void {
+            this.isVideoEnabled = isEnabled
+            const stream = this.localStream
+            if (stream) {
+                const tracks = stream.getVideoTracks()
+                for (const track of tracks) {
+                    track.enabled = isEnabled
+                }
+            }
+        },
+
+        /**
+         * Очистка ресурсов
+         */
+        cleanup(): void {
+            const stream = this.localStream
+            if (stream) {
+                const tracks = stream.getTracks()
+                for (const track of tracks) {
+                    track.stop()
+                }
+            }
+
+            const pc = this.peerConnection
+            if (pc) {
+                pc.close()
+            }
+
+            this.activeCall = null
+            this.incomingCall = null
+            this.localStream = null
+            this.remoteStream = null
+            this.peerConnection = null
+        },
+
+        reset(): void {
+            this.cleanup()
+        }
+    },
+
+    getters: {
+        isCallActive(state): boolean {
+            return state.activeCall?.status === 'active'
+        },
+        isCallPending(state): boolean {
+            return state.activeCall?.status === 'calling'
+        },
+        hasIncomingCall(state): boolean {
+            return state.incomingCall !== null
+        },
+        currentCallType(state): 'audio' | 'video' | null {
+            return state.activeCall?.type ?? null
+        }
+    }
+})
+
+
+---------- FILE: resources/js/Modules/TalkStream/Stores/chatStore.ts ----------
+import { defineStore } from 'pinia'
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream'
+import type { Message, MessageStatus } from '@/modules/TalkStream/types'
+import { userStore } from '@/store/userStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+
+export const useChatStore = defineStore('chat', {
+    state: () => ({
+        messages: [] as Message[],
+        history: {} as Record<string, Message[]>,
+        readStatus: {} as Record<string, boolean>,
+        isTyping: false as boolean,
+    }),
+
+    actions: {
+        async loadHistory(contactId: number): Promise<void> {
+            const uStore = userStore()
+            const userId = uStore.id
+
+            if (!userId) {
+                console.error('[ChatStore] User ID not loaded')
+                return
+            }
+
+            const cacheKey = `${userId}_${contactId}`
+
+            if (this.history[cacheKey] && this.history[cacheKey].length > 0) {
+                this.messages = this.history[cacheKey]
+                return
+            }
+
+            try {
+                const response = await TalkStreamAPI.getHistory(contactId)
+                if (response.data) {
+                    const enrichedMessages = response.data.map((msg) => ({
+                        ...msg,
+                        is_mine: msg.from_id === userId,
+                        isLocal: false,
+                        status: (msg.read_at ? 'read' : 'delivered') as MessageStatus
+                    }))
+
+                    this.history[cacheKey] = enrichedMessages
+                    this.messages = enrichedMessages
+                } else {
+                    this.messages = []
+                    this.history[cacheKey] = []
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[ChatStore] Failed to load history:', errorMessage)
+                this.messages = []
+            }
+        },
+
+        async sendMessage(to_id: number, content: string): Promise<void> {
+            const uStore = userStore()
+            const userId = uStore.id
+
+            if (!userId || !content.trim()) return
+
+            const tempId = -Date.now()
+
+            const tempMessage: Message = {
+                id: tempId,
+                from_id: userId,
+                to_id: to_id,
+                content: content,
+                type: 'text',
+                created_at: new Date().toISOString(),
+                is_mine: true,
+                isLocal: true,
+                status: 'sending'
+            }
+
+            this.messages.push(tempMessage)
+
+            try {
+                const response = await TalkStreamAPI.sendMessage(to_id, content)
+
+                if (response.data) {
+                    this.replaceLocalMessage(tempId, {
+                        ...response.data,
+                        status: 'delivered'
+                    })
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[ChatStore] Failed to send message:', errorMessage)
+                // 🔥 ИСПРАВЛЕНО (проблема 3): вместо тихого удаления — помечаем как failed,
+                // чтобы пузырь остался на экране с ✖ и возможностью повторной отправки.
+                this.markFailed(tempId)
+            }
+        },
+
+        replaceLocalMessage(tempId: number, realMessage: Message): void {
+            // 🔥 Строгое приведение к Number, чтобы найти временный ID
+            const index = this.messages.findIndex(m => Number(m.id) === Number(tempId))
+
+            if (index !== -1) {
+                const enrichedMessage = {
+                    ...realMessage,
+                    is_mine: true,
+                    isLocal: false,
+                    status: (realMessage.status || 'delivered') as MessageStatus
+                }
+
+                // Заменяем элемент в массиве (удаляем временный, вставляем реальный)
+                this.messages.splice(index, 1, enrichedMessage)
+
+                const uStore = userStore()
+                const userId = uStore.id
+                const contactId = realMessage.to_id === userId ? realMessage.from_id : realMessage.to_id
+                const cacheKey = `${userId}_${contactId}`
+
+                if (this.history[cacheKey]) {
+                    const histIndex = this.history[cacheKey].findIndex(m => Number(m.id) === Number(tempId))
+                    if (histIndex !== -1) {
+                        this.history[cacheKey].splice(histIndex, 1, enrichedMessage)
+                    }
+                }
+            }
+        },
+
+        removeLocalMessage(tempId: number): void {
+            this.messages = this.messages.filter(m => Number(m.id) !== Number(tempId))
+
+            const uStore = userStore()
+            const userId = uStore.id
+            for (const key in this.history) {
+                const msgIndex = this.history[key].findIndex(m => Number(m.id) === Number(tempId))
+                if (msgIndex !== -1) {
+                    this.history[key].splice(msgIndex, 1)
+                    break
+                }
+            }
+        },
+
+        addIncomingMessage(message: Message): void {
+            const uStore = userStore()
+            const userId = uStore.id
+            const contactStore = useContactStore()
+
+            if (this.messages.some(m => Number(m.id) === Number(message.id))) {
+                return
+            }
+
+            const msgWithStatus = {
+                ...message,
+                is_mine: message.from_id === userId,
+                isLocal: false,
+                status: (message.read_at ? 'read' : 'delivered') as MessageStatus
+            }
+
+            const contactId = message.from_id === userId ? message.to_id : message.from_id
+            const cacheKey = `${userId}_${contactId}`
+
+            if (contactStore.selectedContact?.id === contactId) {
+                this.messages.push(msgWithStatus)
+            }
+
+            if (this.history[cacheKey]) {
+                this.history[cacheKey].push(msgWithStatus)
+            } else {
+                this.history[cacheKey] = [msgWithStatus]
+            }
+        },
+
+        addLocalMessage(message: Message): void {
+            const uStore = userStore()
+            const userId = uStore.id
+            const enrichedMessage = {
+                ...message,
+                is_mine: message.from_id === userId,
+                isLocal: true,
+                status: 'sending' as MessageStatus
+            }
+            this.messages.push(enrichedMessage)
+        },
+
+        clearCurrentChat(): void {
+            this.messages = []
+        },
+
+        markAsRead(contactId: number): void {
+            const uStore = userStore()
+            const userId = uStore.id
+            const now = new Date().toISOString()
+            let updated = false
+
+            // 🔥 Мутация ВХОДЯЩИХ (сообщения, которые мне написали).
+            // Используется TalkStreamHistory при скролле/клике, чтобы мгновенно
+            // сбросить счётчик непрочитанных на МОЁМ экране.
+            // Сетевой POST /read (чтобы бэкенд проставил read_at и разослал
+            // MessageRead отправителю) замыкается в TalkStreamHistory (шаг 3),
+            // т.к. требует подтверждения пути в api/talkstream.ts.
+            this.messages.forEach(m => {
+                if (m.to_id === userId && m.from_id === contactId && m.status !== 'read') {
+                    m.status = 'read'
+                    m.read_at = now
+                    updated = true
+                }
+            })
+
+            if (updated) {
+                const cacheKey = `${userId}_${contactId}`
+                if (this.history[cacheKey]) {
+                    this.history[cacheKey].forEach(m => {
+                        if (m.to_id === userId && m.from_id === contactId && m.status !== 'read') {
+                            m.status = 'read'
+                            m.read_at = now
+                        }
+                    })
+                }
+            }
+        },
+
+        // 🔥 НОВОЕ (проблема 1в): мутация ИСХОДЯЩИХ (сообщения, которые Я отправил).
+        // Вызывается из chatEventsHandler на событие MessageRead, которое прилетает
+        // ОТПРАВИТЕЛЮ. Старый markAsRead резал только входящие, поэтому синие галочки
+        // у отправителя никогда не загорались.
+        markSentAsRead(contactId: number): void {
+            const uStore = userStore()
+            const userId = uStore.id
+            const now = new Date().toISOString()
+            let updated = false
+
+            this.messages.forEach(m => {
+                if (m.from_id === userId && m.to_id === contactId && m.status !== 'read') {
+                    m.status = 'read'
+                    m.read_at = now
+                    updated = true
+                }
+            })
+
+            if (updated) {
+                const cacheKey = `${userId}_${contactId}`
+                if (this.history[cacheKey]) {
+                    this.history[cacheKey].forEach(m => {
+                        if (m.from_id === userId && m.to_id === contactId && m.status !== 'read') {
+                            m.status = 'read'
+                            m.read_at = now
+                        }
+                    })
+                }
+            }
+        },
+
+        // 🔥 НОВОЕ (проблема 3): пометка исходящего как failed вместо удаления.
+        markFailed(tempId: number): void {
+            const target = this.messages.find(m => Number(m.id) === Number(tempId))
+            if (!target) return
+
+            target.status = 'failed'
+            target.isLocal = true
+
+            const uStore = userStore()
+            const userId = uStore.id
+            const contactId = target.to_id === userId ? target.from_id : target.to_id
+            const cacheKey = `${userId}_${contactId}`
+
+            if (this.history[cacheKey]) {
+                const histMsg = this.history[cacheKey].find(m => Number(m.id) === Number(tempId))
+                if (histMsg) {
+                    histMsg.status = 'failed'
+                    histMsg.isLocal = true
+                }
+            }
+        },
+
+        // 🔥 НОВОЕ (проблема 3): повторная отправка failed-сообщения.
+        // Берёт сохранённые content/to_id из пузыря, зовёт ПОДТВЕРЖДЁННО рабочий
+        // TalkStreamAPI.sendMessage (без угадывания путей), при успехе заменяет
+        // на реальный id, при ошибке снова ставит failed. UX: клик по ✖ переотправляет молча.
+        async retryMessage(tempId: number): Promise<void> {
+            const uStore = userStore()
+            const userId = uStore.id
+
+            const failed = this.messages.find(m => Number(m.id) === Number(tempId))
+            if (!failed || failed.status !== 'failed') return
+
+            // Возвращаем в sending
+            failed.status = 'sending'
+            failed.isLocal = true
+
+            try {
+                const response = await TalkStreamAPI.sendMessage(failed.to_id, failed.content)
+
+                if (response.data) {
+                    this.replaceLocalMessage(tempId, {
+                        ...response.data,
+                        status: 'delivered'
+                    })
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[ChatStore] Retry failed:', errorMessage)
+                this.markFailed(tempId)
+            }
+        },
+
+        reset(): void {
+            this.messages = []
+            this.history = {}
+            this.readStatus = {}
+            this.isTyping = false
+        }
+    },
+
+    getters: {
+        messageCount: (state): number => state.messages.length,
+        lastMessage: (state): Message | undefined => state.messages[state.messages.length - 1],
+        unreadCount: (state): number => {
+            const uStore = userStore()
+            const userId = uStore.id
+            return state.messages.filter(m => m.to_id === userId && m.status !== 'read').length
+        }
+    }
+})
+
+
+---------- FILE: resources/js/Modules/TalkStream/Stores/contactStore.ts ----------
+import { defineStore } from 'pinia'
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream'
+import type { Contact } from '@/modules/TalkStream/types'
+
+export const useContactStore = defineStore('contact', {
+    state: () => ({
+        contacts: [] as Contact[],
+        selectedContact: null as Contact | null,
+        onlineUsers: [] as number[],
+        userFrom: null as Contact | null,
+        userId: null as number | null,
+        loading: false,
+    }),
+
+    actions: {
+        /**
+         * Загрузка списка контактов с сервера
+         */
+        async fetchContacts(): Promise<void> {
+            this.loading = true
+            try {
+                const response = await TalkStreamAPI.getContacts()
+                if (response.data) {
+                    this.contacts = response.data
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.error('[ContactStore] Failed to fetch contacts:', errorMessage)
+            } finally {
+                this.loading = false
+            }
+        },
+
+        /**
+         * Алиас для загрузки контактов
+         */
+        async loadContacts(): Promise<void> {
+            return this.fetchContacts()
+        },
+
+        /**
+         * Выбор активного контакта
+         */
+        selectContact(contact: Contact | null): void {
+            this.selectedContact = contact
+            if (contact) {
+                try {
+                    localStorage.setItem('selectedContactId', String(contact.id))
+                    localStorage.setItem('last-selected-contact', String(contact.id))
+                } catch (e) {
+                    // Игнорируем ошибки хранилища
+                }
+            }
+        },
+
+        /**
+         * Проверка онлайн-статуса пользователя
+         */
+        isOnline(userId: number | undefined | null): boolean {
+            if (!userId) return false
+            return this.onlineUsers.includes(userId)
+        },
+
+        /**
+         * Проверка: является ли этот контакт текущим выбранным?
+         */
+        isContactSelected(userId: number): boolean {
+            return this.selectedContact?.id === userId
+        },
+
+        /**
+         * Обновление онлайн-статуса пользователя
+         * @param userId ID пользователя
+         * @param isOnline Статус (true = онлайн, false = оффлайн)
+         */
+        updateUserOnline(userId: number, isOnline: boolean): void {
+            if (isOnline) {
+                if (!this.onlineUsers.includes(userId)) {
+                    this.onlineUsers.push(userId)
+                }
+            } else {
+                this.onlineUsers = this.onlineUsers.filter(id => id !== userId)
+            }
+        },
+
+        /**
+         * Установить статус онлайн (алиас)
+         */
+        setOnline(userId: number): void {
+            this.updateUserOnline(userId, true)
+        },
+
+        /**
+         * Установить статус оффлайн (алиас)
+         */
+        setOffline(userId: number): void {
+            this.updateUserOnline(userId, false)
+        },
+
+        /**
+         * Обновление данных текущего пользователя (userFrom) из списка контактов
+         */
+        async refreshUserFrom(): Promise<void> {
+            try {
+                // Если контакты еще не загружены, загружаем их
+                if (this.contacts.length === 0) {
+                    await this.fetchContacts()
+                }
+
+                // Ищем себя в списке контактов
+                if (this.userId) {
+                    const me = this.contacts.find(c => c.id === this.userId)
+                    if (me) {
+                        this.userFrom = me
+                    }
+                }
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                console.warn('[ContactStore] refreshUserFrom failed:', errorMessage)
+            }
+        },
+
+        /**
+         * Сброс выбора контакта
+         */
+        clearSelection(): void {
+            this.selectedContact = null
+        },
+
+        /**
+         * Полный сброс стора
+         */
+        reset(): void {
+            this.contacts = []
+            this.selectedContact = null
+            this.onlineUsers = []
+            this.userFrom = null
+            this.userId = null
+            this.loading = false
+        }
+    },
+
+    getters: {
+        /**
+         * Получить текущий активный контакт
+         */
+        activeContact: (state): Contact | null => state.selectedContact,
+
+        /**
+         * Количество контактов
+         */
+        contactsCount: (state): number => state.contacts.length,
+
+        /**
+         * Количество онлайн пользователей
+         */
+        onlineCount: (state): number => state.onlineUsers.length
+    }
+})
+
+
+---------- FILE: resources/js/Modules/TalkStream/Stores/friendStore.ts ----------
+import { defineStore } from 'pinia'
+import TalkService from '@/modules/TalkStream/Services/talkService'
+import type { FriendRequest } from '@/modules/TalkStream/types'
+
+const talkService = new TalkService()
+
+export const useFriendStore = defineStore('friend', {
+    state: () => ({
+        friendRequests: [] as FriendRequest[],
+        friends: [] as number[],
+        incomingRequests: [] as FriendRequest[],
+        // 🔥 ВАЖНО: Хранит ID пользователей (friend_id), КОМУ мы отправили запрос, а не ID самой записи в БД
+        sentRequests: [] as number[],
+        userId: null as number | null,
+        // 🔥 ДОБАВЛЕНО: Флаг для предотвращения повторных запросов и гонки состояний при рендере
+        _initialized: false,
+    }),
+
+    actions: {
+        /**
+         * Глобальная инициализация данных дружбы (вызывается 1 раз при старте модуля)
+         * Гарантирует, что все списки загружены до того, как UI начнет их проверять
+         */
+        async init(): Promise<void> {
+            if (this._initialized) return
+
+            await Promise.all([
+                this.loadFriendsList(),
+                this.loadIncomingRequests(),
+                this.loadSentRequests()
+            ])
+
+            this._initialized = true
+        },
+
+        /**
+         * Отправить запрос в друзья
+         */
+        async sendRequest(friendId: number | string) {
+            const id = Number(friendId)
+            if (!id) {
+                console.warn('[friendStore] sendRequest: friendId не указан')
+                return
+            }
+
+            try {
+                const res = await talkService.sendFriendRequest(id)
+                if (res?.data) {
+                    // Добавляем именно friend_id, чтобы hasSent сработал корректно
+                    const targetId = res.data.friend_id || id
+                    if (!this.sentRequests.includes(targetId)) {
+                        this.sentRequests.push(targetId)
+                    }
+                }
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                console.error('[friendStore] sendRequest error:', errorMessage)
+                // Если сервер вернул 409 (уже отправлен), мы все равно добавляем его в sentRequests для корректного UI
+                if ((e as any)?.response?.status === 409) {
+                    if (!this.sentRequests.includes(id)) {
+                        this.sentRequests.push(id)
+                    }
+                }
+            }
+        },
+
+        /**
+         * Принять входящий запрос
+         */
+        async acceptRequest(requestId: number | string) {
+            const reqId = Number(requestId)
+            if (!reqId) {
+                console.warn('[friendStore] acceptRequest: requestId не указан')
+                return
+            }
+
+            try {
+                await talkService.acceptFriendRequest(reqId)
+
+                // Находим объект запроса, чтобы узнать ID отправителя и добавить его в друзья
+                const req = this.incomingRequests.find(r => r.id === reqId)
+                if (req) {
+                    this.addFriend(req.user_id)
+                }
+
+                // Удаляем из входящих
+                this.incomingRequests = this.incomingRequests.filter(r => r.id !== reqId)
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                console.error('[friendStore] acceptRequest error:', errorMessage)
+            }
+        },
+
+        /**
+         * Загрузить входящие запросы (с сервера)
+         */
+        async loadIncomingRequests() {
+            try {
+                console.log('[friendStore] Запрашиваем входящие запросы...')
+                const res = await talkService.getIncomingFriendsRequest()
+                const data = Array.isArray(res?.data) ? (res.data as FriendRequest[]) : []
+                console.log('[friendStore] Получено входящих запросов:', data.length)
+                this.incomingRequests = data
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                console.error('[friendStore] loadIncomingRequests error:', errorMessage)
+                this.incomingRequests = []
+            }
+        },
+
+        /**
+         * Загрузить исходящие запросы (с сервера)
+         */
+        async loadSentRequests() {
+            try {
+                console.log('[friendStore] Запрашиваем исходящие запросы...')
+                const res = await talkService.getSentRequests()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено исходящих запросов:', data.length)
+
+                // 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Мапим именно friend_id (получатель), а не id (первичный ключ записи)
+                this.sentRequests = data.map((r: any) => Number(r?.friend_id)).filter(Boolean)
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                console.error('[friendStore] loadSentRequests error:', errorMessage)
+                this.sentRequests = []
+            }
+        },
+
+        /**
+         * Загрузить список друзей
+         */
+        async loadFriendsList() {
+            try {
+                console.log('[friendStore] Запрашиваем список друзей...')
+                const res = await talkService.getFriendsList()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено друзей:', data.length)
+                this.friends = data.map((f: any) => Number(f?.id)).filter(Boolean)
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                console.error('[friendStore] loadFriendsList error:', errorMessage)
+                this.friends = []
+            }
+        },
+
+        /**
+         * Проверить дружбу на сервере
+         */
+        async checkFriendWithServer(userId: number | string) {
+            const id = Number(userId)
+            if (!id) return false
+
+            try {
+                const isCached = this.friends.includes(id)
+                if (isCached) return true
+
+                const res = await talkService.isFriend(id)
+                if (res?.data?.isFriend) {
+                    this.friends.push(id)
+                    return true
+                }
+                return false
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                console.error('[friendStore] checkFriendWithServer error:', errorMessage)
+                return false
+            }
+        },
+
+        /**
+         * Является ли пользователь другом
+         */
+        isFriend(userId: number | string): boolean {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.friends.includes(id)
+        },
+
+        /**
+         * Есть ли входящий запрос от этого пользователя
+         * 🔥 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Проверяем user_id (кто прислал), а не id записи
+         */
+        hasIncoming(userId: number | string): boolean {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.incomingRequests.some(r => r?.user_id === id)
+        },
+
+        /**
+         * Отправили ли мы запрос этому пользователю
+         */
+        hasSent(userId: number | string): boolean {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.sentRequests.includes(id)
+        },
+
+        /**
+         * Добавить друга в локальный список
+         */
+        addFriend(userId: number | string) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            if (!this.friends.includes(id)) {
+                this.friends.push(id)
+            }
+        },
+
+        /**
+         * Добавить входящий запрос (через WebSocket)
+         */
+        addIncoming(userId: number | string) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+
+            if (!this.incomingRequests.some(r => r?.user_id === id)) {
+                this.incomingRequests.push({
+                    id: Date.now(), // Временный ID для UI до перезагрузки
+                    user_id: id,    // Кто прислал
+                    friend_id: this.userId || 0,
+                    accepted: null,
+                    declined: null,
+                    created_at: new Date().toISOString()
+                } as FriendRequest)
+            }
+        },
+
+        /**
+         * Убрать из исходящих (например, если приняли или отменили)
+         */
+        removeSent(userId: number | string) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            this.sentRequests = this.sentRequests.filter(uid => uid !== id)
+        },
+
+        /**
+         * Убрать из входящих
+         */
+        removeIncoming(userId: number | string) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            this.incomingRequests = this.incomingRequests.filter(r => r?.user_id !== id)
+        },
+
+        /**
+         * Статус ожидания
+         */
+        isPending(userId: number | string): boolean {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.sentRequests.includes(id)
+        },
+
+        /**
+         * Сброс стора
+         */
+        reset() {
+            this.friendRequests = []
+            this.friends = []
+            this.incomingRequests = []
+            this.sentRequests = []
+            this.userId = null
+            this._initialized = false
+        }
+    },
+
+    getters: {
+        friendsCount: (state): number => state.friends.length,
+        incomingCount: (state): number => state.incomingRequests.length,
+        sentCount: (state): number => state.sentRequests.length
+    }
+})
+
+
+---------- FILE: resources/js/Modules/TalkStream/Stores/talkStreamStore.ts ----------
+import { defineStore } from 'pinia'
+import Echo, { Channel, PresenceChannel } from 'laravel-echo'
+import { createEcho, disconnectEcho, getEchoInstance } from '@/modules/TalkStream/plugins/echoTalkStream'
+import { setupUserPresenceChannel } from '@/modules/TalkStream/Subscriptions/userPresenceHandler'
+import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
+import { setupChatEventsChannel } from '@/modules/TalkStream/Subscriptions/chatEventsHandler'
+import { userStore } from '@/store/userStore'
+import { isLogged } from '@/utils/auth'
+import logger from '@/modules/TalkStream/utils/logger'
+
+// Интерфейс для отслеживания активных каналов
+interface SubscribedChannel {
+    name: string
+    channel: Channel | PresenceChannel
+}
+
+export const useTalkStreamStore = defineStore('talkStream', {
+    state: () => ({
+        echo: null as Echo | null,
+        isConnected: false,
+        connectionError: null as string | null,
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5,
+        reconnectTimer: null as ReturnType<typeof setTimeout> | null,
+        subscribedChannels: [] as SubscribedChannel[],
+        isHandlersBound: false,
+        isInitialized: false,
+    }),
+
+    actions: {
+        /**
+         * Инициализация WebSocket соединения
+         */
+        async initWebSockets(): Promise<void> {
+            if (!isLogged()) {
+                return
+            }
+
+            const user = userStore()
+            if (!user.id) {
+                logger.warn('[TalkStream] User ID not available, skipping WS init')
+                return
+            }
+
+            // Если уже инициализировано и подключено, не делаем ничего
+            if (this.isInitialized && this.isConnected) {
+                return
+            }
+
+            try {
+                logger.info('[TalkStream] Initializing WebSockets...')
+
+                // Создаем экземпляр Echo через плагин
+                this.echo = createEcho()
+
+                if (!this.echo?.connector?.pusher) {
+                    this.connectionError = 'Failed to create Echo instance'
+                    logger.error('[TalkStream] Echo init failed: No connector/pusher')
+                    return
+                }
+
+                // Настраиваем обработчики состояния подключения
+                this.setupConnectionHandlers()
+
+                // Подключаемся
+                this.echo.connect()
+                this.isInitialized = true
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+                logger.error('[TalkStream] Init error:', errorMessage)
+                this.connectionError = errorMessage
+            }
+        },
+
+        /**
+         * Настройка обработчиков событий Pusher/Echo
+         */
+        setupConnectionHandlers(): void {
+            if (this.isHandlersBound || !this.echo) {
+                return
+            }
+
+            const pusher = this.echo.connector.pusher
+
+            // Событие: Успешное подключение
+            pusher.connection.bind('connected', () => {
+                logger.info('[TalkStream] ✅ WebSocket connected')
+                this.isConnected = true
+                this.connectionError = null
+                this.reconnectAttempts = 0
+
+                // При успешном подключении подписываемся на все необходимые каналы
+                this.subscribeToChannels()
+            })
+
+            // Событие: Разрыв соединения
+            pusher.connection.bind('disconnected', () => {
+                logger.warn('[TalkStream] 🔴 WebSocket disconnected')
+                this.isConnected = false
+                this.isHandlersBound = false
+                this.scheduleReconnect()
+            })
+
+            // Событие: Ошибка соединения
+            pusher.connection.bind('error', (err: unknown) => {
+                logger.error('[TalkStream] Pusher error:', err)
+                this.connectionError = (err as Error)?.message || 'Connection error'
+            })
+
+            this.isHandlersBound = true
+        },
+
+        /**
+         * Подписка на каналы (Presence, Friends, Chat)
+         */
+        subscribeToChannels(): void {
+            const user = userStore()
+
+            if (!user.id || !this.echo) {
+                logger.warn('[TalkStream] Cannot subscribe: No user ID or Echo instance')
+                return
+            }
+
+            // Сначала отписываемся от старых каналов, чтобы избежать дубликатов
+            this.unsubscribeFromAllChannels()
+
+            // 1. Private Channel: user.{id} (Новые сообщения и прочтение)
+            try {
+                const userChannel = this.echo.private(`user.${user.id}`)
+
+                // Делегируем обработку событий чата в отдельный хендлер
+                // Но так как мы используем глобальные хендлеры, вызываем их здесь
+                // В данной архитектуре мы используем внешние функции setup*
+                // Однако, для сохранения совместимости с предыдущей логикой,
+                // мы можем вызвать setupChatEventsChannel прямо здесь или в initWebSockets.
+                // Ниже используется подход с вызовом внешних хендлеров для чистоты кода.
+
+                this.subscribedChannels.push({ name: `user.${user.id}`, channel: userChannel })
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                logger.error('[TalkStream] User channel error:', errorMessage)
+            }
+
+            // 2. Presence Channel: chat (Онлайн статусы)
+            try {
+                const presenceChannel = this.echo.join('chat')
+
+                // Логика Presence вынесена в setupUserPresenceChannel,
+                // но если мы хотим сохранить локальную логику, раскомментируйте ниже:
+                /*
+                presenceChannel
+                    .here((users: any[]) => { ... })
+                    .joining((user: any) => { ... })
+                    .leaving((user: any) => { ... })
+                */
+
+                this.subscribedChannels.push({ name: 'chat', channel: presenceChannel })
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                logger.error('[TalkStream] Presence channel error:', errorMessage)
+            }
+
+            // 3. Private Channel: friends.{id} (Заявки в друзья)
+            try {
+                const friendsChannel = this.echo.private(`friends.${user.id}`)
+                this.subscribedChannels.push({ name: `friends.${user.id}`, channel: friendsChannel })
+            } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                logger.error('[TalkStream] Friends channel error:', errorMessage)
+            }
+
+            // 🔥 ВАЖНО: После создания каналов, запускаем глобальные хендлеры,
+            // которые привяжут слушатели (.listen) к этим каналам.
+            // Мы передаем экземпляр Echo и ID пользователя.
+            const echoInstance = getEchoInstance()
+            if (echoInstance) {
+                setupUserPresenceChannel(echoInstance)
+                setupFriendRequestsChannel(echoInstance, user.id)
+                setupChatEventsChannel(echoInstance, user.id)
+            }
+        },
+
+        /**
+         * Отписка от всех каналов
+         */
+        unsubscribeFromAllChannels(): void {
+            this.subscribedChannels.forEach(({ name }) => {
+                try {
+                    if (this.echo) {
+                        this.echo.leave(name)
+                    }
+                } catch (e: unknown) {
+                    const errorMessage = e instanceof Error ? e.message : 'Unknown error'
+                    logger.warn(`[TalkStream] Leave error ${name}:`, errorMessage)
+                }
+            })
+            this.subscribedChannels = []
+        },
+
+        /**
+         * Планирование повторного подключения (Exponential Backoff)
+         */
+        scheduleReconnect(): void {
+            this.clearReconnectTimer()
+
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+                logger.warn('[TalkStream] Max reconnect attempts reached. Stopping retries.')
+                return
+            }
+
+            // Задержка: 1с, 2с, 4с, 8с, 16с, макс 30с
+            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
+
+            this.reconnectTimer = setTimeout(() => {
+                this.reconnectAttempts++
+                logger.info(`[TalkStream] Reconnecting... (attempt ${this.reconnectAttempts})`)
+                this.initWebSockets()
+            }, delay)
+        },
+
+        /**
+         * Очистка таймера переподключения
+         */
+        clearReconnectTimer(): void {
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer)
+                this.reconnectTimer = null
+            }
+        },
+
+        /**
+         * Полное отключение и очистка ресурсов
+         */
+        disconnect(): void {
+            logger.info('[TalkStream] Disconnecting...')
+            this.clearReconnectTimer()
+            this.unsubscribeFromAllChannels()
+
+            if (this.echo) {
+                disconnectEcho()
+                this.echo = null
+            }
+
+            this.isConnected = false
+            this.isInitialized = false
+            this.connectionError = null
+        },
+
+        /**
+         * Сброс состояния стора
+         */
+        reset(): void {
+            this.disconnect()
+            this.reconnectAttempts = 0
+        }
+    }
+})
+
+
+---------- FILE: resources/js/Modules/TalkStream/Stores/uiStore.ts ----------
+import { defineStore } from 'pinia'
+
+export const useUiStore = defineStore('ui', {
+    state: () => ({
+        isContactsPanelCollapsed: false,
+    }),
+
+    actions: {
+        toggleContactsPanel() {
+            this.isContactsPanelCollapsed = !this.isContactsPanelCollapsed
+            try {
+                localStorage.setItem('contactsPanelCollapsed', String(this.isContactsPanelCollapsed))
+            } catch (e) {
+                // ignore storage errors
+            }
+        },
+
+        setContactsPanelState(state: boolean) {
+            this.isContactsPanelCollapsed = state
+        },
+
+        reset() {
+            this.isContactsPanelCollapsed = false
+        }
+    },
+
+    getters: {
+        panelState: (state): boolean => state.isContactsPanelCollapsed
+    }
+})
+
+
+---------- FILE: resources/js/Modules/TalkStream/Subscriptions/chatEventsHandler.ts ----------
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import type { Message } from '@/modules/TalkStream/types'
+import logger from '@/modules/TalkStream/utils/logger'
+
+interface NewMessagePayload {
+    message: Message
+}
+
+// 🔥 ИСПРАВЛЕНО (форма payload): бэкенд MessageRead::broadcastWith() возвращает
+// ['message' => $this->message], т.е. данные ОБЁРНУТЫ в ключ 'message' — ровно как у NewMessage.
+// Поле помечено '?', потому что рантайм-гарантии нет: если бэк по какой-то причине не пришлёт
+// обёртку — guard ниже спасёт от краша, а не уронит рендер.
+interface MessageReadPayload {
+    message?: {
+        from_id: number
+        to_id: number
+        updated_count: number
+    }
+}
+
+export function setupChatEventsChannel(echo: any, myUserId: number) {
+    if (!echo || !myUserId) {
+        logger.warn('[ChatEvents] Echo or UserId not provided')
+        return null
+    }
+
+    const chatStore = useChatStore()
+    let userChannel: any = null
+    let readChannel: any = null
+
+    try {
+        // 1. Новые сообщения (Private Channel: user.{id})
+        userChannel = echo.private(`user.${myUserId}`)
+        userChannel.listen('.NewMessage', (e: NewMessagePayload) => {
+            const msg = e.message
+            logger.info(`[ChatEvents] New message from ${msg.from_id}:`, msg.content)
+
+            chatStore.addIncomingMessage(msg)
+        })
+
+        // 2. Прочтение сообщений (Private Channel: chat.read.{id})
+        readChannel = echo.private(`chat.read.${myUserId}`)
+        readChannel.listen('.MessageRead', (e: MessageReadPayload) => {
+            // 🔥 ИСПРАВЛЕНО (форма): разворачиваем обёртку 'message', как в ветке NewMessage.
+            const payload = e.message
+            if (!payload) {
+                logger.warn('[ChatEvents] MessageRead payload missing "message" wrapper, skipped')
+                return
+            }
+
+            // 🔥 ИСПРАВЛЕНО (семантика полей + функция):
+            // Событие летит на канал chat.read.{from_id} -> toOthers() -> ОТПРАВИТЕЛЮ.
+            // Значит myUserId === payload.from_id (это мы), а прочитал СОБЕСЕДНИК = payload.to_id.
+            // Красим ИСХОДЯЩИЕ к собеседнику (markSentAsRead), а не входящие (markAsRead):
+            // у отправителя в этом диалоге входящих-непрочитанных нет, старый вызов резал пустоту.
+            logger.info(`[ChatEvents] Messages marked as read by ${payload.to_id}`)
+            chatStore.markSentAsRead(payload.to_id)
+        })
+
+        return { userChannel, readChannel }
+    } catch (error) {
+        logger.error('[ChatEvents] Setup failed:', (error as Error)?.message)
+        return null
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Subscriptions/friendshipEventsHandler.ts ----------
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { ElNotification } from 'element-plus'
+import logger from '@/modules/TalkStream/utils/logger'
+
+interface FriendRequestPayload {
+    id: number
+    user_id: number
+    friend_id: number
+    user?: { id: number; name: string; avatar?: string }
+}
+
+export function setupFriendRequestsChannel(echo: any, myUserId: number) {
+    if (!echo || !myUserId) {
+        logger.warn('[FriendRequests] Echo or UserId not provided')
+        return null
+    }
+
+    const friendStore = useFriendStore()
+    const contactStore = useContactStore()
+    const channelName = `friends.${myUserId}`
+
+    try {
+        const channel = echo.private(channelName)
+
+        channel
+            .listen('.FriendRequestSent', (e: { request: FriendRequestPayload }) => {
+                const req = e.request
+                logger.info('[FriendRequests] Incoming request from:', req.user_id)
+
+                // Если я получатель
+                if (req.friend_id === myUserId) {
+                    friendStore.addIncoming(req.user_id)
+
+                    if (req.user && !contactStore.contacts.some(c => c.id === req.user!.id)) {
+                        contactStore.contacts.push(req.user as any)
+                    }
+
+                    ElNotification({
+                        title: 'Новая заявка в друзья',
+                        message: `Пользователь ${req.user?.name || req.user_id} хочет добавить вас в друзья`,
+                        type: 'info',
+                        duration: 4000
+                    })
+                }
+            })
+            .listen('.FriendRequestAccepted', (e: { request: { user_id: number; friend_id: number } }) => {
+                const { user_id, friend_id } = e.request
+                logger.info('[FriendRequests] Request accepted:', { user_id, friend_id })
+
+                friendStore.addFriend(friend_id)
+
+                if (user_id === myUserId) {
+                    friendStore.removeSent(friend_id)
+                    ElNotification({ title: 'Заявка принята', message: 'Теперь вы друзья', type: 'success' })
+                } else {
+                    friendStore.removeIncoming(user_id)
+                    ElNotification({ title: 'Заявка принята', message: 'Пользователь принял вашу заявку', type: 'success' })
+                }
+            })
+            .listen('.FriendRequestDeclined', (e: { request: { user_id: number; friend_id: number } }) => {
+                const { user_id, friend_id } = e.request
+                logger.warn('[FriendRequests] Request declined:', { user_id, friend_id })
+
+                if (user_id === myUserId) {
+                    friendStore.removeSent(friend_id)
+                    ElNotification({ title: 'Заявка отклонена', message: 'Пользователь отклонил вашу заявку', type: 'warning' })
+                } else {
+                    friendStore.removeIncoming(user_id)
+                    ElNotification({ title: 'Заявка отклонена', message: 'Вы отклонили заявку', type: 'warning' })
+                }
+            })
+            .error((error: any) => {
+                logger.error('[FriendRequests] Channel error:', error)
+            })
+
+        return channel
+    } catch (error) {
+        logger.error('[FriendRequests] Setup failed:', (error as Error)?.message)
+        return null
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Subscriptions/userPresenceHandler.ts ----------
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import type { PresenceChannel } from 'laravel-echo'
+import type Echo from 'laravel-echo'
+
+const log = {
+    info: (msg: string): void => console.log(`%c[Presence] ${msg}`, 'color: #1e90ff; font-weight: bold;'),
+    warn: (msg: string): void => console.warn(`[Presence] ⚠️ ${msg}`),
+    error: (msg: string): void => console.error(`[Presence] ❌ ${msg}`),
+}
+
+interface PresenceUser {
+    id: number
+    name?: string
+    // Можно добавить другие поля, если бэкенд передает их (например, avatar)
+}
+
+/**
+ * Подписка на presence-канал онлайн-статусов.
+ *
+ * ВАЖНО: echo.join('chat') → фактический канал в Reverb = 'presence-chat'.
+ * Echo САМ добавляет префикс 'presence-'.
+ * Правило в routes/channels.php: Broadcast::channel('presence-chat', ...)
+ *
+ * @param echo - экземпляр laravel-echo
+ * @returns PresenceChannel | null
+ */
+export function setupUserPresenceChannel(echo: Echo): PresenceChannel | null {
+    if (!echo) {
+        log.warn('Echo не передан, подписка отменена')
+        return null
+    }
+
+    try {
+        // join('chat') → presence-chat
+        const presenceChannel = echo.join('chat') as PresenceChannel
+
+        presenceChannel
+            .here((users: PresenceUser[]) => {
+                log.info(`Онлайн: ${users.length}`)
+                users.forEach((u) => setUserOnline(u.id))
+            })
+            .joining((user: PresenceUser) => {
+                log.info(`Вошёл: ${user.id} (${user.name || ''})`)
+                setUserOnline(user.id)
+            })
+            .leaving((user: PresenceUser) => {
+                log.info(`Вышел: ${user.id}`)
+                setUserOffline(user.id)
+            })
+            .error((err: unknown) => {
+                const errorMessage = err instanceof Error ? err.message : JSON.stringify(err)
+                log.error('Ошибка presence-канала: ' + errorMessage)
+            })
+
+        return presenceChannel
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('Не удалось подписаться: ' + errorMessage)
+        return null
+    }
+}
+
+function setUserOnline(userId: number): void {
+    const store = getContactStore()
+    if (!store) return
+
+    if (!store.onlineUsers.includes(userId)) {
+        store.setOnline(userId)
+    }
+}
+
+function setUserOffline(userId: number): void {
+    const store = getContactStore()
+    if (!store) return
+
+    store.setOffline(userId)
+}
+
+function getContactStore(): ReturnType<typeof useContactStore> | null {
+    try {
+        return useContactStore()
+    } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : String(e)
+        log.error('contactStore недоступен: ' + errorMessage)
+        return null
+    }
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/Call.vue ----------
+<template>
+  <div class="call">
+    <h3>Видео звонок с {{ selectedContact?.name }}</h3>
+
+    <div v-if="!callActive && !incomingCall" class="contact-selection">
+      <p>Выберите тип звонка:</p>
+      <button @click="startVideoCall">Видео</button>
+      <button @click="startAudioCall">Аудио</button>
+    </div>
+
+    <div v-if="callActive || incomingCall" class="in-call">
+      <video ref="localVideo" :srcObject="localStream" autoplay muted></video>
+      <video ref="remoteVideo" :srcObject="remoteStream" autoplay></video>
+
+      <div class="call-controls">
+        <button @click="endCall">Завершить</button>
+        <button @click="toggleAudio">{{ isAudioEnabled ? 'Выключить микрофон' : 'Включить микрофон' }}</button>
+        <button @click="toggleVideo">{{ isVideoEnabled ? 'Выключить камеру' : 'Включить камеру' }}</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useCallStore } from '@/modules/TalkStream/Stores/callStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import VideoCallScreen from '@/modules/TalkStream/Components/VideoCallScreen.vue'
+
+const route = useRoute()
+const callStore = useCallStore()
+const contactStore = useContactStore()
+
+const selectedContact = ref(null)
+const callActive = ref(false)
+const incomingCall = ref(null)
+
+const localStream = ref(null)
+const remoteStream = ref(null)
+const isAudioEnabled = ref(true)
+const isVideoEnabled = ref(true)
+
+const contactId = Number(route.query.to)
+
+onMounted(() => {
+  if (!contactId) return
+
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
+
+  if (window.echoTalkStream && contactId) {
+    window.echoTalkStream.private(`call.${contactId}`)
+        .listen('.IncomingCall', (e) => {
+          console.log('Получен входящий звонок:', e.call)
+          incomingCall.value = e.call
+        })
+  }
+})
+
+async function startVideoCall() {
+  localStream.value = await callStore.setupLocalStream()
+  callStore.initiateCall(contactId, 'video')
+}
+
+async function startAudioCall() {
+  callActive.value = true
+  localStream.value = await callStore.setupLocalStream({ video: false, audio: true })
+  callStore.initiateCall(contactId, 'audio')
+}
+
+function endCall() {
+  callStore.endCall()
+  incomingCall.value = null
+}
+
+function toggleAudio() {
+  isAudioEnabled.value = !isAudioEnabled.value
+  if (localStream.value) {
+    localStream.value.getAudioTracks().forEach(track => track.enabled = isAudioEnabled.value)
+  }
+}
+
+function toggleVideo() {
+  isVideoEnabled.value = !isVideoEnabled.value
+  if (localStream.value) {
+    localStream.value.getVideoTracks().forEach(track => track.enabled = isVideoEnabled.value)
+  }
+}
+</script>
+
+<style scoped>
+.call {
+  padding: 1rem;
+}
+
+.in-call {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+video {
+  width: 100%;
+  max-width: 400px;
+  margin: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.call-controls button {
+  margin: 5px;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/Chat.vue ----------
+<template>
+  <div class="chat-container">
+    <!-- Заголовок -->
+    <div class="chat-header">
+      {{ selectedContact?.name || 'Выберите контакт' }}
+    </div>
+
+    <!-- История -->
+    <div class="chat-messages" ref="messagesContainer">
+      <MessageItem
+          v-for="message in messages"
+          :key="message.id"
+          :message="message"
+          :contact="selectedContact"
+      />
+    </div>
+
+    <!-- Форма отправки -->
+    <form class="chat-form" @submit.prevent="send">
+      <input v-model="newMessage" placeholder="Напишите сообщение..." />
+      <button type="submit" :disabled="!newMessage.trim()">Отправить</button>
+    </form>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, type Ref } from 'vue'
+import { useRoute } from 'vue-router'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore' // Используем chatStore для истории
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import type { Contact, Message } from '@/modules/TalkStream/types'
+import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
+
+const route = useRoute()
+const contactStore = useContactStore()
+const chatStore = useChatStore()
+const friendStore = useFriendStore()
+
+// ✅ Строгая типизация refs
+const contactId = Number(route.query.to)
+const messages = ref<Message[]>([])
+const newMessage = ref<string>('')
+const messagesContainer = ref<HTMLElement | null>(null)
+const selectedContact = ref<Contact | null>(null)
+
+onMounted(async () => {
+  if (!contactId) return
+
+  // Загрузка истории через chatStore (стандартный паттерн)
+  await chatStore.loadHistory(contactId)
+  messages.value = chatStore.messages
+
+  // Подписка на новые сообщения (если Echo доступен)
+  if (window.Echo && contactId) {
+    window.Echo.private(`chat.${contactId}`)
+        .listen('.NewMessage', (e: { message: Message }) => {
+          messages.value.push(e.message)
+          scrollToBottom()
+        })
+  }
+
+  // Получаем текущий контакт
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId) || null
+
+  if (!selectedContact.value) {
+    // Если контакта нет в локальном списке, можно запросить его отдельно (если есть такой метод в API)
+    // selectedContact.value = await contactStore.getContact(contactId)
+  }
+})
+
+function send(): void {
+  if (!newMessage.value.trim() || !selectedContact.value) return
+
+  chatStore.sendMessage(selectedContact.value.id, newMessage.value)
+  newMessage.value = ''
+  scrollToBottom()
+}
+
+function scrollToBottom(): void {
+  const container = messagesContainer.value
+  if (container) {
+    container.scrollTop = container.scrollHeight
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
+.chat-header {
+  padding: 1rem;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: #f9f9f9;
+  min-height: 300px;
+}
+
+.chat-form {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+
+  input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    outline: none;
+
+    &:focus {
+      border-color: #42b983;
+    }
+  }
+
+  button {
+    margin-left: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #42b983;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:hover:not(:disabled) {
+      background-color: #36a871;
+    }
+
+    &:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/Contacts.vue ----------
+<template>
+  <el-card class="contacts-container">
+    <!-- Меню режимов -->
+    <div class="mode-switcher">
+      <button
+          v-for="mode in ['chat', 'call']"
+          :key="mode"
+          :class="['mode-button', { active: currentMode === mode }]"
+          @click="switchMode(mode)"
+      >
+        {{ mode === 'chat' ? 'Чат' : 'Звонок' }}
+      </button>
+    </div>
+    <div>
+      <h3>Общий список пользователей</h3>
+    </div>
+    <!-- Обёртка для прокрутки -->
+    <div class="contacts-wrap">
+      <!-- Список всех пользователей -->
+      <ul class="contact-list">
+        <ContactItem
+            v-for="contact in contacts"
+            :key="contact.id"
+            :contact="contact"
+            :is-online="contactStore.isOnline(contact.id)"
+            :is-friend="useFriendStore.isFriend(contact.id)"
+            :has-incoming="useFriendStore.hasIncoming(contact.id)"
+            :has-sent="useFriendStore.hasSent(contact.id)"
+            @select="selectContact"
+        />
+      </ul>
+    </div>
+  </el-card>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem'
+import { userStore } from '@/store/userStore'
+import { setupUserOnlinePresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
+import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler.js'
+
+const router = useRouter()
+const route = useRoute()
+const contactStore = useContactStore()
+const friendStore = useFriendStore()
+const useUserStore = userStore()
+
+const contacts = ref([])
+const currentMode = ref(route.params.mode || 'chat')
+
+// Хранение каналов для отписки
+const presenceChannel = ref(null)
+const friendRequestsChannel = ref(null)
+
+onMounted(async () => {
+  // Загрузка контактов
+  if (!contactStore.contacts.length) {
+    await contactStore.loadContacts()
+    contacts.value = contactStore.contacts
+  }
+
+  // Проверка авторизации
+  try {
+    if (!useUserStore.id) {
+      await useUserStore.fetchInfo()
+    }
+  } catch (e) {
+    console.warn('Пользователь не авторизован')
+    router.push('/login')
+  }
+
+  // Загрузка друзей и запросов
+  if (!friendStore.friends.length) {
+    await friendStore.loadFriendsList()
+  }
+
+  if (!friendStore.incomingRequests.length) {
+    await friendStore.loadIncomingRequests()
+  }
+
+  if (!friendStore.sentRequests.length) {
+    await friendStore.loadSentRequests()
+  }
+
+  // Инициализация подписок
+  //presenceChannel.value = setupUserOnlinePresenceChannel()
+  //friendRequestsChannel.value = setupFriendRequestsChannel()
+})
+
+onUnmounted(() => {
+  // Отписка от каналов
+ /* if (presenceChannel.value) {
+    presenceChannel.value.leave()
+  }
+
+  if (friendRequestsChannel.value) {
+    friendRequestsChannel.value.stopListening()
+  }*/
+})
+
+function switchMode(mode) {
+  currentMode.value = mode
+  router.push(`/talkstream/${mode}`)
+}
+
+function selectContact(contact) {
+  const selectedMode = currentMode.value
+
+  if (selectedMode === 'chat') {
+    router.push({ name: 'chat', query: { to: contact.id } })
+  } else if (selectedMode === 'call') {
+    router.push({ name: 'call', query: { to: contact.id } })
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.contacts-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+.mode-switcher {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.mode-button {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+
+  &.active {
+    background-color: #42b983;
+    color: white;
+    border-color: #42b983;
+  }
+}
+
+.contacts-wrap {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+}
+
+.contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: fit-content;
+  width: 100%;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/TalkStream.vue ----------
+<template>
+  <div class="talkstream-container">
+    <ConnectionStatus />
+    <div
+        class="contacts-wrapper"
+        :class="{ 'collapsed': isContactsPanelCollapsed }"
+    >
+      <TalkStreamContacts @select="handleSelectContact" />
+    </div>
+    <div
+        v-loading-talkstream.history
+        class="talkstream-chat"
+        :class="{ 'full-width': isContactsPanelCollapsed }"
+    >
+      <TalkStreamHeader
+          :contact="selectedContact"
+          :is-online="contactStore.isOnline(selectedContact?.id)"
+      />
+      <TalkStreamHistory
+          ref="historyRef"
+          v-if="selectedContact"
+          :contact="selectedContact"
+          :user-from="contactStore.userFrom"
+          :messages="messages"
+          :is-online="contactStore.isOnline(selectedContact.id)"
+      />
+      <TalkStreamSender
+          v-if="selectedContact"
+          :contact="selectedContact"
+          @send="handleSendMessage"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUiStore } from '@/modules/TalkStream/Stores/uiStore'
+import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import { userStore } from '@/store/userStore'
+import { useLoading } from '@/modules/TalkStream/Composables/useLoading'
+import type { Contact, Message } from '@/modules/TalkStream/types'
+import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
+import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
+import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
+import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
+import TalkStreamSender from '@/modules/TalkStream/Talks/TalkStreamSender.vue'
+
+const router = useRouter()
+const uiStore = useUiStore()
+const chatStore = useChatStore()
+const contactStore = useContactStore()
+const friendStore = useFriendStore()
+const useUserStore = userStore()
+const talkStreamStore = useTalkStreamStore()
+
+const selectedContact = ref<Contact | null>(null)
+const historyRef = ref<any | null>(null)
+
+const messages = computed<Message[]>(() => chatStore.messages)
+const isContactsPanelCollapsed = computed<boolean>(() => uiStore.isContactsPanelCollapsed)
+
+const { withLoading: withContactsLoading } = useLoading('contacts')
+const { withLoading: withHistoryChatLoading } = useLoading('history')
+
+const handleSelectContact = async (contact: Contact) => {
+  if (!contact) return
+  selectedContact.value = contact
+  localStorage.setItem('last-selected-contact', String(contact.id))
+  contactStore.selectContact(contact)
+  if (selectedContact.value) {
+    await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
+  }
+}
+
+// Удалено ручное создание tempMessage с положительным ID.
+// Теперь за оптимистичное обновление отвечает ТОЛЬКО chatStore.sendMessage,
+// который создает сообщение с отрицательным ID и сам его заменяет/удаляет.
+const handleSendMessage = async (data: { content: string, to_id: number }) => {
+  if (!selectedContact.value) return
+
+  try {
+    // chatStore.sendMessage сам создаст локальное сообщение, покажет его,
+    // отправит на сервер и заменит на реальное при успехе.
+    await chatStore.sendMessage(data.to_id, data.content)
+
+    // Скроллим вниз после добавления сообщения в стор
+    historyRef.value?.scrollToBottom()
+  } catch (e) {
+    console.error('[TalkStream] Ошибка отправки:', e)
+    // chatStore.sendMessage уже обработал ошибку внутри себя:
+    // сообщение помечается как failed, а не удаляется.
+  }
+}
+
+onMounted(async () => {
+  const savedState = localStorage.getItem('contactsPanelCollapsed')
+  if (savedState !== null) {
+    uiStore.setContactsPanelState(JSON.parse(savedState))
+  }
+
+  if (!contactStore.userId && useUserStore.id) {
+    contactStore.userId = useUserStore.id
+  }
+
+  if (!talkStreamStore.isConnected) {
+    talkStreamStore.initWebSockets()
+  }
+
+  if (!contactStore.contacts.length) {
+    await withContactsLoading(() => contactStore.loadContacts())
+  }
+
+  // Загружаем userFrom после загрузки контактов
+  await contactStore.refreshUserFrom()
+
+  const lastContactId = localStorage.getItem('last-selected-contact')
+  if (lastContactId && contactStore.contacts.length > 0) {
+    const contact = contactStore.contacts.find(c => c.id === Number(lastContactId))
+    if (contact) {
+      selectedContact.value = contact
+      chatStore.loadHistory(contact.id)
+    }
+  }
+})
+</script>
+
+<style scoped lang="scss">
+.talkstream-container {
+  display: flex;
+  height: 100%;
+  margin: 0.6rem;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+  height: calc(100vh - 150px);
+  overflow: hidden;
+  position: relative;
+}
+
+.contacts-wrapper {
+  min-width: 160px;
+  min-height: 200px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  background: #fff;
+
+  &.collapsed {
+    min-width: 0;
+    width: 0;
+    opacity: 0;
+    transform: translateX(-100%);
+    margin-right: 0;
+    padding: 0;
+  }
+}
+
+.talkstream-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-width: 200px;
+  min-height: 300px;
+  transition: all 0.3s ease;
+  background: #fff;
+  border-radius: 8px;
+
+  &.full-width {
+    margin-left: 0;
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/TalkStreamContacts.vue ----------
+<template>
+  <div class="contacts-container">
+    <div class="contacts-container-header">
+      <span>Общий список пользователей</span>
+    </div>
+
+    <div
+        class="contacts-wrap"
+        v-loading-talkstream-small.contacts
+    >
+      <!-- ✅ Рендерим список ТОЛЬКО когда данные дружбы загружены -->
+      <ul v-if="friendStore._initialized" class="contact-list">
+        <ContactItem
+            v-for="contact in contacts"
+            :key="contact.id"
+            :contact="contact"
+            :is-online="isContactOnline(contact.id)"
+            :is-friend="isContactFriend(contact.id)"
+            :is-selected="isContactSelected(contact.id)"
+            :has-incoming="hasIncomingRequest(contact.id)"
+            :has-sent="hasSentRequest(contact.id)"
+            @select="handleSelect"
+            @add-friend="handleAddFriend"
+            @accept-request="handleAcceptRequest"
+        />
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { computed, onMounted } from 'vue'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
+import type { Contact } from '@/modules/TalkStream/types'
+
+const emit = defineEmits<{
+  select: [contact: Contact]
+}>()
+
+const contactStore = useContactStore()
+const friendStore = useFriendStore()
+
+const contacts = computed<Contact[]>(() => contactStore.contacts)
+
+const isContactOnline = (id: number): boolean => contactStore.isOnline(id)
+const isContactFriend = (id: number): boolean => friendStore.isFriend(id)
+const isContactSelected = (id: number): boolean => contactStore.isContactSelected(id)
+const hasIncomingRequest = (id: number): boolean => friendStore.hasIncoming(id)
+const hasSentRequest = (id: number): boolean => friendStore.hasSent(id)
+
+function handleSelect(contact: Contact): void {
+  contactStore.selectContact(contact)
+  emit('select', contact)
+}
+
+async function handleAddFriend(contact: Contact): Promise<void> {
+  await friendStore.sendRequest(contact.id)
+}
+
+async function handleAcceptRequest(contact: Contact): Promise<void> {
+  const req = friendStore.incomingRequests.find(r => r.user_id === contact.id)
+  if (req) {
+    await friendStore.acceptRequest(req.id)
+  }
+}
+
+onMounted(async () => {
+  // ✅ Загружаем контакты
+  if (contactStore.contacts.length === 0) {
+    await contactStore.loadContacts()
+  }
+
+  // ✅ Инициализируем данные дружбы (1 раз, даже при перезагрузке)
+  if (!friendStore._initialized) {
+    await friendStore.init()
+  }
+})
+</script>
+
+<style scoped lang="scss">
+.contacts-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 140px;
+  max-width: 210px;
+  height: calc(100vh - 130px);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.contacts-container-header {
+  height: 30px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  font-size: 0.7rem;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  font-weight: 600;
+  color: #555;
+  border-bottom: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.contacts-wrap {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+  min-height: 0;
+  background-color: #fff;
+}
+
+.contact-list {
+  list-style: none;
+  padding-top: 4px;
+  padding-left: 2px;
+  padding-bottom: 4px;
+  margin-right: 4px;
+  margin: 0;
+}
+
+.contacts-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.contacts-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.contacts-wrap::-webkit-scrollbar-thumb {
+  background-color: #ccc;
+  border-radius: 3px;
+}
+
+.contacts-wrap::-webkit-scrollbar-thumb:hover {
+  background-color: #aaa;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/TalkStreamHeader.vue ----------
+<template>
+  <div class="talkstream-header">
+    <div class="header-left">
+      <!-- Кнопка сворачивания панели контактов -->
+      <button class="panel-toggle-btn" @click="togglePanel">
+        <PanelToggleIcon :class="['toggle-panel-icon', { 'rotated': isPanelCollapsed }]"/>
+      </button>
+
+      <!-- Информация о пользователе -->
+      <div v-if="contact" class="talkstream-header-line">
+        <div class="user-avatar-wrapper">
+          <div class="user-avatar" :style="{ backgroundImage: `url(${contact.avatar || '/images/default-avatar.png' })`}"></div>
+          <span class="status-indicator">{{ contactIsOnline ? '🟢' : '⚪' }}</span>
+        </div>
+        <div class="user-id">ID: {{ contact.id || 'нет' }}</div>
+        <div class="user-name">{{ contact.name || 'Без имени' }}</div>
+      </div>
+      <div v-else class="no-contact">
+        Выберите контакт из списка слева
+      </div>
+    </div>
+
+    <!-- Меню режимов -->
+    <div class="mode-switcher">
+      <button
+          class="btn-mode-switcher"
+          v-for="mode in ['callAudio', 'callVideo']"
+          :key="mode"
+          :class="['mode-button', { active: currentMode === mode }]"
+          @click="switchMode(mode)"
+      >
+        {{ mode === 'callAudio' ? '📹' : '📞' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { computed } from 'vue'
+import PanelToggleIcon from '@/modules/TalkStream/Components/Icons/PanelToggleIcon.vue'
+import { useUiStore } from '@/modules/TalkStream/Stores/uiStore'
+
+const props = defineProps({
+  contact: {
+    type: Object,
+    required: false,
+    default: null
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const uiStore = useUiStore()
+const isPanelCollapsed = computed(() => uiStore.isContactsPanelCollapsed)
+const currentMode = 'callAudio'
+
+// Если контакт задан — проверяем по ID
+const contactIsOnline = computed(() => {
+  if (!props.contact) return false
+  return props.isOnline || false
+})
+
+const togglePanel = () => {
+  uiStore.toggleContactsPanel()
+}
+
+const switchMode = (mode) => {
+  // TODO: Реализовать переключение режимов звонка
+  console.log('Switch to mode:', mode)
+}
+</script>
+
+<style scoped lang="scss">
+.talkstream-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0.4rem;
+  margin-bottom: 0.4rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.panel-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  margin-right: 0.1rem;
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-panel-icon {
+  stroke: currentColor;
+  transition: transform 0.3s ease;
+  vertical-align: middle;
+  color: #666;
+}
+
+.toggle-panel-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.talkstream-header-line {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 2px;
+}
+
+.user-avatar-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-right: 0.8rem;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 0.12rem #b8c4cc;
+  margin-right: 1rem;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  font-size: 0.40rem;
+  color: #42b983;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+.user-name {
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: #333;
+  margin: 0 auto;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  line-height: 0.75rem;
+}
+
+.user-id {
+  color: #333;
+  font-weight: bold;
+  font-size: 1rem;
+  text-wrap-mode: nowrap;
+  padding-left: 2px;
+  margin: 0 auto;
+}
+
+.mode-switcher {
+  border-radius: 8px;
+  padding: 5px 5px;
+}
+
+.btn-mode-switcher {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  padding: 0.5rem 0.5rem;
+  color: white;
+  font-size: 1rem;
+  margin: 0 2px;
+  background-color: rgba(75, 115, 141, 0.75);
+  cursor: pointer;
+
+  &.active {
+    background-color: rgba(30, 95, 141, 0.86);
+    color: white;
+    font-weight: bold;
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/TalkStreamHistory.vue ----------
+<template>
+  <div class="talkstream-history-container">
+    <div
+        class="talkstream-history"
+        ref="historyContainer"
+        @scroll="checkScrollPosition"
+    >
+      <template v-if="messages.length > 0">
+        <div class="spacer"></div>
+
+        <MessageGroup
+            v-for="(group, groupIndex) in groupedMessages"
+            :key="groupIndex"
+            :avatar-url="getAvatarUrl(group.from_id)"
+            :is-mine="isMine(group.from_id)"
+            :messages="group.messages"
+            :is-online="isOnline"
+            :show-avatar="true"
+        >
+          <template #default="{ message, isFirstInGroup, isLastInGroup }">
+            <MessageItem
+                :userFrom="userFrom"
+                :contact="contact"
+                :message="message"
+                :is-first-in-group="isFirstInGroup"
+                :is-last-in-group="isLastInGroup"
+                :is-group-start="isFirstInGroup"
+            />
+          </template>
+        </MessageGroup>
+      </template>
+
+      <template v-else>
+        <div class="empty-state">
+          <img src="/images/avatar.gif" alt="Приветствие" class="greeting-gif" />
+          <p class="greeting-text">Привет! Как дела? 😊</p>
+        </div>
+      </template>
+    </div>
+
+    <!-- КНОПКА-ШТОРКА: Появляется, если есть новые сообщения и пользователь не внизу -->
+    <button
+        class="scroll-down-button"
+        :class="{ visible: showScrollButton }"
+        @click="handleScrollToBottomAndMarkRead"
+    >
+      <ScrollDownButtonIcon />
+      <!-- Счетчик новых сообщений -->
+      <span v-if="newMessagesCount > 0" class="new-messages-badge">
+        {{ newMessagesCount }}
+      </span>
+    </button>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, defineExpose, watch, onMounted, onBeforeUnmount, computed, nextTick } from 'vue'
+import type { Message, Contact, User } from '@/modules/TalkStream/types'
+import ScrollDownButtonIcon from '@/modules/TalkStream/Components/Icons/ScrollDownButtonIcon.vue'
+import MessageGroup from '@/modules/TalkStream/Components/MessageGroup.vue'
+import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { TalkStreamAPI } from '@/modules/TalkStream/api/talkstream' // 🔥 НОВОЕ (3a)
+import { userStore } from '@/store/userStore'
+
+// 1. Строгая типизация props
+const props = defineProps<{
+  userFrom: User | null
+  contact: Contact | null
+  messages: Message[]
+  isOnline: boolean
+}>()
+
+const chatStore = useChatStore()
+const useUserStore = userStore()
+
+// 2. Строгая типизация refs
+const historyContainer = ref<HTMLElement | null>(null)
+const showScrollButton = ref<boolean>(false)
+const newMessagesCount = ref<number>(0)
+
+// 3. Интерфейс для сгруппированных сообщений
+interface GroupedMessage {
+  from_id: number
+  messages: Message[]
+}
+
+// 4. Группировка сообщений по отправителю (для аватарок и пузырей)
+const groupedMessages = computed<GroupedMessage[]>(() => {
+  const groups: GroupedMessage[] = []
+  let currentGroup: GroupedMessage | null = null
+
+  props.messages.forEach((msg) => {
+    if (!currentGroup || msg.from_id !== currentGroup.from_id) {
+      currentGroup = {
+        from_id: msg.from_id,
+        messages: [msg]
+      }
+      groups.push(currentGroup)
+    } else {
+      currentGroup.messages.push(msg)
+    }
+  })
+
+  return groups
+})
+
+// 4.5. Хелперы для MessageGroup (вся логика "кто я" живёт здесь, в мозге)
+// Фолбэк на userStore гарантирует работу даже если userFrom ещё null
+const isMine = (fromId: number): boolean => {
+  const currentUserId = props.userFrom?.id ?? useUserStore.id
+  return currentUserId === fromId
+}
+
+const getAvatarUrl = (fromId: number): string => {
+  if (isMine(fromId)) {
+    // Моё сообщение → мой аватар (бэкенд уже подставил по полу)
+    return props.userFrom?.avatar || useUserStore.avatar || '/images/avatar-main.png'
+  }
+  // Сообщение собеседника → его аватар
+  return props.contact?.avatar || '/images/avatar-main.png'
+}
+
+// 🔥 НОВОЕ (проблема 1): единая точка отметки прочтения.
+// Локально мутируем ВСЕГДА (оптимистично, мгновенно сбрасываем счётчик на моём экране).
+// Сетевой POST /read шлём ТОЛЬКО если реально были непрочитанные (гейт по unreadCount) —
+// так исключаем спам запросами, когда читать нечего.
+const markCurrentChatAsRead = (): void => {
+  const contactId = props.contact?.id
+  if (!contactId) return
+
+  const hadUnread = chatStore.unreadCount > 0
+
+  chatStore.markAsRead(contactId) // локально (сущ. метод стора)
+
+  if (hadUnread) {
+    // fire-and-forget: не блокируем UI, ошибку пишем в консоль
+    TalkStreamAPI.markAsRead(contactId).catch((error: unknown) => {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('[TalkStreamHistory] Failed to POST /read:', errorMessage)
+    })
+  }
+}
+
+// 5. Плавный скролл вниз с использованием нативного API (аппаратное ускорение)
+const scrollToBottom = (duration: number = 300): void => {
+  const container = historyContainer.value
+  if (!container) return
+
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  })
+
+  showScrollButton.value = false
+  newMessagesCount.value = 0
+}
+
+// 6. Скролл после рендера новых сообщений (гарантия, что DOM обновился)
+const scrollToBottomAfterRender = async (): Promise<void> => {
+  const container = historyContainer.value
+  if (!container) return
+
+  await nextTick()
+  container.scrollTo({
+    top: container.scrollHeight,
+    behavior: 'smooth'
+  })
+}
+
+// 7. Обработка скролла: проверка позиции и отметка "Прочитано"
+const checkScrollPosition = (): void => {
+  const container = historyContainer.value
+  if (!container) return
+
+  const threshold = 100
+  const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold
+
+  showScrollButton.value = !isAtBottom
+
+  // Если пользователь вручную доскроллил почти до низа, считаем, что он прочитал сообщения
+  if (isAtBottom && newMessagesCount.value > 0 && props.contact) {
+    newMessagesCount.value = 0
+    markCurrentChatAsRead() // 🔥 было chatStore.markAsRead(props.contact.id)
+  }
+}
+
+// 8. Комплексное действие: скролл вниз + сброс счетчика + отметка "Прочитано"
+const handleScrollToBottomAndMarkRead = (): void => {
+  scrollToBottom()
+  markCurrentChatAsRead() // 🔥 было if(props.contact){ chatStore.markAsRead(...) }
+}
+
+// 9. Реакция на появление новых сообщений
+watch(
+    () => props.messages.length,
+    (newLength: number, oldLength: number) => {
+      // Игнорируем удаления или начальную загрузку
+      if (newLength <= oldLength) return
+
+      const container = historyContainer.value
+      if (!container) return
+
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= 100
+
+      if (isAtBottom) {
+        // Если пользователь уже внизу, плавно скроллим за новым сообщением
+        scrollToBottomAfterRender()
+        // 🔥 НОВОЕ (проблема 1): входящее, увиденное внизу, сразу отмечает прочтение.
+        // Без этого галочки у отправителя горели бы только после скролла/клика читателя.
+        // Дабла нет: программный scrollTo триггерит checkScrollPosition, но там
+        // newMessagesCount === 0 (в этой ветке не инкрементился) → повторного вызова не будет.
+        markCurrentChatAsRead()
+      } else {
+        // Если пользователь читает историю вверху, показываем шторку и увеличиваем счетчик
+        showScrollButton.value = true
+        newMessagesCount.value++
+      }
+    }
+)
+
+// 10. Инициализация при монтировании
+onMounted(() => {
+  if (historyContainer.value) {
+    scrollToBottomAfterRender()
+  }
+})
+
+// 11. Очистка (на всякий случай, хотя утечек здесь нет)
+onBeforeUnmount(() => {
+  // Ресурсы освобождены
+})
+
+// 12. Предоставление метода родителю (если понадобится вызвать из TalkStream.vue)
+defineExpose({
+  scrollToBottom
+})
+</script>
+
+<style lang="scss" scoped>
+.talkstream-history-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 8px;
+  box-shadow: inset 0 0 3px 2px #7bb0d9e8;
+  background-color: rgb(46, 47, 52);
+}
+
+.spacer {
+  flex: 1 0 auto;
+}
+
+.talkstream-history {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0px 4px 4px 0px;
+  margin-left: 4px;
+  margin-top: 4px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    height: 90%;
+    width: 8px;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 4px;
+    background: rgba(65, 66, 73, 0.93);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    min-height: 25px;
+    background: #888;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+.scroll-down-button {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: all;
+  color: #262626;
+  background-color: #fff;
+  width: 36px;
+  height: 36px;
+  bottom: 60px;
+  right: 17px;
+  overflow: visible;
+  transform: translateY(10px);
+  box-shadow: inset 0 0 0 1px #ededed, 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  &:hover {
+    opacity: 1 !important;
+    background-color: #3a465b;
+    color: #9f9d9d;
+    transform: scale(1.05) translateY(0) !important;
+  }
+
+  svg {
+    width: 16px;
+    height: 11px;
+    fill: #2e2f34;
+    stroke: #2e2f34;
+    transition: fill 0.2s ease;
+  }
+
+  &:hover svg {
+    fill: #9f9d9d;
+  }
+
+  &.visible {
+    opacity: 0.9;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+/* СТИЛИ ДЛЯ БЕЙДЖА НОВЫХ СООБЩЕНИЙ */
+.new-messages-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background-color: #ef4444;
+  color: white;
+  font-size: 0.65rem;
+  font-weight: bold;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  border: 2px solid rgb(46, 47, 52);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ccc;
+  padding: 20px;
+}
+
+.greeting-gif {
+  width: 150px;
+  height: auto;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.greeting-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/Talks/TalkStreamSender.vue ----------
+<template>
+  <form class="talkstream-sender" @submit.prevent="send">
+    <div class="sender-input-wrapper">
+      <textarea
+          v-model="message"
+          @input="adjustHeight"
+          @keydown.enter="handleEnter"
+          placeholder="Введите сообщение..."
+          ref="textarea"
+          :rows="rows"
+      />
+      <button type="submit" :disabled="!message.trim()">
+        <SendPlaneIcon />
+      </button>
+    </div>
+  </form>
+</template>
+
+<script setup lang="ts">
+import { ref } from 'vue'
+import SendPlaneIcon from '@/modules/TalkStream/Components/Icons/SendPlaneIcon.vue'
+
+// ✅ Строгая типизация Props
+const props = defineProps<{
+  contact: {
+    id: number
+  }
+}>()
+
+// ✅ Строгая типизация Emits
+const emit = defineEmits<{
+  send: [data: { content: string; to_id: number }]
+}>()
+
+const message = ref<string>('')
+const textarea = ref<HTMLTextAreaElement | null>(null)
+const rows = ref<number>(3)
+const MAX_ROWS = 6
+
+function adjustHeight(): void {
+  const el = textarea.value
+  if (!el) return
+
+  el.style.height = 'auto'
+  el.style.height = `${Math.min(el.scrollHeight / 16, MAX_ROWS)}rem`
+}
+
+function handleEnter(e: KeyboardEvent): void {
+  if (e.shiftKey || e.ctrlKey || e.metaKey) return
+
+  e.preventDefault()
+  send()
+}
+
+function send(): void {
+  if (!message.value.trim()) return
+
+  emit('send', {
+    content: message.value,
+    to_id: props.contact.id
+  })
+
+  message.value = ''
+  adjustHeight()
+}
+</script>
+
+<style lang="scss" scoped>
+.talkstream-sender {
+  position: relative;
+  padding: 0.4rem 0.2rem 0.4rem 0.2rem;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+}
+
+.sender-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.sender-input-wrapper textarea {
+  flex: 1;
+  min-height: 2.5rem;
+  max-height: 10rem;
+  height: auto;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  resize: none;
+  overflow-y: auto;
+  transition: all 0.2s ease;
+  background-color: #f9f9f9;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #42b983;
+    background-color: #f0fff7;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
+  }
+}
+
+.sender-input-wrapper button {
+  padding: 0.5rem 1rem;
+  background-color: #42b983;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+  min-width: 80px;
+
+  &:hover {
+    border-color: #42b983;
+    color: #1f2d3d;
+    background-color: #f0fff7;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
+  }
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+</style>
+
+
+---------- FILE: resources/js/Modules/TalkStream/types/index.ts ----------
+export interface User {
+    id: number;
+    name: string;
+    email?: string;
+    avatar?: string;
+    roles?: string[];
+}
+
+export interface Contact extends User {
+    is_online?: boolean;
+    last_seen_at?: string;
+    main_role?: string;
+}
+
+export type MessageType = 'text' | 'image' | 'file' | 'system';
+export type MessageStatus = 'sending' | 'delivered' | 'read' | 'failed';
+
+export interface Message {
+    id: number;
+    from_id: number;
+    to_id: number;
+    content: string;
+    type: MessageType;
+    read_at?: string | null;
+    created_at: string;
+    sender?: User;
+    formatted_created_at?: string;
+    formatted_read_at?: string;
+    is_mine?: boolean;
+    isLocal?: boolean;
+    status?: MessageStatus;
+}
+
+export interface FriendRequest {
+    id: number;
+    user_id: number;
+    friend_id: number;
+    accepted: boolean | null;
+    declined: boolean | null;
+    created_at: string;
+    user?: User;
+    friend?: User;
+}
+
+export interface ApiResponse<T> {
+    status: string;
+    data?: T;
+    message?: string;
+}
+
+export interface WebSocketStatus {
+    isConnected: boolean;
+    error: string | null;
+}
+
+export type CallDataType = 'audio' | 'video';
+export type CallDataStatus = 'pending' | 'active' | 'ended';
+
+export interface CallData {
+    id?: number;
+    caller_id: number;
+    callee_id: number;
+    type: CallDataType;
+    status?: CallDataStatus;
+    started_at?: string;
+    ended_at?: string;
+}
+
+
+---------- FILE: resources/js/Modules/TalkStream/utils/logger.ts ----------
+const logLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR'] as const
+type LogLevel = typeof logLevels[number]
+
+const currentLevel = (import.meta.env.VITE_LOG_LEVEL as LogLevel) || 'INFO'
+
+function shouldLog(level: LogLevel): boolean {
+    return logLevels.indexOf(level) >= logLevels.indexOf(currentLevel)
+}
+
+export default {
+    debug(...args: unknown[]): void {
+        if (shouldLog('DEBUG')) console.debug('[TalkStream][DEBUG]', ...args)
+    },
+    info(...args: unknown[]): void {
+        if (shouldLog('INFO')) console.info('[TalkStream][INFO]', ...args)
+    },
+    warn(...args: unknown[]): void {
+        if (shouldLog('WARN')) console.warn('[TalkStream][WARN]', ...args)
+    },
+    error(...args: unknown[]): void {
+        if (shouldLog('ERROR')) console.error('[TalkStream][ERROR]', ...args)
+    }
+}
+

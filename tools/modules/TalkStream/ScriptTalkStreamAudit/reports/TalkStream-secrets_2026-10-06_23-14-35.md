@@ -1,0 +1,38 @@
+﻿# TalkStream-secrets_2026-10-06_23-14-35
+
+- Generated: 2026-10-06 23:15:05
+- Script version: 3.1.0
+- Tool root: `W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit`
+- Project root: `W:/OpenServer/domains/Laravel/Other/FenixPortal`
+- Output dir: `W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/reports`
+- Log dir: `W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/logs`
+- Snapshot dir: `W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots`
+- Secret mode: raw
+- Scan reports: False
+
+## Totals
+
+| Metric | Value |
+| --- | ---: |
+| Count | 6 |
+| IsReadOnly | False |
+| Keys | secretFindings risks warnings infos secretMode scanReports |
+| Values | 0 1 3 0 raw False |
+| IsFixedSize | False |
+| SyncRoot | System.Object |
+| IsSynchronized | False |
+
+## Findings
+
+| Severity | Code | File | Line | Message | Details |
+| --- | --- | --- | --- | --- | --- |
+| Risk | ModulesDirectoryCaseMismatch | resources/js/Modules | 0 | Actual modules directory is 'Modules', but canonical lowercase target is 'modules'. | Linux/Docker/CentOS/Debian filesystems are case-sensitive. tsconfig/jsconfig point to ./resources/js/modules/. |
+| Warning | RelativeImportInsideModule | resources/js/Modules/TalkStream/api/talkstream.ts | 2 | Relative import '../types' is used inside TalkStream module. | Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../. |
+| Warning | RelativeImportInsideModule | resources/js/Modules/TalkStream/Components/MessageList.vue | 8 | Relative import './MessageItem.vue' is used inside TalkStream module. | Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../. |
+| Warning | ExtensionInInternalImport | resources/js/Modules/TalkStream/Talks/Contacts.vue | 44 | Import '@/modules/TalkStream/Subscriptions/friendshipEventsHandler.js' contains explicit .ts/.js extension. | Project rule for internal imports: no .ts/.js extensions in paths. |
+
+## Output
+
+- CSV: `W:\OpenServer\domains\Laravel\Other\FenixPortal\tools\modules\TalkStream\ScriptTalkStreamAudit\reports\TalkStream-secrets_2026-10-06_23-14-35.csv`
+- JSON: `W:\OpenServer\domains\Laravel\Other\FenixPortal\tools\modules\TalkStream\ScriptTalkStreamAudit\reports\TalkStream-secrets_2026-10-06_23-14-35.json`
+- Markdown: `W:\OpenServer\domains\Laravel\Other\FenixPortal\tools\modules\TalkStream\ScriptTalkStreamAudit\reports\TalkStream-secrets_2026-10-06_23-14-35.md`

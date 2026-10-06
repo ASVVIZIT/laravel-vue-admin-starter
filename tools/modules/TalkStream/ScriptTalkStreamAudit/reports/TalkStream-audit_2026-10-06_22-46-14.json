@@ -1,0 +1,194 @@
+﻿{
+    "generatedAt":  "2026-10-06 22:46:36",
+    "scriptVersion":  "3.1.0",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots",
+    "secretMode":  "off",
+    "scanReports":  false,
+    "totals":  {
+                   "filesScanned":  45,
+                   "importRecords":  146,
+                   "directiveUsages":  8,
+                   "loadingKeys":  2,
+                   "registeredDirectives":  3,
+                   "configZones":  7,
+                   "secretFindings":  0,
+                   "risks":  2,
+                   "warnings":  3,
+                   "infos":  0
+               },
+    "findings":  [
+                     {
+                         "Severity":  "Risk",
+                         "Code":  "ModulesDirectoryCaseMismatch",
+                         "File":  "resources/js/Modules",
+                         "Line":  0,
+                         "Message":  "Actual modules directory is \u0027Modules\u0027, but canonical lowercase target is \u0027modules\u0027.",
+                         "Details":  "Linux/Docker/CentOS/Debian filesystems are case-sensitive. tsconfig/jsconfig point to ./resources/js/modules/."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/Modules/TalkStream/api/talkstream.ts",
+                         "Line":  2,
+                         "Message":  "Relative import \u0027../types\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Risk",
+                         "Code":  "UppercaseModulesInImport",
+                         "File":  "resources/js/Modules/TalkStream/Components/ConnectionStatus.vue",
+                         "Line":  2,
+                         "Message":  "Import \u0027@/Modules/TalkStream/Stores/talkStreamStore\u0027 contains uppercase \u0027Modules\u0027 path segment.",
+                         "Details":  "Canonical path should be modules, not Modules, for Linux/Docker safety."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/Modules/TalkStream/Components/MessageList.vue",
+                         "Line":  8,
+                         "Message":  "Relative import \u0027./MessageItem.vue\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "ExtensionInInternalImport",
+                         "File":  "resources/js/Modules/TalkStream/Talks/Contacts.vue",
+                         "Line":  44,
+                         "Message":  "Import \u0027@modules/TalkStream/Subscriptions/friendshipEventsHandler.js\u0027 contains explicit .ts/.js extension.",
+                         "Details":  "Project rule for internal imports: no .ts/.js extensions in paths."
+                     }
+                 ],
+    "secretRecords":  [
+
+                      ],
+    "extra":  {
+                  "modulesDirectory":  "resources/js/Modules",
+                  "moduleDirectory":  "resources/js/Modules/TalkStream",
+                  "inventorySummary":  [
+                                           {
+                                               "Name":  ".",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "api",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Components",
+                                               "Count":  13
+                                           },
+                                           {
+                                               "Name":  "Composables",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "config",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Directives",
+                                               "Count":  5
+                                           },
+                                           {
+                                               "Name":  "plugins",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Services",
+                                               "Count":  3
+                                           },
+                                           {
+                                               "Name":  "Stores",
+                                               "Count":  6
+                                           },
+                                           {
+                                               "Name":  "Subscriptions",
+                                               "Count":  3
+                                           },
+                                           {
+                                               "Name":  "Talks",
+                                               "Count":  8
+                                           },
+                                           {
+                                               "Name":  "types",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "utils",
+                                               "Count":  1
+                                           }
+                                       ],
+                  "importSummary":  [
+                                        {
+                                            "Name":  "alias-root",
+                                            "Count":  98
+                                        },
+                                        {
+                                            "Name":  "package",
+                                            "Count":  43
+                                        },
+                                        {
+                                            "Name":  "relative",
+                                            "Count":  2
+                                        },
+                                        {
+                                            "Name":  "alias-modules",
+                                            "Count":  2
+                                        },
+                                        {
+                                            "Name":  "other-alias-or-scoped-package",
+                                            "Count":  1
+                                        }
+                                    ],
+                  "directiveSummary":  [
+                                           {
+                                               "Name":  "loading-talkstream|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream|history",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-inline|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|contacts",
+                                               "Count":  1
+                                           }
+                                       ],
+                  "loadingKeySummary":  [
+                                            {
+                                                "Name":  "useLoading|contacts",
+                                                "Count":  1
+                                            },
+                                            {
+                                                "Name":  "useLoading|history",
+                                                "Count":  1
+                                            }
+                                        ],
+                  "registeredDirectives":  [
+                                               "loading-talkstream",
+                                               "loading-talkstream-inline",
+                                               "loading-talkstream-small"
+                                           ],
+                  "configZones":  [
+                                      "callRow",
+                                      "connection",
+                                      "contacts",
+                                      "friends",
+                                      "global",
+                                      "history",
+                                      "sender"
+                                  ]
+              }
+}

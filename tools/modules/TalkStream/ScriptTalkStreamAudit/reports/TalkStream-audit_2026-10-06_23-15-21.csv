@@ -1,0 +1,7 @@
+﻿"Severity","Code","File","Line","Message","Details"
+"Risk","ManifestMissing","W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots/MANIFEST.sha256","0","Manifest file is missing.",""
+"Risk","ManifestMissing","W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/reports/MANIFEST.sha256","0","Manifest file is missing.",""
+"Risk","ModulesDirectoryCaseMismatch","resources/js/Modules","0","Actual modules directory is 'Modules', but canonical lowercase target is 'modules'.","Linux/Docker/CentOS/Debian filesystems are case-sensitive. tsconfig/jsconfig point to ./resources/js/modules/."
+"Warning","RelativeImportInsideModule","resources/js/Modules/TalkStream/api/talkstream.ts","2","Relative import '../types' is used inside TalkStream module.","Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+"Warning","RelativeImportInsideModule","resources/js/Modules/TalkStream/Components/MessageList.vue","8","Relative import './MessageItem.vue' is used inside TalkStream module.","Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+"Warning","ExtensionInInternalImport","resources/js/Modules/TalkStream/Talks/Contacts.vue","44","Import '@/modules/TalkStream/Subscriptions/friendshipEventsHandler.js' contains explicit .ts/.js extension.","Project rule for internal imports: no .ts/.js extensions in paths."

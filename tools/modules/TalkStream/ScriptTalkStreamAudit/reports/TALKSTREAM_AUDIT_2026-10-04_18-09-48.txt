@@ -1,0 +1,5938 @@
+﻿====================================================================================================
+TALKSTREAM AUDIT DUMP
+Дата : 2026-10-04 18:09:48
+Root : W:\OpenServer\domains\Laravel\Other\FenixPortal
+PHP  : PHP 8.2.18 (cli) (built: Apr  9 2024 22:22:57) (ZTS Visual C++ 2019 x64)
+====================================================================================================
+
+####################################################################################################
+#####  1. СТРУКТУРА МОДУЛЯ (дерево)
+####################################################################################################
+--- FRONTEND: resources/js/Modules/TalkStream ---
+  [Components]
+    ConnectionStatus.vue
+    ContactItem.vue
+    ContactItemWrapper.vue
+    [Icons]
+      PanelToggleIcon.vue
+      ScrollDownButtonIcon.vue
+      SendPlaneIcon.vue
+    MessageGroup.vue
+    MessageItem.vue
+    MessageList.vue
+    [UI]
+      LoadingIndicator.vue
+      LoadingIndicatorSmall.vue
+    VideoCallScreen.vue
+  [Composables]
+    useLoading.js
+  [Directives]
+    [loading]
+      v-loading-talk.js
+      v-loading-talk-small.js
+    loadingDirective.js
+  [plugins]
+    echoTalkStream.js
+  routes.js
+  [Services]
+    talkRequest.js
+    talkResource.js
+    talkService.js
+  [Stores]
+    callStore.js
+    chatStore.js
+    contactStore.js
+    friendStore.js
+    talkStreamStore.js
+    uiStore.js
+  [Subscriptions]
+    friendshipEventsHandler.js
+    userPresenceHandler.js
+  [Talks]
+    Call.vue
+    Chat.vue
+    Contacts.vue
+    TalkStream.vue
+    TalkStreamContacts.vue
+    TalkStreamHeader.vue
+    TalkStreamHistory.vue
+    TalkStreamSender.vue
+  [utils]
+    logger.js
+
+--- BACKEND: app\Http\Controllers\TalkStream ---
+  CallController.php
+  ChatController.php
+  ContactController.php
+  FriendRequestController.php
+
+--- BACKEND: app\Events\TalkStream ---
+  FriendRequestAccepted.php
+  FriendRequestDeclined.php
+  FriendRequestSent.php
+  IncomingCall.php
+  MessageRead.php
+  NewMessage.php
+
+--- BACKEND: app\Models\TalkStream ---
+  Call.php
+  FriendRequest.php
+  Message.php
+
+--- BACKEND: app\Services\TalkStream ---
+  [каталог отсутствует]
+
+####################################################################################################
+#####  2. FRONTEND: полные исходники модуля
+####################################################################################################
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\ConnectionStatus.vue
+####################################################################################################
+<script setup>
+import { useTalkStreamStore } from '@/Modules/TalkStream/Stores/talkStreamStore';
+
+const talkStream = useTalkStreamStore();
+</script>
+
+<template>
+  <div class="connection-status">
+    <div v-if="talkStream.isConnected" class="status connected">
+      <span class="indicator"></span>Server Online
+    </div>
+
+    <div v-else-if="talkStream.connectionError" class="status error">
+      <span class="indicator"></span>
+      Server Connection error: {{ talkStream.connectionError || 'Unknown error' }}
+      <button @click="talkStream.forceReconnect">Server Retry</button>
+    </div>
+
+    <div v-else class="status connecting">
+      <span class="indicator"></span>
+      Server Connecting...
+    </div>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.connection-status {
+  position: fixed;
+  bottom: 8px;
+  right: 24px;
+  padding: 6px 10px;
+  background: #f3efef;
+  border-radius: 8px;
+  box-shadow: 3px 3px 7px 1px rgba(0, 0, 0, 0.3);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.connected .indicator {
+  background-color: #10b981;
+}
+
+.connecting .indicator {
+  background-color: #f59e0b;
+  animation: pulse 1.5s infinite;
+}
+
+.error .indicator {
+  background-color: #ef4444;
+}
+
+button {
+  margin-left: 12px;
+  padding: 4px 8px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background: #e5e7eb;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\ContactItem.vue
+####################################################################################################
+<template>
+  <li
+      class="contact-item"
+      :class="{
+          online: isOnline,
+          friend: isFriend,
+          selectedContact: isSelected
+      }"
+      @click="select"
+  >
+    <!-- Аватарка + статус онлайн -->
+    <div class="contact-avatar-wrapper">
+      <div
+          class="contact-avatar"
+          :style="{ backgroundImage: 'url(' + (contact.avatar || '/images/default-avatar.png') + ')' }"
+      ></div>
+      <span class="status-indicator">{{ isOnline ? '🟢' : '⚪' }}</span>
+    </div>
+
+    <!-- Информация о контакте -->
+    <div class="contact-info" :class="{ friend: isFriend }">
+      <div class="contact-indicator">
+        <span class="contact-id">ID: {{ contact?.id }}</span>
+        <span class="contact-meta">[{{ contact.main_role || 'Пользователь' }}]</span>
+      </div>
+
+      {{ contact?.name || defaultName }}
+    </div>
+
+    <!-- Кнопки действий -->
+    <div class="contact-actions">
+      <button v-if="isFriend" disabled class="btn btn-friend">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+      <button v-else-if="hasIncoming" @click.stop="accept" class="btn btn-accept">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+      <button v-else-if="hasSent" disabled class="btn btn-sent">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+      <button v-else @click.stop="add" class="btn btn-add">
+        <span class="btn-text">{{ statusText }}</span>
+      </button>
+    </div>
+  </li>
+</template>
+
+<script setup>
+import { defineProps, defineEmits, computed } from 'vue'
+import { useRouter } from 'vue-router'
+
+const props = defineProps({
+  contact: {
+    type: Object,
+    required: true
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
+  isFriend: {
+    type: Boolean,
+    default: false
+  },
+  isSelected: {
+    type: Boolean,
+    default: false
+  },
+  hasIncoming: {
+    type: Boolean,
+    default: false
+  },
+  hasSent: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const emit = defineEmits(['select', 'add-friend', 'accept-request'])
+const router = useRouter()
+const defaultName = 'Без имени'
+
+const statusText = computed(() => {
+  if (props.isFriend) return '✔ Друг'
+  if (props.hasIncoming) return '✔ Запрос в друзья'
+  if (props.hasSent) return '⏳ Запрос отправлен'
+  return '➕ Добавить'
+})
+
+function select() {
+  emit('select', props.contact)
+}
+
+function add() {
+  emit('add-friend', props.contact)
+}
+
+function accept() {
+  emit('accept-request', props.contact)
+}
+</script>
+
+<style scoped lang="scss">
+.contact-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.15rem .18rem 0.15rem .18rem;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+.contact-item:hover {
+  background-color: #f9f9f9;
+}
+
+.contact-item.selectedContact {
+  background-color: #d6ebff !important;
+  transform: scale(1.02);
+  z-index: 1;
+  box-shadow: 0 0 3px rgba(52, 144, 220, 0.5); // Синяя тень
+  font-weight: bold;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #3490dc, #1c7ed6);
+    z-index: 2;
+  }
+
+  .contact-info.friend {
+    color: #3490dc;
+  }
+}
+
+.contact-item.selectedContact::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 1px;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 144, 220, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 4px rgba(52, 144, 220, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(52, 144, 220, 0);
+  }
+}
+
+.contact-item.selectedContact:hover {
+  background-color: #7aade0;
+}
+
+  /* ———————————————————————— */
+/* Аватарка и статус онлайн */
+/* ———————————————————————— */
+.contact-avatar-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-right: 0.5rem;
+  margin-left: 0.2rem;
+}
+
+.contact-avatar {
+  width: 30px;
+  height: 30px;
+  box-shadow: inset 0 0 0 0.12rem #b8c4cc;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: -2px;
+  left: -2px;
+  font-size: 0.40rem;
+  color: #42b983;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* ———————————————————————— */
+/* Информация о контакте */
+/* ———————————————————————— */
+.contact-info {
+  position: relative;
+  flex-grow: 1;
+  overflow: hidden;
+  margin-right: 0.7rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  line-height: 0.75rem;
+  font-weight: 600;
+  font-size: 0.70rem;
+  color: #333;
+}
+
+.contact-info.friend {
+  font-weight: bold;
+  color: #42b983;
+}
+
+.contact-indicator {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.50rem;
+  color: #777;
+  margin-bottom: 0.1rem;
+  white-space: nowrap;
+}
+
+.contact-id {
+  font-weight: bold;
+  color: #888;
+  background: rgba(200, 200, 200, 0.2);
+  padding: 0.05rem 0.25rem;
+  border-radius: 3px;
+}
+
+.contact-meta {
+  font-style: italic;
+  color: #999;
+}
+
+.contact-info.friend {
+  font-weight: bold;
+  color: #42b983;
+}
+
+/* ———————————————————————— */
+/* Кнопки действий */
+/* ———————————————————————— */
+.contact-actions {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.04rem;
+}
+
+.btn {
+  min-width: 60px;      // Минимальная ширина
+  max-width: 60px;     // Максимальная ширина
+  padding: 0.42rem 0.3rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.42rem;
+  cursor: pointer;
+  white-space: normal;   // Разрешаем перенос строк
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: background-color 0.2s ease;
+  text-align: left;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }
+
+  &.btn-add {
+    background-color: #42b983;
+    color: white;
+
+    &:hover {
+      background-color: #36a871;
+    }
+  }
+
+  &.btn-accept {
+    background-color: #3490dc;
+    color: white;
+
+    &:hover {
+      background-color: #2779bf;
+    }
+  }
+
+  &.btn-sent {
+    background-color: #f0ad4e;
+    color: white;
+
+    &:hover {
+      background-color: #ec971f;
+    }
+  }
+
+  &.btn-friend {
+    background-color: #ccc;
+    color: #2c2a2a;
+    cursor: not-allowed;
+
+    &:hover {
+      background-color: #919090;
+    }
+  }
+}
+.btn-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.1em;
+  max-height: 2.2em;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\ContactItemWrapper.vue
+####################################################################################################
+<template>
+  <ContactItem
+      :contact="contact"
+      :is-online="isOnline"
+      :is-friend="isFriend"
+      :is-selected="contact.id === selectedContactId"
+      :has-incoming="hasIncoming"
+      :has-sent="hasSent"
+      @select="handleSelect"
+      @add-friend="$emit('add-friend', contact)"
+      @accept-request="$emit('accept-request', contact)"
+  />
+</template>
+
+<script setup>
+import {defineProps, defineEmits, computed, watch, onMounted} from 'vue'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+
+const props = defineProps({
+  contact: {
+    type: Object,
+    required: true
+  }
+})
+
+const emit = defineEmits(['select', 'add-friend', 'accept-request'])
+
+const contactStore = useContactStore()
+const useFriendStore = friendStore()
+
+const selectedContactId = computed(() => contactStore.selectedContact?.id)
+
+// Состояние пользователя
+const isOnline = computed(() => contactStore.isOnline(props.contact.id))
+const isSelected = computed(() => contactStore.isContactSelected(props.contact.id) === localStorage.getItem('last-selected-contact'))
+const isFriend = computed(() => useFriendStore.isFriend(props.contact.id))
+const hasIncoming = computed(() => useFriendStore.hasIncoming(props.contact.id))
+const hasSent = computed(() => useFriendStore.hasSent(props.contact.id))
+
+function handleSelect(contact) {
+  // Сохраняем выбранный контакт в сторе
+  contactStore.selectContact(contact)
+  // Эмитируем событие для родителя
+  emit('select', contact)
+}
+
+onMounted(async () => {
+  const lastSelectedId = localStorage.getItem('last-selected-contact')
+
+  if (lastSelectedId && props.contact.id === Number(lastSelectedId)) {
+    contactStore.selectContact(props.contact)
+  }
+})
+onUnmounted(() => {
+  if (props.contact.id === selectedContactId.value) {
+    contactStore.selectContact(null)
+   // localStorage.removeItem('last-selected-contact')
+  }
+})
+
+</script>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\Icons\PanelToggleIcon.vue
+####################################################################################################
+<template>
+  <svg class="sidebar-left-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+    <path fill="currentColor" d="M408 442h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8zm-8 204c0 4.4 3.6 8 8 8h480c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8H408c-4.4 0-8 3.6-8 8v56zm504-486H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zm0 632H120c-4.4 0-8 3.6-8 8v56c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-56c0-4.4-3.6-8-8-8zM142.4 642.1L298.7 519a8.84 8.84 0 0 0 0-13.9L142.4 381.9c-5.8-4.6-14.4-.5-14.4 6.9v246.3a8.9 8.9 0 0 0 14.4 7z"></path>
+  </svg>
+</template>
+<style lang="scss" scoped>
+.sidebar-left-icon {
+  stroke: currentColor;
+  display: block;
+  width: 24px;
+  height: 24px;
+  transition: transform 0.4s ease, color 0.4s ease;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\Icons\ScrollDownButtonIcon.vue
+####################################################################################################
+<template>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="9" viewBox="0 0 16 9" fill="none">
+    <path
+        fill-rule="evenodd"
+        clip-rule="evenodd"
+        d="M1.00008 2.41429C0.609551 2.02376 0.609551 1.3906 1.00008 1.00008C1.3906 0.609551 2.02376 0.609551 2.41429 1.00007L8.00008 6.58586L13.5859 1.00008C13.9764 0.609551 14.6096 0.609551 15.0001 1.00008C15.3906 1.3906 15.3906 2.02376 15.0001 2.41429L8.8486 8.56576C8.37997 9.03439 7.62018 9.03439 7.15155 8.56576L1.00008 2.41429Z"
+        fill="currentColor"
+    />
+  </svg>
+</template>
+
+<style scoped>
+svg {
+  stroke: currentColor;
+  fill-rule: evenodd;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\Icons\SendPlaneIcon.vue
+####################################################################################################
+<template>
+  <span class="send-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+      <path d="M1.101 21.757L23.8 12.028 1.101 2.3l.011 7.912 13.623 1.816-13.623 1.817-.011 7.912z" fill="currentColor"></path>
+    </svg>
+  </span>
+</template>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\MessageGroup.vue
+####################################################################################################
+<template>
+  <div class="message-group" :class="{ sent: isSent, received: !isSent }">
+    <!-- Для отправленных сообщений аватар слева -->
+    <div
+        class="group-avatar sent-avatar"
+        v-if="isSent && showAvatarForLast"
+        :class="{ visible: avatarVisible }"
+    >
+      <div
+          class="avatar-img"
+          :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
+      ></div>
+      <!-- Добавляем индикатор статуса для отправленных сообщений -->
+      <span v-if="isOnline && isSent" class="status-indicator">●</span>
+    </div>
+
+    <div class="message-group-container">
+      <slot
+          v-for="(msg, index) in messages"
+          :key="msg.id"
+          :message="msg"
+          :isFirstInGroup="index === 0"
+          :isLastInGroup="index === messages.length - 1"
+      />
+    </div>
+
+    <!-- Для полученных сообщений аватар справа -->
+    <div
+        class="group-avatar received-avatar"
+        v-if="!isSent && showAvatarForLast"
+        :class="{ visible: avatarVisible }"
+    >
+      <div
+          class="avatar-img"
+          :style="{ backgroundImage: 'url(' + avatarUrl + ')' }"
+      ></div>
+      <!-- Индикатор статуса для полученных сообщений -->
+      <span v-if="isOnline && !isSent" class="status-indicator">●</span>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, computed, ref, onMounted } from 'vue'
+
+const props = defineProps({
+  fromId: {
+    type: Number,
+    required: true
+  },
+  messages: {
+    type: Array,
+    required: true
+  },
+  userFrom: {
+    type: Object,
+    required: true
+  },
+  contact: {
+    type: Object,
+    required: true
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
+  showAvatar: {
+    type: Boolean,
+    default: true
+  }
+})
+
+const avatarVisible = ref(false)
+const isSent = computed(() => props.contact.id === props.fromId)
+
+const avatarUrl = computed(() =>
+    isSent.value
+        ? props.contact.avatar
+        : props.userFrom.avatar || '/images/default-avatar.png'
+)
+
+const showAvatarForLast = computed(() => props.messages.length > 0 && props.showAvatar)
+
+onMounted(() => {
+  setTimeout(() => {
+    avatarVisible.value = true
+  }, 10)
+})
+</script>
+
+<style lang="scss" scoped>
+.message-group {
+  display: flex;
+  align-items: flex-end;
+  position: relative;
+  margin-bottom: 2px;
+  transition: all 0.3s ease;
+
+  &.sent {
+    justify-content: flex-start;
+
+    .message-group-container {
+      align-items: flex-start;
+    }
+  }
+
+  &.received {
+    justify-content: flex-end;
+
+    .message-group-container {
+      align-items: flex-end;
+    }
+  }
+
+  .group-avatar {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    position: relative;
+    margin-bottom: 4px;
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+    transition: all 0.3s ease;
+
+    &.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      box-shadow: 0px 0px 5px 2px #7bb0d9e8;
+      transition: all 0.3s ease;
+    }
+
+    .status-indicator {
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 10px;
+      height: 10px;
+      background-color: #42b983;
+      border: 2px solid #2e2f34;
+      border-radius: 50%;
+      z-index: 2;
+    }
+
+    &.received-avatar {
+      margin-left: 2px;
+      margin-right: 2px;
+      order: 3;
+    }
+
+    &.sent-avatar {
+      margin-right: 2px;
+      margin-left: 2px;
+      order: 1;
+    }
+  }
+
+  .message-group-container {
+    display: flex;
+    flex-direction: column;
+    max-width: 80%;
+    order: 2;
+    transition: transform 0.3s ease;
+  }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\MessageItem.vue
+####################################################################################################
+<template>
+  <div
+      class="message-wrapper"
+      :class="{
+      sent: !isSent,
+      received: isSent,
+      'group-top': isFirstInGroup,
+      'group-bottom': isLastInGroup,
+      'wide-message': isWideMessage,
+      'narrow-message': !isWideMessage
+    }"
+  >
+    <div
+        class="message-bubble"
+        :class="{
+        'group-top': isFirstInGroup,
+        'group-bottom': isLastInGroup,
+        'wide': isWideMessage,
+        'narrow': !isWideMessage
+      }"
+    >
+      <div class="message-content">{{ message.content }}</div>
+
+      <div class="message-footer">
+        <div class="message-meta">
+          {{ message.formatted_created_at }}
+        </div>
+        <div class="message-status">
+          <span v-if="isSent && !message.read_at" class="status-icon status-sent-unread">✔✔</span>
+          <span v-if="isSent && message.read_at" class="status-icon status-sent-read">✔✔</span>
+          <span v-if="!isSent" class="status-icon status-received">✔</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, computed } from 'vue'
+
+const props = defineProps({
+  userFrom: {
+    type: Object,
+    required: true
+  },
+  contact: {
+    type: Object,
+    required: true
+  },
+  message: {
+    type: Object,
+    required: true
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  },
+  isFirstInGroup: {
+    type: Boolean,
+    default: false
+  },
+  isLastInGroup: {
+    type: Boolean,
+    default: false
+  },
+  isGroupStart: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const isSent = computed(() => props.message.from_id !== props.contact.id)
+const isWideMessage = computed(() => props.message.content.length < 40)
+</script>
+
+<style lang="scss" scoped>
+.message-wrapper {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 6px;
+  position: relative;
+
+  &.group-start {
+    margin-top: 0.8rem;
+  }
+
+  &.sent {
+    justify-content: flex-start;
+
+    .message-bubble {
+      background-color: rgba(46, 83, 112, 0.69);
+      box-shadow: 0px 0px 2px 1px rgba(107, 130, 147, 0.94);
+      color: #e5e5e5;
+
+      /* Одиночные сообщения */
+      &.group-top.group-bottom {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Верхние сообщения в группе */
+      &.group-top:not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие верхние сообщения */
+      &.group-top:not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие верхние сообщения */
+      &.group-top:not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Нижние сообщения в группе */
+      &.group-bottom:not(.group-top) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие нижние сообщения */
+      &.group-bottom:not(.group-top).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие нижние сообщения */
+      &.group-bottom:not(.group-top).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Средние сообщения */
+      &:not(.group-top):not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+    }
+  }
+
+  &.received {
+    justify-content: flex-end;
+
+    .message-bubble {
+      background-color: #5f84aec7;
+      box-shadow: 0px 0px 2px 1px rgba(107, 130, 147, 0.94);
+      color: #f6f6f6;
+
+      /* Одиночные сообщения */
+      &.group-top.group-bottom {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Верхние сообщения в группе */
+      &.group-top:not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие верхние сообщения */
+      &.group-top:not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие верхние сообщения */
+      &.group-top:not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Нижние сообщения в группе */
+      &.group-bottom:not(.group-top) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие нижние сообщения */
+      &.group-bottom:not(.group-top).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие нижние сообщения */
+      &.group-bottom:not(.group-top).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Средние сообщения */
+      &:not(.group-top):not(.group-bottom) {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Широкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).wide {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+
+      /* Узкие средние сообщения */
+      &:not(.group-top):not(.group-bottom).narrow {
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        border-bottom-left-radius: 4px;
+        border-bottom-right-radius: 4px;
+      }
+    }
+  }
+
+  .message-bubble {
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    word-break: break-word;
+    transition: all 0.3s ease;
+    overflow: hidden;
+  }
+
+  .message-content {
+    word-break: break-word;
+    white-space: pre-wrap;
+    position: relative;
+    z-index: 1;
+  }
+
+  .message-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 4px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .message-meta {
+    margin-right: 6px;
+  }
+
+  .message-status {
+    display: flex;
+    align-items: center;
+  }
+
+  .status-icon {
+    display: inline-block;
+    font-size: 0.9rem;
+    margin-left: 2px;
+  }
+
+  .status-sent-unread {
+    color: #a9a9a9;
+  }
+
+  .status-sent-read {
+    color: #007AFF;
+  }
+
+  .status-received {
+    color: #34C759;
+  }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\MessageList.vue
+####################################################################################################
+<template>
+  <ul class="message-list">
+    <MessageItem v-for="(msg, index) in messages" :key="index" :message="msg" />
+  </ul>
+</template>
+
+<script setup>
+import MessageItem from './MessageItem.vue'
+import { defineProps } from 'vue'
+
+defineProps({
+  messages: {
+    type: Array,
+    required: true
+  }
+})
+</script>
+
+<style scoped>
+.message-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\UI\LoadingIndicator.vue
+####################################################################################################
+<template>
+  <transition name="fade">
+    <div v-show="visible" class="loading-indicator">
+      <div class="spinner"></div>
+      <div class="loading-text">{{ text }}</div>
+    </div>
+  </transition>
+</template>
+
+<script setup>
+import { defineProps, computed, onMounted } from 'vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+
+const props = defineProps({
+  target: {
+    type: String,
+    default: 'global'
+  },
+  text: {
+    type: String,
+    default: 'Загрузка...'
+  }
+})
+
+const visible = computed(() => {
+  const state = getLoadingState(props.target)
+  logger.debug(`[LoadingIndicator] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+  return state
+})
+
+onMounted(() => {
+  logger.info(`[LoadingIndicator] Инициализирован для: ${props.target}`)
+})
+</script>
+
+<style lang="scss" scoped>
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  margin: 0 auto;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-left-color: #007AFF;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 0.7rem;
+  color: #333;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\UI\LoadingIndicatorSmall.vue
+####################################################################################################
+<template>
+  <transition name="fade">
+    <div v-show="visible" class="loading-indicator">
+      <div class="spinner"></div>
+      <div class="loading-text">{{ text }}</div>
+    </div>
+  </transition>
+</template>
+
+<script setup>
+import { defineProps, computed, onMounted } from 'vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+
+const props = defineProps({
+  target: {
+    type: String,
+    default: 'global'
+  },
+  text: {
+    type: String,
+    default: 'Загрузка...'
+  }
+})
+
+const visible = computed(() => {
+  const state = getLoadingState(props.target)
+  logger.debug(`[LoadingIndicator] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+  return state
+})
+
+onMounted(() => {
+  logger.info(`[LoadingIndicator] Инициализирован для: ${props.target}`)
+})
+</script>
+
+<style lang="scss" scoped>
+.loading-indicator {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  pointer-events: none;
+  user-select: none;
+  text-align: center;
+}
+
+.spinner {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  border: 3px solid rgba(0, 0, 0, 0.2);
+  border-left-color: #11a91d;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 0.6rem;
+  color: #333;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Components\VideoCallScreen.vue
+####################################################################################################
+<template>
+  <div class="video-call-screen">
+    <div class="local-video">
+      <video :srcObject="localStream" autoplay muted></video>
+    </div>
+
+    <div class="remote-video" v-if="remoteStream">
+      <video :srcObject="remoteStream" autoplay></video>
+    </div>
+
+    <div class="call-actions">
+      <button @click="$emit('end')">Завершить</button>
+      <button @click="$emit('toggleAudio')">
+        {{ isAudioEnabled ? 'Выключить микрофон' : 'Включить микрофон' }}
+      </button>
+      <button @click="$emit('toggleVideo')">
+        {{ isVideoEnabled ? 'Выключить камеру' : 'Включить камеру' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, defineEmits } from 'vue'
+
+defineProps({
+  localStream: Object,
+  remoteStream: Object,
+  isAudioEnabled: Boolean,
+  isVideoEnabled: Boolean
+})
+
+const emit = defineEmits(['end', 'toggleAudio', 'toggleVideo'])
+</script>
+
+<style scoped>
+.video-call-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.local-video, .remote-video {
+  width: 100%;
+  max-width: 400px;
+  margin: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.call-actions button {
+  margin: 5px;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Composables\useLoading.js
+####################################################################################################
+// composables/useLoading.js
+import { ref } from 'vue'
+import logger from '@/modules/TalkStream/utils/logger' // ✅ Импорт добавлен
+
+const loadingStates = {}
+const errorStates = {}
+
+export function useLoading(key = 'global') {
+    if (!loadingStates[key]) {
+        loadingStates[key] = ref(false)
+        errorStates[key] = ref(null)
+        logger.debug(`Создана новая зона загрузки: ${key}`) // ✅ Логируем создание
+    }
+
+    const isLoading = loadingStates[key]
+
+    const setLoading = (value) => {
+        logger.info(`Установлено состояние для ${key}: ${value ? 'включено' : 'выключено'}`)
+        isLoading.value = value
+        if (!value) errorStates[key].value = null
+    }
+
+    const withLoading = async (promiseFn) => {
+        try {
+            setLoading(true)
+            logger.info(`Загрузка начата для ${key}`)
+            return await promiseFn()
+        } catch (err) {
+            logger.error(`Ошибка загрузки в зоне ${key}`, err)
+            errorStates[key].value = err
+            throw err
+        } finally {
+            setLoading(false)
+            logger.info(`Загрузка завершена для ${key}`)
+        }
+    }
+
+    return {
+        isLoading,
+        error: computed(() => errorStates[key].value),
+        setLoading,
+        withLoading
+    }
+}
+
+export function getLoadingState(key = 'global') {
+    const state = loadingStates[key]?.value ?? false
+    logger.debug(`Получено состояние для ${key}: ${state ? 'в процессе' : 'остановлено'}`)
+    return state
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Directives\loading\v-loading-talk.js
+####################################################################################################
+import { h, render, watch } from 'vue'
+import LoadingIndicator from '@/modules/TalkStream/Components/UI/LoadingIndicator.vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+
+export default {
+    mounted(el, binding) {
+        const key = Object.keys(binding.modifiers)[0] || binding.arg || 'global'
+        const text = binding.value?.text || binding.value || 'Загрузка...'
+        const background = binding.value?.background || 'rgba(255, 255, 255, 0.85)'
+
+        el.style.position = 'relative'
+        el.style.overflow = 'hidden'
+
+        // Контейнер для спиннера
+        const container = document.createElement('div')
+        container.className = 'loading-directive-container'
+        container.style.position = 'absolute'
+        container.style.top = '0'
+        container.style.left = '0'
+        container.style.right = '0'
+        container.style.bottom = '0'
+        container.style.zIndex = '9999'
+        container.style.display = 'flex'
+        container.style.justifyContent = 'center'
+        container.style.alignItems = 'center'
+        container.style.backgroundColor = background
+        container.style.pointerEvents = 'none'
+        container.style.userSelect = 'none'
+        container.style.opacity = '0'
+        container.style.transition = 'opacity 0.3s ease'
+        container.style.backdropFilter = 'blur(2px)'
+        container.style.webkitBackdropFilter = 'blur(2px)'
+        container.style.borderRadius = '8px'
+
+        el.appendChild(container)
+
+        // VNode компонента
+        const loadingVNode = h(LoadingIndicator, {
+            target: key,
+            text
+        })
+
+        render(loadingVNode, container)
+
+        // Сохраняем ссылки
+        el._loaderKey = key
+        el._loaderContainer = container
+        el._loaderVNode = loadingVNode
+
+        // Отслеживаем состояние загрузки
+        el._unwatch = watch(
+            () => getLoadingState(key),
+            (isLoading) => {
+                if (!container) return
+
+                container.style.opacity = isLoading ? '1' : '0'
+
+                logger.info(`[Directive:v-loader] ${key}: ${isLoading ? 'показываем' : 'скрываем'}`)
+            },
+            { immediate: true }
+        )
+    },
+
+    updated(el, binding) {
+        if (el._loaderVNode && binding.value) {
+            const text = binding.value.text || binding.value || 'Загрузка...'
+            el._loaderVNode.component.props.text = text
+        }
+    },
+
+    unmounted(el) {
+        if (el._unwatch) el._unwatch()
+        if (el._loaderContainer) {
+            render(null, el._loaderContainer)
+            el.removeChild(el._loaderContainer)
+        }
+    }
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Directives\loading\v-loading-talk-small.js
+####################################################################################################
+import { h, render, watch } from 'vue'
+import LoadingIndicator from '@/modules/TalkStream/Components/UI/LoadingIndicatorSmall.vue'
+import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
+import logger from '@/modules/TalkStream/utils/logger'
+
+export default {
+    mounted(el, binding) {
+        const key = Object.keys(binding.modifiers)[0] || binding.arg || 'global'
+        const text = binding.value?.text || binding.value || 'Загрузка...'
+        const background = binding.value?.background || 'rgba(255, 255, 255, 0.85)'
+
+        el.style.position = 'relative'
+        el.style.overflow = 'hidden'
+
+        // Контейнер для спиннера
+        const container = document.createElement('div')
+        container.className = 'loading-directive-container'
+        container.style.position = 'absolute'
+        container.style.top = '0'
+        container.style.left = '0'
+        container.style.right = '0'
+        container.style.bottom = '0'
+        container.style.zIndex = '9999'
+        container.style.display = 'flex'
+        container.style.justifyContent = 'center'
+        container.style.alignItems = 'center'
+        container.style.backgroundColor = background
+        container.style.pointerEvents = 'none'
+        container.style.userSelect = 'none'
+        container.style.opacity = '0'
+        container.style.transition = 'opacity 0.3s ease'
+        container.style.backdropFilter = 'blur(2px)'
+        container.style.webkitBackdropFilter = 'blur(2px)'
+        container.style.borderRadius = '8px'
+
+        el.appendChild(container)
+
+        // VNode компонента
+        const loadingVNode = h(LoadingIndicator, {
+            target: key,
+            text
+        })
+
+        render(loadingVNode, container)
+
+        // Сохраняем ссылки
+        el._loaderKey = key
+        el._loaderContainer = container
+        el._loaderVNode = loadingVNode
+
+        // Отслеживаем состояние загрузки
+        el._unwatch = watch(
+            () => getLoadingState(key),
+            (isLoading) => {
+                if (!container) return
+
+                container.style.opacity = isLoading ? '1' : '0'
+
+                logger.info(`[Directive:v-loader] ${key}: ${isLoading ? 'показываем' : 'скрываем'}`)
+            },
+            { immediate: true }
+        )
+    },
+
+    updated(el, binding) {
+        if (el._loaderVNode && binding.value) {
+            const text = binding.value.text || binding.value || 'Загрузка...'
+            el._loaderVNode.component.props.text = text
+        }
+    },
+
+    unmounted(el) {
+        if (el._unwatch) el._unwatch()
+        if (el._loaderContainer) {
+            render(null, el._loaderContainer)
+            el.removeChild(el._loaderContainer)
+        }
+    }
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Directives\loadingDirective.js
+####################################################################################################
+// directives/loadingDirective
+import loadingTalk from '@/modules/TalkStream/Directives/loading/v-loading-talk'
+import LoadingTalkSmall from '@/modules/TalkStream/Directives/loading/v-loading-talk-small'
+
+export default {
+    install(app) {
+       app.directive('loading-talk',loadingTalk)
+       app.directive('loading-talk-small',LoadingTalkSmall)
+    }
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\plugins\echoTalkStream.js
+####################################################################################################
+import Echo from 'laravel-echo'
+import Pusher from 'pusher-js'
+import axios from 'axios'
+import Cookies from 'js-cookie'
+import { getToken } from '@utils/auth.js'
+
+// Pusher должен быть доступен глобально для laravel-echo
+window.Pusher = Pusher
+
+let echoInstance = null
+
+const log = {
+    info: (...args) => console.log('[Echo]', ...args),
+    warn: (...args) => console.warn('[Echo]', ...args),
+    error: (...args) => console.error('[Echo]', ...args),
+}
+
+export function createEcho() {
+    const token = getToken()
+
+    if (!token) {
+        log.warn('Токен отсутствует, Echo не создаётся')
+        return null
+    }
+
+    if (echoInstance) {
+        log.info('Используем существующий экземпляр')
+        return echoInstance
+    }
+
+    try {
+        log.info('Создаём новый экземпляр Echo')
+
+        // Глобальные заголовки axios (для auth-запросов Echo)
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+        axios.defaults.withCredentials = true
+        if (window.axios) {
+            window.axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+            window.axios.defaults.withCredentials = true
+        }
+
+        const csrfToken =
+            Cookies.get('XSRF-TOKEN') ||
+            document.querySelector('meta[name="csrf-token"]')?.content ||
+            ''
+
+        const config = {
+            broadcaster: 'reverb',
+            key: import.meta.env.VITE_REVERB_APP_KEY,
+            wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
+            wsPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            wssPort: parseInt(import.meta.env.VITE_REVERB_PORT) || 8080,
+            wsPath: '',                              // ← строго пусто! pusher-js сам добавит /app/{key}
+            scheme: import.meta.env.VITE_REVERB_SCHEME || 'ws',
+            authEndpoint: import.meta.env.VITE_REVERB_AUTH_ENDPOINT || '/broadcasting/auth',
+            forceTLS: false,
+            disableStats: true,
+            enabledTransports: ['ws'],               // без XHR-fallback
+            disabledTransports: ['wss', 'sockjs'],
+            withCredentials: true,
+            activityTimeout: 30000,
+            pongTimeout: 20000,                      // должен быть < activityTimeout
+            auth: {
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken,
+                },
+            },
+        }
+
+        log.info(`Подключение к: ${config.scheme}://${config.wsHost}:${config.wsPort}`)
+
+        echoInstance = new Echo(config)
+
+        // Глобальный доступ для хендлеров подписок
+        window.Echo = echoInstance
+
+        echoInstance.connector.pusher.connection.bind('error', (err) => {
+            log.error('Ошибка Pusher:', err)
+        })
+
+        echoInstance.connector.pusher.connection.bind('connected', () => {
+            log.info('✅ WebSocket подключён')
+        })
+
+        echoInstance.connector.pusher.connection.bind('disconnected', () => {
+            log.warn('⚠️ WebSocket отключён')
+        })
+
+        return echoInstance
+    } catch (e) {
+        log.error('Критическая ошибка при создании Echo:', e)
+        return null
+    }
+}
+
+export function updateEchoToken(newToken) {
+    if (!echoInstance) return createEcho()
+
+    try {
+        echoInstance.options.auth.headers.Authorization = `Bearer ${newToken}`
+        axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+        if (window.axios) window.axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+
+        const wasConnected = echoInstance.connector?.pusher?.connection?.state === 'connected'
+        echoInstance.disconnect()
+
+        if (wasConnected) {
+            setTimeout(() => echoInstance.connect(), 1500)
+        }
+
+        return echoInstance
+    } catch (e) {
+        log.error('Ошибка при обновлении токена:', e)
+        return null
+    }
+}
+
+export function getEchoInstance() {
+    return echoInstance
+}
+
+export function disconnectEcho() {
+    if (!echoInstance) return
+
+    try {
+        echoInstance.disconnect()
+        log.info('Соединение закрыто')
+    } catch (e) {
+        log.error('Ошибка при отключении:', e)
+    } finally {
+        echoInstance = null
+        window.Echo = null
+        delete axios.defaults.headers.common['Authorization']
+    }
+}
+
+if (import.meta.env.DEV) {
+    window.getEchoInstance = getEchoInstance
+    window.disconnectEcho = disconnectEcho
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\routes.js
+####################################################################################################
+
+export default [
+    {
+        path: '/talkstream',
+        name: 'talkstream',
+        component: () => import('@/modules/TalkStream/Talks/TalkStream.vue'),
+        meta: {
+            title: 'Общий Чат',
+            bootstrapIcon: 'chat-dots',
+            permissions: ['manage entity']
+        }
+    },
+/*    {
+        path: '/talkstream/chat',
+        name: 'chat',
+        component: () => import('@/modules/TalkStream/Talks/Chat.vue'),
+        meta: {
+            title: 'Чат',
+            bootstrapIcon: 'chat-dots',
+            permissions: ['manage entity']
+        }
+    },
+    {
+        path: '/talkstream/call',
+        name: 'call',
+        component: () => import('@/modules/TalkStream/Talks/Call.vue'),
+        meta: {
+            title: 'Звонок',
+            bootstrapIcon: 'telephone',
+            permissions: ['manage entity']
+        }
+    }*/
+]
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Services\talkRequest.js
+####################################################################################################
+import request from '@/utils/request'
+
+/**
+ * Обёртка для запросов чат-модуля TalkStream
+ */
+export default function talkRequest(config) {
+    // Добавляем префикс /talkstream/
+    if (config.url && !config.url.startsWith('/talkstream')) {
+        config.url = '/talkstream' + config.url
+    }
+
+    return request(config).catch(error => {
+        console.error('[TalkRequest] Ошибка запроса:', error.message)
+        throw error
+    })
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Services\talkResource.js
+####################################################################################################
+import talkRequest from '@/modules/TalkStream/Services/talkRequest.js'
+
+export default class TalkResource {
+    constructor(uri) {
+        this.uri = uri
+    }
+
+    list(query = {}, path = '') {
+        const url = path ? `/${this.uri}/${path}` : `/${this.uri}`
+        return talkRequest({
+            url,
+            method: 'get',
+            params: query
+        })
+    }
+
+    store(data, path = '') {
+        const url = path ? `/${this.uri}/${path}` : `/${this.uri}`
+        return talkRequest({
+            url,
+            method: 'post',
+            data
+        })
+    }
+
+    get(id, path = '') {
+        const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
+        return talkRequest({
+            url,
+            method: 'get'
+        })
+    }
+
+    update(id, data, path = '') {
+        const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
+        return talkRequest({
+            url,
+            method: 'put',
+            data
+        })
+    }
+
+    destroy(id, path = '') {
+        const url = path ? `/${this.uri}/${path}/${id}` : `/${this.uri}/${id}`
+        return talkRequest({
+            url,
+            method: 'delete'
+        })
+    }
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Services\talkService.js
+####################################################################################################
+import TalkResource from '@/modules/TalkStream/Services/talkResource'
+
+export default class TalkService extends TalkResource {
+    constructor() {
+        super('talkstream') // Базовый URI: /talkstream
+    }
+
+    getUserId(query = {}, path = 'user') {
+        return this.list(query, path) // GET /talkstream/user
+    }
+
+    getContacts(query = {}, path = 'contacts') {
+        return this.list(query, path) // GET /talkstream/contacts
+    }
+
+    getIncomingFriendsRequest(query = {}, path = 'friends/incoming') {
+        return this.list(query, path) // GET /talkstream/friends/incoming
+    }
+
+    getFriendsList(path = 'friends') {
+        return this.list({}, path) // GET /talkstream/friends
+    }
+
+    isFriend(userId, path = 'friends/is-friend') {
+        return this.get(userId, path) // GET /talkstream/friends/is-friend/{userId}
+    }
+
+    sendFriendRequest(friend_id, path = 'friends/send') {
+        return this.store({ friend_id }, path) // POST /talkstream/friends/send
+    }
+
+    acceptFriendRequest(id, path = `friends/accept/${id}`) {
+        return this.store({ id }, path) // POST /talkstream/friends/accept/{id}
+    }
+
+    getSentRequests(path = 'friends/sent') {
+        return this.list({}, path) // GET /talkstream/friends/sent
+    }
+
+    getCallHistory(userId, path = 'call/history') {
+        return this.get(userId, path) // GET /talkstream/call/history/{userId}
+    }
+
+    sendMessage(content, to_id) {
+        return this.store({ content, to_id }, 'send') // POST /talkstream/send
+    }
+
+    startCall(to_id, type = 'video') {
+        return this.store({ to_id, type }, 'call/start') // POST /talkstream/call/start
+    }
+
+    endCall() {
+        return this.store({}, 'call/end') // POST /talkstream/call/end
+    }
+
+    markAsRead(userId, path = `read/${userId}`) {
+        return this.store({ userId }, path) // POST /talkstream/read/{userId}
+    }
+
+    getHistory(userId, path = 'history') {
+        return this.get(userId, path) // GET /talkstream/history/{userId}
+    }
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Stores\callStore.js
+####################################################################################################
+import { defineStore } from 'pinia'
+import TalkService from '@/modules/TalkStream/Services/talkService'
+
+export const useCallStore = defineStore('call', {
+    state: () => ({
+        activeCall: null,
+        localStream: null,
+        remoteStream: null,
+        talkService: new TalkService()
+    }),
+    actions: {
+        async initiateCall(to_id, type = 'video') {
+            await this.talkService.startCall(to_id, type)
+            this.activeCall = { to_id, type, status: 'calling' }
+        },
+        async acceptCall(caller) {
+            this.activeCall = { ...caller, status: 'active' }
+            this.localStream = await this.setupLocalStream()
+        },
+        endCall() {
+            if (this.localStream) {
+                this.localStream.getTracks().forEach(track => track.stop())
+            }
+
+            this.talkService.endCall()
+            this.activeCall = null
+            this.remoteStream = null
+        },
+        async setupLocalStream(options = { video: true, audio: true }) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia(options)
+                this.localStream = stream
+                return stream
+            } catch (err) {
+                console.error('[callStore] Не удалось получить медиапоток:', err)
+                return null
+            }
+        }
+    }
+})
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Stores\chatStore.js
+####################################################################################################
+import { defineStore } from 'pinia'
+import TalkService from '@/modules/TalkStream/Services/talkService'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+
+export const useChatStore = defineStore('chat', {
+    state: () => ({
+        /**
+         * Текущий список сообщений (для UI)
+         */
+        messages: [],
+        /**
+         * Кэшированная история чатов
+         * key: `${userId}_${contactId}`
+         */
+        history: {},
+        /**
+         * Статусы прочтения
+         */
+        readStatus: {},
+        /**
+         * API-сервис
+         */
+        talkService: new TalkService()
+    }),
+
+    actions: {
+        // Получаем contactStore только внутри actions
+        getContactStore() {
+            try {
+                const contactStore = useContactStore()
+                return contactStore
+            } catch (e) {
+                console.error('[chatStore] Не удалось получить контакт-стор:', e)
+                throw new Error('ContactStore ещё не доступен')
+            }
+        },
+
+        // ———————————————————————
+        // Добавление временного сообщения
+        // ———————————————————————
+        addLocalMessage(message) {
+            console.log('[chatStore] Добавлено локальное сообщение с проверкой на дубли:', message)
+
+            if (!this.messages.some(m => m.id === message.id)) {
+                this.messages.push(message)
+            }
+        },
+
+        // ———————————————————————
+        // Отправка сообщения на сервер
+        // ———————————————————————
+        async sendMessage(content, to_id) {
+            const contactStore = this.getContactStore()
+
+            const tempMessage = {
+                id: Date.now(),
+                content,
+                from_id: contactStore.userId,
+                to_id,
+                created_at: new Date().toISOString(),
+                isLocal: true
+            }
+
+            this.addLocalMessage(tempMessage)
+
+            try {
+                const res = await this.talkService.sendMessage(content, to_id)
+                this.replaceLocalMessage(tempMessage.id, res.data)
+                return res.data
+            } catch (err) {
+                console.error('[chatStore] Ошибка отправки:', err)
+                this.removeLocalMessage(tempMessage.id)
+                throw err
+            }
+        },
+
+        // ———————————————————————
+        // Загрузка истории с сервера
+        // ———————————————————————
+        async loadHistory(contactId) {
+            const contactStore = this.getContactStore()
+            const userId = contactStore.userId
+            const key = this.getHistoryKey(userId, contactId)
+
+            if (this.history[key]) {
+                this.messages = [...this.history[key]]
+                console.log(`[chatStore] Использована кэшированная история для ${contactId}`)
+                return
+            }
+
+            try {
+                const res = await this.talkService.getHistory(contactId)
+                this.history[key] = res.data
+                this.messages = res.data
+                console.log(`[chatStore] История загружена для ${contactId}`, res.data)
+            } catch (err) {
+                console.error(`[chatStore] Ошибка загрузки истории для ${contactId}:`, err)
+                this.messages = []
+            }
+        },
+
+        // ———————————————————————
+        // Обновление локального сообщения
+        // ———————————————————————
+        replaceLocalMessage(tempId, serverMessage) {
+            const index = this.messages.findIndex(m => m.id === tempId)
+            if (index !== -1) {
+                this.messages[index] = serverMessage
+                this.messages = [...this.messages]
+                console.log(`[chatStore] Сообщение ${tempId} обновлено`, serverMessage)
+            }
+        },
+
+        // ———————————————————————
+        // Удаление локального сообщения
+        // ———————————————————————
+        removeLocalMessage(tempId) {
+            this.messages = this.messages.filter(m => m.id !== tempId)
+            console.log(`[chatStore] Локальное сообщение ${tempId} удалено`)
+        },
+
+        // ———————————————————————
+        // Получение ключа для кэша
+        // ———————————————————————
+        getHistoryKey(userId, contactId) {
+            return [userId, contactId].sort((a, b) => a - b).join('_')
+        },
+
+        // ———————————————————————
+        // Отметка сообщений как прочитанных
+        // ———————————————————————
+        markAsRead(contactId) {
+            const contactStore = this.getContactStore()
+            const userId = contactStore.userId
+
+            this.messages.forEach(m => {
+                if (m.to_id === userId && m.from_id === contactId && !m.read_at) {
+                    m.read_at = new Date().toISOString()
+                    m.read = true
+                }
+            })
+
+            const key = this.getHistoryKey(userId, contactId)
+            this.history[key] = this.messages.map(m => ({ ...m }))
+            console.log(`[chatStore] Сообщения с ${contactId} отмечены как прочитанные`)
+        }
+    }
+})
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Stores\contactStore.js
+####################################################################################################
+import { defineStore } from 'pinia';
+import TalkService from '@/modules/TalkStream/Services/talkService';
+import { userStore } from '@/store/userStore';
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+
+// 🔥 Выносим экземпляр класса из state
+const talkService = new TalkService();
+
+export const useContactStore = defineStore('contact', {
+    state: () => ({
+        contacts: [],
+        onlineUsers: [],
+        selectedContact: null,
+        userId: null,
+        userFrom: {
+            id: null,
+            name: '',
+            avatar: '',
+            email: '',
+            roles: []
+        }
+    }),
+
+    actions: {
+        async loadUserId() {
+            try {
+                const res = await talkService.getUserId()
+                this.userId = res?.data?.id ?? null
+            } catch (e) {
+                console.error('[contactStore] Не удалось получить ID пользователя:', e?.message)
+                this.userId = null
+            }
+        },
+
+        async loadContacts() {
+            try {
+                const res = await talkService.getContacts({}, 'contacts')
+                this.contacts = Array.isArray(res?.data) ? res.data : []
+            } catch (e) {
+                console.error('[contactStore] Ошибка загрузки контактов:', e)
+                this.contacts = []
+            }
+        },
+
+        selectContact(contact) {
+            if (!contact?.id) {
+                console.warn('[ContactStore] Попытка выбрать контакт без id')
+                return
+            }
+            this.selectedContact = contact
+            try {
+                localStorage.setItem('last-selected-contact', String(contact.id))
+            } catch (e) {
+                console.warn('[ContactStore] Не удалось сохранить в localStorage')
+            }
+            console.log('[ContactStore] Выбран контакт:', contact.id)
+        },
+
+        async getContact(id) {
+            if (!id) {
+                console.warn('[ContactStore] getContact вызван без id')
+                return null
+            }
+
+            try {
+                const res = await talkService.get(id, 'contacts')
+                const contact = res?.data
+                if (!contact) return null
+
+                const index = this.contacts.findIndex(c => c.id === contact.id)
+
+                if (index >= 0) {
+                    this.contacts[index] = contact
+                } else {
+                    this.contacts.push(contact)
+                }
+
+                return contact
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getContact:', e?.message)
+                return null
+            }
+        },
+
+        // 🔥 useFriendStore теперь импортирован
+        getFriendsOnly() {
+            try {
+                const friend = friendStore()  // ← Правильный вызов
+                return this.contacts.filter(c => friend.isFriend(c?.id))
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getFriendsOnly:', e?.message)
+                return []
+            }
+        },
+
+        async getIncomingRequests() {
+            try {
+                const res = await talkService.getIncomingFriends({}, 'friends/incoming')
+                return Array.isArray(res?.data) ? res.data : []
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getIncomingRequests:', e?.message)
+                return []
+            }
+        },
+
+        async getFriendsList() {
+            try {
+                const res = await talkService.getFriendsList()
+                return Array.isArray(res?.data) ? res.data : []
+            } catch (e) {
+                console.error('[ContactStore] Ошибка getFriendsList:', e?.message)
+                return []
+            }
+        },
+
+        setOnline(userId) {
+            if (!userId) return
+            if (!this.onlineUsers.includes(userId)) {
+                this.onlineUsers.push(userId)
+            }
+        },
+
+        setOffline(userId) {
+            if (!userId) return
+            this.onlineUsers = this.onlineUsers.filter(id => id !== userId)
+        },
+
+        isOnline(userId) {
+            if (!userId) return false
+            return this.onlineUsers.includes(userId)
+        },
+
+        // доступ к userStor refreshUserFrom
+        async refreshUserFrom() {
+            try {
+                const store = userStore()
+                await store.fetchInfo()
+
+                // ✅ Правильный доступ к свойствам userStore
+                this.userFrom = {
+                    id: store.id,           // ✅ ref → store.id (не store.user.id)
+                    name: store.name,       // ✅ ref → store.name
+                    avatar: store.avatar,   // ✅ ref → store.avatar
+                    email: store.email,     // ✅ ref → store.email
+                    roles: Array.isArray(store.roles) ? store.roles : []
+                }
+            } catch (e) {
+                console.error('[ContactStore] Ошибка refreshUserFrom:', e?.message)
+                this.userFrom = {
+                    id: null, name: '', avatar: '', email: '', roles: []
+                }
+            }
+        }
+    },
+
+    getters: {
+        isContactSelected: (state) => (contactId) => {
+            if (!contactId || !state.selectedContact) return false
+            return state.selectedContact.id === contactId
+        }
+    }
+})
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Stores\friendStore.js
+####################################################################################################
+import { defineStore } from 'pinia'
+import TalkService from '@/modules/TalkStream/Services/talkService'
+
+// 🔥 Выносим экземпляр класса из state
+const talkService = new TalkService()
+
+export const friendStore = defineStore('friend', {
+    state: () => ({
+        friendRequests: [],
+        friends: [],              // Массив ID друзей (числа)
+        incomingRequests: [],     // Массив объектов запросов
+        sentRequests: [],         // Массив ID исходящих запросов (числа)
+    }),
+
+    actions: {
+        async sendRequest(friendId) {
+            if (!friendId) {
+                console.warn('[friendStore] sendRequest: friendId не указан')
+                return
+            }
+
+            try {
+                const res = await talkService.sendFriendRequest(friendId)
+                if (res?.data) {
+                    this.sentRequests.push(Number(friendId))
+                }
+            } catch (e) {
+                console.error('[friendStore] sendRequest error:', e?.message)
+            }
+        },
+
+        async acceptRequest(id) {
+            if (!id) {
+                console.warn('[friendStore] acceptRequest: id не указан')
+                return
+            }
+
+            try {
+                await talkService.acceptFriendRequest(id)
+                this.incomingRequests = this.incomingRequests.filter(r => r?.id !== id)
+            } catch (e) {
+                console.error('[friendStore] acceptRequest error:', e?.message)
+            }
+        },
+
+        async loadIncomingRequests() {
+            try {
+                console.log('[friendStore] Запрашиваем входящие запросы...')
+                const res = await talkService.getIncomingFriendsRequest()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено входящих запросов:', data.length)
+                this.incomingRequests = data
+            } catch (e) {
+                console.error('[friendStore] loadIncomingRequests error:', e?.message)
+                this.incomingRequests = []
+            }
+        },
+
+        async loadSentRequests() {
+            try {
+                console.log('[friendStore] Запрашиваем исходящие запросы...')
+                const res = await talkService.getSentRequests()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено исходящих запросов:', data.length)
+                // 🔥 Сохраняем ID (числа), не объекты
+                this.sentRequests = data.map(r => Number(r?.id)).filter(Boolean)
+            } catch (e) {
+                console.error('[friendStore] loadSentRequests error:', e?.message)
+                this.sentRequests = []
+            }
+        },
+
+        async loadFriendsList() {
+            try {
+                console.log('[friendStore] Запрашиваем список друзей...')
+                const res = await talkService.getFriendsList()
+                const data = Array.isArray(res?.data) ? res.data : []
+                console.log('[friendStore] Получено друзей:', data.length)
+                this.friends = data.map(f => Number(f?.id)).filter(Boolean)
+            } catch (e) {
+                console.error('[friendStore] loadFriendsList error:', e?.message)
+                this.friends = []
+            }
+        },
+
+        // 🔥 ПЕРЕИМЕНОВАНО: было isFriend (async) → checkFriendWithServer
+        async checkFriendWithServer(userId) {
+            if (!userId) return false
+
+            try {
+                const isCached = this.friends.includes(Number(userId))
+                if (isCached) return true
+
+                const res = await talkService.isFriend(userId)
+                if (res?.data?.isFriend) {
+                    this.friends.push(Number(userId))
+                    return true
+                }
+                return false
+            } catch (e) {
+                console.error('[friendStore] checkFriendWithServer error:', e?.message)
+                return false
+            }
+        },
+
+        // 🔥 ОСТАВЛЁН как есть (sync версия)
+        isFriend(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.friends.includes(id)
+        },
+
+        // 🔥 ИСПРАВЛЕНО: сравниваем id объекта, а не сам объект
+        hasIncoming(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.incomingRequests.some(r => r?.id === id)
+        },
+
+        hasSent(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.sentRequests.includes(id)
+        },
+
+        addFriend(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            if (!this.friends.includes(id)) {
+                this.friends.push(id)
+            }
+        },
+
+        addIncoming(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            if (!this.incomingRequests.some(r => r?.id === id)) {
+                this.incomingRequests.push({ id })
+            }
+        },
+
+        removeSent(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            this.sentRequests = this.sentRequests.filter(uid => uid !== id)
+        },
+
+        removeIncoming(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return
+            this.incomingRequests = this.incomingRequests.filter(r => r?.id !== id)
+        },
+
+        isPending(userId) {
+            const id = Number(userId)
+            if (isNaN(id)) return false
+            return this.sentRequests.includes(id)
+        },
+
+        // 🔥 НОВЫЙ: полная очистка (для logout)
+        reset() {
+            this.friendRequests = []
+            this.friends = []
+            this.incomingRequests = []
+            this.sentRequests = []
+        }
+    },
+
+    getters: {
+        friendsCount: (state) => state.friends.length,
+        incomingCount: (state) => state.incomingRequests.length,
+        sentCount: (state) => state.sentRequests.length,
+    }
+})
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Stores\talkStreamStore.js
+####################################################################################################
+import { defineStore } from 'pinia'
+import { createEcho, disconnectEcho } from '@/modules/TalkStream/plugins/echoTalkStream'
+import { setupUserPresenceChannel } from '@/modules/TalkStream/Subscriptions/userPresenceHandler'
+import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { userStore } from '@/store/userStore'
+import { isLogged } from '@/utils/auth'
+
+const createLogger = () => {
+    const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR']
+    const current = import.meta.env.VITE_LOG_LEVEL || 'INFO'
+    const allowed = (lvl) => levels.indexOf(lvl) >= levels.indexOf(current)
+
+    const stateLabels = {
+        connecting: '🟡 Подключение...',
+        connected: '🟢 Подключено',
+        disconnected: '🔴 Отключено',
+        unavailable: '🟠 Недоступно',
+    }
+
+    return {
+        debug: (...a) => allowed('DEBUG') && console.debug('[TalkStream][DEBUG]', ...a),
+        info: (...a) => allowed('INFO') && console.info('[TalkStream][INFO]', ...a),
+        warn: (...a) => allowed('WARN') && console.warn('[TalkStream][WARN]', ...a),
+        error: (...a) => allowed('ERROR') && console.error('[TalkStream][ERROR]', ...a),
+        state: (s) => allowed('INFO') && console.info(`[TalkStream] ${stateLabels[s] || s}`),
+    }
+}
+
+const logger = createLogger()
+
+export const useTalkStreamStore = defineStore('talkStream', {
+    state: () => ({
+        echo: null,
+        isConnected: false,
+        connectionError: null,
+        reconnectAttempts: 0,
+        maxReconnectAttempts: 5,
+        reconnectTimer: null,
+        subscribedChannels: [],        // [{ type: 'private'|'presence', shortName, channel }]
+        isHandlersBound: false,
+        selectedContactId: null,
+    }),
+
+    getters: {
+        socketId: (state) => state.echo?.socketId(),
+        channelNames: (state) => state.subscribedChannels.map((c) => c.shortName),
+        connectionState: (state) => state.echo?.connector?.pusher?.connection?.state,
+    },
+
+    actions: {
+        // =========================================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // =========================================================
+        async initWebSockets() {
+            if (!isLogged()) {
+                logger.warn('Пользователь не авторизован, подключение отменено')
+                return
+            }
+
+            const user = userStore()
+            if (!user.id) {
+                logger.warn('Нет ID пользователя')
+                return
+            }
+
+            this.clearReconnectTimer()
+
+            if (this.isConnected) {
+                logger.info('Уже подключено')
+                return
+            }
+
+            try {
+                logger.info('Создание экземпляра Echo...')
+                this.echo = createEcho()
+
+                if (!this.echo?.connector?.pusher) {
+                    logger.error('Echo или pusher-коннектор недоступны')
+                    this.handleConnectionError(new Error('Echo init failed'))
+                    return
+                }
+
+                this.setupConnectionHandlers()
+                this.echo.connect()
+                logger.info('Подключение инициировано')
+            } catch (e) {
+                logger.error('Ошибка инициализации:', e)
+                this.handleConnectionError(e)
+            }
+        },
+
+        setupConnectionHandlers() {
+            if (this.isHandlersBound) return
+
+            const pusher = this.echo.connector.pusher
+
+            pusher.connection.bind('connected', () => {
+                logger.state('connected')
+                this.isConnected = true
+                this.connectionError = null
+                this.reconnectAttempts = 0
+                this.subscribeToChannels()
+            })
+
+            pusher.connection.bind('connecting', () => {
+                logger.state('connecting')
+                this.isConnected = false
+                this.connectionError = null
+            })
+
+            pusher.connection.bind('disconnected', () => {
+                logger.state('disconnected')
+                this.isConnected = false
+                this.isHandlersBound = false
+                this.scheduleReconnect()
+            })
+
+            pusher.connection.bind('error', (err) => {
+                logger.error('Ошибка Pusher:', err)
+                this.handleConnectionError(err)
+            })
+
+            pusher.connection.bind('state_change', (states) => {
+                logger.debug(`${states.previous} -> ${states.current}`)
+            })
+
+            this.isHandlersBound = true
+        },
+
+        // =========================================================
+        // ПОДПИСКИ (без двойных префиксов!)
+        // =========================================================
+        subscribeToChannels() {
+            if (!this.echo) {
+                logger.warn('Нет Echo для подписки')
+                return
+            }
+
+            const user = userStore()
+            if (!user.id) {
+                logger.warn('Нет ID пользователя для подписки')
+                return
+            }
+
+            // Чистим старые подписки
+            this.unsubscribeFromAllChannels()
+
+            // -----------------------------------------------------
+            // 1. Приватный канал пользователя
+            //    echo.private('user.1') → Reverb: 'private-user.1'
+            //    Правило: Broadcast::channel('private-user.{id}', ...)
+            // -----------------------------------------------------
+            try {
+                const shortName = `user.${user.id}`
+                logger.info(`Подписка на private-канал: ${shortName}`)
+
+                const userChannel = this.echo.private(shortName)
+
+                userChannel
+                    .listen('.UserEvent', (e) => this.handleIncomingMessage(e))
+                    .listen('.CallEvent', (e) => {
+                        logger.info('Событие звонка:', e)
+                    })
+                    .error((err) => {
+                        logger.error(`Ошибка канала ${shortName}:`, err)
+                    })
+
+                this.subscribedChannels.push({
+                    type: 'private',
+                    shortName,
+                    channel: userChannel,
+                })
+
+                logger.info(`✅ Подписан на ${shortName}`)
+            } catch (e) {
+                logger.error('Ошибка подписки на user-канал:', e)
+            }
+
+            // -----------------------------------------------------
+            // 2. Presence-канал онлайн-статусов
+            //    echo.join('chat') → Reverb: 'presence-chat'
+            //    Правило: Broadcast::channel('presence-chat', ...)
+            // -----------------------------------------------------
+            try {
+                const presenceChannel = setupUserPresenceChannel(this.echo)
+                if (presenceChannel) {
+                    this.subscribedChannels.push({
+                        type: 'presence',
+                        shortName: 'chat',
+                        channel: presenceChannel,
+                    })
+                    logger.info('✅ Подписан на presence-канал chat')
+                }
+            } catch (e) {
+                logger.error('Ошибка подписки на presence-канал:', e)
+            }
+
+            // -----------------------------------------------------
+            // 3. Канал заявок в друзья
+            //    echo.private('friends.1') → Reverb: 'private-friends.1'
+            //    Правило: Broadcast::channel('private-friends.{userId}', ...)
+            // -----------------------------------------------------
+            try {
+                const friendsChannel = setupFriendRequestsChannel(this.echo)
+                if (friendsChannel) {
+                    const user2 = userStore()
+                    this.subscribedChannels.push({
+                        type: 'private',
+                        shortName: `friends.${user2.id}`,
+                        channel: friendsChannel,
+                    })
+                    logger.info(`✅ Подписан на friends.${user2.id}`)
+                }
+            } catch (e) {
+                logger.error('Ошибка подписки на friends-канал:', e)
+            }
+
+            logger.info(`Всего активных подписок: ${this.subscribedChannels.length}`)
+        },
+
+        handleIncomingMessage(e) {
+            const chatStore = useChatStore()
+            const contactStore = useContactStore()
+
+            // Если сообщение от выбранного контакта — добавляем в историю
+            const selectedId = contactStore.selectedContact?.id
+            if (e.message?.from_id && e.message.from_id === selectedId) {
+                chatStore.addLocalMessage(e.message)
+                logger.info('Новое сообщение добавлено в историю')
+                return
+            }
+
+            logger.info('Новое сообщение (не от выбранного контакта):', e.message)
+        },
+
+        // =========================================================
+        // ОТПИСКА
+        // =========================================================
+        unsubscribeFromAllChannels() {
+            if (!this.echo) return
+
+            for (const { type, shortName } of this.subscribedChannels) {
+                try {
+                    // Для presence используем leave(), для private — leaveChannel()
+                    if (type === 'presence') {
+                        this.echo.leave(shortName)
+                    } else {
+                        this.echo.leaveChannel(shortName)
+                    }
+                    logger.debug(`Отписка от ${shortName}`)
+                } catch (e) {
+                    logger.warn(`Ошибка отписки от ${shortName}:`, e)
+                }
+            }
+
+            this.subscribedChannels = []
+        },
+
+        // =========================================================
+        // РЕКОННЕКТ
+        // =========================================================
+        handleConnectionError(error) {
+            this.isConnected = false
+            this.connectionError = error
+            this.reconnectAttempts++
+
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                logger.warn(`Попытка ${this.reconnectAttempts}/${this.maxReconnectAttempts}`)
+                this.scheduleReconnect()
+            } else {
+                logger.error(`Превышен лимит попыток (${this.maxReconnectAttempts})`)
+            }
+        },
+
+        scheduleReconnect() {
+            this.clearReconnectTimer()
+            if (this.reconnectAttempts >= this.maxReconnectAttempts) return
+
+            const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000)
+                + Math.floor(Math.random() * 1000)
+
+            logger.info(`Переподключение через ${delay} мс`)
+            this.reconnectTimer = setTimeout(() => this.reconnect(), delay)
+        },
+
+        clearReconnectTimer() {
+            if (this.reconnectTimer) {
+                clearTimeout(this.reconnectTimer)
+                this.reconnectTimer = null
+            }
+        },
+
+        reconnect() {
+            logger.info(`Переподключение (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`)
+            this.disconnect()
+            this.initWebSockets()
+        },
+
+        forceReconnect() {
+            logger.info('Принудительное переподключение')
+            this.reconnectAttempts = 0
+            this.reconnect()
+        },
+
+        // =========================================================
+        // ОТКЛЮЧЕНИЕ
+        // =========================================================
+        disconnect() {
+            this.clearReconnectTimer()
+
+            if (this.echo) {
+                try {
+                    this.unsubscribeFromAllChannels()
+                    this.echo.disconnect()
+                    logger.info('Соединение закрыто')
+                } catch (e) {
+                    logger.error('Ошибка отключения:', e)
+                } finally {
+                    this.echo = null
+                    this.isConnected = false
+                    this.isHandlersBound = false
+                }
+            }
+
+            disconnectEcho()
+        },
+
+        setSelectedContact(contactId) {
+            this.selectedContactId = contactId
+            localStorage.setItem('last-selected-contact', contactId)
+        },
+    },
+})
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Stores\uiStore.js
+####################################################################################################
+import { defineStore } from 'pinia'
+
+export const useUiStore = defineStore('ui', {
+    state: () => ({
+        isContactsPanelCollapsed: false,
+    }),
+    actions: {
+        toggleContactsPanel() {
+            this.isContactsPanelCollapsed = !this.isContactsPanelCollapsed
+            localStorage.setItem('contactsPanelCollapsed', this.isContactsPanelCollapsed)
+        },
+        setContactsPanelState(state) {
+            this.isContactsPanelCollapsed = state
+        }
+    }
+})
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Subscriptions\friendshipEventsHandler.js
+####################################################################################################
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+
+const ENABLE_LOGGING = true
+
+/**
+ * Подписка на события заявок в друзья.
+ *
+ * ВАЖНО: echo.private('friends.X') → фактический канал = 'private-friends.X'.
+ * Правило в routes/channels.php: Broadcast::channel('private-friends.{userId}', ...)
+ *
+ * @param {Echo} echo
+ * @returns {PrivateChannel|null}
+ */
+export function setupFriendRequestsChannel(echo) {
+    if (!echo) {
+        console.warn('[FriendRequests] Echo не передан')
+        return null
+    }
+
+    // ✅ Стор вызывается ВНУТРИ функции, когда Pinia уже инициализирован
+    const useFriendStore = friendStore()
+
+    const userId = useFriendStore.userId || useFriendStore.user?.id
+    if (!userId) {
+        console.warn('[FriendRequests] Нет userId')
+        return null
+    }
+
+    // private('friends.X') → private-friends.X
+    const channel = echo.private(`friends.${userId}`)
+
+    channel
+        .listen('.FriendRequestSent', (e) => {
+            if (ENABLE_LOGGING) console.info('[FriendRequests] Sent:', e)
+            if (userId === e.request.user_id) {
+                useFriendStore.addIncoming(e.request.user_id)
+            }
+        })
+        .listen('.FriendRequestAccepted', (e) => {
+            if (ENABLE_LOGGING) console.info('[FriendRequests] Accepted:', e)
+            const { user_id, friend_id } = e.request
+            useFriendStore.addFriend(friend_id)
+            if (user_id === userId) {
+                useFriendStore.removeSent(friend_id)
+            } else {
+                useFriendStore.removeIncoming(user_id)
+            }
+        })
+        .listen('.FriendRequestDeclined', (e) => {
+            if (ENABLE_LOGGING) console.warn('[FriendRequests] Declined:', e)
+            const { user_id, friend_id } = e.request
+            if (user_id === userId) {
+                useFriendStore.removeSent(friend_id)
+            } else {
+                useFriendStore.removeIncoming(user_id)
+            }
+        })
+        .error((err) => {
+            console.error('[FriendRequests] Ошибка канала:', err)
+        })
+
+    return channel
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Subscriptions\userPresenceHandler.js
+####################################################################################################
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+
+const log = {
+    info: (msg) => console.log(`%c[Presence] ${msg}`, 'color: #1e90ff; font-weight: bold;'),
+    warn: (msg) => console.warn(`[Presence] ⚠️ ${msg}`),
+    error: (msg) => console.error(`[Presence] ❌ ${msg}`),
+}
+
+/**
+ * Подписка на presence-канал онлайн-статусов.
+ *
+ * ВАЖНО: echo.join('chat') → фактический канал в Reverb = 'presence-chat'.
+ * Echo САМ добавляет префикс 'presence-'.
+ * Правило в routes/channels.php: Broadcast::channel('presence-chat', ...)
+ *
+ * @param {Echo} echo - экземпляр laravel-echo
+ * @returns {PresenceChannel|null}
+ */
+export function setupUserPresenceChannel(echo) {
+    if (!echo) {
+        log.warn('Echo не передан, подписка отменена')
+        return null
+    }
+
+    try {
+        // join('chat') → presence-chat
+        const presenceChannel = echo.join('chat')
+
+        presenceChannel
+            .here((users) => {
+                log.info(`Онлайн: ${users.length}`)
+                users.forEach((u) => setUserOnline(u.id))
+            })
+            .joining((user) => {
+                log.info(`Вошёл: ${user.id} (${user.name || ''})`)
+                setUserOnline(user.id)
+            })
+            .leaving((user) => {
+                log.info(`Вышел: ${user.id}`)
+                setUserOffline(user.id)
+            })
+            .error((err) => {
+                log.error('Ошибка presence-канала: ' + JSON.stringify(err))
+            })
+
+        return presenceChannel
+    } catch (e) {
+        log.error('Не удалось подписаться: ' + e.message)
+        return null
+    }
+}
+
+function setUserOnline(userId) {
+    const store = getContactStore()
+    if (!store) return
+
+    if (!store.onlineUsers.includes(userId)) {
+        store.setOnline(userId)
+    }
+}
+
+function setUserOffline(userId) {
+    const store = getContactStore()
+    if (!store) return
+
+    store.setOffline(userId)
+}
+
+function getContactStore() {
+    try {
+        return useContactStore()
+    } catch (e) {
+        log.error('contactStore недоступен: ' + e.message)
+        return null
+    }
+}
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\Call.vue
+####################################################################################################
+<template>
+  <div class="call">
+    <h3>Видео звонок с {{ selectedContact?.name }}</h3>
+
+    <div v-if="!callActive && !incomingCall" class="contact-selection">
+      <p>Выберите тип звонка:</p>
+      <button @click="startVideoCall">Видео</button>
+      <button @click="startAudioCall">Аудио</button>
+    </div>
+
+    <div v-if="callActive || incomingCall" class="in-call">
+      <video ref="localVideo" :srcObject="localStream" autoplay muted></video>
+      <video ref="remoteVideo" :srcObject="remoteStream" autoplay></video>
+
+      <div class="call-controls">
+        <button @click="endCall">Завершить</button>
+        <button @click="toggleAudio">{{ isAudioEnabled ? 'Выключить микрофон' : 'Включить микрофон' }}</button>
+        <button @click="toggleVideo">{{ isVideoEnabled ? 'Выключить камеру' : 'Включить камеру' }}</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useCallStore } from '@/modules/TalkStream/Stores/callStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import VideoCallScreen from '@/modules/TalkStream/Components/VideoCallScreen.vue'
+
+const route = useRoute()
+const callStore = useCallStore()
+const contactStore = useContactStore()
+
+const selectedContact = ref(null)
+const callActive = ref(false)
+const incomingCall = ref(null)
+
+const localStream = ref(null)
+const remoteStream = ref(null)
+const isAudioEnabled = ref(true)
+const isVideoEnabled = ref(true)
+
+const contactId = Number(route.query.to)
+
+onMounted(() => {
+  if (!contactId) return
+
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
+
+  if (window.echoTalkStream && contactId) {
+    window.echoTalkStream.private(`call.${contactId}`)
+        .listen('.IncomingCall', (e) => {
+          console.log('Получен входящий звонок:', e.call)
+          incomingCall.value = e.call
+        })
+  }
+})
+
+async function startVideoCall() {
+  localStream.value = await callStore.setupLocalStream()
+  callStore.initiateCall(contactId, 'video')
+}
+
+async function startAudioCall() {
+  callActive.value = true
+  localStream.value = await callStore.setupLocalStream({ video: false, audio: true })
+  callStore.initiateCall(contactId, 'audio')
+}
+
+function endCall() {
+  callStore.endCall()
+  incomingCall.value = null
+}
+
+function toggleAudio() {
+  isAudioEnabled.value = !isAudioEnabled.value
+  if (localStream.value) {
+    localStream.value.getAudioTracks().forEach(track => track.enabled = isAudioEnabled.value)
+  }
+}
+
+function toggleVideo() {
+  isVideoEnabled.value = !isVideoEnabled.value
+  if (localStream.value) {
+    localStream.value.getVideoTracks().forEach(track => track.enabled = isVideoEnabled.value)
+  }
+}
+</script>
+
+<style scoped>
+.call {
+  padding: 1rem;
+}
+
+.in-call {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+video {
+  width: 100%;
+  max-width: 400px;
+  margin: 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.call-controls button {
+  margin: 5px;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\Chat.vue
+####################################################################################################
+<template>
+  <div class="chat-container">
+    <!-- Заголовок -->
+    <div class="chat-header">
+      {{ selectedContact.name || 'Выберите контакт' }}
+    </div>
+
+    <!-- История -->
+    <div class="chat-messages" ref="messagesContainer">
+      <MessageItem
+          v-for="message in messages"
+          :key="message.id"
+          :message="message"
+          :contact="contactStore"
+      />
+    </div>
+
+    <!-- Форма отправки -->
+    <form class="chat-form" @submit.prevent="send">
+      <input v-model="newMessage" placeholder="Напишите сообщение..." />
+      <button type="submit">Отправить</button>
+    </form>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+
+const route = useRoute()
+const contactStore = useContactStore()
+const useFriendStore = friendStore()
+
+const contactId = Number(route.query.to)
+const messages = ref([])
+const newMessage = ref('')
+const messagesContainer = ref(null)
+
+onMounted(async () => {
+  if (!contactId) return
+
+  // Загрузка истории
+  messages.value = await contactStore.getHistory(contactId)
+
+  // Подписка на новые сообщения
+  if (window.Echo && contactId) {
+    window.Echo.private(`chat.${contactId}`)
+        .listen('.NewMessage', (e) => {
+          messages.value.push(e.message)
+          scrollToBottom()
+        })
+  }
+
+  // Получаем текущий контакт
+  selectedContact.value = contactStore.contacts.find(c => c.id === contactId)
+  if (!selectedContact.value) {
+    selectedContact.value = await contactStore.getContact(contactId)
+  }
+})
+
+function send() {
+  if (!newMessage.value.trim()) return
+  contactStore.sendMessage(newMessage.value, contactId)
+  newMessage.value = ''
+  scrollToBottom()
+}
+
+function scrollToBottom() {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+}
+
+.chat-header {
+  padding: 1rem;
+  background-color: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+  font-weight: 600;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background-color: #f9f9f9;
+  min-height: 300px;
+}
+
+.chat-form {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+
+  input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+  }
+
+  button {
+    margin-left: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #42b983;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #36a871;
+    }
+  }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\Contacts.vue
+####################################################################################################
+<template>
+  <el-card class="contacts-container">
+    <!-- Меню режимов -->
+    <div class="mode-switcher">
+      <button
+          v-for="mode in ['chat', 'call']"
+          :key="mode"
+          :class="['mode-button', { active: currentMode === mode }]"
+          @click="switchMode(mode)"
+      >
+        {{ mode === 'chat' ? 'Чат' : 'Звонок' }}
+      </button>
+    </div>
+    <div>
+      <h3>Общий список пользователей</h3>
+    </div>
+    <!-- Обёртка для прокрутки -->
+    <div class="contacts-wrap">
+      <!-- Список всех пользователей -->
+      <ul class="contact-list">
+        <ContactItem
+            v-for="contact in contacts"
+            :key="contact.id"
+            :contact="contact"
+            :is-online="contactStore.isOnline(contact.id)"
+            :is-friend="useFriendStore.isFriend(contact.id)"
+            :has-incoming="useFriendStore.hasIncoming(contact.id)"
+            :has-sent="useFriendStore.hasSent(contact.id)"
+            @select="selectContact"
+        />
+      </ul>
+    </div>
+  </el-card>
+</template>
+
+<script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+import ContactItem from '@/modules/TalkStream/Components/ContactItem'
+import { userStore } from '@/store/userStore'
+import { setupUserOnlinePresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
+import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler'
+
+const router = useRouter()
+const route = useRoute()
+const contactStore = useContactStore()
+const useFriendStore = friendStore()
+const useUserStore = userStore()
+
+const contacts = ref([])
+const currentMode = ref(route.params.mode || 'chat')
+
+// Хранение каналов для отписки
+const presenceChannel = ref(null)
+const friendRequestsChannel = ref(null)
+
+onMounted(async () => {
+  // Загрузка контактов
+  if (!contactStore.contacts.length) {
+    await contactStore.loadContacts()
+    contacts.value = contactStore.contacts
+  }
+
+  // Проверка авторизации
+  try {
+    if (!useUserStore.id) {
+      await useUserStore.fetchInfo()
+    }
+  } catch (e) {
+    console.warn('Пользователь не авторизован')
+    router.push('/login')
+  }
+
+  // Загрузка друзей и запросов
+  if (!useFriendStore.friends.length) {
+    await useFriendStore.loadFriendsList()
+  }
+
+  if (!useFriendStore.incomingRequests.length) {
+    await useFriendStore.loadIncomingRequests()
+  }
+
+  if (!useFriendStore.sentRequests.length) {
+    await useFriendStore.loadSentRequests()
+  }
+
+  // Инициализация подписок
+  //presenceChannel.value = setupUserOnlinePresenceChannel()
+  //friendRequestsChannel.value = setupFriendRequestsChannel()
+})
+
+onUnmounted(() => {
+  // Отписка от каналов
+ /* if (presenceChannel.value) {
+    presenceChannel.value.leave()
+  }
+
+  if (friendRequestsChannel.value) {
+    friendRequestsChannel.value.stopListening()
+  }*/
+})
+
+function switchMode(mode) {
+  currentMode.value = mode
+  router.push(`/talkstream/${mode}`)
+}
+
+function selectContact(contact) {
+  const selectedMode = currentMode.value
+
+  if (selectedMode === 'chat') {
+    router.push({ name: 'chat', query: { to: contact.id } })
+  } else if (selectedMode === 'call') {
+    router.push({ name: 'call', query: { to: contact.id } })
+  }
+}
+</script>
+
+<style scoped lang="scss">
+.contacts-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 1rem;
+}
+
+.mode-switcher {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.mode-button {
+  padding: 4px 8px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+
+  &.active {
+    background-color: #42b983;
+    color: white;
+    border-color: #42b983;
+  }
+}
+
+.contacts-wrap {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+}
+
+.contact-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: fit-content;
+  width: 100%;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\TalkStream.vue
+####################################################################################################
+<template>
+  <div class="talkstream-container">
+    <ConnectionStatus />
+    <!-- Обёртка для панели контактов с анимацией -->
+    <div
+        v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
+        class="contacts-wrapper" :class="{ 'collapsed': isContactsPanelCollapsed }"
+    >
+      <TalkStreamContacts @select="handleSelectContact"/>
+    </div>
+
+    <!-- Основной чат -->
+    <div
+        v-loading-talk.history="{ text: 'Загрузка истории...', background: '#ffffffaa' }"
+        class="talkstream-chat" :class="{ 'full-width': isContactsPanelCollapsed }"
+    >
+      <TalkStreamHeader
+          :contact="selectedContact"
+          :is-online="contactStore.isOnline(selectedContact?.id)"
+      />
+      <TalkStreamHistory
+          ref="history"
+          v-if="selectedContact"
+          :contact="selectedContact"
+          :userFrom="contactStore.userFrom"
+          :messages="messages"
+      />
+      <TalkStreamSender
+          v-if="selectedContact"
+          :contact="selectedContact"
+          @send="handleSendMessage"
+      />
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { useLoading } from '@/modules/TalkStream/Composables/useLoading'
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
+// Stores
+import { useUiStore } from '@/modules/TalkStream/stores/uiStore'
+import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore.js'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+import { userStore } from '@/store/userStore'
+
+// Компоненты
+import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
+import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
+import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
+import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
+import TalkStreamSender from '@/modules/TalkStream/Talks/TalkStreamSender.vue'
+
+const router = useRouter()
+const uiStore = useUiStore()
+const chatStore = useChatStore()
+const contactStore = useContactStore()
+const useFriendStore = friendStore()
+const useUserStore = userStore()
+
+// Состояние для хранения выбранного контакта
+const selectedContact = ref(null)
+const history = ref(null)
+
+// Сообщения из стора
+const messages = computed(() => chatStore.messages)
+
+// Состояние панели контактов
+const isContactsPanelCollapsed = computed(() => uiStore.isContactsPanelCollapsed)
+
+// Loading Для контактов
+const { withLoading: withContactsLoading } = useLoading('contacts')
+// Loading Для истории
+const { withLoading: withHistoryChatLoading } = useLoading('history')
+
+/**
+ * Обработчик выбора контакта
+ */
+const handleSelectContact = async (contact) => {
+  if (!contact) return
+
+  selectedContact.value = contact
+  localStorage.setItem('last-selected-contact', contact.id)
+  contactStore.selectContact(contact)
+  if (selectedContact.value) {
+    await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
+  }
+}
+
+/**
+ * Обработчик отправки сообщения
+ */
+const handleSendMessage = (data) => {
+  const tempMessage = {
+    id: Date.now(),
+    content: data.content,
+    from_id: contactStore.userId,
+    to_id: data.to_id,
+    created_at: new Date().toISOString(),
+    read_at: null,
+    isLocal: true
+  }
+
+  // Добавление во временный стор
+  chatStore.addLocalMessage(tempMessage)
+
+  // Отправка на сервер
+  chatStore.sendMessage(data.content, data.to_id)
+      .then(res => {
+        // Замена временного сообщения на серверное
+        chatStore.replaceLocalMessage(tempMessage.id, res)
+      })
+      .catch(err => {
+        console.error('Ошибка отправки:', err)
+        chatStore.removeLocalMessage(tempMessage.id)
+      })
+
+  // Автоскролл
+  if (history.value?.scrollToBottom) {
+    history.value.scrollToBottom()
+  }
+}
+
+// Загрузка контактов
+async function loadContacts() {
+  await withContactsLoading(() => contactStore.loadContacts())
+}
+
+// Загрузка истории
+async function loadHistory(contactId) {
+  await withHistoryChatLoading(() => chatStore.loadHistory(contactId))
+}
+
+onMounted(async () => {
+  // Восстановление состояния панели контактов
+  const savedState = localStorage.getItem('contactsPanelCollapsed')
+  if (savedState !== null) {
+    uiStore.setContactsPanelState(JSON.parse(savedState))
+  }
+
+  // Инициализация пользователя
+  if (!useUserStore.id) {
+    try {
+      await useUserStore.fetchInfo()
+      contactStore.userId = useUserStore.id
+      console.log('Пользователь Авторизован')
+    } catch (e) {
+      console.warn('Пользователь не авторизован')
+      router.push('/login')
+    }
+  } else {
+    await contactStore.refreshUserFrom()
+  }
+
+  // Загрузка контактов с индикатором
+  if (!contactStore.contacts.length) {
+    await loadContacts()
+  }
+  // Загрузка истории с индикатором
+  if (selectedContact.value) {
+    if (!chatStore.messages.length) {
+      await loadHistory(contact.id)
+    }
+  }
+
+  // Загрузка друзей и запросов
+  if (!useFriendStore.friends.length) {
+    await useFriendStore.loadFriendsList()
+  }
+
+  if (!useFriendStore.incomingRequests.length) {
+    await useFriendStore.loadIncomingRequests()
+  }
+
+  if (!useFriendStore.sentRequests.length) {
+    await useFriendStore.loadSentRequests()
+  }
+
+  // Мгновенная прокрутка без анимации при инициализации
+  if (history.value) {
+    history.value.scrollTop = history.value.scrollHeight
+  }
+
+  const lastContactId = localStorage.getItem('last-selected-contact')
+  if (lastContactId && contactStore.contacts.some(c => c.id === Number(lastContactId))) {
+    selectedContact.value = contactStore.contacts.find(c => c.id === Number(lastContactId))
+    chatStore.loadHistory(selectedContact.value.id)
+  }
+
+  // Подписка на события
+  const talkStream = useTalkStreamStore()
+  talkStream.initWebSockets()
+})
+</script>
+
+<style scoped lang="scss">
+.talkstream-container {
+  display: flex;
+  height: 100%;
+  margin: 0.6rem;
+  border-radius: 12px;
+  background-color: #f9f9f9;
+  height: calc(100vh - 150px);
+  overflow: hidden;
+}
+
+.contacts-wrapper {
+  min-width: 160px;
+  min-height: 200px;
+  transition: all 0.3s ease;
+  overflow: hidden;
+
+  &.collapsed {
+    min-width: 0;
+    width: 0;
+    opacity: 0;
+    transform: translateX(-100%);
+    margin-right: 0;
+    padding: 0;
+  }
+}
+
+.talkstream-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+  min-width: 200px;
+  min-height: 300px;
+  transition: all 0.3s ease;
+
+  &.full-width {
+    margin-left: 0;
+  }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\TalkStreamContacts.vue
+####################################################################################################
+<template>
+  <div class="contacts-container">
+    <div class="contacts-container-header">
+      <span>Общий список пользователей</span>
+    </div>
+    <!-- Обёртка для прокрутки -->
+    <div class="contacts-wrap">
+      <!-- Список всех пользователей -->
+      <ul class="contact-list">
+        <ContactItemWrapper
+            v-for="contact in contacts"
+            :key="contact.id"
+            :contact="contact"
+            @select="selectContact"
+            @add-friend="sendRequest"
+            @accept-request="acceptRequest"
+        />
+      </ul>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { userStore } from '@/store/userStore'
+import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
+import { friendStore } from '@/modules/TalkStream/Stores/friendStore'
+import ContactItemWrapper from '@/modules/TalkStream/Components/ContactItemWrapper.vue'
+
+const props = defineProps(['contacts', 'isLoadingContacts'])
+const emit = defineEmits(['select', 'add-friend', 'accept-request'])
+
+const router = useRouter()
+const useUserStore = userStore()
+const contactStore = useContactStore()
+const useFriendStore = friendStore()
+
+const route = useRoute()
+
+const contacts = computed(() => contactStore.contacts)
+const currentMode = ref(route.params.mode || 'chat')
+
+function selectContact(contact) {
+  emit('select', contact)
+}
+
+function sendRequest(contact) {
+  useFriendStore.sendRequest(contact.id)
+  emit('add-friend', contact)
+}
+
+function acceptRequest(contact) {
+  useFriendStore.acceptRequest(contact.id)
+  emit('accept-request', contact)
+}
+
+function switchMode(mode) {
+  currentMode.value = mode
+}
+</script>
+
+<style scoped lang="scss">
+.contacts-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 140px;
+  max-width: 210px;
+  height: calc(100vh - 130px);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.contacts-container-header {
+  height: 30px; /* Фиксированная высота */
+  min-height: 30px; /* Гарантирует минимальную высоту */
+  display: flex;
+  align-items: center; /* Вертикальное выравнивание */
+  justify-content: center; /* Горизонтальное выравнивание */
+  width: 100%; /* Занимает всю ширину */
+  font-size: .7rem;
+  /* Добавьте это для предотвращения сжатия: */
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Остальные стили без изменений */
+.mode-switcher {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.contacts-wrap {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+  /* Добавьте это: */
+  min-height: 0; /* Разрешает сжатие */
+}
+
+.contact-list {
+  list-style: none;
+  padding-top: 4px;
+  padding-left: 2px;
+  padding-bottom: 4px;
+  margin-right: 4px;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\TalkStreamHeader.vue
+####################################################################################################
+<template>
+  <div class="talkstream-header">
+    <div class="header-left">
+      <!-- Кнопка сворачивания панели контактов -->
+      <button class="panel-toggle-btn" @click="togglePanel">
+        <PanelToggleIcon :class="['toggle-panel-icon', { 'rotated': isPanelCollapsed }]"/>
+      </button>
+
+      <!-- Информация о пользователе -->
+      <div v-if="contact" class="talkstream-header-line">
+        <div class="user-avatar-wrapper">
+          <div class="user-avatar" :style="{ backgroundImage: `url(${contact.avatar || '/images/default-avatar.png' })`}"></div>
+          <span class="status-indicator">{{ contactIsOnline ? '🟢' : '⚪' }}</span>
+        </div>
+        <div class="user-id">ID: {{ contact.id || 'нет' }}</div>
+        <div class="user-name">{{ contact.name || 'Без имени' }}</div>
+      </div>
+      <div v-else class="no-contact">
+        Выберите контакт из списка слева
+      </div>
+    </div>
+
+    <!-- Меню режимов -->
+    <div class="mode-switcher">
+      <button
+          class="btn-mode-switcher"
+          v-for="mode in ['callAudio', 'callVideo']"
+          :key="mode"
+          :class="['mode-button', { active: currentMode === mode }]"
+          @click="switchMode(mode)"
+      >
+        {{ mode === 'callAudio' ? '📹' : '📞' }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, computed } from 'vue'
+import PanelToggleIcon from '@/modules/TalkStream/Components/Icons/PanelToggleIcon.vue'
+import { useUiStore } from '@/modules/TalkStream/stores/uiStore'
+
+const props = defineProps({
+  contact: {
+    type: Object,
+    required: false,
+    default: null
+  },
+  isOnline: {
+    type: Boolean,
+    default: false
+  }
+})
+
+const currentMode = 'callAudio'
+
+const uiStore = useUiStore()
+const isPanelCollapsed = computed(() => uiStore.isContactsPanelCollapsed)
+
+// Если контакт задан — проверяем по ID
+const contactIsOnline = computed(() => {
+  if (!props.contact) return false
+  return props.isOnline || false
+})
+
+const togglePanel = () => {
+  uiStore.toggleContactsPanel()
+}
+</script>
+
+<style scoped lang="scss">
+.talkstream-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0.4rem;
+  margin-bottom: 0.4rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.panel-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  padding: 0.5rem;
+  margin-right: 0.1rem;
+  transition: transform 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-panel-icon {
+  stroke: currentColor;
+  transition: transform 0.3s ease;
+  vertical-align: middle;
+  color: #666;
+}
+
+.toggle-panel-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.talkstream-header-line {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 2px;
+}
+
+.user-avatar-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  margin-right: 0.8rem;
+}
+
+.user-avatar {
+  flex-shrink: 0;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 0.12rem #b8c4cc;
+  margin-right: 1rem;
+}
+
+.status-indicator {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  font-size: 0.40rem;
+  color: #42b983;
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+}
+
+.user-name {
+  font-weight: bold;
+  font-size: 0.75rem;
+  color: #333;
+  margin: 0 auto;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-overflow: ellipsis;
+  line-height: 0.75rem;
+}
+
+.user-id {
+  color: #333;
+  font-weight: bold;
+  font-size: 1rem;
+  text-wrap-mode: nowrap;
+  padding-left: 2px;
+  margin: 0 auto;
+}
+
+.user-role {
+  font-size: 0.85rem;
+  color: #999;
+}
+
+.mode-switcher {
+  border-radius: 8px;
+  padding: 5px 5px;
+}
+
+.btn-mode-switcher {
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  padding: 0.5rem 0.5rem;
+  color: white;
+  font-size: 1rem;
+  margin: 0 2px;
+
+  &:hover {
+    background-color: rgba(75, 115, 141, 0.75);
+    cursor: pointer;
+  }
+
+  &.active {
+    background-color: rgba(30, 95, 141, 0.86);
+    color: white;
+    font-weight: bold;
+  }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\TalkStreamHistory.vue
+####################################################################################################
+<template>
+  <div class="talkstream-history-container">
+    <div
+        class="talkstream-history"
+        ref="historyContainer"
+        @scroll="checkScrollPosition"
+    >
+      <template v-if="messages.length > 0">
+        <div class="spacer"></div>
+
+        <MessageGroup
+            v-for="(group, groupIndex) in groupedMessages"
+            :key="groupIndex"
+            :from-id="group.from_id"
+            :messages="group.messages"
+            :user-from="userFrom"
+            :contact="contact"
+            :is-online="isOnline"
+            :show-avatar="true"
+        >
+          <template #default="{ message, isFirstInGroup, isLastInGroup }">
+            <MessageItem
+                :userFrom="userFrom"
+                :contact="contact"
+                :message="message"
+                :is-first-in-group="isFirstInGroup"
+                :is-last-in-group="isLastInGroup"
+                :is-group-start="isFirstInGroup"
+            />
+          </template>
+        </MessageGroup>
+      </template>
+
+      <template v-else>
+        <div class="empty-state">
+          <img src="/images/avatar.gif" alt="Приветствие" class="greeting-gif" />
+          <p class="greeting-text">Привет! Как дела? 😊</p>
+        </div>
+      </template>
+    </div>
+
+    <button
+        class="scroll-down-button"
+        :class="{ visible: showScrollButton }"
+        @click="scrollToBottom(600)"
+    >
+      <ScrollDownButtonIcon />
+    </button>
+  </div>
+</template>
+
+<script setup>
+import { defineProps, ref, defineExpose, watch, onMounted, onBeforeUnmount, computed } from 'vue'
+
+import ScrollDownButtonIcon from '@/modules/TalkStream/Components/Icons/ScrollDownButtonIcon.vue'
+import MessageGroup from '@/modules/TalkStream/Components/MessageGroup.vue'
+import MessageItem from '@/modules/TalkStream/Components/MessageItem.vue'
+
+const props = defineProps(['userFrom', 'contact', 'messages', 'isOnline'])
+
+const historyContainer = ref(null)
+const showScrollButton = ref(false)
+const scrollTimeout = ref(null)
+
+const groupedMessages = computed(() => {
+  const groups = []
+  let currentGroup = null
+
+  props.messages.forEach((msg) => {
+    if (!currentGroup || msg.from_id !== currentGroup.from_id) {
+      currentGroup = {
+        from_id: msg.from_id,
+        messages: [msg]
+      }
+      groups.push(currentGroup)
+    } else {
+      currentGroup.messages.push(msg)
+    }
+  })
+
+  return groups
+})
+
+function smoothScrollTo(element, to, duration) {
+  const start = element.scrollTop
+  const change = to - start
+  let currentTime = 0
+  const increment = Math.min(Math.max(duration / 20, 10), 20)
+
+  function easeInOut(t) {
+    return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+  }
+
+  function animateScroll() {
+    currentTime += increment
+    const val = easeInOut(currentTime / duration) * change + start
+    element.scrollTop = val
+    if (currentTime < duration) {
+      setTimeout(animateScroll, increment)
+    } else {
+      element.scrollTop = to
+    }
+  }
+
+  animateScroll()
+}
+
+const scrollToBottom = (duration = 300) => {
+  if (!historyContainer.value) return
+
+  const container = historyContainer.value
+  const targetScrollTop = container.scrollHeight - container.clientHeight
+  smoothScrollTo(container, targetScrollTop, duration)
+  showScrollButton.value = false
+}
+
+const scrollToBottomAfterRender = (duration = 300) => {
+  if (!historyContainer.value) return
+
+  if (scrollTimeout.value) {
+    clearTimeout(scrollTimeout.value)
+    scrollTimeout.value = null
+  }
+
+  scrollTimeout.value = setTimeout(() => {
+    scrollToBottom(duration)
+  }, 50)
+}
+
+const checkScrollPosition = () => {
+  if (!historyContainer.value) return
+
+  const threshold = 100
+  const isAtBottom =
+      historyContainer.value.scrollHeight -
+      historyContainer.value.scrollTop -
+      historyContainer.value.clientHeight <= threshold
+
+  showScrollButton.value = !isAtBottom
+}
+
+watch(
+    () => props.messages.length,
+    (newLength, oldLength) => {
+      if (newLength <= oldLength) return
+      if (!historyContainer.value) return
+
+      const isAtBottom =
+          historyContainer.value.scrollHeight -
+          historyContainer.value.scrollTop -
+          historyContainer.value.clientHeight <= 100
+
+      if (isAtBottom) {
+        scrollToBottomAfterRender(400)
+      } else {
+        showScrollButton.value = true
+      }
+    }
+)
+
+onMounted(() => {
+  if (historyContainer.value) {
+    scrollToBottomAfterRender(300)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (scrollTimeout.value) {
+    clearTimeout(scrollTimeout.value)
+  }
+})
+
+defineExpose({ scrollToBottom })
+</script>
+
+<style lang="scss" scoped>
+.talkstream-history-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border-radius: 8px;
+  box-shadow: inset 0 0 3px 2px #7bb0d9e8;
+  background-color: rgb(46, 47, 52);
+  //background-color: #304156;
+}
+
+.spacer {
+  flex: 1 0 auto;
+}
+
+.talkstream-history {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0px 4px 4px 0px;
+  margin-left: 4px;
+  margin-top: 4px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    height: 90%;
+    width: 8px;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    border-radius: 4px;
+    background: rgba(65, 66, 73, 0.93);
+  }
+
+  &::-webkit-scrollbar-thumb {
+    min-height: 25px;
+    background: #888;
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #555;
+  }
+}
+
+.scroll-down-button {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: all;
+  color: #262626;
+  background-color: #fff;
+  width: 32px;
+  height: 32px;
+  bottom: 60px;
+  right: 17px;
+  overflow: hidden;
+  transform: translateY(10px);
+  box-shadow: inset 0 0 0 1px #ededed;
+
+  &:hover {
+    opacity: 1 !important;
+    background-color: #3a465b;
+    color: #9f9d9d;
+    transform: scale(1.05) translateY(0) !important;
+  }
+
+  svg {
+    width: 16px;
+    height: 11px;
+    fill: #2e2f34;
+    stroke: #2e2f34;
+    transition: fill 0.2s ease;
+  }
+
+  &:hover svg {
+    fill: #9f9d9d;
+  }
+
+  &.visible {
+    opacity: 0.8;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ccc;
+  padding: 20px;
+}
+
+.greeting-gif {
+  width: 150px;
+  height: auto;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.greeting-text {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\Talks\TalkStreamSender.vue
+####################################################################################################
+<template>
+  <form class="talkstream-sender" @submit.prevent="send">
+    <div class="sender-input-wrapper">
+      <textarea
+        v-model="message"
+        @input="adjustHeight"
+        @keydown.enter="handleEnter"
+        placeholder="Введите сообщение..."
+        ref="textarea"
+        :rows="rows"
+      />
+      <button type="submit" :disabled="!message.trim()">
+        <SendPlaneIcon />
+      </button>
+    </div>
+  </form>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import { defineProps, defineEmits } from 'vue'
+import SendPlaneIcon from '@/modules/TalkStream/Components/Icons/SendPlaneIcon.vue'
+const props = defineProps(['contact'])
+const emit = defineEmits(['send'])
+
+const message = ref('')
+const textarea = ref(null)
+const rows = ref(3)
+const MAX_ROWS = 6
+
+function adjustHeight() {
+  const el = textarea.value
+  if (!el) return
+
+  el.style.height = 'auto'
+  el.style.height = `${Math.min(el.scrollHeight / 16, MAX_ROWS)}rem`
+}
+
+function handleEnter(e) {
+  if (e.shiftKey || e.ctrlKey || e.metaKey) return
+
+  e.preventDefault()
+  send()
+}
+
+function send() {
+  if (!message.value.trim()) return
+
+  emit('send', {
+    content: message.value,
+    to_id: props.contact.id
+  })
+
+  message.value = ''
+  adjustHeight()
+}
+</script>
+<style lang="scss">
+.talkstream-sender {
+  position: relative;
+  padding: 0.4rem 0.2rem 0.4rem 0.2rem;
+  background-color: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+}
+
+ .send-button {
+   background-color: #3490dc;
+   color: white;
+   padding: 0.4rem 0.8rem;
+   border-radius: 20px;
+   font-size: 0.85rem;
+   display: flex;
+   align-items: center;
+   gap: 0.4rem;
+   transition: all 0.2s ease;
+ }
+
+.send-button:hover {
+  background-color: #2779bf;
+}
+
+.send-button .send-icon svg {
+  transform: rotate(45deg);
+  transition: transform 0.3s ease;
+}
+
+.send-button:hover .send-icon svg {
+  transform: rotate(15deg) translateX(2px);
+}
+
+.sender-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.sender-input-wrapper textarea {
+  flex: 1;
+  min-height: 2.5rem;
+  max-height: 10rem;
+  height: auto;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  resize: none;
+  overflow-y: auto;
+  transition: all 0.2s ease;
+  background-color: #f9f9f9;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    border-color: #42b983;
+    background-color: #f0fff7;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
+  }
+}
+
+.sender-input-wrapper button {
+  padding: 0.5rem 1rem;
+  background-color: #42b983;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  flex-shrink: 0;
+  min-width: 80px;
+
+  &:hover {
+    border-color: #42b983;
+    color: #1f2d3d;
+    background-color: #f0fff7;
+    box-shadow: 0 0 0 2px rgba(66, 185, 131, 0.2);
+  }
+
+  &:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+}
+</style>
+
+####################################################################################################
+#####  resources\js\Modules\TalkStream\utils\logger.js
+####################################################################################################
+// utils/logger.js
+const logLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR']
+const currentLevel = import.meta.env.VITE_LOG_LEVEL || 'INFO'
+
+function shouldLog(level) {
+    return logLevels.indexOf(level) >= logLevels.indexOf(currentLevel)
+}
+
+export default {
+    debug(...args) {
+        if (shouldLog('DEBUG')) console.debug('[Loader][DEBUG]', ...args)
+    },
+    info(...args) {
+        if (shouldLog('INFO')) console.info('[Loader][INFO]', ...args)
+    },
+    warn(...args) {
+        if (shouldLog('WARN')) console.warn('[Loader][WARN]', ...args)
+    },
+    error(...args) {
+        if (shouldLog('ERROR')) console.error('[Loader][ERROR]', ...args)
+    }
+}
+
+####################################################################################################
+#####  3. BACKEND: контроллеры / события / модели / сервисы
+####################################################################################################
+
+####################################################################################################
+#####  app\Http\Controllers\TalkStream\CallController.php
+####################################################################################################
+<?php
+namespace App\Http\Controllers\TalkStream;
+
+use App\Events\TalkStream\IncomingCall;
+use App\Models\TalkStream\FriendRequest;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use App\Http\Controllers\Controller;
+
+class CallController extends Controller
+{
+    public function startCall(Request $request)
+    {
+
+        $userId = auth()->id();
+
+        $validator = Validator::make($request->all(), [
+            'to_id' => 'required|exists:users,id',
+            'type' => 'in:audio,video'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $to_id = $request->input('to_id');
+
+        if (!FriendRequest::areFriends($userId, $to_id)) {
+            return response()->json(['error' => 'Вы можете звонить только друзьям'], 403);
+        }
+
+        $callData = [
+            'caller_id' => $request->user()->id,
+            'callee_id' => $to_id,
+            'type' => $request->input('type') ?? 'video',
+            'timestamp' => now()->toISOString()
+        ];
+
+        event(new IncomingCall($callData));
+
+        return response()->json(['status' => 'Звонок начат', 'data' => $callData]);
+    }
+
+    public function endCall()
+    {
+        return response()->json(['status' => 'Call ended']);
+    }
+}
+
+####################################################################################################
+#####  app\Http\Controllers\TalkStream\ChatController.php
+####################################################################################################
+<?php
+namespace App\Http\Controllers\TalkStream;
+
+use App\Events\TalkStream\MessageRead;
+use App\Events\TalkStream\NewMessage;
+use App\Http\Controllers\Controller;
+use App\Models\TalkStream\FriendRequest;
+use App\Models\TalkStream\Message;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+
+class ChatController extends Controller
+{
+    public function sendMessage(Request $request)
+    {
+        $userId = auth()->id();
+
+        $validator = Validator::make($request->all(), [
+            'content' => 'required|string',
+            'to_id' => 'required|exists:users,id',
+            'type' => 'sometimes|string|in:text,image,video,audio,file',  // ✅ опционально
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $to_id = $request->input('to_id');
+
+        if (!FriendRequest::areFriends($userId, $to_id)) {
+            return response()->json(['error' => 'Вы можете писать только друзьям'], 403);
+        }
+
+        $message = Message::create([
+            'from_id' => $userId,
+            'to_id' => $to_id,
+            'content' => $request->input('content'),
+            'type' => $request->input('type', 'text'),  // ✅ ЗНАЧЕНИЕ ПО УМОЛЧАНИЮ
+        ]);
+
+        // Загружаем sender для broadcast
+        $message->load('sender:id,name,avatar');
+
+        event(new NewMessage([
+            'id' => $message->id,
+            'from_id' => $message->from_id,
+            'to_id' => $message->to_id,
+            'content' => $message->content,
+            'type' => $message->type,
+            'created_at' => $message->created_at->toISOString(),
+            'sender' => $message->sender,
+        ]));
+
+        return response()->json([
+            'status' => 'Message sent',
+            'data' => $message
+        ]);
+    }
+
+    public function getHistory(Request $request, $userId)
+    {
+        $messages = Message::where(function ($q) use ($request, $userId) {
+            $q->where('from_id', $request->user()->id)->where('to_id', $userId);
+        })
+            ->orWhere(function ($q) use ($request, $userId) {
+                $q->where('from_id', $userId)->where('to_id', $request->user()->id);
+            })
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        return response()->json(['data' => $messages]);
+    }
+
+    public function markAsRead($userReadId)
+    {
+        $userId = auth()->id();
+        Message::where('to_id', $userId)
+            ->where('from_id', $userReadId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        event(new MessageRead([
+            'from_id' => $userReadId,
+            'to_id' => $userId
+        ]));
+
+        return response()->json(['status' => 'ok']);
+    }
+}
+
+####################################################################################################
+#####  app\Http\Controllers\TalkStream\ContactController.php
+####################################################################################################
+<?php
+namespace App\Http\Controllers\TalkStream;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+
+class ContactController extends Controller
+{
+    public function index()
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json(['error' => 'Пользователь не авторизован'], 401);
+        }
+
+        $contacts = User::where('id', '!=', $user->id)
+            ->with(['roles:id,name']) // Подгружаем роли
+            ->get();
+
+        return response()->json(['data' => $contacts]);
+    }
+
+    // Получить одного пользователя
+    public function show($id)
+    {
+        $contact = User::with(['roles'])->findOrFail($id);
+        return response()->json(['data' => $contact]);
+    }
+
+}
+
+####################################################################################################
+#####  app\Http\Controllers\TalkStream\FriendRequestController.php
+####################################################################################################
+<?php
+
+namespace App\Http\Controllers\TalkStream;
+
+use App\Events\TalkStream\FriendRequestSent;
+use App\Events\TalkStream\FriendRequestAccepted;
+use App\Http\Controllers\Controller;
+use App\Models\TalkStream\FriendRequest;
+use App\Models\User;
+use Illuminate\Http\Request;
+
+class FriendRequestController extends Controller
+{
+    // Отправка запроса в друзья
+    public function send(Request $request)
+    {
+        $userId = auth()->id();
+        $data = $request->validate(['friend_id' => 'required|exists:users,id|not_in:' . $userId]);
+        $existing = FriendRequest::where([
+            ['user_id', $userId],
+            ['friend_id', $data['friend_id']]
+        ])->first();
+
+        if ($existing && !$existing->accepted && !$existing->declined) {
+            return response()->json(['message' => 'Запрос уже отправлен'], 409);
+        }
+
+        $req = FriendRequest::create([
+            'user_id' => $userId,
+            'friend_id' => $data['friend_id']
+        ]);
+
+        broadcast(new FriendRequestSent([
+            'user_id' => $userId,
+            'friend_id' => $data['friend_id']
+        ]))->toOthers();
+
+        return response()->json(['message' => 'Запрос отправлен', 'data' => $req], 201);
+    }
+
+    // Принятие запроса
+    public function accept(Request $request, $id)
+    {
+        $req = FriendRequest::findOrFail($id);
+        $userId = auth()->id();
+
+        if ($req->friend_id !== $userId) {
+            return response()->json(['message' => 'Нельзя принять чужой запрос'], 403);
+        }
+
+        $req->update([
+            'accepted' => true,
+            'declined' => null,
+        ]);
+
+        broadcast(new FriendRequestAccepted([
+            'user_id' => $req->user_id,
+            'friend_id' => $userId
+        ]));
+
+        return response()->json(['message' => 'Запрос принят', 'data' => $req]);
+    }
+
+    // Входящие запросы
+    public function incoming()
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['error' => 'User not authenticated'], 401);
+        }
+
+        $requests = FriendRequest::where('friend_id', $userId)
+            ->whereNull('accepted')
+            ->whereNull('declined')
+            ->with([
+                'user:id,name,avatar'
+            ])
+            ->get();
+
+        return response()->json(['data' => $requests]);
+    }
+
+    // для получения исходящих запросов
+    public function sent()
+    {
+        $userId = auth()->id();
+        if (!$userId) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        $requests = FriendRequest::where('user_id', $userId)
+            ->whereNull('accepted')
+            ->whereNull('declined')
+            ->with([
+                'friend:name'
+            ])
+            ->get();
+
+        return response()->json(['data' => $requests]);
+    }
+
+    public function isFriend(Request $request, int $userId)
+    {
+        $currentUserId = auth()->id();
+        if (!$currentUserId) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        return response()->json([
+            'isFriend' => self::areFriends($currentUserId, $userId)
+        ]);
+    }
+    // Список друзей
+    public function friends()
+    {
+        $userId = auth()->id();
+
+        $friends = User::where('id', '!=', $userId)
+            ->where(function ($query) use ($userId) {
+                $query->whereHas('friendRequestsSent', function ($q) use ($userId) {
+                    $q->where('friend_id', $userId)->whereNotNull('accepted');
+                })
+                    ->orWhereHas('friendRequestsReceived', function ($q) use ($userId) {
+                        $q->where('user_id', $userId)->whereNotNull('accepted');
+                    });
+            })
+            ->get();
+
+        return response()->json(['data' => $friends]);
+    }
+}
+
+####################################################################################################
+#####  app\Events\TalkStream\FriendRequestAccepted.php
+####################################################################################################
+<?php
+
+namespace App\Events\TalkStream;
+
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Foundation\Events\Dispatchable;
+
+class FriendRequestAccepted implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets;
+
+    public function __construct(public array $request) {}
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('friends.' . $this->request['user_id']);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'FriendRequestAccepted';
+    }
+}
+
+####################################################################################################
+#####  app\Events\TalkStream\FriendRequestDeclined.php
+####################################################################################################
+<?php
+
+namespace App\Events\TalkStream;
+
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Foundation\Events\Dispatchable;
+
+class FriendRequestDeclined implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets;
+
+    public function __construct(public array $request) {}
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('friends.' . $this->request['user_id']);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'FriendRequestDeclined';
+    }
+}
+
+####################################################################################################
+#####  app\Events\TalkStream\FriendRequestSent.php
+####################################################################################################
+<?php
+
+namespace App\Events\TalkStream;
+
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+
+class FriendRequestSent implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets;
+
+    public function __construct(public array $request) {}
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('friends.' . $this->request['friend_id']);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'FriendRequestSent';
+    }
+}
+
+####################################################################################################
+#####  app\Events\TalkStream\IncomingCall.php
+####################################################################################################
+<?php
+
+namespace App\Events\TalkStream;
+
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\Channel;
+
+class IncomingCall implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets;
+
+    public function __construct(public array $call) {}
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('call.' . $this->call['callee_id']);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'IncomingCall';
+    }
+}
+
+####################################################################################################
+#####  app\Events\TalkStream\MessageRead.php
+####################################################################################################
+<?php
+
+namespace App\Events\TalkStream;
+
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Broadcasting\Channel;
+
+class MessageRead implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets;
+
+    public function __construct(public array $message) {}
+
+    public function broadcastOn(): Channel
+    {
+        return new Channel('chat.read.' . $this->message['from_id']);
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'MessageRead';
+    }
+}
+
+####################################################################################################
+#####  app\Events\TalkStream\NewMessage.php
+####################################################################################################
+<?php
+
+namespace App\Events\TalkStream;
+
+use Illuminate\Broadcasting\PrivateChannel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Broadcasting\InteractsWithSockets;
+
+class NewMessage implements ShouldBroadcast
+{
+    use Dispatchable, InteractsWithSockets;
+
+    public function __construct(public array $message) {}
+
+    public function broadcastOn(): array
+    {
+        return [
+            new PrivateChannel('user.' . $this->message['to_id']),  // клиент слушает 'user.X'
+        ];
+    }
+
+    public function broadcastAs(): string
+    {
+        return 'NewMessage';
+    }
+    public function broadcastWith()
+    {
+        return ['message' => $this->message];
+    }
+}
+
+####################################################################################################
+#####  app\Models\TalkStream\Call.php
+####################################################################################################
+<?php
+namespace App\Models\TalkStream;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+
+class Call extends Model
+{
+    protected $table = 'calls';
+
+    protected $fillable = ['caller_id', 'callee_id', 'type', 'status', 'started_at', 'ended_at'];
+
+    public function caller()
+    {
+        return $this->belongsTo(User::class, 'caller_id');
+    }
+
+    public function callee()
+    {
+        return $this->belongsTo(User::class, 'callee_id');
+    }
+}
+
+####################################################################################################
+#####  app\Models\TalkStream\FriendRequest.php
+####################################################################################################
+<?php
+
+namespace App\Models\TalkStream;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Query\Builder;
+
+class FriendRequest extends Model
+{
+    protected $table = 'friend_requests';
+    public $timestamps = false;
+    protected $fillable = ['user_id', 'friend_id', 'accepted', 'declined'];
+
+    // Кто отправил запрос (пользователь)
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    // Кому был отправлен запрос (друг)
+    public function friend()
+    {
+        return $this->belongsTo(User::class, 'friend_id');
+    }
+
+    public static function areFriends(int $userId, int $friendId): bool
+    {
+        return self::where(function ($query) use ($userId, $friendId) {
+            // Пользователь X отправил запрос Y, и он принят
+            $query->where('user_id', $userId)
+                ->where('friend_id', $friendId)
+                ->where('accepted', true);
+        })->orWhere(function ($query) use ($userId, $friendId) {
+            // Пользователь Y отправил запрос X, и он принят
+            $query->where('user_id', $friendId)
+                ->where('friend_id', $userId)
+                ->where('accepted', true);
+        })->exists();
+    }
+}
+
+####################################################################################################
+#####  app\Models\TalkStream\Message.php
+####################################################################################################
+<?php
+namespace App\Models\TalkStream;
+
+use App\Models\User;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use Carbon\Carbon;
+
+class Message extends Model
+{
+    protected $table = 'messages';
+
+    // ✅ ДОБАВЛЕНО 'type'
+    protected $fillable = ['from_id', 'to_id', 'content', 'type', 'read_at'];
+
+    protected $casts = [
+        'read_at' => 'datetime',
+    ];
+
+    protected $appends = ['formatted_created_at'];
+
+    public function sender()
+    {
+        return $this->belongsTo(User::class, 'from_id');
+    }
+
+    public function receiver()
+    {
+        return $this->belongsTo(User::class, 'to_id');
+    }
+
+    protected function formattedCreatedAt(): Attribute
+    {
+        return Attribute::make(
+            get: function () {
+                if (!$this->created_at) return '';
+
+                $date = Carbon::parse($this->created_at);
+                $now = Carbon::now();
+
+                if ($date->isToday()) {
+                    return $date->format('H:i');
+                } elseif ($date->isYesterday()) {
+                    return 'Вчера в ' . $date->format('H:i');
+                } elseif ($date->isCurrentYear()) {
+                    return $date->format('d M \в H:i');
+                } else {
+                    return $date->format('d.m.Y \в H:i');
+                }
+            }
+        );
+    }
+}
+[SKIP] Каталог отсутствует: \app\Services\TalkStream
+
+####################################################################################################
+#####  4. ИНФРАСТРУКТУРА
+####################################################################################################
+
+####################################################################################################
+#####  routes\channels.php
+####################################################################################################
+<?php
+
+use App\Models\TalkStream\FriendRequest;
+use App\Models\User;
+use Illuminate\Support\Facades\Broadcast;
+
+/*
+|--------------------------------------------------------------------------
+| Broadcast Channels
+|--------------------------------------------------------------------------
+|
+| ПРАВИЛО: В channels.php указываем имена БЕЗ префиксов!
+| Laravel автоматически добавит 'private-' или 'presence-' при проверке.
+|
+| echo.private('user.1') → канал 'private-user.1' → правило 'user.{id}'
+| echo.join('chat')      → канал 'presence-chat'  → правило 'chat'
+|
+*/
+
+// ========================================================================
+// PRIVATE-КАНАЛЫ (Laravel добавит 'private-' автоматически)
+// ========================================================================
+
+// echo.private('user.1') → private-user.1
+Broadcast::channel('user.{id}', function (User $user, int $id) {
+    return (int) $user->id === (int) $id;
+});
+
+// Системный канал модели
+Broadcast::channel('App.Models.User.{id}', function (User $user, int $id) {
+    return (int) $user->id === (int) $id;
+});
+
+// ========================================================================
+// PRESENCE-КАНАЛЫ (Laravel добавит 'presence-' автоматически)
+// ========================================================================
+
+// echo.join('chat') → presence-chat
+Broadcast::channel('chat', function (User $user) {
+    return [
+        'id'   => (int) $user->id,
+        'name' => $user->name ?? 'User',
+    ];
+});
+
+// ========================================================================
+// КАНАЛЫ ЧАТА
+// ========================================================================
+
+// echo.private('chat.1') → private-chat.1
+Broadcast::channel('chat.{userId}', function (User $user, int $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+Broadcast::channel('chat.read.{from_id}', function (User $user, int $from_id) {
+    return (int) $user->id === (int) $from_id;
+});
+
+// ========================================================================
+// КАНАЛЫ ЗАЯВОК В ДРУЗЬЯ
+// ========================================================================
+
+// echo.private('friends.1') → private-friends.1
+Broadcast::channel('friends.{userId}', function (User $user, int $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// ========================================================================
+// КАНАЛЫ ЗВОНКОВ / WebRTC
+// ========================================================================
+
+// echo.private('call.1') → private-call.1
+Broadcast::channel('call.{userId}', function (User $user, int $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// echo.private('signal.1') → private-signal.1
+Broadcast::channel('signal.{userId}', function (User $user, int $userId) {
+    return (int) $user->id === (int) $userId;
+});
+
+// ========================================================================
+// SMART LIGHT
+// ========================================================================
+
+Broadcast::channel('smart-light.device.{deviceId}', function (User $user, string $deviceId) {
+    $device = \App\Models\SmartLight\SmartLightDevice::where('device_id', $deviceId)->first();
+
+    return $device && (
+            (int) $user->id === (int) $device->user_id
+            || $user->can(\App\Models\Acl::PERMISSION_MANAGE_SMART_LIGHT)
+        );
+});
+
+// ========================================================================
+// ТЕСТОВЫЙ
+// ========================================================================
+
+Broadcast::channel('test-channel', function (User $user) {
+    return true;
+});
+
+####################################################################################################
+#####  routes\api.php
+####################################################################################################
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redis;
+
+use App\Models\Acl;
+use App\Http\Controllers\Api\I18nScannerController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\AdminAuthController;
+use App\Http\Controllers\Api\TesterController;
+use App\Http\Controllers\Api\UserTabController;
+use App\Http\Controllers\Api\TemplateController;
+use App\Http\Controllers\Api\ReferenceController;
+use App\Http\Controllers\Api\TableRowController;
+use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\PermissionController;
+use App\Http\Controllers\Api\LogController;
+use App\Http\Controllers\Api\Diagnostics\DiagnosticController;
+use App\Http\Controllers\Api\Entity\MeasurementCategoryController;
+use App\Http\Controllers\Api\Entity\MeasurementUnitController;
+use App\Http\Controllers\Api\Entity\AccessoryController;
+use App\Http\Controllers\Api\Entity\BrandController;
+use App\Http\Controllers\Api\Entity\DeviceTypeController;
+use App\Http\Controllers\TalkStream\ContactController;
+use App\Http\Controllers\TalkStream\ChatController;
+use App\Http\Controllers\TalkStream\CallController;
+use App\Http\Controllers\TalkStream\FriendRequestController;
+use App\Http\Controllers\Video\VideoController;
+use App\Http\Controllers\Api\SmartLight\Core as CoreControllers;
+use App\Http\Controllers\Api\SmartLight\V0 as V0Controllers;
+use App\Http\Controllers\Api\SmartLight\V1 as V1Controllers;
+use App\Http\Controllers\Api\SmartLight\DeviceController;
+use App\Http\Controllers\Api\SmartLight\TypesController;
+use App\Http\Controllers\Api\SmartLight\SettingsController;
+use App\Http\Controllers\Api\SmartLight\TelemetryController;
+use App\Http\Controllers\Api\SmartLight\CommandController;
+use App\Http\Controllers\Api\SmartLight\DeviceSettingsController;
+use App\Http\Middleware\SmartLight\SmartLightDeviceAuth;
+use App\Http\Controllers\Api\SocialMediaLinks\SocialMediaLinkController;
+use App\Http\Controllers\Api\Company\CompanyController;
+use App\Http\Controllers\Api\CompanyContactChannel\ContactChannelController;
+use App\Http\Controllers\Api\Landing\LandingPageController;
+use App\Http\Controllers\Api\Landing\SiteSettingsController;
+use App\Http\Controllers\Api\Training\ExerciseController;
+use App\Http\Controllers\Api\Training\TrainingLogController;
+use App\Http\Controllers\Api\Training\TrainingSettingsController;
+use App\Http\Controllers\Api\Training\TrainingExportController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes — FenixPortal
+|--------------------------------------------------------------------------
+*/
+
+// ============================================================================
+// 1. ПУБЛИЧНЫЕ API (Без авторизации)
+// ============================================================================
+
+Route::get('social-media-links', [SocialMediaLinkController::class, 'index']);
+
+Route::get('/video-files/{filename}', function ($filename) {
+    $path = storage_path('/Videos/videos/' . $filename);
+    if (!file_exists($path)) abort(404);
+    $mimeTypes = [
+        'webm' => 'video/webm',
+        'mp4' => 'video/mp4',
+        'mov' => 'video/quicktime',
+        'avi' => 'video/x-msvideo',
+    ];
+    $extension = pathinfo($filename, PATHINFO_EXTENSION);
+    $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
+    return response()->file($path, ['Content-Type' => $mimeType]);
+});
+
+Route::get('/orders', function () {
+    $rowsNumber = 22;
+    $data = [];
+    for ($rowIndex = 0; $rowIndex < $rowsNumber; $rowIndex++) {
+        $data[] = [
+            'order_no' => 'LARAVUE ' . mt_rand(1000000, 9999999),
+            'price' => mt_rand(10000, 999999),
+            'status' => randomInArray(['success', 'pending', 'error']),
+        ];
+    }
+    return responseSuccess(['items' => $data]);
+});
+
+// ============================================================================
+// 2. АУТЕНТИФИКАЦИЯ (Публичные эндпоинты)
+// ============================================================================
+
+Route::prefix('admin')->group(function () {
+    Route::post('auth/login', [AdminAuthController::class, 'login']);
+});
+
+Route::prefix('tester')->middleware('is_testing')->group(function () {
+    Route::post('login/{role}', [TesterController::class, 'login']);
+});
+
+Route::get('/auth/config', [AuthController::class, 'getConfig']);
+Route::get('/sanctum/csrf-cookie', [AuthController::class, 'csrf']);
+Route::post('auth/login', [AuthController::class, 'login'])->middleware('ip.banned');
+Route::post('/auth/register', [AuthController::class, 'register']);
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+Route::get('/auth/restore/{id}/{hash}', [AuthController::class, 'restoreAccount']);
+Route::match(['get', 'post'], '/auth/verify-email/{id}/{hash}', [AuthController::class, 'verify'])->name('verification.verify');
+
+
+// ============================================================================
+// 3. ПОЛЬЗОВАТЕЛИ (Users)
+// ============================================================================
+
+// 3.1. ПУБЛИЧНЫЕ: Подтверждение смены email (БЕЗ auth:sanctum, БЕЗ user_id)
+// Токен самодостаточен — ищем пользователя через User::where('pending_email_token', $token)
+Route::prefix('users')->group(function () {
+    Route::get('/confirm-old-email/{token}', [UserController::class, 'confirmOldEmail']);
+    Route::get('/confirm-new-email/{token}', [UserController::class, 'confirmNewEmail']);
+});
+
+// 3.2. ЗАЩИЩЕННЫЕ: Действия пользователя со своим аккаунтом
+Route::prefix('users')->middleware('auth:sanctum')->group(function () {
+    Route::post('/me/reverify-email', [UserController::class, 'requestEmailReverification']);
+    Route::post('/{user}/request-email-change', [UserController::class, 'requestEmailChange']);
+});
+
+// 3.3. ЗАЩИЩЕННЫЕ: Административное управление пользователями
+Route::prefix('users')->middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_USER_MANAGE])->group(function () {
+    Route::get('/', [UserController::class, 'index']);
+    Route::post('/', [UserController::class, 'store']);
+    Route::get('/{id}', [UserController::class, 'show']);
+
+    // {user} → {id} для работы с soft-deleted
+    Route::put('/{id}', [UserController::class, 'update']);
+    Route::delete('/{id}', [UserController::class, 'destroy']);
+    Route::post('/{id}/restore', [UserController::class, 'restore']);
+    Route::post('/{id}/ban', [UserController::class, 'ban']);
+    Route::post('/{id}/unban', [UserController::class, 'unban']);
+    Route::get('/{id}/permissions', [UserController::class, 'permissions']);
+    Route::put('/{id}/permissions', [UserController::class, 'updatePermissions']);
+    Route::get('/{id}/logs', [LogController::class, 'index']);
+
+    // Администраторское подтверждение смены email
+    Route::post('/{id}/admin-confirm-old-email', [UserController::class, 'adminConfirmOldEmail']);
+    Route::post('/{id}/admin-confirm-new-email', [UserController::class, 'adminConfirmNewEmail']);
+    Route::post('/{id}/resend-new-email-confirmation', [UserController::class, 'resendNewEmailConfirmation']);
+});
+
+
+// ============================================================================
+// 4. РОЛИ И ПРАВА (Roles & Permissions)
+// ============================================================================
+Route::middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_PERMISSION_MANAGE])->group(function () {
+    Route::apiResource('roles', RoleController::class);
+    Route::apiResource('permissions', PermissionController::class);
+});
+
+
+// ============================================================================
+// 5. СПРАВОЧНИКИ И ВКЛАДКИ (References & Tabs)
+// ============================================================================
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('/user-tabs', UserTabController::class);
+    Route::apiResource('templates', TemplateController::class);
+    Route::apiResource('table-rows', TableRowController::class);
+
+    Route::prefix('references')->group(function () {
+        Route::get('types', [ReferenceController::class, 'getTypes']);
+        Route::get('{modelName}', [ReferenceController::class, 'getData']);
+        Route::get('{modelName}/info', [ReferenceController::class, 'getFieldInfo']);
+    });
+
+    // Проверка и управление своей сессией
+    Route::get('/auth/verification/check', [AuthController::class, 'checkVerification']);
+    Route::post('/auth/verification/resend', [AuthController::class, 'resendVerification']);
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+});
+
+
+// ============================================================================
+// 6. СУЩНОСТИ (Entities)
+// ============================================================================
+Route::prefix('entities')->middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_ENTITY_MANAGE])->group(function () {
+    Route::apiResource('ep_brands', BrandController::class);
+    Route::apiResource('ep_device_types', DeviceTypeController::class);
+    Route::get('ep_measurement_categories/all', [MeasurementCategoryController::class, 'all'])->name('ep_measurement_categories.all');
+    Route::apiResource('ep_measurement_categories', MeasurementCategoryController::class)->only(['index']);
+    Route::apiResource('ep_measurement_units', MeasurementUnitController::class);
+    Route::apiResource('ep_accessories', AccessoryController::class);
+});
+
+
+// ============================================================================
+// 7. TALKSTREAM (Чаты, звонки, друзья)
+// ============================================================================
+Route::prefix('talkstream')->middleware('auth:sanctum')->group(function () {
+    Route::get('/user', [ContactController::class, 'show']);
+    Route::get('/contacts', [ContactController::class, 'index']);
+    Route::get('/contacts/{id}', [ContactController::class, 'show']);
+    Route::post('/send', [ChatController::class, 'sendMessage']);
+    Route::get('/history/{userId}', [ChatController::class, 'getHistory']);
+
+    Route::prefix('call')->group(function () {
+        Route::post('/initiate', [CallController::class, 'initiate']);
+        Route::post('/accept', [CallController::class, 'accept']);
+        Route::post('/decline', [CallController::class, 'decline']);
+        Route::post('/end', [CallController::class, 'end']);
+        Route::post('/start', [CallController::class, 'startCall']);
+        Route::post('/end-call', [CallController::class, 'endCall']); // Исправлен дублирующийся '/end' на '/end-call'
+    });
+
+    Route::prefix('friends')->group(function () {
+        Route::get('/', [FriendRequestController::class, 'friends']);
+        Route::get('/is-friend/{userId}', [FriendRequestController::class, 'isFriend']);
+        Route::get('/incoming', [FriendRequestController::class, 'incoming']);
+        Route::get('/sent', [FriendRequestController::class, 'sent']);
+        Route::post('/send', [FriendRequestController::class, 'send']);
+        Route::post('/accept/{id}', [FriendRequestController::class, 'accept']);
+    });
+});
+
+
+// ============================================================================
+// 8. ВИДЕО (Video)
+// ============================================================================
+// Публичные дубли (как было в оригинале)
+Route::get('/videos', [VideoController::class, 'index']);
+Route::get('/videos/file-list', [VideoController::class, 'getFileList']);
+Route::get('/videos/scan-single', [VideoController::class, 'scanSingleFile']);
+Route::post('/videos/scan-multiple', [VideoController::class, 'scanMultipleFiles']);
+
+// Защищенные (если нужны внутри админки)
+Route::prefix('video')->middleware('auth:sanctum')->group(function () {
+    Route::get('/index', [VideoController::class, 'index']);
+    Route::get('/file-list', [VideoController::class, 'getFileList']);
+    Route::get('/scan-single', [VideoController::class, 'scanSingleFile']);
+    Route::post('/scan-multiple', [VideoController::class, 'scanMultipleFiles']);
+});
+
+
+// ============================================================================
+// 9. SMARTLIGHT API
+// ============================================================================
+Route::prefix('smart-light')->name('smart-light.')->group(function () {
+
+    // Публичная регистрация устройства
+    Route::post('/register', [CoreControllers\CoreDeviceController::class, 'register'])->name('register');
+
+    // Аутентификация самого устройства (а не пользователя)
+    Route::middleware(SmartLightDeviceAuth::class)->group(function () {
+        Route::post('/{device_id}/telemetry', [CoreControllers\CoreTelemetryController::class, 'store'])->name('telemetry.store');
+        Route::get('/{device_id}/telemetry', [CoreControllers\CoreTelemetryController::class, 'index'])->name('telemetry.index');
+        Route::get('/{device_id}/commands', [CoreControllers\CoreCommandController::class, 'getPending'])->name('commands.pending');
+        Route::get('/{device_id}/settings/device-auth', [CoreControllers\CoreDeviceSettingsController::class, 'getForDeviceAuth'])->name('settings.device-auth');
+        Route::get('/{device_id}/settings', [CoreControllers\CoreDeviceController::class, 'getLegacySettings'])->name('settings.legacy')->middleware('deprecated');
+    });
+
+    // Управление устройствами от имени авторизованного пользователя
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::prefix('devices')->name('devices.')->group(function () {
+            Route::get('/', [CoreControllers\CoreDeviceController::class, 'index'])->name('index');
+            Route::get('/dropdown', [CoreControllers\CoreDeviceController::class, 'listForDropdown'])->name('dropdown');
+            Route::get('/{device_id}', [CoreControllers\CoreDeviceController::class, 'show'])->name('show');
+            Route::delete('/{device_id}', [CoreControllers\CoreDeviceController::class, 'destroy'])->name('destroy');
+            Route::get('/{device_id}/ownership', [CoreControllers\CoreDeviceController::class, 'checkOwnership'])->name('ownership');
+            Route::put('/{device_id}/status', [CoreControllers\CoreDeviceController::class, 'updateStatus'])->name('status.update');
+            Route::put('/{device_id}/intensity', [CoreControllers\CoreDeviceController::class, 'updateIntensity'])->name('intensity.update');
+            Route::post('/{device_id}/sleep', [CoreControllers\CoreDeviceController::class, 'forceSleep'])->name('sleep');
+            Route::post('/{device_id}/wake', [CoreControllers\CoreDeviceController::class, 'wakeDevice'])->name('wake');
+            Route::get('/{device_id}/telemetry', [CoreControllers\CoreDeviceController::class, 'getTelemetry'])->name('telemetry');
+            Route::get('/{device_id}/battery', [CoreControllers\CoreDeviceController::class, 'getBatteryStatus'])->name('battery');
+            Route::get('/{device_id}/power', [CoreControllers\CoreDeviceController::class, 'getPowerStatus'])->name('power');
+        });
+
+        Route::prefix('devices/{device_id}/settings')->name('devices.settings.')->group(function () {
+            Route::get('/', [CoreControllers\CoreDeviceSettingsController::class, 'show'])->name('show');
+            Route::put('/', [CoreControllers\CoreDeviceSettingsController::class, 'update'])->name('update');
+            Route::post('/reset', [CoreControllers\CoreDeviceSettingsController::class, 'reset'])->name('reset');
+            Route::get('/defaults', [CoreControllers\CoreDeviceSettingsController::class, 'getDefaults'])->name('defaults');
+        });
+
+        Route::get('/battery-types', [CoreControllers\CoreTypesController::class, 'batteryTypes'])->name('battery-types.index');
+        Route::get('/bulb-types', [CoreControllers\CoreTypesController::class, 'bulbTypes'])->name('bulb-types.index');
+        Route::get('/power-supplies', [CoreControllers\CoreTypesController::class, 'powerSupplies'])->name('power-supplies.index');
+        Route::get('/settings', [CoreControllers\CoreSettingsController::class, 'index'])->name('global-settings.index');
+        Route::post('/settings', [CoreControllers\CoreSettingsController::class, 'update'])->name('global-settings.update');
+        Route::post('/settings/reset', [CoreControllers\CoreSettingsController::class, 'reset'])->name('global-settings.reset');
+
+        Route::prefix('v0')->name('v0.')->group(function () {
+            Route::get('/devices', [V0Controllers\V0DeviceController::class, 'index'])->name('devices.index');
+            Route::get('/devices/{device_id}', [V0Controllers\V0DeviceController::class, 'show'])->name('devices.show');
+            Route::post('/devices/{device_id}/sleep', [V0Controllers\V0CommandController::class, 'sleep'])->name('devices.sleep');
+            Route::post('/devices/{device_id}/wake', [V0Controllers\V0CommandController::class, 'wake'])->name('devices.wake');
+            Route::post('/devices/{device_id}/status', [V0Controllers\V0CommandController::class, 'updateStatus'])->name('devices.status');
+            Route::prefix('/devices/{device_id}/device-settings')->name('device-settings.')->group(function () {
+                Route::get('/', [V0Controllers\V0DeviceSettingsController::class, 'show'])->name('show');
+                Route::put('/', [V0Controllers\V0DeviceSettingsController::class, 'update'])->name('update');
+            });
+        });
+
+        Route::prefix('v1')->name('v1.')->group(function () {
+            Route::apiResource('devices', V1Controllers\V1DeviceController::class)->only(['index', 'show', 'update', 'destroy'])->parameters(['devices' => 'device_id']);
+            Route::post('/devices/{device_id}/commands/sleep', [V1Controllers\V1CommandController::class, 'sleep'])->name('commands.sleep');
+            Route::post('/devices/{device_id}/commands/wake', [V1Controllers\V1CommandController::class, 'wake'])->name('commands.wake');
+            Route::post('/devices/{device_id}/commands/status', [V1Controllers\V1CommandController::class, 'status'])->name('commands.status');
+            Route::apiResource('devices.settings', V1Controllers\V1DeviceSettingsController::class)->only(['show', 'update'])->parameters(['settings' => 'device_id']);
+            Route::apiResource('battery-types', V1Controllers\V1TypesController::class)->only(['index', 'show'])->parameters(['battery-types' => 'battery_type_id']);
+            Route::apiResource('bulb-types', V1Controllers\V1TypesController::class)->only(['index', 'show'])->parameters(['bulb-types' => 'bulb_type_id']);
+            Route::apiResource('power-supplies', V1Controllers\V1TypesController::class)->only(['index', 'show'])->parameters(['power-supplies' => 'power_supply_id']);
+        });
+    });
+});
+
+
+// ============================================================================
+// 10. TRAINING API
+// ============================================================================
+Route::prefix('training')->name('training.')->group(function () {
+    // Публичный список упражнений
+    Route::get('/exercises', [ExerciseController::class, 'index'])->name('exercises.index');
+
+    // Защищенные действия с тренировками
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::prefix('logs')->name('logs.')->group(function () {
+            Route::get('/', [TrainingLogController::class, 'index'])->name('index');
+            Route::post('/', [TrainingLogController::class, 'store'])->name('store');
+            Route::put('/{log}', [TrainingLogController::class, 'update'])->name('update');
+            Route::delete('/{log}', [TrainingLogController::class, 'destroy'])->name('destroy');
+        });
+
+        Route::get('/logs/grouped', [TrainingLogController::class, 'grouped'])->name('logs.grouped');
+
+        Route::prefix('logs/{log}')->name('logs.')->group(function () {
+            Route::post('/restore', [TrainingLogController::class, 'restore'])->name('restore');
+            Route::delete('/force', [TrainingLogController::class, 'forceDelete'])->name('force');
+        });
+
+        Route::prefix('stats')->name('stats.')->group(function () {
+            Route::get('/', [TrainingLogController::class, 'stats'])->name('index');
+            Route::get('/summary', [TrainingLogController::class, 'summary'])->name('summary');
+        });
+
+        Route::prefix('export')->name('export.')->group(function () {
+            Route::get('/csv', [TrainingExportController::class, 'exportCsv'])->name('csv');
+        });
+
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', [TrainingSettingsController::class, 'index'])->name('index');
+            Route::put('/', [TrainingSettingsController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('users')->name('users.')->group(function () {
+            Route::get('/search', function (Request $request, \App\Services\Training\TrainingSettingsService $settingsService) {
+                $search = $request->get('search', '');
+                $minLength = $settingsService->getLimit('search_min_length');
+                if (strlen($search) < $minLength) return response()->json(['success' => true, 'data' => []]);
+
+                $users = \App\Models\User::query()
+                    ->where(fn($q) => $q->where('name', 'LIKE', "%{$search}%")->orWhere('email', 'LIKE', "%{$search}%"))
+                    ->where('id', '!=', auth()->id())
+                    ->limit($settingsService->getLimit('search_results_limit'))
+                    ->get(['id', 'name', 'email']);
+                return response()->json(['success' => true, 'data' => $users]);
+            })->name('search');
+
+            Route::get('/by-ids', function (Request $request, \App\Services\Training\TrainingSettingsService $settingsService) {
+                $ids = array_filter(array_map('intval', explode(',', $request->get('ids', ''))));
+                if (empty($ids)) return response()->json(['success' => true, 'data' => []]);
+
+                $users = \App\Models\User::query()
+                    ->whereIn('id', array_slice($ids, 0, $settingsService->getLimit('max_shared_with')))
+                    ->get(['id', 'name', 'email']);
+                return response()->json(['success' => true, 'data' => $users]);
+            })->name('by-ids');
+
+            Route::get('/{user}/shared', [TrainingLogController::class, 'shared'])->name('shared')->where('user', '[0-9]+');
+        });
+    });
+});
+
+
+// ============================================================================
+// 11. COMPANIES & CHANNELS API
+// ============================================================================
+// Публичные мета-данные и списки
+Route::get('/companies/meta/total', [CompanyController::class, 'count']);
+Route::apiResource('companies', CompanyController::class)->where(['company' => '[0-9]+']);
+Route::get('/channels/meta/total', [ContactChannelController::class, 'count'])->name('api.channels.count');
+Route::get('/channels', [ContactChannelController::class, 'index'])->name('api.channels.index');
+Route::get('/channels/sync', [ContactChannelController::class, 'sync'])->name('api.channels.sync');
+Route::get('/channels/{contactChannel}', [ContactChannelController::class, 'show'])->name('api.channels.show');
+
+// Защищенные действия
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('social-media-links', [SocialMediaLinkController::class, 'store']);
+    Route::put('social-media-links/{id}', [SocialMediaLinkController::class, 'update']);
+    Route::delete('social-media-links/{id}', [SocialMediaLinkController::class, 'destroy']);
+    Route::post('social-media-links/reorder', [SocialMediaLinkController::class, 'reorder']);
+
+    Route::put('/channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.channels.reorder');
+    Route::post('/channels', [ContactChannelController::class, 'store'])->name('api.channels.store');
+    Route::put('/channels/{contactChannel}', [ContactChannelController::class, 'update'])->name('api.channels.update');
+    Route::delete('/channels/{contactChannel}', [ContactChannelController::class, 'destroy'])->name('api.channels.destroy');
+
+    Route::prefix('companies/{company}')->group(function () {
+        Route::get('/contact-channels', [ContactChannelController::class, 'indexByCompany'])->name('api.companies.channels.indexByCompany');
+        Route::post('/contact-channels', [ContactChannelController::class, 'store'])->name('api.companies.channels.store');
+        Route::put('/contact-channels/reorder', [ContactChannelController::class, 'reorder'])->name('api.companies.channels.reorder');
+        Route::get('/contact-channels/{contactChannel}', [ContactChannelController::class, 'show'])->name('api.companies.channels.show');
+        Route::put('/contact-channels/{contactChannel}', [ContactChannelController::class, 'update'])->name('api.companies.channels.update');
+        Route::delete('/contact-channels/{contactChannel}', [ContactChannelController::class, 'destroy'])->name('api.companies.channels.destroy');
+    });
+});
+
+
+// ============================================================================
+// 12. LANDING PAGES API
+// ============================================================================
+Route::prefix('landing')->group(function () {
+    // Публичные страницы
+    Route::get('/public', [LandingPageController::class, 'publicIndex'])->name('api.landing.public.index');
+    Route::get('/public/{slug}', [LandingPageController::class, 'publicShow'])->name('api.landing.public');
+
+    // Административное управление
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::get('/pages/list', [LandingPageController::class, 'listForSelector'])->name('api.landing.pages.list');
+        Route::get('/pages', [LandingPageController::class, 'index'])->name('api.landing.pages.index');
+        Route::get('/pages/{page}', [LandingPageController::class, 'show'])->name('api.landing.pages.show');
+        Route::post('/pages', [LandingPageController::class, 'store'])->name('api.landing.pages.store');
+        Route::put('/pages/{page}', [LandingPageController::class, 'update'])->name('api.landing.pages.update');
+        Route::delete('/pages/{page}', [LandingPageController::class, 'destroy'])->name('api.landing.pages.destroy');
+        Route::post('/pages/{page}/publish', [LandingPageController::class, 'publish'])->name('api.landing.pages.publish');
+
+        Route::prefix('settings')->name('api.landing.settings.')->group(function () {
+            Route::get('/public-mode', [SiteSettingsController::class, 'getPublicMode'])->name('public-mode.get');
+            Route::post('/public-mode', [SiteSettingsController::class, 'updatePublicMode'])->name('public-mode.update');
+            Route::post('/switch/{mode}', [SiteSettingsController::class, 'switchMode'])->name('public-mode.switch')->where('mode', 'maintenance|landing|production|preview');
+            Route::post('/maintenance-html', [SiteSettingsController::class, 'updateMaintenanceHtml'])->name('maintenance-html.update');
+        });
+    });
+});
+
+
+// ============================================================================
+// 13. ОТЛАДОЧНЫЕ МАРШРУТЫ И BROADCASTING
+// ============================================================================
+
+Route::get('/debug/network', function(Request $request) {
+    $dbConnected = false;
+    $redisConnected = false;
+    try { $dbConnected = DB::connection()->getPdo() ? true : false; }
+    catch (\Exception $e) { Log::error("DB Connection Error: " . $e->getMessage()); }
+
+    try { $redisConnected = Redis::connection()->ping() === true; }
+    catch (\Exception $e) { Log::error("Redis Connection Error: " . $e->getMessage()); }
+
+    return response()->json([
+        'client_ip' => $request->ip(),
+        'headers' => $request->headers->all(),
+        'server' => $_SERVER,
+        'connections' => ['database' => $dbConnected, 'redis' => $redisConnected],
+    ]);
+});
+
+
+// ============================================================================
+// 14. I18N SCANNER
+// ============================================================================
+Route::middleware(['auth:sanctum'])->prefix('i18n')->name('i18n.')->group(function () {
+    Route::get('/languages', [I18nScannerController::class, 'getAvailableLanguages'])->name('languages');
+    Route::get('/scan', [I18nScannerController::class, 'scan'])->name('scan')->middleware('throttle:10,1');
+    Route::get('/keys', [I18nScannerController::class, 'getKeys'])->name('keys')->middleware('throttle:30,1');
+    Route::get('/translations/{lang}', [I18nScannerController::class, 'getTranslations'])->name('translations')->middleware('throttle:30,1');
+    Route::get('/validate-paths', [I18nScannerController::class, 'validatePaths'])->name('validate-paths')->middleware('throttle:10,1');
+});
+
+
+// ============================================================================
+// 15. DIAGNOSTICS (админ-панель разработчика; регистрируется только при enabled)
+// ============================================================================
+Route::prefix('diagnostics')
+    ->middleware(['auth:sanctum', 'permission:' . Acl::PERMISSION_DIAGNOSTICS_VIEW])
+    ->name('diagnostics.')
+    ->group(function () {
+        Route::get('/config', [DiagnosticController::class, 'config'])->name('config');
+        Route::get('/{entity}/checks', [DiagnosticController::class, 'checks'])->name('checks');
+        Route::get('/{entity}/inspect', [DiagnosticController::class, 'inspect'])->name('inspect');
+        Route::post('/{entity}/crud', [DiagnosticController::class, 'crud'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('crud');
+        Route::post('/{entity}/simulate', [DiagnosticController::class, 'simulate'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('simulate');
+
+        // Инспектор email
+        Route::post('/email/inspect', [DiagnosticController::class, 'inspectEmail'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('email.inspect');
+
+        // Системные пользователи: список (read) и сброс (write)
+        Route::get('/system-users', [DiagnosticController::class, 'systemUsers'])
+            ->name('system-users');
+        Route::post('/system-users/reset', [DiagnosticController::class, 'resetSystemUsers'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('system-users.reset');
+
+        // P2: CRUD системных пользователей (только is_system=true, write-операции)
+        Route::post('/system-users', [DiagnosticController::class, 'storeSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->name('system-users.store');
+        Route::put('/system-users/{id}', [DiagnosticController::class, 'updateSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.update');
+        Route::delete('/system-users/{id}', [DiagnosticController::class, 'deleteSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.destroy');
+        Route::post('/system-users/{id}/restore', [DiagnosticController::class, 'restoreSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.restore');
+        Route::delete('/system-users/{id}/force', [DiagnosticController::class, 'forceDeleteSystemUser'])
+            ->middleware('permission:' . Acl::PERMISSION_DIAGNOSTICS_MANAGE)
+            ->whereNumber('id')
+            ->name('system-users.forceDestroy');
+    });
+
+####################################################################################################
+#####  app\Providers\BroadcastServiceProvider.php
+####################################################################################################
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\Facades\Broadcast;
+use Illuminate\Support\ServiceProvider;
+
+class BroadcastServiceProvider extends ServiceProvider
+{
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        // ЭТО ГЛАВНОЕ: Laravel сам создаст маршрут /broadcasting/auth
+        // и автоматически применит к нему middleware 'web' (для cookie/сессий)
+        // и 'auth:sanctum' (для проверки пользователя).
+        Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);
+
+        require base_path('routes/channels.php');
+    }
+}
+
+####################################################################################################
+#####  config\broadcasting.php
+####################################################################################################
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Default Broadcaster
+    |--------------------------------------------------------------------------
+    |
+    | This option controls the default broadcaster that will be used by the
+    | framework when an event needs to be broadcast. You may set this to
+    | any of the connections defined in the "connections" array below.
+    |
+    | Supported: "pusher", "ably", "redis", "log", "null"
+    |
+    */
+
+    'default' => env('BROADCAST_DRIVER', 'reverb'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Broadcast Connections
+    |--------------------------------------------------------------------------
+    |
+    | Here you may define all of the broadcast connections that will be used
+    | to broadcast events to other systems or over websockets. Samples of
+    | each available type of connection are provided inside this array.
+    |
+    */
+
+    'connections' => [
+
+        'pusher' => [
+            'driver' => 'pusher',
+            'key' => env('PUSHER_APP_KEY'),
+            'secret' => env('PUSHER_APP_SECRET'),
+            'app_id' => env('PUSHER_APP_ID'),
+            'options' => [
+                'cluster' => env('PUSHER_APP_CLUSTER'),
+                'useTLS' => false,
+            ],
+        ],
+
+        // Добавьте конфигурацию для Reverb:
+        'reverb' => [
+            'driver' => 'reverb',
+            'key' => env('REVERB_APP_KEY'),
+            'secret' => env('REVERB_APP_SECRET'),
+            'app_id' => env('REVERB_APP_ID'),
+            'options' => [
+                'host' => '127.0.0.1',  // PHP стучится в Reverb локально
+                'port' => 8080,         // Порт, который слушает Reverb
+                'scheme' => 'http',     // PHP использует HTTP API (не ws://)
+                'useTLS' => false,
+            ],
+        ],
+
+        'ably' => [
+            'driver' => 'ably',
+            'key' => env('ABLY_KEY'),
+        ],
+
+        'redis' => [
+            'driver' => 'redis',
+            'connection' => 'default',
+        ],
+
+        'log' => [
+            'driver' => 'log',
+        ],
+
+        'null' => [
+            'driver' => 'null',
+        ],
+
+    ],
+
+];
+
+####################################################################################################
+#####  !!! НЕ НАЙДЕН: config\talkstream.php
+####################################################################################################
+
+####################################################################################################
+#####  5. МИГРАЦИИ TALKSTREAM
+####################################################################################################
+
+####################################################################################################
+#####  database\migrations\2025_06_12_044926_create_talk_stream_tables.php
+####################################################################################################
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+class CreateTalkStreamTables extends Migration
+{
+    public function up()
+    {
+        Schema::create('messages', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('from_id');
+            $table->unsignedBigInteger('to_id');
+            $table->text('content');
+            $table->text('type');
+            $table->timestamp('read_at')->nullable();
+            $table->timestamps();
+
+            $table->foreign('from_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('to_id')->references('id')->on('users')->onDelete('cascade');
+        });
+
+        Schema::create('calls', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('caller_id');
+            $table->unsignedBigInteger('callee_id');
+            $table->string('type')->default('video');
+            $table->timestamp('started_at')->nullable();
+            $table->timestamp('ended_at')->nullable();
+            $table->string('status')->default('pending');
+            $table->timestamps();
+
+            $table->foreign('caller_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('callee_id')->references('id')->on('users')->onDelete('cascade');
+        });
+
+        Schema::create('friend_requests', function (Blueprint $table) {
+            $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('friend_id');
+
+            // Nullable поля
+            $table->boolean('accepted')->nullable()->default(null);
+            $table->boolean('declined')->nullable()->default(null);
+
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            $table->foreign('friend_id')->references('id')->on('users')->onDelete('cascade');
+
+            $table->unique(['user_id', 'friend_id']);
+            $table->timestamps();
+        });
+    }
+
+    public function down()
+    {
+        Schema::dropIfExists('friend_requests');
+        Schema::dropIfExists('calls');
+        Schema::dropIfExists('messages');
+    }
+}
+
+####################################################################################################
+#####  6. ПРОВЕРКИ: Requests / Resources / Policies / Config / Services
+####################################################################################################
+[ НЕТ ]  app\Http\Requests\TalkStream
+[ НЕТ ]  app\Http\Resources\TalkStream
+[ ДА ]  app\Policies
+         - SmartLightDevicePolicy.php
+         - UserTabPolicy.php
+[ НЕТ ]  app\Services\TalkStream
+[ НЕТ ]  config\talkstream.php

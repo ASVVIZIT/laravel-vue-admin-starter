@@ -1,0 +1,369 @@
+﻿{
+    "generatedAt":  "2026-10-06 22:35:30",
+    "scriptVersion":  "3.0.0",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots",
+    "secretMode":  "redact",
+    "totals":  {
+                   "filesScanned":  45,
+                   "importRecords":  146,
+                   "directiveUsages":  8,
+                   "loadingKeys":  2,
+                   "registeredDirectives":  3,
+                   "configZones":  7,
+                   "secretFindings":  16,
+                   "risks":  1,
+                   "warnings":  3
+               },
+    "findings":  [
+                     {
+                         "Severity":  "Risk",
+                         "Code":  "ModulesDirectoryCaseMismatch",
+                         "File":  "resources/js/Modules",
+                         "Line":  0,
+                         "Message":  "Actual modules directory is \u0027Modules\u0027, but canonical lowercase target is \u0027modules\u0027.",
+                         "Details":  "Linux/Docker/CentOS/Debian filesystems are case-sensitive. tsconfig/jsconfig point to ./resources/js/modules/."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/Modules/TalkStream/api/talkstream.ts",
+                         "Line":  2,
+                         "Message":  "Relative import \u0027../types\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/Modules/TalkStream/Components/MessageList.vue",
+                         "Line":  8,
+                         "Message":  "Relative import \u0027./MessageItem.vue\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "ExtensionInInternalImport",
+                         "File":  "resources/js/Modules/TalkStream/Talks/Contacts.vue",
+                         "Line":  44,
+                         "Message":  "Import \u0027@modules/TalkStream/Subscriptions/friendshipEventsHandler.js\u0027 contains explicit .ts/.js extension.",
+                         "Details":  "Project rule for internal imports: no .ts/.js extensions in paths."
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "resources/js/Modules/TalkStream/plugins/echoTalkStream.ts",
+                         "Line":  30,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots/TALKSTREAM_PRE_REFACTOR_2026-10-04.txt",
+                         "Line":  1651,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_2026-10-04_18-09-48.txt",
+                         "Line":  1651,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_2026-10-04_18-18-02.txt",
+                         "Line":  1651,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_2026-10-04_22-00-31.txt",
+                         "Line":  1652,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_LATEST.txt",
+                         "Line":  1734,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_1_2026-10-04_22-19-48.txt",
+                         "Line":  1653,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_2_2026-10-04_22-35-48.txt",
+                         "Line":  1714,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_2_Done_2026-10-04_22-40-52.txt",
+                         "Line":  1714,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.1_2026-10-05_01-01-26.txt",
+                         "Line":  2341,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.2_2026-10-05_03-49-19.txt",
+                         "Line":  1765,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.3_2026-10-05_07-23-20.txt",
+                         "Line":  1689,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.4_2026-10-05_10-12-14.txt",
+                         "Line":  1623,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.5_2026-10-05_22-44-46.txt",
+                         "Line":  1641,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.6_2026-10-06_02-16-30.txt",
+                         "Line":  1734,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     },
+                     {
+                         "Severity":  "Medium",
+                         "Code":  "Secret_GENERIC_SECRET_ASSIGNMENT",
+                         "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3_2026-10-04_22-56-50.txt",
+                         "Line":  1715,
+                         "Message":  "Possible secret found: GENERIC_SECRET_ASSIGNMENT.",
+                         "Details":  "Redacted: ********"
+                     }
+                 ],
+    "secretRecords":  [
+                          {
+                              "File":  "resources/js/Modules/TalkStream/plugins/echoTalkStream.ts",
+                              "Line":  30,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots/TALKSTREAM_PRE_REFACTOR_2026-10-04.txt",
+                              "Line":  1651,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_2026-10-04_18-09-48.txt",
+                              "Line":  1651,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_2026-10-04_18-18-02.txt",
+                              "Line":  1651,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_2026-10-04_22-00-31.txt",
+                              "Line":  1652,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_LATEST.txt",
+                              "Line":  1734,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_1_2026-10-04_22-19-48.txt",
+                              "Line":  1653,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_2_2026-10-04_22-35-48.txt",
+                              "Line":  1714,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_2_Done_2026-10-04_22-40-52.txt",
+                              "Line":  1714,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.1_2026-10-05_01-01-26.txt",
+                              "Line":  2341,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.2_2026-10-05_03-49-19.txt",
+                              "Line":  1765,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.3_2026-10-05_07-23-20.txt",
+                              "Line":  1689,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.4_2026-10-05_10-12-14.txt",
+                              "Line":  1623,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.5_2026-10-05_22-44-46.txt",
+                              "Line":  1641,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3.6_2026-10-06_02-16-30.txt",
+                              "Line":  1734,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          },
+                          {
+                              "File":  "tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_3_2026-10-04_22-56-50.txt",
+                              "Line":  1715,
+                              "Name":  "GENERIC_SECRET_ASSIGNMENT",
+                              "Severity":  "Medium",
+                              "Redacted":  "********"
+                          }
+                      ],
+    "extra":  {
+                  "modulesDirectory":  "resources/js/Modules",
+                  "moduleDirectory":  "resources/js/Modules/TalkStream",
+                  "importSummary":  [
+                                        {
+                                            "Name":  "alias-root",
+                                            "Count":  98
+                                        },
+                                        {
+                                            "Name":  "package",
+                                            "Count":  43
+                                        },
+                                        {
+                                            "Name":  "relative",
+                                            "Count":  2
+                                        },
+                                        {
+                                            "Name":  "alias-modules",
+                                            "Count":  2
+                                        },
+                                        {
+                                            "Name":  "other-alias-or-scoped-package",
+                                            "Count":  1
+                                        }
+                                    ],
+                  "directiveSummary":  [
+                                           {
+                                               "Name":  "loading-talkstream|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream|history",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-inline|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|contacts",
+                                               "Count":  1
+                                           }
+                                       ],
+                  "loadingKeySummary":  [
+                                            {
+                                                "Name":  "useLoading|contacts",
+                                                "Count":  1
+                                            },
+                                            {
+                                                "Name":  "useLoading|history",
+                                                "Count":  1
+                                            }
+                                        ],
+                  "registeredDirectives":  [
+                                               "loading-talkstream",
+                                               "loading-talkstream-inline",
+                                               "loading-talkstream-small"
+                                           ],
+                  "configZones":  [
+                                      "callRow",
+                                      "connection",
+                                      "contacts",
+                                      "friends",
+                                      "global",
+                                      "history",
+                                      "sender"
+                                  ]
+              }
+}
