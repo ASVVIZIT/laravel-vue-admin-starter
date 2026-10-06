@@ -55,9 +55,9 @@ moment.locale('ru-ru')
 moment.tz(timeZone)
 
 // ==============================================
-// SECTION 9: Директивы
+// SECTION 9: Директивы модулей (авто-реестр)
 // ==============================================
-import TalkStreamDirective from '@/modules/TalkStream/Directives/Loading/loadingDirective.ts'
+import moduleDirectives from '@plugins/moduleDirectives'
 
 // ==============================================
 // SECTION 10: 🔥 АСИНХРОННАЯ ИНИЦИАЛИЗАЦИЯ
@@ -79,7 +79,7 @@ import TalkStreamDirective from '@/modules/TalkStream/Directives/Loading/loading
     app.use(ElementPlus, { size: 'small' })
     app.use(i18n)
     app.use(router)
-    app.use(TalkStreamDirective)
+    app.use(moduleDirectives)
 
     // 4️⃣ Глобальная регистрация компонентов
     app.component('SvgIcon', SvgIcon)
