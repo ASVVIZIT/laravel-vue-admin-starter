@@ -8,7 +8,7 @@
       <TalkStreamContacts @select="handleSelectContact" />
     </div>
     <div
-        v-loading-talk.history="{ text: 'Загрузка истории...', background: '#ffffffaa' }"
+        v-loading-talkstream.history
         class="talkstream-chat"
         :class="{ 'full-width': isContactsPanelCollapsed }"
     >

@@ -6,7 +6,7 @@
 
     <div
         class="contacts-wrap"
-        v-loading-talk-small.contacts="{ text: 'Загрузка контактов...', background: '#ffffffaa' }"
+        v-loading-talkstream-small.contacts
     >
       <!-- ✅ Рендерим список ТОЛЬКО когда данные дружбы загружены -->
       <ul v-if="friendStore._initialized" class="contact-list">

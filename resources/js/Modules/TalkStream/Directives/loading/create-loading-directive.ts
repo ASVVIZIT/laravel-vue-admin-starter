@@ -9,6 +9,7 @@ import {
 } from 'vue'
 import { getLoadingState } from '@/modules/TalkStream/Composables/useLoading'
 import logger from '@/modules/TalkStream/utils/logger'
+import { loadingConfig, type LoadingZone } from '@/modules/TalkStream/config/loading'
 
 export interface LoadingBindingValue {
     text?: string
@@ -17,58 +18,92 @@ export interface LoadingBindingValue {
 
 export type LoadingDirectiveValue = LoadingBindingValue | string
 
+type Layout = 'overlay' | 'inline'
+
 interface LoaderState {
+    layout: Layout
     key: string
-    container: HTMLDivElement
+    // overlay: абсолютный оверлей-контейнер; inline: инлайн-хост внутри хоста.
+    container?: HTMLDivElement
+    host?: HTMLSpanElement
     vnode: VNode
-    unwatch: () => void
+    unwatch?: () => void
     originalPosition: string
     positionPatched: boolean
     text: string
     background: string
 }
 
-const DEFAULT_TEXT = 'Загрузка...'
-const DEFAULT_BACKGROUND = 'rgba(255, 255, 255, 0.85)'
-
 const registry = new WeakMap<HTMLElement, LoaderState>()
 
 const resolveKey = (binding: DirectiveBinding<LoadingDirectiveValue>): string => {
     const modifiers = Object.keys(binding.modifiers)
+    // Инвариант рукопожатия шаблон->стор: не менять derivation.
     return modifiers[0] || binding.arg || 'global'
 }
 
-const resolveText = (value: LoadingDirectiveValue | undefined): string => {
-    if (!value) return DEFAULT_TEXT
-    if (typeof value === 'string') return value
-    return value.text || DEFAULT_TEXT
+// binding.value имеет приоритет над зоной; пустая строка текста - валидное
+// значение ("без подписи"), поэтому различаем "передано явно" и "отсутствует".
+const pickText = (binding: DirectiveBinding<LoadingDirectiveValue>, zone?: LoadingZone): string => {
+    const v = binding.value
+    if (v && typeof v === 'object' && 'text' in v) return v.text ?? ''
+    if (typeof v === 'string') return v
+    if (zone && zone.text !== undefined) return zone.text
+    return loadingConfig.fallback.text
 }
 
-const resolveBackground = (value: LoadingDirectiveValue | undefined): string => {
-    if (value && typeof value === 'object' && value.background) {
-        return value.background
-    }
-    return DEFAULT_BACKGROUND
+const pickBackground = (binding: DirectiveBinding<LoadingDirectiveValue>, zone?: LoadingZone): string => {
+    const v = binding.value
+    if (v && typeof v === 'object' && 'background' in v) return v.background ?? loadingConfig.fallback.background
+    if (zone && zone.background !== undefined) return zone.background
+    return loadingConfig.fallback.background
 }
 
 export function createLoadingDirective(
     component: Component,
-    logName: string
+    logName: string,
+    variant: string,
+    layout: Layout = 'overlay'
 ): ObjectDirective<HTMLElement, LoadingDirectiveValue> {
     return {
         mounted(el: HTMLElement, binding: DirectiveBinding<LoadingDirectiveValue>) {
             if (registry.has(el)) return
 
             const key = resolveKey(binding)
-            const text = resolveText(binding.value)
-            const background = resolveBackground(binding.value)
+            const zone = loadingConfig.zones[key]
+            const text = pickText(binding, zone)
+            const background = pickBackground(binding, zone)
+            const preset = loadingConfig.variants[variant] ?? loadingConfig.variants.default
 
-            // 🔥 P4c: сохраняем оригинальный inline position и трогаем его
-            // только если элемент реально не имеет позиционирующего контекста.
+            if (layout === 'inline') {
+                // Инлайн не пишет хосту вообще никаких стилей (ни position, ни overflow):
+                // вставляем отдельный span-хост и рендерим индикатор в него.
+                // Видимость сам индикатор гейтит через getLoadingState(key).
+                const host = document.createElement('span')
+                host.className = 'loading-inline-host'
+                el.appendChild(host)
+
+                const vnode = h(component, { target: key, text })
+                render(vnode, host)
+
+                registry.set(el, {
+                    layout,
+                    key,
+                    host,
+                    vnode,
+                    originalPosition: el.style.position,
+                    positionPatched: false,
+                    text,
+                    background
+                })
+                return
+            }
+
+            // Overlay: сохраняем оригинальный inline position и ставим relative
+            // только если вычисленный position реально static.
             const originalPosition = el.style.position
             const computedPosition = window.getComputedStyle(el).position
             const positionPatched = computedPosition === 'static'
-
             if (positionPatched) {
                 el.style.position = 'relative'
             }
@@ -81,7 +116,7 @@ export function createLoadingDirective(
                 left: '0',
                 right: '0',
                 bottom: '0',
-                zIndex: '9999',
+                zIndex: String(preset.overlay.zIndex),
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
@@ -89,31 +124,29 @@ export function createLoadingDirective(
                 pointerEvents: 'none',
                 userSelect: 'none',
                 opacity: '0',
-                transition: 'opacity 0.3s ease',
-                backdropFilter: 'blur(2px)',
-                webkitBackdropFilter: 'blur(2px)',
-                borderRadius: '8px',
-                // 🔥 P0-база: клип скругления на оверлее, не на хосте.
+                transition: `opacity ${preset.overlay.fadeMs}ms ease`,
+                backdropFilter: `blur(${preset.overlay.blur}px)`,
+                webkitBackdropFilter: `blur(${preset.overlay.blur}px)`,
+                borderRadius: `${preset.overlay.radius}px`,
+                // Клип скругления на самом оверлее, не на хосте (иначе глушится скролл).
                 overflow: 'hidden'
             })
-
             el.appendChild(container)
 
             const vnode = h(component, { target: key, text })
             render(vnode, container)
 
-            // 🔥 P3b: без мёртвого if (!container) внутри watch.
             const unwatch = watch(
                 () => getLoadingState(key),
                 (isLoading: boolean) => {
                     container.style.opacity = isLoading ? '1' : '0'
-                    // 🔥 P4b: debug вместо info для частых логов.
                     logger.debug(`[${logName}] ${key}: ${isLoading ? 'показываем' : 'скрываем'}`)
                 },
                 { immediate: true }
             )
 
             registry.set(el, {
+                layout,
                 key,
                 container,
                 vnode,
@@ -129,17 +162,23 @@ export function createLoadingDirective(
             const state = registry.get(el)
             if (!state) return
 
-            const text = resolveText(binding.value)
-            const background = resolveBackground(binding.value)
+            const zone = loadingConfig.zones[state.key]
+            const text = pickText(binding, zone)
+            const background = pickBackground(binding, zone)
+
+            if (state.layout === 'inline') {
+                if (state.text === text) return
+                const vnode = h(component, { target: state.key, text })
+                if (state.host) render(vnode, state.host)
+                state.vnode = vnode
+                state.text = text
+                return
+            }
 
             if (state.text === text && state.background === background) return
-
-            state.container.style.backgroundColor = background
-
-            // 🔥 P2a/P3a: корректный re-render с новыми props.
+            if (state.container) state.container.style.backgroundColor = background
             const vnode = h(component, { target: state.key, text })
-            render(vnode, state.container)
-
+            if (state.container) render(vnode, state.container)
             state.vnode = vnode
             state.text = text
             state.background = background
@@ -149,19 +188,24 @@ export function createLoadingDirective(
             const state = registry.get(el)
             if (!state) return
 
-            state.unwatch()
-            render(null, state.container)
+            if (state.unwatch) state.unwatch()
 
-            // 🔥 P2b: безопасное удаление.
-            if (state.container.parentNode === el) {
-                el.removeChild(state.container)
+            if (state.layout === 'inline') {
+                if (state.host) {
+                    render(null, state.host)
+                    if (state.host.parentNode === el) el.removeChild(state.host)
+                }
+                registry.delete(el)
+                return
             }
 
-            // 🔥 P4c: восстанавливаем position только если сами его ставили.
+            if (state.container) {
+                render(null, state.container)
+                if (state.container.parentNode === el) el.removeChild(state.container)
+            }
             if (state.positionPatched) {
                 el.style.position = state.originalPosition
             }
-
             registry.delete(el)
         }
     }
