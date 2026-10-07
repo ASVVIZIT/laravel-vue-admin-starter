@@ -1,0 +1,86 @@
+﻿{
+    "generatedAt":  "2026-10-07 04:32:43",
+    "scriptVersion":  "1.2.1",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/snapshots",
+    "secretMode":  "off",
+    "totals":  {
+                   "total":  7,
+                   "pass":  7,
+                   "warn":  0,
+                   "fail":  0,
+                   "info":  0,
+                   "risks":  0,
+                   "secretMode":  "off"
+               },
+    "byGroup":  [
+                    {
+                        "Group":  "P2",
+                        "PASS":  7,
+                        "WARN":  0,
+                        "FAIL":  0,
+                        "INFO":  0
+                    }
+                ],
+    "results":  [
+                    {
+                        "Group":  "P2",
+                        "Id":  "P2-LOG",
+                        "Status":  "PASS",
+                        "Target":  "storage/logs/laravel.log",
+                        "Message":  "ignored by: storage/logs/.gitignore:1:*\tstorage/logs/laravel.log",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P2",
+                        "Id":  "P2-VIEW",
+                        "Status":  "PASS",
+                        "Target":  "storage/framework/views/abc.php",
+                        "Message":  "ignored by: storage/framework/views/.gitignore:1:*\tstorage/framework/views/abc.php",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P2",
+                        "Id":  "P2-VID-MP4",
+                        "Status":  "PASS",
+                        "Target":  "storage/Videos/test.mp4",
+                        "Message":  "ignored by: .gitignore:126:/storage/**/*.mp4\tstorage/Videos/test.mp4",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P2",
+                        "Id":  "P2-VID-WEBM",
+                        "Status":  "PASS",
+                        "Target":  "storage/Videos/test.webm",
+                        "Message":  "ignored by: .gitignore:127:/storage/**/*.webm\tstorage/Videos/test.webm",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P2",
+                        "Id":  "P2-VID-MOV",
+                        "Status":  "PASS",
+                        "Target":  "storage/Videos/test.mov",
+                        "Message":  "ignored by: .gitignore:128:/storage/**/*.mov\tstorage/Videos/test.mov",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P2",
+                        "Id":  "P2-VID-KEEP",
+                        "Status":  "PASS",
+                        "Target":  "storage/Videos/.gitkeep",
+                        "Message":  "not ignored (as expected)",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P2",
+                        "Id":  "TRACK-P2",
+                        "Status":  "PASS",
+                        "Target":  "storage runtime/media/keys",
+                        "Message":  "no bad tracked files (9 total in zone)",
+                        "Hint":  ""
+                    }
+                ]
+}

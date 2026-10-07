@@ -1,0 +1,78 @@
+﻿{
+    "generatedAt":  "2026-10-07 04:34:41",
+    "scriptVersion":  "1.2.1",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/snapshots",
+    "secretMode":  "redact",
+    "totals":  {
+                   "total":  6,
+                   "pass":  6,
+                   "warn":  0,
+                   "fail":  0,
+                   "info":  0,
+                   "risks":  0,
+                   "secretMode":  "redact"
+               },
+    "byGroup":  [
+                    {
+                        "Group":  "P1",
+                        "PASS":  6,
+                        "WARN":  0,
+                        "FAIL":  0,
+                        "INFO":  0
+                    }
+                ],
+    "results":  [
+                    {
+                        "Group":  "P1",
+                        "Id":  "P1-BUILD",
+                        "Status":  "PASS",
+                        "Target":  "public/build/assets/app.js",
+                        "Message":  "ignored by: public/.gitignore:1:/build/*\tpublic/build/assets/app.js",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P1",
+                        "Id":  "P1-BUILD-KEEP",
+                        "Status":  "PASS",
+                        "Target":  "public/build/.gitkeep",
+                        "Message":  "not ignored (as expected)",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P1",
+                        "Id":  "P1-HOT",
+                        "Status":  "PASS",
+                        "Target":  "public/hot",
+                        "Message":  "ignored by: .gitignore:57:/public/hot\tpublic/hot",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P1",
+                        "Id":  "P1-STORAGE-LNK",
+                        "Status":  "PASS",
+                        "Target":  "public/storage",
+                        "Message":  "ignored by: .gitignore:60:/public/storage\tpublic/storage",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P1",
+                        "Id":  "P1-CHROME",
+                        "Status":  "PASS",
+                        "Target":  "public/chromedriver.exe",
+                        "Message":  "ignored by: .gitignore:63:/public/chromedriver.exe\tpublic/chromedriver.exe",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P1",
+                        "Id":  "TRACK-P1",
+                        "Status":  "PASS",
+                        "Target":  "public/build non-keep",
+                        "Message":  "no bad tracked files (0 total in zone)",
+                        "Hint":  ""
+                    }
+                ]
+}

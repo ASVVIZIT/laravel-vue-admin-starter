@@ -1,0 +1,70 @@
+﻿{
+    "generatedAt":  "2026-10-07 04:34:34",
+    "scriptVersion":  "1.2.1",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/snapshots",
+    "secretMode":  "redact",
+    "totals":  {
+                   "total":  5,
+                   "pass":  5,
+                   "warn":  0,
+                   "fail":  0,
+                   "info":  0,
+                   "risks":  0,
+                   "secretMode":  "redact"
+               },
+    "byGroup":  [
+                    {
+                        "Group":  "P3",
+                        "PASS":  5,
+                        "WARN":  0,
+                        "FAIL":  0,
+                        "INFO":  0
+                    }
+                ],
+    "results":  [
+                    {
+                        "Group":  "P3",
+                        "Id":  "P3-VITE",
+                        "Status":  "PASS",
+                        "Target":  ".vite/deps/chunk.js",
+                        "Message":  "ignored by: .gitignore:14:/.vite\t.vite/deps/chunk.js",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P3",
+                        "Id":  "P3-TSOUT",
+                        "Status":  "PASS",
+                        "Target":  "ts-out-dir/index.js",
+                        "Message":  "ignored by: .gitignore:23:/ts-out-dir\tts-out-dir/index.js",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P3",
+                        "Id":  "P3-COV",
+                        "Status":  "PASS",
+                        "Target":  "coverage/index.html",
+                        "Message":  "ignored by: .gitignore:43:/coverage\tcoverage/index.html",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P3",
+                        "Id":  "P3-STATS",
+                        "Status":  "PASS",
+                        "Target":  "stats.html",
+                        "Message":  "ignored by: .gitignore:307:/stats.html\tstats.html",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P3",
+                        "Id":  "P3-TSBUILD",
+                        "Status":  "PASS",
+                        "Target":  "foo.tsbuildinfo",
+                        "Message":  "ignored by: .gitignore:26:*.tsbuildinfo\tfoo.tsbuildinfo",
+                        "Hint":  ""
+                    }
+                ]
+}

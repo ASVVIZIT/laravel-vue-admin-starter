@@ -1,0 +1,8 @@
+﻿"Group","Id","Status","Target","Message","Hint"
+"P2","P2-LOG","PASS","storage/logs/laravel.log","ignored by: storage/logs/.gitignore:1:*	storage/logs/laravel.log",""
+"P2","P2-VIEW","PASS","storage/framework/views/abc.php","ignored by: storage/framework/views/.gitignore:1:*	storage/framework/views/abc.php",""
+"P2","P2-VID-MP4","PASS","storage/Videos/test.mp4","ignored by: .gitignore:126:/storage/**/*.mp4	storage/Videos/test.mp4",""
+"P2","P2-VID-WEBM","PASS","storage/Videos/test.webm","ignored by: .gitignore:127:/storage/**/*.webm	storage/Videos/test.webm",""
+"P2","P2-VID-MOV","PASS","storage/Videos/test.mov","ignored by: .gitignore:128:/storage/**/*.mov	storage/Videos/test.mov",""
+"P2","P2-VID-KEEP","PASS","storage/Videos/.gitkeep","not ignored (as expected)",""
+"P2","TRACK-P2","PASS","storage runtime/media/keys","no bad tracked files (9 total in zone)",""

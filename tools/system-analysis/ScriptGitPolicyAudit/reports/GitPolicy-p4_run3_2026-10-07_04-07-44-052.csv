@@ -1,0 +1,4 @@
+﻿"Group","Id","Status","Target","Message","Hint"
+"P4","P4-DS","PASS",".DS_Store","ignored by: .gitignore:265:.DS_Store	.DS_Store",""
+"P4","P4-THUMBS","PASS","Thumbs.db","ignored by: .gitignore:268:Thumbs.db	Thumbs.db",""
+"P4","P4-TMP","PASS","foo.tmp","ignored by: .gitignore:309:*.tmp	foo.tmp",""

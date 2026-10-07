@@ -1,0 +1,6 @@
+﻿"Group","Id","Status","Target","Message","Hint"
+"P3","P3-VITE","PASS",".vite/deps/chunk.js","ignored by: .gitignore:19:/.vite	.vite/deps/chunk.js",""
+"P3","P3-TSOUT","PASS","ts-out-dir/index.js","ignored by: .gitignore:29:/ts-out-dir	ts-out-dir/index.js",""
+"P3","P3-COV","PASS","coverage/index.html","ignored by: .gitignore:49:/coverage	coverage/index.html",""
+"P3","P3-STATS","PASS","stats.html","ignored by: .gitignore:405:/stats.html	stats.html",""
+"P3","P3-TSBUILD","PASS","foo.tsbuildinfo","ignored by: .gitignore:32:*.tsbuildinfo	foo.tsbuildinfo",""

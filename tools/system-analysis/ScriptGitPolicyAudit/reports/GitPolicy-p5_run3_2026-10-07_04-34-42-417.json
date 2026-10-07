@@ -1,0 +1,94 @@
+﻿{
+    "generatedAt":  "2026-10-07 04:34:42",
+    "scriptVersion":  "1.2.1",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/snapshots",
+    "secretMode":  "redact",
+    "totals":  {
+                   "total":  8,
+                   "pass":  7,
+                   "warn":  1,
+                   "fail":  0,
+                   "info":  0,
+                   "risks":  0,
+                   "secretMode":  "redact"
+               },
+    "byGroup":  [
+                    {
+                        "Group":  "P5",
+                        "PASS":  7,
+                        "WARN":  1,
+                        "FAIL":  0,
+                        "INFO":  0
+                    }
+                ],
+    "results":  [
+                    {
+                        "Group":  "P5",
+                        "Id":  "P5-DUMP-CREATE",
+                        "Status":  "PASS",
+                        "Target":  "resources/js/components/SmartLight/dump_create_structure_tree.bat",
+                        "Message":  "ignored by: .gitignore:318:**/dump_create_structure_tree*.bat\tresources/js/components/SmartLight/dump_create_structure_tree.bat",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "P5-DUMP-TREE",
+                        "Status":  "PASS",
+                        "Target":  "resources/js/components/dump_structure_tree.bat",
+                        "Message":  "ignored by: .gitignore:314:**/dump_structure_tree.bat\tresources/js/components/dump_structure_tree.bat",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "P5-TREE-TXT",
+                        "Status":  "PASS",
+                        "Target":  "resources/js/components/project_structure_tree.txt",
+                        "Message":  "ignored by: .gitignore:320:**/project_structure_tree.txt\tresources/js/components/project_structure_tree.txt",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "P5-COLLECTED",
+                        "Status":  "PASS",
+                        "Target":  "collected_dump_with_models_migrations.txt",
+                        "Message":  "ignored by: .gitignore:270:/collected_dump*.txt\tcollected_dump_with_models_migrations.txt",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "P5-UNIVERSAL",
+                        "Status":  "PASS",
+                        "Target":  "universal_dynamic_tables_dump.txt",
+                        "Message":  "ignored by: .gitignore:271:/universal_dynamic_tables_dump.txt\tuniversal_dynamic_tables_dump.txt",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "P5-VERSIONS",
+                        "Status":  "PASS",
+                        "Target":  "versions_before.txt",
+                        "Message":  "ignored by: .gitignore:272:/versions_before.txt\tversions_before.txt",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "TRACK-P5",
+                        "Status":  "PASS",
+                        "Target":  "local/legacy dumps",
+                        "Message":  "no bad tracked files (1486 total in zone)",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P5",
+                        "Id":  "HIST-JUNK",
+                        "Status":  "WARN",
+                        "Target":  "history junk",
+                        "Message":  "junk in history: collected_dump_debug.txt, collected_dump_with_models_migrations.txt, collected_dump_with_tree.txt, collected_dump_with_tree_fixed.txt, universal_dynamic_tables_dump.txt, versions_before.txt",
+                        "Hint":  "acceptable if small; consider history cleanup before public hosting"
+                    }
+                ]
+}

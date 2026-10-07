@@ -1,0 +1,126 @@
+﻿{
+    "generatedAt":  "2026-10-07 04:32:42",
+    "scriptVersion":  "1.2.1",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/snapshots",
+    "secretMode":  "off",
+    "totals":  {
+                   "total":  12,
+                   "pass":  8,
+                   "warn":  0,
+                   "fail":  3,
+                   "info":  1,
+                   "risks":  3,
+                   "secretMode":  "off"
+               },
+    "byGroup":  [
+                    {
+                        "Group":  "P0",
+                        "PASS":  8,
+                        "WARN":  0,
+                        "FAIL":  3,
+                        "INFO":  1
+                    }
+                ],
+    "results":  [
+                    {
+                        "Group":  "P0",
+                        "Id":  "P0-ENV",
+                        "Status":  "PASS",
+                        "Target":  ".env",
+                        "Message":  "ignored by: .gitignore:162:.env\t.env",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "P0-ENV-LOCAL",
+                        "Status":  "PASS",
+                        "Target":  ".env.local",
+                        "Message":  "ignored by: .gitignore:165:.env.*\t.env.local",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "P0-ENV-PROD",
+                        "Status":  "PASS",
+                        "Target":  ".env.production",
+                        "Message":  "ignored by: .gitignore:165:.env.*\t.env.production",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "P0-ENV-TXT",
+                        "Status":  "PASS",
+                        "Target":  ".env.txt",
+                        "Message":  "ignored by: .gitignore:165:.env.*\t.env.txt",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "P0-ENV-EX",
+                        "Status":  "PASS",
+                        "Target":  ".env.example",
+                        "Message":  "not ignored (as expected)",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "P0-KEY-NESTED",
+                        "Status":  "PASS",
+                        "Target":  "storage/nested/private.key",
+                        "Message":  "ignored by: .gitignore:76:/storage/**/*.key\tstorage/nested/private.key",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "TRACK-P0",
+                        "Status":  "FAIL",
+                        "Target":  "env files",
+                        "Message":  "tracked bad files: .env.development, .env.docker, .env.local, .env.production, .env.txt",
+                        "Hint":  "git rm --cached \u003cfile\u003e and ensure ignore rule"
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "SEC-ENV-TRACKED",
+                        "Status":  "FAIL",
+                        "Target":  "tracked .env*",
+                        "Message":  "real .env tracked: .env.development, .env.docker, .env.local, .env.production, .env.txt",
+                        "Hint":  "git rm --cached ; rotate secrets ; clean history"
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "SEC-RAW-TRACKED",
+                        "Status":  "PASS",
+                        "Target":  "tracked raw-secrets_*",
+                        "Message":  "no raw secret sidecars tracked",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "SEC-VALUE-SCAN",
+                        "Status":  "INFO",
+                        "Target":  "secret values",
+                        "Message":  "value scan disabled (SecretMode=off)",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "HIST-ENV",
+                        "Status":  "FAIL",
+                        "Target":  "history .env*",
+                        "Message":  "real .env in history: .env.dev, .env.development, .env.docker, .env.local, .env.production, .env.txt",
+                        "Hint":  "rotate secrets; clean history via git filter-repo / BFG"
+                    },
+                    {
+                        "Group":  "P0",
+                        "Id":  "HIST-RAW",
+                        "Status":  "PASS",
+                        "Target":  "history raw-secrets_*",
+                        "Message":  "no raw secret sidecars in history",
+                        "Hint":  ""
+                    }
+                ]
+}

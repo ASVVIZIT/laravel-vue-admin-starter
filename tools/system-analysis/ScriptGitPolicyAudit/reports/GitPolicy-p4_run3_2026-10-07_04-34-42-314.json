@@ -1,0 +1,54 @@
+﻿{
+    "generatedAt":  "2026-10-07 04:34:42",
+    "scriptVersion":  "1.2.1",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/system-analysis/ScriptGitPolicyAudit/snapshots",
+    "secretMode":  "redact",
+    "totals":  {
+                   "total":  3,
+                   "pass":  3,
+                   "warn":  0,
+                   "fail":  0,
+                   "info":  0,
+                   "risks":  0,
+                   "secretMode":  "redact"
+               },
+    "byGroup":  [
+                    {
+                        "Group":  "P4",
+                        "PASS":  3,
+                        "WARN":  0,
+                        "FAIL":  0,
+                        "INFO":  0
+                    }
+                ],
+    "results":  [
+                    {
+                        "Group":  "P4",
+                        "Id":  "P4-DS",
+                        "Status":  "PASS",
+                        "Target":  ".DS_Store",
+                        "Message":  "ignored by: .gitignore:212:.DS_Store\t.DS_Store",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P4",
+                        "Id":  "P4-THUMBS",
+                        "Status":  "PASS",
+                        "Target":  "Thumbs.db",
+                        "Message":  "ignored by: .gitignore:213:Thumbs.db\tThumbs.db",
+                        "Hint":  ""
+                    },
+                    {
+                        "Group":  "P4",
+                        "Id":  "P4-TMP",
+                        "Status":  "PASS",
+                        "Target":  "foo.tmp",
+                        "Message":  "ignored by: .gitignore:231:*.tmp\tfoo.tmp",
+                        "Hint":  ""
+                    }
+                ]
+}
