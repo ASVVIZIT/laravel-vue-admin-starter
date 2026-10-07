@@ -1,12 +1,14 @@
 <template>
   <div class="talkstream-container">
     <ConnectionStatus />
+
     <div
         class="contacts-wrapper"
         :class="{ 'collapsed': isContactsPanelCollapsed }"
     >
       <TalkStreamContacts @select="handleSelectContact" />
     </div>
+
     <div
         v-loading-talkstream.history
         class="talkstream-chat"
@@ -16,6 +18,7 @@
           :contact="selectedContact"
           :is-online="contactStore.isOnline(selectedContact?.id)"
       />
+
       <TalkStreamHistory
           ref="historyRef"
           v-if="selectedContact"
@@ -24,6 +27,7 @@
           :messages="messages"
           :is-online="contactStore.isOnline(selectedContact.id)"
       />
+
       <TalkStreamSender
           v-if="selectedContact"
           :contact="selectedContact"
@@ -35,7 +39,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRouter } from 'vue-router'
+
 import { useUiStore } from '@/modules/TalkStream/Stores/uiStore'
 import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
@@ -43,14 +47,15 @@ import { useChatStore } from '@/modules/TalkStream/Stores/chatStore'
 import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import { userStore } from '@/store/userStore'
 import { useLoading } from '@/modules/TalkStream/Composables/useLoading'
+
 import type { Contact, Message } from '@/modules/TalkStream/types'
+
 import ConnectionStatus from '@/modules/TalkStream/Components/ConnectionStatus.vue'
 import TalkStreamContacts from '@/modules/TalkStream/Talks/TalkStreamContacts.vue'
 import TalkStreamHeader from '@/modules/TalkStream/Talks/TalkStreamHeader.vue'
 import TalkStreamHistory from '@/modules/TalkStream/Talks/TalkStreamHistory.vue'
 import TalkStreamSender from '@/modules/TalkStream/Talks/TalkStreamSender.vue'
 
-const router = useRouter()
 const uiStore = useUiStore()
 const chatStore = useChatStore()
 const contactStore = useContactStore()
@@ -64,31 +69,66 @@ const historyRef = ref<any | null>(null)
 const messages = computed<Message[]>(() => chatStore.messages)
 const isContactsPanelCollapsed = computed<boolean>(() => uiStore.isContactsPanelCollapsed)
 
+// Зоны загрузки.
+// contacts - список контактов + дружба + userFrom.
+// history  - загрузка истории выбранного чата.
+// sender   - отправка сообщения.
 const { withLoading: withContactsLoading } = useLoading('contacts')
 const { withLoading: withHistoryChatLoading } = useLoading('history')
 
+const senderLoading = useLoading('sender')
+const senderPending = ref<number>(0)
+
+/**
+ * Безопасная обёртка для зоны sender.
+ *
+ * Нужна, чтобы можно было быстро кидать тестовые сообщения Enter'ом,
+ * не блокируя ввод и не ломая лоадер при параллельных отправках.
+ *
+ * Лоадер скрывается только когда все текущие отправки завершились.
+ */
+const runSenderTask = async (task: () => Promise<unknown>): Promise<void> => {
+  senderPending.value = senderPending.value + 1
+  senderLoading.setLoading(true)
+
+  try {
+    await task()
+  } finally {
+    senderPending.value = Math.max(0, senderPending.value - 1)
+
+    if (senderPending.value === 0) {
+      senderLoading.setLoading(false)
+    }
+  }
+}
+
 const handleSelectContact = async (contact: Contact) => {
   if (!contact) return
+
   selectedContact.value = contact
   localStorage.setItem('last-selected-contact', String(contact.id))
   contactStore.selectContact(contact)
+
   if (selectedContact.value) {
+    // История выбираемого контакта всегда идёт через зону history.
     await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
   }
 }
 
-// Удалено ручное создание tempMessage с положительным ID.
-// Теперь за оптимистичное обновление отвечает ТОЛЬКО chatStore.sendMessage,
-// который создает сообщение с отрицательным ID и сам его заменяет/удаляет.
+/**
+ * Отправка сообщения.
+ *
+ * Специально без защиты от двойной отправки:
+ * сейчас это тестовый режим, нужно быстро лепить сообщения.
+ * Анти-спам / debounce / блокировку повторной отправки вернём позже.
+ */
 const handleSendMessage = async (data: { content: string, to_id: number }) => {
   if (!selectedContact.value) return
 
   try {
-    // chatStore.sendMessage сам создаст локальное сообщение, покажет его,
-    // отправит на сервер и заменит на реальное при успехе.
-    await chatStore.sendMessage(data.to_id, data.content)
+    await runSenderTask(() => chatStore.sendMessage(data.to_id, data.content))
 
-    // Скроллим вниз после добавления сообщения в стор
+    // Скроллим вниз после добавления сообщения в стор.
     historyRef.value?.scrollToBottom()
   } catch (e) {
     console.error('[TalkStream] Ошибка отправки:', e)
@@ -111,19 +151,27 @@ onMounted(async () => {
     talkStreamStore.initWebSockets()
   }
 
-  if (!contactStore.contacts.length) {
-    await withContactsLoading(() => contactStore.loadContacts())
-  }
+  // Единая точка начальной загрузки контактов/дружбы/userFrom.
+  // Это убирает гонку с TalkStreamContacts, где раньше loadContacts вызывался без спиннера.
+  await withContactsLoading(async () => {
+    if (!contactStore.contacts.length) {
+      await contactStore.loadContacts()
+    }
 
-  // Загружаем userFrom после загрузки контактов
-  await contactStore.refreshUserFrom()
+    if (!friendStore._initialized) {
+      await friendStore.init()
+    }
 
+    await contactStore.refreshUserFrom()
+  })
+
+  // Восстановление последнего открытого чата тоже должно показывать history-лоадер.
   const lastContactId = localStorage.getItem('last-selected-contact')
   if (lastContactId && contactStore.contacts.length > 0) {
     const contact = contactStore.contacts.find(c => c.id === Number(lastContactId))
     if (contact) {
       selectedContact.value = contact
-      chatStore.loadHistory(contact.id)
+      await withHistoryChatLoading(() => chatStore.loadHistory(contact.id))
     }
   }
 })

@@ -2,25 +2,43 @@
   <form class="talkstream-sender" @submit.prevent="send">
     <div class="sender-input-wrapper">
       <textarea
+          ref="textarea"
           v-model="message"
           @input="adjustHeight"
-          @keydown.enter="handleEnter"
+          @keydown="handleKeydown"
           placeholder="Введите сообщение..."
-          ref="textarea"
           :rows="rows"
+          autofocus
       />
-      <button type="submit" :disabled="!message.trim()">
-        <SendPlaneIcon />
-      </button>
+
+      <!--
+        Лоадер вешаем НЕ на сам button, а на обёртку.
+        Иначе директива может вставлять свой inline-хост внутрь кнопки
+        и ломать фокус / сабмит / поведение textarea.
+      -->
+      <div
+          class="sender-button-wrap"
+          v-loading-talkstream-inline.sender
+      >
+        <button
+            type="submit"
+            :disabled="!message.trim()"
+        >
+          <SendPlaneIcon />
+        </button>
+      </div>
     </div>
   </form>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick, onMounted, watch } from 'vue'
+
 import SendPlaneIcon from '@/modules/TalkStream/Components/Icons/SendPlaneIcon.vue'
 
 // ✅ Строгая типизация Props
+// Поле ввода специально не блокируется пропом sending:
+// сейчас тестовый режим, нужно быстро вставлять и отправлять сообщения.
 const props = defineProps<{
   contact: {
     id: number
@@ -37,6 +55,12 @@ const textarea = ref<HTMLTextAreaElement | null>(null)
 const rows = ref<number>(3)
 const MAX_ROWS = 6
 
+function focusInput(): void {
+  nextTick(() => {
+    textarea.value?.focus()
+  })
+}
+
 function adjustHeight(): void {
   const el = textarea.value
   if (!el) return
@@ -45,24 +69,69 @@ function adjustHeight(): void {
   el.style.height = `${Math.min(el.scrollHeight / 16, MAX_ROWS)}rem`
 }
 
-function handleEnter(e: KeyboardEvent): void {
-  if (e.shiftKey || e.ctrlKey || e.metaKey) return
+/**
+ * Enter отправляет сообщение, если поле в фокусе.
+ *
+ * Перенос строки оставляем для:
+ *   Shift + Enter
+ *   Ctrl + Enter
+ *   Meta + Enter
+ *   Alt + Enter
+ *
+ * Также не отправляем во время IME-композиции, чтобы китайский/японский/другой
+ * ввод не дёргал сабмит до подтверждения символа.
+ */
+function handleKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Enter') {
+    return
+  }
 
-  e.preventDefault()
+  if (
+      event.shiftKey ||
+      event.ctrlKey ||
+      event.metaKey ||
+      event.altKey ||
+      event.isComposing
+  ) {
+    return
+  }
+
+  event.preventDefault()
   send()
 }
 
 function send(): void {
-  if (!message.value.trim()) return
+  const text = message.value.trim()
+
+  if (!text) {
+    return
+  }
 
   emit('send', {
-    content: message.value,
+    content: text,
     to_id: props.contact.id
   })
 
   message.value = ''
-  adjustHeight()
+
+  nextTick(() => {
+    adjustHeight()
+    focusInput()
+  })
 }
+
+onMounted(() => {
+  focusInput()
+  adjustHeight()
+})
+
+// При смене контакта тоже возвращаем фокус в поле ввода.
+watch(
+    () => props.contact?.id,
+    () => {
+      focusInput()
+    }
+)
 </script>
 
 <style lang="scss" scoped>
@@ -105,6 +174,15 @@ function send(): void {
   }
 }
 
+.sender-button-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
 .sender-input-wrapper button {
   padding: 0.5rem 1rem;
   background-color: #42b983;
@@ -116,6 +194,11 @@ function send(): void {
   transition: background-color 0.2s ease;
   flex-shrink: 0;
   min-width: 80px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
 
   &:hover {
     border-color: #42b983;

@@ -1,5 +1,7 @@
+<!-- resources/js/modules/TalkStream/Components/UI/Loading/LoadingIndicator.vue -->
+
 <template>
-  <div v-show="visible" class="loading-indicator">
+  <div v-show="isVisible" class="loading-indicator">
     <div class="spinner"></div>
     <div class="loading-text">{{ text }}</div>
   </div>
@@ -18,12 +20,24 @@ const props = defineProps({
   text: {
     type: String,
     default: 'Загрузка...'
+  },
+  manual: {
+    type: Boolean,
+    default: false
+  },
+  visible: {
+    type: Boolean,
+    default: false
   }
 })
 
-const visible = computed(() => {
-  const state = getLoadingState(props.target)
+const isVisible = computed(() => {
+  const state = props.manual
+      ? Boolean(props.visible)
+      : getLoadingState(props.target)
+
   logger.debug(`[LoadingIndicator] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+
   return state
 })
 
@@ -66,5 +80,4 @@ onMounted(() => {
     transform: rotate(360deg);
   }
 }
-
 </style>

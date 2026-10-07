@@ -1,6 +1,8 @@
+<!-- resources/js/modules/TalkStream/Components/UI/Loading/LoadingIndicatorInline.vue -->
+
 <template>
   <transition name="lt-fade">
-    <span v-show="visible" class="lt-inline" :style="cssVars">
+    <span v-show="isVisible" class="lt-inline" :style="cssVars">
       <span class="lt-inline-spinner"></span>
       <span v-if="text" class="lt-inline-text">{{ text }}</span>
     </span>
@@ -14,13 +16,31 @@ import logger from '@/modules/TalkStream/utils/logger'
 import { loadingConfig } from '@/modules/TalkStream/config/loading'
 
 const props = defineProps({
-  target: { type: String, default: 'global' },
-  text: { type: String, default: '' }
+  target: {
+    type: String,
+    default: 'global'
+  },
+  text: {
+    type: String,
+    default: ''
+  },
+  manual: {
+    type: Boolean,
+    default: false
+  },
+  visible: {
+    type: Boolean,
+    default: false
+  }
 })
 
-const visible = computed(() => {
-  const state = getLoadingState(props.target)
+const isVisible = computed(() => {
+  const state = props.manual
+      ? Boolean(props.visible)
+      : getLoadingState(props.target)
+
   logger.debug(`[LoadingIndicatorInline] ${props.target}: ${state ? 'показываем' : 'скрываем'}`)
+
   return state
 })
 
@@ -42,6 +62,7 @@ const visible = computed(() => {
 const cssVars = computed(() => {
   const sp = loadingConfig.variants.inline.spinner
   const placement = loadingConfig.variants.inline.labelPlacement
+
   return {
     '--lt-size': `${sp.size ?? 16}px`,
     '--lt-border': `${sp.border ?? 2}px`,
@@ -82,7 +103,9 @@ const cssVars = computed(() => {
 }
 
 @keyframes lt-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .lt-fade-enter-active,

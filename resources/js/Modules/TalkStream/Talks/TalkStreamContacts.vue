@@ -29,7 +29,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed } from 'vue'
 import { useContactStore } from '@/modules/TalkStream/Stores/contactStore'
 import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem.vue'
@@ -65,18 +65,6 @@ async function handleAcceptRequest(contact: Contact): Promise<void> {
     await friendStore.acceptRequest(req.id)
   }
 }
-
-onMounted(async () => {
-  // ✅ Загружаем контакты
-  if (contactStore.contacts.length === 0) {
-    await contactStore.loadContacts()
-  }
-
-  // ✅ Инициализируем данные дружбы (1 раз, даже при перезагрузке)
-  if (!friendStore._initialized) {
-    await friendStore.init()
-  }
-})
 </script>
 
 <style scoped lang="scss">

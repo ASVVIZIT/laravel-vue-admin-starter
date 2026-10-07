@@ -1,7 +1,10 @@
-import { type App } from 'vue'
-import loadingTalkStream from '@/modules/TalkStream/Directives/Loading/v-loading-talkstream'
-import loadingTalkStreamSmall from '@/modules/TalkStream/Directives/Loading/v-loading-talkstream-small'
-import loadingTalkStreamInline from '@/modules/TalkStream/Directives/Loading/v-loading-talkstream-inline'
+// resources/js/modules/TalkStream/Directives/Loading/loadingDirective.ts
+
+import type { App } from 'vue'
+
+import loadingTalkStream from './v-loading-talkstream'
+import loadingTalkStreamSmall from './v-loading-talkstream-small'
+import loadingTalkStreamInline from './v-loading-talkstream-inline'
 
 export default {
     install(app: App): void {
