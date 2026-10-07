@@ -1,42 +1,50 @@
+// resources/js/plugins/moduleDirectives.ts
+
 import type { App, Plugin } from 'vue'
 
-// Автоматический реестр директивных плагинов модулей.
-//
-// Соглашение: любой файл вида:
-//   resources/js/modules/<Module>/Directives/**/*Directive.ts
-// экспортирует default Vue-plugin (объект с install(app) или функция),
-// который регистрирует свои директивы через app.directive(...).
-//
-// Примеры, которые подхватятся сейчас и в будущем:
-//   modules/TalkStream/Directives/Loading/loadingDirective.ts
-//   modules/TalkStream/Directives/Tooltip/tooltipDirective.ts
-//   modules/<Other>/Directives/Clipboard/clipboardDirective.ts
-//
-// Правила, чтобы реестр не ловил мусор:
-// - файлы-реестры заканчиваются ровно на "Directive.ts" (заглавная D);
-// - вспомогательные файлы НЕ называются *Directive.ts, поэтому не подхватятся:
-//   create-loading-directive.ts, v-loading-talkstream.ts и т.п. — мимо;
-// - если чужой модуль случайно положит сюда не-плагин, isPlugin() его
-//   отфильтрует и в DEV выдаст warn, а не уронит установку.
-//
-// Ограничение, которое надо принять: eager:true статически включает все
-// совпавшие реестры в бандл. Поэтому в *Directive.ts допускается только
-// лёгкий registration-код (app.directive(...)). Нельзя класть на верхний
-// уровень тяжёлые вычисления, обращения к API, инициализацию сторов до
-// app.use(pinia) или побочные эффекты, которые должны выполняться по запросу.
-//
-// Важно про glob:
-// - import.meta.glob не использует алиасы @/, @modules, @/modules из
-//   tsconfig.json, jsconfig.json или vite.config.mts;
-// - паттерн обязан быть относительным от этого файла или абсолютным от корня;
-// - поэтому здесь используется ../modules, а не @/modules;
-// - регистр "../modules" обязан совпадать с реальным регистром папки на диске;
-// - если discovered в DEV пустой, проверь Get-ChildItem resources\js -Directory.
+type UnknownRecord = Record<string, unknown>
 
-const directivePlugins = import.meta.glob(
+/**
+ * Автоматический реестр директивных плагинов модулей.
+ *
+ * Соглашение:*/
+//   resources/js/modules/<Module>/Directives/**/*Directive.ts
+/**
+* Каждый такой файл должен экспортировать default Vue-plugin:
+*   export default {
+    *     install(app: App) {
+    *       app.directive('...', directive)
+        *     }
+    *   }
+*
+* Важно:
+* - сами директивы лучше называть:
+    *     v-loading-talkstream.ts
+*     v-loading-talkstream-small.ts
+*     v-loading-talkstream-inline.ts
+* - фабрику лучше называть:
+    *     create-loading-directive.ts
+* - автозагрузчик должен подхватывать только файлы, заканчивающиеся на:
+    *     Directive.ts
+*
+* Это нужно, чтобы в бандл не летели вспомогательные файлы.
+*/
+
+const lowerPlugins = import.meta.glob(
     '../modules/*/Directives/**/*Directive.ts',
-    { eager: true, import: 'default' }
-) as Record<string, unknown>
+    {
+        eager: true,
+        import: 'default',
+    },
+) as UnknownRecord
+
+const upperPlugins = import.meta.glob(
+    '../Modules/*/Directives/**/*Directive.ts',
+    {
+        eager: true,
+        import: 'default',
+    },
+) as UnknownRecord
 
 function isPlugin(value: unknown): value is Plugin {
     if (typeof value === 'function') {
@@ -51,34 +59,66 @@ function isPlugin(value: unknown): value is Plugin {
     )
 }
 
+const merged = new Map<string, { path: string; value: unknown }>()
+
+for (const [path, value] of [
+    ...Object.entries(lowerPlugins),
+    ...Object.entries(upperPlugins),
+]) {
+    const key = path.toLowerCase()
+
+    if (!merged.has(key)) {
+        merged.set(key, { path, value })
+    }
+}
+
+const entries = [...merged.values()].sort((a, b) =>
+    a.path.localeCompare(b.path),
+)
+
 export default {
     install(app: App): void {
-        const entries = Object.entries(directivePlugins).sort((a, b) =>
-            a[0].localeCompare(b[0])
-        )
-
-        const paths = entries.map(([path]) => path)
-
-        if (import.meta.env.DEV) {
-            console.info('[moduleDirectives] discovered:', paths)
-        }
-
-        if (paths.length === 0) {
+        if (entries.length === 0) {
             console.warn(
                 '[moduleDirectives] glob не нашёл ни одного *Directive.ts — ' +
-                'проверь регистр папки modules и структуру modules/<Module>/Directives/**/*Directive.ts'
+                'проверь структуру: modules/<Module>/Directives/**/*Directive.ts',
             )
+
+            return
         }
 
-        for (const [path, value] of entries) {
+        const installedPlugins = new Set<Plugin>()
+
+        for (const { path, value } of entries) {
             if (!isPlugin(value)) {
                 if (import.meta.env.DEV) {
                     console.warn(`[moduleDirectives] skipped non-plugin: ${path}`)
                 }
+
                 continue
             }
 
-            app.use(value)
+            if (installedPlugins.has(value)) {
+                continue
+            }
+
+            installedPlugins.add(value)
+
+            try {
+                app.use(value)
+
+                if (import.meta.env.DEV) {
+                    console.info(`[moduleDirectives] installed: ${path}`)
+                }
+            } catch (error) {
+                console.error(`[moduleDirectives] failed to install: ${path}`, error)
+            }
         }
-    }
+
+        if (import.meta.env.DEV) {
+            console.info(
+                `[moduleDirectives] total plugin candidates: ${entries.length}`,
+            )
+        }
+    },
 }
