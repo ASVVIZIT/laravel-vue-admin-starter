@@ -1,48 +1,414 @@
+# ==============================================================================
+# FenixPortal global .gitignore
+# Patched for GitPolicy audit v1.2.1
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# NODE / FRONTEND DEPENDENCIES AND BUILD CACHES
+# ------------------------------------------------------------------------------
+
+# Каталог npm-зависимостей. Никогда не коммитится.
 /node_modules
+
+# Кэш Vite в корне проекта.
+/.vite
+
+# Кэш Vite внутри node_modules.
+/node_modules/.vite
+
+# Кэш ESLint.
+/.eslintcache
+
+# Выходная папка TypeScript из tsconfig.json.
+/ts-out-dir
+
+# Инкрементальные кэш-файлы TypeScript.
+*.tsbuildinfo
+
+# Кэш Laravel Pint.
+/.pint.cache
+
+
+# ------------------------------------------------------------------------------
+# PHP TESTS / COVERAGE
+# ------------------------------------------------------------------------------
+
+# Кэш PHPUnit.
+/.phpunit.result.cache
+
+# Новый кэш PHPUnit.
+/.phpunit.cache
+
+# Папка отчётов покрытия.
+/coverage
+
+
+# ------------------------------------------------------------------------------
+# LARAVEL PUBLIC BUILD OUTPUT
+# ------------------------------------------------------------------------------
+
+# Содержимое Vite-сборки в public/build.
+/public/build/*
+
+# Placeholder, чтобы папка public/build существовала в репозитории.
+!/public/build/.gitkeep
+
+# Файл hot от Vite dev server.
 /public/hot
+
+# Симлинк public/storage.
 /public/storage
-/storage/*.key
-/vendor
-.env
-.env.backup
-.phpunit.result.cache
-supervisor/
-supervisor/*
-docker
-docker/*
-docker-compose.dev.yml
-docker-compose.override.yml
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/.idea
-/.vscode
-package-lock.json
-composer.lock
-/.env
-/types/
-/types/*
-*structure*
-/composer-old.lock
-/vite.config.mts.*
-/storage/Videos/
+
+# ChromeDriver для локальных Panther/Selenium-тестов.
 /public/chromedriver.exe
 /public/chromedriver_32.exe
 /public/chromedriver_64.exe
-/panther-test.php
-/dynamic_tables_dump.txt
-/dump_project.bat
-/project_dump_v2.bat
-/project_dump.txt
-/project_dump_dynamic_table_v2.bat
-/dynamic_tables_dump_simple.txt
-/dynamic_tables_dump_fast.txt
+
+
+# ------------------------------------------------------------------------------
+# LARAVEL STORAGE RUNTIME
+# ------------------------------------------------------------------------------
+
+# Ключи Laravel storage в корне storage.
+/storage/*.key
+
+# Вложенные приватные ключи внутри storage.
+/storage/**/*.key
+
+# Логи Laravel.
+/storage/logs/*
+!/storage/logs/.gitkeep
+
+# Всё содержимое storage/app, кроме явно разрешённых placeholder-файлов.
+/storage/app/*
+!/storage/app/.gitkeep
+
+# Разрешаем саму директорию storage/app/public.
+!/storage/app/public/
+
+# Содержимое публичного диска storage/app/public.
+/storage/app/public/*
+!/storage/app/public/.gitkeep
+
+# Кэш framework.
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+
+# Разрешаем вложенную директорию data.
+!/storage/framework/cache/data/
+
+# Данные кэша framework.
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitkeep
+
+# Сессии Laravel.
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+
+# Скомпилированные Blade-шаблоны.
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+
+# Временные данные тестов Laravel framework.
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+
+
+# ------------------------------------------------------------------------------
+# USER MEDIA / CUSTOM STORAGE DISKS
+# ------------------------------------------------------------------------------
+
+# Custom video storage used by the Video module / ffprobe scanner.
+/storage/Videos/*
+!/storage/Videos/.gitkeep
+
+# Any media binaries anywhere under storage/ are never tracked.
+/storage/**/*.mp4
+/storage/**/*.webm
+/storage/**/*.mov
+/storage/**/*.avi
+/storage/**/*.mkv
+/storage/**/*.mp3
+/storage/**/*.wav
+/storage/**/*.jpg
+/storage/**/*.jpeg
+/storage/**/*.png
+/storage/**/*.gif
+/storage/**/*.webp
+
+
+# ------------------------------------------------------------------------------
+# LARAVEL BOOTSTRAP CACHE
+# ------------------------------------------------------------------------------
+
+# Кэш bootstrap: config.php, routes.php, packages.php и т.п.
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+
+
+# ------------------------------------------------------------------------------
+# COMPOSER / PHP DEPENDENCIES
+# ------------------------------------------------------------------------------
+
+# Vendor-зависимости PHP.
+/vendor
+
+
+# ------------------------------------------------------------------------------
+# ENVIRONMENT FILES
+# ------------------------------------------------------------------------------
+
+# Основной .env с локальными/боевыми секретами.
+.env
+
+# Любые вариации .env.
+.env.*
+
+# Исключение: пример конфигурации можно и нужно коммитить.
+!.env.example
+
+
+# ------------------------------------------------------------------------------
+# LEGACY LOCK / CONFIG ARTIFACTS
+# ------------------------------------------------------------------------------
+
+# Старый lock-файл Composer.
+/composer-old.lock
+
+# Резервные/старые версии Vite-конфига и timestamp-артефакты.
+/vite.config.mts.*
+
+
+# ------------------------------------------------------------------------------
+# HOMESTEAD / LOCAL VM CONFIG
+# ------------------------------------------------------------------------------
+
+Homestead.json
+Homestead.yaml
+
+
+# ------------------------------------------------------------------------------
+# PACKAGE MANAGER DEBUG LOGS
+# ------------------------------------------------------------------------------
+
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+
+
+# ------------------------------------------------------------------------------
+# IDE / EDITOR LOCAL SETTINGS
+# ------------------------------------------------------------------------------
+
+/.idea
+/.vscode
+*.code-workspace
+
+
+# ------------------------------------------------------------------------------
+# OPERATING SYSTEM JUNK
+# ------------------------------------------------------------------------------
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# ------------------------------------------------------------------------------
+# EDITOR / TEMPORARY JUNK
+# ------------------------------------------------------------------------------
+
+*.swp
+*.swo
+*~
+.#*
+\#*#
+*.bak
+*.old
+*.orig
+*.rej
+*.pid
+*.tmp
+*.temp
+
+
+# ------------------------------------------------------------------------------
+# ROOT LOGS / LOCAL RUNTIME OUTPUT
+# ------------------------------------------------------------------------------
+
+# Корневая папка logs.
 /logs/
 
-# Reports - игнорируем всё кроме LATEST
-/tools/reports/TALKSTREAM_AUDIT_*.txt
-!/tools/reports/TALKSTREAM_AUDIT_LATEST.txt
+# Локальная временная папка tmp в корне проекта.
+/tmp/
 
-# Snapshots - отслеживаем (для истории рефакторинга)
-!/tools/snapshots/
+
+# ------------------------------------------------------------------------------
+# LEGACY TEST / DEBUG SCRIPTS
+# ------------------------------------------------------------------------------
+
+# Локальный скрипт проверки Panther.
+/panther-test.php
+
+
+# ------------------------------------------------------------------------------
+# LEGACY DYNAMIC TABLE / PROJECT DUMPS
+# ------------------------------------------------------------------------------
+
+/dynamic_tables_dump.txt
+/dynamic_tables_dump_simple.txt
+/dynamic_tables_dump_fast.txt
+/dynamic_tables_dump*
+
+/dump_project.bat
+
+/project_dump.txt
+/project_dump_v2.bat
+/project_dump_dynamic_table_v2.bat
+/project_dump*
+
+/collected_dump*.txt
+/universal_dynamic_tables_dump.txt
+/versions_before.txt
+
+
+# ------------------------------------------------------------------------------
+# SUPERVISOR LOCAL CONFIG
+# ------------------------------------------------------------------------------
+
+/supervisor/
+/supervisor/*
+
+
+# ------------------------------------------------------------------------------
+# DOCKER LOCAL OVERRIDES
+# ------------------------------------------------------------------------------
+
+/docker/
+/docker/*
+
+docker-compose.dev.yml
+docker-compose.override.yml
+
+
+# ------------------------------------------------------------------------------
+# SQLITE LOCAL DATABASES
+# ------------------------------------------------------------------------------
+
+/database/*.sqlite
+/database/*.sqlite-journal
+
+
+# ------------------------------------------------------------------------------
+# BUNDLE ANALYZER OUTPUT
+# ------------------------------------------------------------------------------
+
+# Отчёт rollup-plugin-visualizer.
+/stats.html
+
+
+# ------------------------------------------------------------------------------
+# LOCAL STRUCTURE DUMP HELPERS AND GENERATED TREES
+# ------------------------------------------------------------------------------
+
+**/dump_structure_tree.bat
+**/dump_structure_tree2.bat
+
+**/dump_create_structure_tree.bat
+**/dump_create_structure_tree*.bat
+
+**/project_structure_tree.txt
+**/project_structure_tree.log
+
+**/project_create_structure_tree.txt
+**/project_create_structure_tree.json
+**/project_create_structure_tree.log
+
+
+# ------------------------------------------------------------------------------
+# GENERATED UNPLUGIN TYPES
+# ------------------------------------------------------------------------------
+
+# Generated by unplugin-auto-import and unplugin-vue-components.
+# Handwritten files under types/ remain tracked.
+/types/auto-imports.d.ts
+/types/components.d.ts
+!/types/.gitkeep
+
+
+# ------------------------------------------------------------------------------
+# INTENTIONALLY TRACKED: LOCK FILES
+# ------------------------------------------------------------------------------
+#
+# composer.lock and package-lock.json are intentionally NOT ignored here.
+# They improve reproducibility for Docker, CI, CentOS, Debian and future
+# Linux hosting deployments.
+#
+# If old policy must be restored, uncomment carefully:
+# composer.lock
+# package-lock.json
+
+
+# ------------------------------------------------------------------------------
+# TOOL PACKAGES: TRANSIENT ARTIFACTS
+# ------------------------------------------------------------------------------
+
+# Логи инструментов.
+/tools/**/logs/*
+!/tools/**/logs/.gitkeep
+
+# Временные файлы инструментов.
+/tools/**/tmp/*
+!/tools/**/tmp/.gitkeep
+
+# Кэши инструментов.
+/tools/**/cache/*
+!/tools/**/cache/.gitkeep
+
+
+# ------------------------------------------------------------------------------
+# TOOL PACKAGES: SNAPSHOTS ARE TRACKED EVIDENCE
+# ------------------------------------------------------------------------------
+
+# Разрешаем саму папку snapshots внутри любого инструмента.
+!/tools/**/snapshots/
+
+# Разрешаем содержимое snapshots.
+!/tools/**/snapshots/**
+
+# Но даже внутри snapshots реальный .env не должен коммититься.
+/tools/**/snapshots/.env
+/tools/**/snapshots/.env.*
+!/tools/**/snapshots/.env.example
+
+# Raw secret файлы внутри snapshots игнорируются, несмотря на общий unignore.
+/tools/**/snapshots/raw-secrets_*
+/tools/**/snapshots/raw_secrets_*
+
+
+# ------------------------------------------------------------------------------
+# TOOL PACKAGES: REPORTS ARE TRACKED EVIDENCE EXCEPT RAW SECRETS
+# ------------------------------------------------------------------------------
+
+# Raw secret report с дефисом в имени.
+/tools/**/reports/raw-secrets_*
+
+# Raw secret report с подчёркиванием в имени.
+/tools/**/reports/raw_secrets_*
+
+# Страховочное правило.
+/tools/**/reports/*secret*raw*
+
+
+# ------------------------------------------------------------------------------
+# TOOL PACKAGES: ENV FILES
+# ------------------------------------------------------------------------------
+
+# Любой .env внутри tools.
+/tools/**/.env
+
+# Любые .env.* внутри tools.
+/tools/**/.env.*
+
+# Пример конфига внутри tools можно коммитить.
+!/tools/**/.env.example
