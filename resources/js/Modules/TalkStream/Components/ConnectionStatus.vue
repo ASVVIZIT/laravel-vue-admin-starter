@@ -1,5 +1,5 @@
 <script setup>
-import { useTalkStreamStore } from '@/Modules/TalkStream/Stores/talkStreamStore';
+import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore';
 
 const talkStream = useTalkStreamStore();
 </script>

@@ -3,14 +3,14 @@ import type { App, Plugin } from 'vue'
 // Автоматический реестр директивных плагинов модулей.
 //
 // Соглашение: любой файл вида:
-//   resources/js/Modules/<Module>/Directives/**/*Directive.ts
+//   resources/js/modules/<Module>/Directives/**/*Directive.ts
 // экспортирует default Vue-plugin (объект с install(app) или функция),
 // который регистрирует свои директивы через app.directive(...).
 //
 // Примеры, которые подхватятся сейчас и в будущем:
-//   Modules/TalkStream/Directives/Loading/loadingDirective.ts
-//   Modules/TalkStream/Directives/Tooltip/tooltipDirective.ts
-//   Modules/<Other>/Directives/Clipboard/clipboardDirective.ts
+//   modules/TalkStream/Directives/Loading/loadingDirective.ts
+//   modules/TalkStream/Directives/Tooltip/tooltipDirective.ts
+//   modules/<Other>/Directives/Clipboard/clipboardDirective.ts
 //
 // Правила, чтобы реестр не ловил мусор:
 // - файлы-реестры заканчиваются ровно на "Directive.ts" (заглавная D);
@@ -26,13 +26,15 @@ import type { App, Plugin } from 'vue'
 // app.use(pinia) или побочные эффекты, которые должны выполняться по запросу.
 //
 // Важно про glob:
-// - алиасы (@/, @modules/) внутри паттерна не работают, поэтому относительный путь;
-// - регистр "../Modules" обязан совпадать с реальным регистром папки на диске
-//   (NTFS отдаёт имена как лежат; на Linux расхождение регистра сломает glob);
-// - если discovered в DEV пустой, сверь регистр с Get-ChildItem и поправь паттерн.
+// - import.meta.glob не использует алиасы @/, @modules, @/modules из
+//   tsconfig.json, jsconfig.json или vite.config.mts;
+// - паттерн обязан быть относительным от этого файла или абсолютным от корня;
+// - поэтому здесь используется ../modules, а не @/modules;
+// - регистр "../modules" обязан совпадать с реальным регистром папки на диске;
+// - если discovered в DEV пустой, проверь Get-ChildItem resources\js -Directory.
 
 const directivePlugins = import.meta.glob(
-    '../Modules/*/Directives/**/*Directive.ts',
+    '../modules/*/Directives/**/*Directive.ts',
     { eager: true, import: 'default' }
 ) as Record<string, unknown>
 
@@ -51,7 +53,11 @@ function isPlugin(value: unknown): value is Plugin {
 
 export default {
     install(app: App): void {
-        const paths = Object.keys(directivePlugins)
+        const entries = Object.entries(directivePlugins).sort((a, b) =>
+            a[0].localeCompare(b[0])
+        )
+
+        const paths = entries.map(([path]) => path)
 
         if (import.meta.env.DEV) {
             console.info('[moduleDirectives] discovered:', paths)
@@ -60,11 +66,11 @@ export default {
         if (paths.length === 0) {
             console.warn(
                 '[moduleDirectives] glob не нашёл ни одного *Directive.ts — ' +
-                'проверь регистр папки Modules и структуру Modules/<Module>/Directives/**/*Directive.ts'
+                'проверь регистр папки modules и структуру modules/<Module>/Directives/**/*Directive.ts'
             )
         }
 
-        for (const [path, value] of Object.entries(directivePlugins)) {
+        for (const [path, value] of entries) {
             if (!isPlugin(value)) {
                 if (import.meta.env.DEV) {
                     console.warn(`[moduleDirectives] skipped non-plugin: ${path}`)

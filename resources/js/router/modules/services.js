@@ -1,5 +1,5 @@
 import Layout from '@/layout/Layout.vue'
-import chatRoutes from '@modules/TalkStream/routes.ts'
+import chatRoutes from '@/modules/TalkStream/routes.ts'
 import videoRoutes from '@/modules/Video/Routes.js'
 
 const servicesRoutes = {

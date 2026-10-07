@@ -41,7 +41,7 @@ import { useFriendStore } from '@/modules/TalkStream/Stores/friendStore'
 import ContactItem from '@/modules/TalkStream/Components/ContactItem'
 import { userStore } from '@/store/userStore'
 import { setupUserOnlinePresenceChannel } from '@/modules/TalkStream/Subscriptions/userOnlinePresenceHandler'
-import { setupFriendRequestsChannel } from '@modules/TalkStream/Subscriptions/friendshipEventsHandler.js'
+import { setupFriendRequestsChannel } from '@/modules/TalkStream/Subscriptions/friendshipEventsHandler.js'
 
 const router = useRouter()
 const route = useRoute()

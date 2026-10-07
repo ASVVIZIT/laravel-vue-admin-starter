@@ -10,7 +10,7 @@ import { getCsrfToken, isLogged } from '@/utils/auth';
 import { ElConfigProvider } from 'element-plus';
 import { getActivePinia } from 'pinia';
 import { useI18n } from 'vue-i18n';
-import { useTalkStreamStore } from '@/Modules/TalkStream/Stores/talkStreamStore';
+import { useTalkStreamStore } from '@/modules/TalkStream/Stores/talkStreamStore';
 import { userStore } from '@/store/userStore';
 import { useAuthStore } from '@/store/authStore';
 
