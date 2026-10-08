@@ -37,15 +37,18 @@ export const contactActionLabelsRu: ContactActionLabelSet = {
     labels: {
         friend: 'В друзьях',
         incoming: 'Принять',
-        sent: 'Добавить',
+        sent: 'Отправлено',
         add: 'Добавить',
     },
 
     hints: {
         incoming: 'Вам {date}',
         incomingFallback: 'Вам отправили',
-        sent: 'Отправлено {date}',
-        sentFallback: 'Отправлено',
+
+        // Для отправленной заявки кнопка уже говорит "Отправлено",
+        // поэтому под кнопкой показываем только дату.
+        sent: '{date}',
+        sentFallback: '',
     },
 
     titles: {
@@ -58,8 +61,10 @@ export const contactActionLabelsRu: ContactActionLabelSet = {
     hintTitles: {
         incoming: 'Входящая заявка от {date}',
         incomingFallback: 'Входящая заявка',
+
         sent: 'Исходящая заявка отправлена {date}',
         sentFallback: 'Исходящая заявка',
+
         friend: 'Уже в друзьях',
         add: 'Добавить в друзья',
     },

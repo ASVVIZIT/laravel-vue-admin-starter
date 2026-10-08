@@ -67,8 +67,9 @@
           @mousedown.prevent
           @click="handleActionClick"
       >
+        <!-- add: плюс -->
         <svg
-            v-if="action.state === 'friend' || action.state === 'incoming'"
+            v-if="action.state === 'add'"
             class="btn-icon"
             viewBox="0 0 24 24"
             fill="none"
@@ -78,9 +79,27 @@
             stroke-linejoin="round"
             aria-hidden="true"
         >
-          <polyline points="20 6 9 17 4 12" />
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
         </svg>
 
+        <!-- incoming: входящая заявка / принять -->
+        <svg
+            v-else-if="action.state === 'incoming'"
+            class="btn-icon"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+        >
+          <path d="M12 5v14" />
+          <path d="m19 12-7 7-7-7" />
+        </svg>
+
+        <!-- sent: отправлено / часы -->
         <svg
             v-else-if="action.state === 'sent'"
             class="btn-icon"
@@ -96,6 +115,7 @@
           <polyline points="12 7 12 12 15.5 14" />
         </svg>
 
+        <!-- friend: в друзьях / галочка -->
         <svg
             v-else
             class="btn-icon"
@@ -107,8 +127,7 @@
             stroke-linejoin="round"
             aria-hidden="true"
         >
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="20 6 9 17 4 12" />
         </svg>
 
         <span class="btn-text">{{ action.label }}</span>
@@ -120,8 +139,8 @@
           :class="'action-hint--' + action.state"
           :title="action.hintTitle"
       >
-        {{ action.hint }}
-      </span>
+    {{ action.hint }}
+  </span>
     </div>
   </li>
 </template>
@@ -609,18 +628,22 @@ function handleActionClick(): void {
 }
 
 .btn-sent {
-  background-color: #f0ad4e;
-  color: #ffffff;
+  background-color: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
 }
 
 .btn-friend {
-  background-color: #e2e8f0;
-  color: #334155;
+  background-color: #ecfdf5;
+  color: #166534;
+  border: 1px solid #bbf7d0;
 }
 
+/*
+ * Белый текст на активных цветных кнопках.
+ */
 .btn-add .btn-text,
-.btn-incoming .btn-text,
-.btn-sent .btn-text {
+.btn-incoming .btn-text {
   color: #ffffff;
 
   text-shadow:
@@ -631,9 +654,13 @@ function handleActionClick(): void {
       -1px 0 0 rgba(0, 0, 0, 0.12);
 }
 
+/*
+ * Отправлено / В друзьях — спокойные состояния,
+ * без белого текста и без агрессивной тени.
+ */
+.btn-sent .btn-text,
 .btn-friend .btn-text {
-  color: #334155;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.75);
+  text-shadow: none;
 }
 
 .action-hint {
@@ -660,10 +687,10 @@ function handleActionClick(): void {
 }
 
 .action-hint--sent {
-  color: #d97706;
+  color: #c2410c;
 }
 
 .action-hint--friend {
-  color: #64748b;
+  color: #15803d;
 }
 </style>

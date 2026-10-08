@@ -37,23 +37,51 @@ const emit = defineEmits<{
 const contactStore = useContactStore()
 const friendStore = useFriendStore()
 
-const isOnline = computed((): boolean => contactStore.isOnline(props.contact.id))
-const isFriend = computed((): boolean => friendStore.isFriend(props.contact.id))
-const hasIncoming = computed((): boolean => friendStore.hasIncoming(props.contact.id))
-const hasSent = computed((): boolean => friendStore.hasSent(props.contact.id))
-
-const requestCreatedAt = computed((): string | null => {
-  return friendStore.getRequestCreatedAt(props.contact.id)
+const isOnline = computed((): boolean => {
+  return contactStore.isOnline(props.contact.id)
 })
 
 /**
- * Важно для стабильности скролла:
- * selected вычисляем ТОЛЬКО по contactStore.selectedContact.
- *
- * Никакого localStorage в isSelected.
- * Никакого auto-select в onMounted.
- * Иначе при монтировании списка может происходить лишняя смена класса
- * и браузер/скролл-anchoring дёргает позицию.
+ * Читаем состояние дружбы напрямую из store state.
+ * Это проще и надёжнее для реактивности, чем вызывать actions в computed.
+ */
+const isFriend = computed((): boolean => {
+  return friendStore.friends.includes(props.contact.id)
+})
+
+const hasIncoming = computed((): boolean => {
+  return friendStore.incomingRequests.some(
+      (request) => Number(request?.user_id) === props.contact.id,
+  )
+})
+
+const hasSent = computed((): boolean => {
+  return friendStore.sentRequests.includes(props.contact.id)
+})
+
+/**
+ * Дата заявки:
+ *   1. если входящая — берём created_at из incomingRequests;
+ *   2. если исходящая — берём из sentRequestsById;
+ *   3. иначе null.
+ */
+const requestCreatedAt = computed((): string | null => {
+  const incoming = friendStore.incomingRequests.find(
+      (request) => Number(request?.user_id) === props.contact.id,
+  )
+
+  if (incoming?.created_at) {
+    return incoming.created_at
+  }
+
+  const sentDate = friendStore.sentRequestsById[props.contact.id]
+
+  return sentDate ? sentDate : null
+})
+
+/**
+ * Выбор контакта только через contactStore.
+ * Без localStorage, без auto-select в onMounted.
  */
 const isSelected = computed((): boolean => {
   return contactStore.selectedContact?.id === props.contact.id
