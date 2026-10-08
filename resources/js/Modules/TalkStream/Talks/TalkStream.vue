@@ -190,19 +190,28 @@ onMounted(async () => {
 }
 
 .contacts-wrapper {
-  min-width: 160px;
-  min-height: 200px;
-  transition: all 0.3s ease;
+  flex: 0 0 auto;
+
+  width: auto;
+  max-width: 210px;
+
+  height: 100%;
+  min-height: 0;
+
   overflow: hidden;
   background: #fff;
 
+  transition:
+      width 0.25s ease,
+      min-width 0.25s ease,
+      opacity 0.25s ease,
+      transform 0.25s ease;
+
   &.collapsed {
-    min-width: 0;
     width: 0;
+    min-width: 0;
     opacity: 0;
     transform: translateX(-100%);
-    margin-right: 0;
-    padding: 0;
   }
 }
 
