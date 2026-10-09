@@ -1,0 +1,292 @@
+﻿{
+    "generatedAt":  "2026-10-09 06:39:49",
+    "scriptVersion":  "3.1.0",
+    "toolRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit",
+    "projectRoot":  "W:/OpenServer/domains/Laravel/Other/FenixPortal",
+    "outputDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/reports",
+    "logDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/logs",
+    "snapshotDir":  "W:/OpenServer/domains/Laravel/Other/FenixPortal/tools/modules/TalkStream/ScriptTalkStreamAudit/snapshots",
+    "secretMode":  "redact",
+    "scanReports":  false,
+    "totals":  {
+                   "filesScanned":  53,
+                   "importRecords":  158,
+                   "directiveUsages":  13,
+                   "loadingKeys":  3,
+                   "registeredDirectives":  3,
+                   "configZones":  0,
+                   "secretFindings":  0,
+                   "risks":  0,
+                   "warnings":  15,
+                   "infos":  0
+               },
+    "findings":  [
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Api/talkStreamApi.ts",
+                         "Line":  2,
+                         "Message":  "Relative import \u0027../Types\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "ExtensionInInternalImport",
+                         "File":  "resources/js/modules/TalkStream/Components/Messages/MessageItem.vue",
+                         "Line":  70,
+                         "Message":  "Import \u0027@/store/userStore.js\u0027 contains explicit .ts/.js extension.",
+                         "Details":  "Project rule for internal imports: no .ts/.js extensions in paths."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Directives/Loading/loadingDirective.ts",
+                         "Line":  5,
+                         "Message":  "Relative import \u0027./v-loading-talkstream\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Directives/Loading/loadingDirective.ts",
+                         "Line":  6,
+                         "Message":  "Relative import \u0027./v-loading-talkstream-small\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Directives/Loading/loadingDirective.ts",
+                         "Line":  7,
+                         "Message":  "Relative import \u0027./v-loading-talkstream-inline\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Directives/Loading/v-loading-talkstream-inline.ts",
+                         "Line":  4,
+                         "Message":  "Relative import \u0027./create-loading-directive\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Directives/Loading/v-loading-talkstream-small.ts",
+                         "Line":  4,
+                         "Message":  "Relative import \u0027./create-loading-directive\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "RelativeImportInsideModule",
+                         "File":  "resources/js/modules/TalkStream/Directives/Loading/v-loading-talkstream.ts",
+                         "Line":  4,
+                         "Message":  "Relative import \u0027./create-loading-directive\u0027 is used inside TalkStream module.",
+                         "Details":  "Module rule: internal dependencies should grow from @/modules/TalkStream/... or @modules/TalkStream/..., not from ./ or ../."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingModifierWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "Loading modifier \u0027.contacts\u0027 is used in templates, but zones.contacts is not found in config/loading.ts.",
+                         "Details":  "Either add the zone to config/loading.ts or remove the modifier if it is unused."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingModifierWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "Loading modifier \u0027.history\u0027 is used in templates, but zones.history is not found in config/loading.ts.",
+                         "Details":  "Either add the zone to config/loading.ts or remove the modifier if it is unused."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingModifierWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "Loading modifier \u0027.sender\u0027 is used in templates, but zones.sender is not found in config/loading.ts.",
+                         "Details":  "Either add the zone to config/loading.ts or remove the modifier if it is unused."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingModifierWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "Loading modifier \u0027.ts\u0027 is used in templates, but zones.ts is not found in config/loading.ts.",
+                         "Details":  "Either add the zone to config/loading.ts or remove the modifier if it is unused."
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingKeyWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "useLoading/getLoadingState key \u0027contacts\u0027 is used, but zones.contacts is not found in config/loading.ts.",
+                         "Details":  ""
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingKeyWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "useLoading/getLoadingState key \u0027history\u0027 is used, but zones.history is not found in config/loading.ts.",
+                         "Details":  ""
+                     },
+                     {
+                         "Severity":  "Warning",
+                         "Code":  "LoadingKeyWithoutConfigZone",
+                         "File":  "config/loading.ts",
+                         "Line":  0,
+                         "Message":  "useLoading/getLoadingState key \u0027sender\u0027 is used, but zones.sender is not found in config/loading.ts.",
+                         "Details":  ""
+                     }
+                 ],
+    "secretRecords":  [
+
+                      ],
+    "extra":  {
+                  "modulesDirectory":  "resources/js/modules",
+                  "moduleDirectory":  "resources/js/modules/TalkStream",
+                  "inventorySummary":  [
+                                           {
+                                               "Name":  "Api",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Components",
+                                               "Count":  14
+                                           },
+                                           {
+                                               "Name":  "Composables",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Config",
+                                               "Count":  3
+                                           },
+                                           {
+                                               "Name":  "Directives",
+                                               "Count":  5
+                                           },
+                                           {
+                                               "Name":  "Legacy",
+                                               "Count":  3
+                                           },
+                                           {
+                                               "Name":  "Main",
+                                               "Count":  5
+                                           },
+                                           {
+                                               "Name":  "Plugin",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Routes",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "Services",
+                                               "Count":  3
+                                           },
+                                           {
+                                               "Name":  "Stores",
+                                               "Count":  6
+                                           },
+                                           {
+                                               "Name":  "Subscriptions",
+                                               "Count":  3
+                                           },
+                                           {
+                                               "Name":  "Types",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "Utils",
+                                               "Count":  5
+                                           }
+                                       ],
+                  "importSummary":  [
+                                        {
+                                            "Name":  "alias-root",
+                                            "Count":  105
+                                        },
+                                        {
+                                            "Name":  "package",
+                                            "Count":  37
+                                        },
+                                        {
+                                            "Name":  "alias-modules",
+                                            "Count":  8
+                                        },
+                                        {
+                                            "Name":  "relative",
+                                            "Count":  7
+                                        },
+                                        {
+                                            "Name":  "other-alias-or-scoped-package",
+                                            "Count":  1
+                                        }
+                                    ],
+                  "directiveSummary":  [
+                                           {
+                                               "Name":  "loading-talkstream|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream|history",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream|ts",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-inline|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-inline|sender",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-inline|ts",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|",
+                                               "Count":  2
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|contacts",
+                                               "Count":  1
+                                           },
+                                           {
+                                               "Name":  "loading-talkstream-small|ts",
+                                               "Count":  1
+                                           }
+                                       ],
+                  "loadingKeySummary":  [
+                                            {
+                                                "Name":  "useLoading|contacts",
+                                                "Count":  1
+                                            },
+                                            {
+                                                "Name":  "useLoading|history",
+                                                "Count":  1
+                                            },
+                                            {
+                                                "Name":  "useLoading|sender",
+                                                "Count":  1
+                                            }
+                                        ],
+                  "registeredDirectives":  [
+                                               "loading-talkstream",
+                                               "loading-talkstream-inline",
+                                               "loading-talkstream-small"
+                                           ],
+                  "configZones":  [
+
+                                  ]
+              }
+}

@@ -17,15 +17,15 @@
 |   [РАСХ]  рассинхрон контракта с реальным кодом (имя/маппинг врёт) — требует правки значения
 |
 | РЕВИЗИЯ (якорь отладки, НЕ релизная версия):
-|   Привязана к срезу аудита tools/reports/TALKSTREAM_AUDIT_Level_*.txt.
+|   Привязана к срезу аудита tools/modules/TalkStream/ScriptTalkStreamAudit/reports/TALKSTREAM_AUDIT_Level_*.txt.
 |   Для «какая версия чата» теху на экране — читать это поле через
 |   ConfigController::getConfig (когда фронт-читалка /talkstream/config будет
 |   подключена; сейчас она НЕ подключена — см. примечание в конце файла).
 |   Настоящая версия модуля в будущем = git describe --tags, не ручной счётчик.
 |
 | СВОДКА ЗРЕЛОСТИ (27 листовых опций):
-|   [РЕАЛ]=7  [ЧАСТ]=3  [РАСХ]=1  [НЕТ]=16
-|   Реально работают: channels.user/presence/friends; events.message_read/
+|   [РЕАЛ]=8  [ЧАСТ]=3  [РАСХ]=0  [НЕТ]=16
+|   Реально работают: channels.user/presence/friends; events.NewMessage/message_read/
 |   friend_request_sent/friend_accepted; limits.max_message_length;
 |   базовая логика read-receipt (но НЕ флаг-выключатель enable_read_receipts).
 |   Остальное — задел под будущие итерации (typing, пагинация, медиа, WebRTC,
@@ -35,8 +35,8 @@
 
 return [
 
-// Якорь среза контракта (совпадает с меткой последнего аудита, включённого в коммит).
-    'revision' => 'audit-3.6',
+    // Якорь среза контракта (совпадает с меткой последнего аудита, включённого в коммит).
+    'revision' => 'audit-3.7',
 
     /*
     |--------------------------------------------------------------------------
@@ -58,10 +58,9 @@ return [
             'signal'    => 'signal.{userId}',
         ],
         'events' => [
-            // [РАСХ] реальный класс события = App\Events\TalkStream\NewMessage (broadcastAs 'NewMessage'),
-            //        а НЕ 'MessageSent'. Маппинг ниже врёт контракту. Правка значения (по твоему слову,
-            //        сейчас НЕ применена): 'message_sent' => 'NewMessage'. Фронт-хендлер слушает '.NewMessage'.
-            'message_sent'          => 'MessageSent',
+            // [РЕАЛ] Исправлено рассинхронизация. Реальный класс события = App\Events\TalkStream\NewMessage (broadcastAs 'NewMessage').
+            //        Фронт-хендлер корректно слушает '.NewMessage'. Контракт теперь правдив.
+            'message_sent'          => 'NewMessage',
             // [РЕАЛ] App\Events\TalkStream\MessageRead; broadcastWith=['message'=>…]; фронт разворачивает e.message.to_id→markSentAsRead
             'message_read'          => 'MessageRead',
             // [РЕАЛ] App\Events\TalkStream\FriendRequestSent; ловится friendshipEventsHandler
@@ -162,9 +161,9 @@ return [
 |--------------------------------------------------------------------------
 | ПРИМЕЧАНИЕ ДЛЯ ТЕХА / ДОРАБОТКИ
 |--------------------------------------------------------------------------
-| 1. РАСХОЖДЕНИЕ message_sent: чтобы контракт не врал, поменяй значение на 'NewMessage'
-|    (реальный broadcastAs класса App\Events\TalkStream\NewMessage). Сейчас фронт
-|    слушает '.NewMessage', поэтому рантайм работает, но конфиг-маппинг дезориентирует.
+| 1. РАСХОЖДЕНИЕ message_sent: ИСПРАВЛЕНО в срезе audit-3.7. Значение изменено на 'NewMessage',
+|    чтобы соответствовать реальному broadcastAs класса App\Events\TalkStream\NewMessage.
+|    Теперь контракт правдив, фронт слушает '.NewMessage', всё работает корректно.
 | 2. Фронт-читалка /talkstream/config НЕ подключена: ConfigController::getConfig отдаёт
 |    subset (ui.enable_read_receipts, ui.messages_per_page, limits.max_message_length),
 |    но ни appStore, ни initAuthConfig, ни settings.js этот эндпоинт не дёргают.

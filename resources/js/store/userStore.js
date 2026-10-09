@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { ref } from "vue";
 import { permissionStore } from '@/store/permissionStore';
 import { useTalkStreamStore } from "@/modules/TalkStream/Stores/talkStreamStore";
-import { updateEchoToken } from "@/modules/TalkStream/plugins/echoTalkStream";
+import { updateEchoToken } from "@/modules/TalkStream/Plugin/echoTalkStreamPlugin";
 import * as userApi from '@/api/auth';
 
 export const userStore = defineStore('user', () => {
